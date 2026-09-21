@@ -72,6 +72,7 @@ typedef struct {
     dshotRawValueState_e rawValueState;
 } dshotTelemetryState_t;
 
+#ifdef USE_DSHOT_BIDIR
 extern bool useDshotTelemetry;
 extern dshotTelemetryState_t dshotTelemetryState;
 
@@ -85,3 +86,4 @@ uint16_t getDshotErpm(uint8_t motorIndex);
 float getDshotRpmAverage(void);
 float getMotorFrequencyHz(uint8_t motorIndex);
 bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex);
+#endif

@@ -41,8 +41,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "flight/mixer.h"
-#include "drivers/dshot.h"
-#include "drivers/pwm_mapping.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
 #include "drivers/pwm_mapping.h"
@@ -290,11 +289,14 @@ bool escSensorInitialize(void)
 
     escSensorInitData();
 
-    if (motorConfig()->useDshotTelemetry && (motorConfig()->motorPwmProtocol >= PWM_TYPE_DSHOT150)) {
+#ifdef USE_DSHOT_BIDIR
+    // Telemetry on the motor line: fed by the motor driver, no port to open
+    if (isDshotTelemetryActive()) {
         escSensorDshotActive = true;
         ENABLE_STATE(ESC_SENSOR_ENABLED);
         return true;
     }
+#endif
 
     // FUNCTION_ESCSERIAL is shared between SERIALSHOT and ESC_SENSOR telemetry
     // They are mutually exclusive
@@ -315,6 +317,25 @@ bool escSensorInitialize(void)
 
 void escSensorUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_DSHOT_BIDIR
+    if (escSensorDshotActive) {
+        // The motor driver refreshes the data with every decoded frame. Age it at the serial
+        // poll rate, so a silent ESC drops out of the combined values the same way (the serial
+        // poll timer doubles as the aging clock, nothing polls here)
+        const timeMs_t currentTimeMs = currentTimeUs / 1000;
+        if (currentTimeMs - escTriggerTimeMs >= ESC_REQUEST_TIMEOUT_MS) {
+            escTriggerTimeMs = currentTimeMs;
+            for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+                if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
+                    escSensorData[i].dataAge++;
+                    escSensorDataNeedsUpdate = true;
+                }
+            }
+        }
+        return;
+    }
+#endif
+
 #ifdef USE_MOTOR_SRXL2
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
         /* One ESC per port, so escSensorData[i] belongs to the i-th assigned

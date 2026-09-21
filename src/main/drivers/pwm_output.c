@@ -34,9 +34,8 @@
 
 #include "drivers/io.h"
 #include "drivers/nvic.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/time.h"
-#include "drivers/dshot.h"
-#include "drivers/nvic.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -71,9 +70,17 @@
 #define DSHOT_MOTOR_BITLENGTH   20
 
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
+#define MAX_DMA_TIMERS          8
+
+#ifdef USE_DSHOT_BIDIR
 #define DSHOT_TELEMETRY_DEADTIME_US 35
 #define GCR_TELEMETRY_INPUT_LEN MAX_GCR_EDGES
-#define MAX_DMA_TIMERS          8
+/* A bidir port captures the GCR edges of the ESC reply into the same buffer it sends the
+ * frame from, so the buffer is sized for the larger of the two */
+#define DSHOT_PORT_DMA_BUFFER_SIZE GCR_TELEMETRY_INPUT_LEN
+#else
+#define DSHOT_PORT_DMA_BUFFER_SIZE DSHOT_DMA_BUFFER_SIZE
+#endif
 
 /* Keep-alive frame replayed by circular DMA while the CPU is stalled by a flash write:
  * 16 data bits followed by an idle (line low) gap of DSHOT_KEEPALIVE_GAP_US.
@@ -120,13 +127,15 @@ typedef struct {
 
 #ifdef USE_DSHOT
     // DSHOT parameters
-    timerDMASafeType_t dmaBuffer[GCR_TELEMETRY_INPUT_LEN];
+    timerDMASafeType_t dmaBuffer[DSHOT_PORT_DMA_BUFFER_SIZE];
 #ifdef USE_DSHOT_DMAR
     timerDMASafeType_t *dmaBurstBuffer;
 #endif
+#ifdef USE_DSHOT_BIDIR
     bool telemetryInputActive;
     timeUs_t telemetryInputStampUs;
     timeUs_t dshotTelemetryDeadtimeUs;
+#endif
 #endif
 } pwmOutputPort_t;
 
@@ -158,7 +167,9 @@ static timeUs_t digitalMotorUpdateIntervalUs = 0;
 static timeUs_t digitalMotorLastUpdateUs;
 static timeUs_t lastCommandSent = 0;
 static timeUs_t commandPostDelay = 0;
+#ifdef USE_DSHOT_BIDIR
 static bool dshotTelemetryPending = false;
+#endif
 
 static circularBuffer_t commandsCircularBuffer;
 static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
@@ -168,6 +179,7 @@ static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry);
 uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType);
 #ifndef USE_DSHOT_DMAR
 static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet);
+#else
 static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, uint16_t packet);
 #endif
 
@@ -176,12 +188,14 @@ burstDmaTimer_t burstDmaTimers[MAX_DMA_TIMERS];
 uint8_t burstDmaTimersCount = 0;
 #endif
 
+#ifdef USE_DSHOT_BIDIR
 // GCR decode algorithm ported from Betaflight (GPLv3)
 static uint16_t dshotDecodeTelemetryPacket(const uint32_t buffer[], uint32_t count);
 static bool pwmDshotDecodeTelemetry(void);
 static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port);
 static void pwmDshotSetDirectionInput(pwmOutputPort_t *port);
 static void pwmDshotDmaIrqHandler(DMA_t descriptor);
+#endif
 #endif
 
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
@@ -307,14 +321,14 @@ void pwmSetMotorDMACircular(bool circular)
         return;
     }
 
-    // Bidirectional DSHOT uses per-channel DMA with output/input direction
-    // switching: the burst path is never armed (dmaBurstBuffer stays NULL on
-    // USE_DSHOT_DMAR targets) and a port may currently be in the input-capture
-    // direction. Skip the circular keepalive and accept the frame gap during
-    // the flash write, matching Betaflight behaviour.
+#ifdef USE_DSHOT_BIDIR
+    // No replay for bidir: the ports switch direction per frame and one may sit in input
+    // capture, so the circular replay below does not apply. The ESC sees a frame gap (line
+    // idle-high) for the flash write, as in Betaflight.
     if (useDshotTelemetry) {
         return;
     }
+#endif
 
     int motorCount = getMotorCount();
     const uint32_t dshotHz = getDshotHz(initMotorProtocol);
@@ -444,6 +458,7 @@ static uint8_t getBurstDmaTimerIndex(TIM_TypeDef *timer)
 }
 #endif
 
+#ifdef USE_DSHOT_BIDIR
 static uint32_t dshotDmaSource(const pwmOutputPort_t *port)
 {
 #if defined(USE_HAL_DRIVER) || !defined(AT32F43x)
@@ -503,8 +518,16 @@ static uint16_t dshotDecodeTelemetryPacket(const uint32_t buffer[], uint32_t cou
                 break;
             }
             len = (diff + 8) / 16;
+            if (len < 1 || len > 21) {
+                // Edges closer than half a GCR bit or further apart than a whole frame
+                return DSHOT_TELEMETRY_INVALID;
+            }
         } else {
             len = 21 - bits;
+            if (len < 1) {
+                // All bits accounted for, no trailing run left to infer
+                break;
+            }
         }
 
         value <<= len;
@@ -786,6 +809,9 @@ static void dshotConnectOutputs(void)
     }
 }
 
+// Takes over the stream's completion interrupt from the timer driver on bidir ports: once
+// the frame is out the port is turned round to capture the ESC reply, and
+// pwmDshotDecodeTelemetry() turns it back before the next frame
 static void pwmDshotDmaIrqHandler(DMA_t descriptor)
 {
     if (!DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
@@ -806,7 +832,12 @@ static void pwmDshotDmaIrqHandler(DMA_t descriptor)
     TIM_DMACmd(port->tch->timHw->tim, dshotDmaSource(port), DISABLE);
 #endif
 
-    if (useDshotTelemetry && !port->telemetryInputActive) {
+    // Same bookkeeping as the timer driver's handler (timerPWMDMAInProgress())
+    if (port->tch->dmaState == TCH_DMA_ACTIVE) {
+        port->tch->dmaState = TCH_DMA_IDLE;
+    }
+
+    if (!port->telemetryInputActive) {
         pwmDshotSetDirectionInput(port);
         dshotTelemetryPending = true;
     }
@@ -818,7 +849,7 @@ static void pwmDshotDmaIrqHandler(DMA_t descriptor)
 // decode path out of the fast motor-update caller on constrained F7 targets.
 static bool NOINLINE pwmDshotDecodeTelemetry(void)
 {
-    if (!useDshotTelemetry || !dshotTelemetryPending) {
+    if (!dshotTelemetryPending) {
         return true;
     }
 
@@ -851,9 +882,8 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
 
         if (edges > MIN_GCR_EDGES) {
 #if defined(STM32H7)
-            // port->dmaBuffer lives in the cacheable DMA_RAM region (write-through on the
-            // write side, but reads still need an explicit invalidate) - without this the
-            // CPU can read stale data instead of what the capture DMA just wrote.
+            // Defensive: DMA_RAM is mapped non-cacheable by the MPU, so this is a no-op as
+            // long as the port buffers stay there
             uint32_t alignedAddr = (uint32_t)port->dmaBuffer & ~0x1F;
             SCB_InvalidateDCache_by_Addr((uint32_t *)alignedAddr, edges * sizeof(port->dmaBuffer[0]) + ((uint32_t)port->dmaBuffer - alignedAddr));
 #endif
@@ -862,11 +892,10 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
 
             if (processed != DSHOT_TELEMETRY_INVALID && processed != DSHOT_TELEMETRY_NOEDGE) {
 #ifdef USE_ESC_SENSOR
+                // Nothing to publish before the first eRPM value (an EDT frame may come first)
                 escSensorData_t data;
                 if (getDshotEscSensorData(&data, motorIndex)) {
-                    escSensorSetDshotData(motorIndex, computeRpm((int16_t)data.rpm), data.temperature, data.voltage, data.current);
-                } else {
-                    escSensorSetDshotData(motorIndex, (uint32_t)getDshotRpm(motorIndex), 0, 0, 0);
+                    escSensorSetDshotData(motorIndex, data.rpm, data.temperature, data.voltage, data.current);
                 }
 #endif
             }
@@ -878,6 +907,7 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
     dshotTelemetryPending = false;
     return true;
 }
+#endif // USE_DSHOT_BIDIR
 
 static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware, uint32_t dshotHz, bool enableOutput)
 {
@@ -888,6 +918,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
         return NULL;
     }
 
+#ifdef USE_DSHOT_BIDIR
     if (enableOutput && useDshotTelemetry) {
         // Bidir signalling idles high, but holding the line high with no edges
         // during ESC boot triggers the BLHeli/Bluejay bootloader-entry check
@@ -903,34 +934,38 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
         (timerHardware->output & TIMER_OUTPUT_INVERTED) ? IOHi(io) : IOLo(io);
         dshotPinsParkedLow = true;
     }
+#endif
 
     // Configure timer DMA
 #ifdef USE_DSHOT_DMAR
-    if (!useDshotTelemetry) {
-        uint8_t burstDmaTimerIndex = getBurstDmaTimerIndex(timerHardware->tim);
-        if (burstDmaTimerIndex >= MAX_DMA_TIMERS) {
-            return NULL;
-        }
+    uint8_t burstDmaTimerIndex = getBurstDmaTimerIndex(timerHardware->tim);
+    if (burstDmaTimerIndex >= MAX_DMA_TIMERS) {
+        return NULL;
+    }
 
-        port->dmaBurstBuffer = &dmaBurstBuffer[burstDmaTimerIndex][0];
-        burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
-        burstDmaTimer->dmaBurstBuffer = port->dmaBurstBuffer;
+    port->dmaBurstBuffer = &dmaBurstBuffer[burstDmaTimerIndex][0];
+    burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
+    burstDmaTimer->dmaBurstBuffer = port->dmaBurstBuffer;
 
-        if (timerPWMConfigDMABurst(burstDmaTimer, port->tch, port->dmaBurstBuffer, sizeof(port->dmaBurstBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
-            port->configured = true;
-        }
-    } else
-#endif
-    {
-        if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(port->dmaBuffer[0]), GCR_TELEMETRY_INPUT_LEN)) {
+    if (timerPWMConfigDMABurst(burstDmaTimer, port->tch, port->dmaBurstBuffer, sizeof(port->dmaBurstBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
+        port->configured = true;
+    }
+#else
+    if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(port->dmaBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
         // Only mark as DSHOT channel if DMA was set successfully
         ZERO_FARRAY(port->dmaBuffer);
         port->configured = true;
+#ifdef USE_DSHOT_BIDIR
+        if (useDshotTelemetry) {
+            // Inverted signalling and per-frame direction switching; the port takes the
+            // stream's completion interrupt over from the timer driver
             port->dshotTelemetryDeadtimeUs = DSHOT_TELEMETRY_DEADTIME_US + 1000000 * (16 * DSHOT_MOTOR_BITLENGTH) / dshotHz;
             pwmDshotSetDirectionOutput(port);
             dmaSetHandler(port->tch->dma, pwmDshotDmaIrqHandler, NVIC_PRIO_TIMER_DMA, allocatedOutputPortCount - 1);
         }
+#endif
     }
+#endif
 
     return port;
 }
@@ -946,26 +981,26 @@ static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, 
     dmaBuffer[i++ * stride] = 0;
     dmaBuffer[i++ * stride] = 0;
 }
-#endif
-
-// Needed on every target, DMAR or not: DMAR targets fall back to this
-// per-channel loader whenever bidir telemetry is enabled, since burst DMA
-// can't drive per-channel direction switching.
+#else
 static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
 {
     for (int i = 0; i < 16; i++) {
         dmaBuffer[i] = (packet & 0x8000) ? DSHOT_MOTOR_BIT_1 : DSHOT_MOTOR_BIT_0;  // MSB first
         packet <<= 1;
     }
+    // Frame reset slots: rewritten every time, a bidir port captures edges into this buffer
     dmaBuffer[16] = 0;
     dmaBuffer[17] = 0;
 }
+#endif
 
 static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
 {
+#ifdef USE_DSHOT_BIDIR
     if (useDshotTelemetry) {
         requestTelemetry = true;
     }
+#endif
 
     uint16_t packet = (value << 1) | (requestTelemetry ? 1 : 0);
 
@@ -976,7 +1011,7 @@ static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
         csum ^=  csum_data;   // xor data by nibbles
         csum_data >>= 4;
     }
-#ifdef USE_DSHOT
+#ifdef USE_DSHOT_BIDIR
     if (useDshotTelemetry) {
         csum = ~csum;
     }
@@ -1100,9 +1135,11 @@ void pwmCompleteMotorUpdate(void) {
         return;
     }
 
+#ifdef USE_DSHOT_BIDIR
     if (useDshotTelemetry && !pwmDshotDecodeTelemetry()) {
         return;
     }
+#endif
 
     int motorCount = getMotorCount();
     timeUs_t currentTimeUs = micros();
@@ -1117,17 +1154,18 @@ void pwmCompleteMotorUpdate(void) {
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
 
+#ifdef USE_DSHOT_BIDIR
         if (dshotPinsParkedLow) {
             dshotConnectOutputs();
             dshotPinsParkedLow = false;
         }
+#endif
 
         if (!executeDShotCommands()) {
             return;
         }
 
 #ifdef USE_DSHOT_DMAR
-        if (!useDshotTelemetry) {
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
                 uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
@@ -1140,9 +1178,7 @@ void pwmCompleteMotorUpdate(void) {
             burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
             pwmBurstDMAStart(burstDmaTimer, DSHOT_DMA_BUFFER_SIZE * 4);
         }
-        } else
-#endif
-        {
+#else
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
@@ -1159,7 +1195,7 @@ void pwmCompleteMotorUpdate(void) {
                 timerPWMStartDMA(motors[index].pwmPort->tch);
             }
         }
-        }
+#endif
     }
 #endif
 }
@@ -1178,7 +1214,7 @@ void pwmMotorPreconfigure(void)
 {
     // Keep track of initial motor protocol
     initMotorProtocol = motorConfig()->motorPwmProtocol;
-#ifdef USE_DSHOT
+#ifdef USE_DSHOT_BIDIR
     useDshotTelemetry = motorConfig()->useDshotTelemetry && getMotorProtocolProperties(initMotorProtocol)->isDSHOT;
 #endif
 

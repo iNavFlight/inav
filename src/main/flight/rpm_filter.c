@@ -36,7 +36,7 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "flight/mixer.h"
-#include "drivers/dshot.h"
+#include "drivers/bidir_dshot.h"
 #include "sensors/esc_sensor.h"
 #include "fc/config.h"
 #include "fc/settings.h"
@@ -192,9 +192,12 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
     for (uint8_t i = 0; i < motorCount; i++)
     {
         float baseFrequency;
+#ifdef USE_DSHOT_BIDIR
         if (isDshotTelemetryActive()) {
             baseFrequency = getMotorFrequencyHz(i);
-        } else {
+        } else
+#endif
+        {
 #ifdef USE_ESC_SENSOR
             const escSensorData_t *escState = getEscTelemetry(i);
             baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], (float)escState->rpm / 60.0f);

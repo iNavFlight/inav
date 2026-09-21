@@ -898,11 +898,13 @@ groups:
       - name: dshot_bidir_enabled
         description: "Enable bidirectional DShot telemetry on motor outputs. Required for RPM filtering without a separate ESC telemetry UART"
         field: useDshotTelemetry
+        condition: USE_DSHOT_BIDIR
         type: bool
         default_value: OFF
       - name: dshot_edt_enabled
         description: "Enable extended DShot telemetry decoding (temperature, voltage, current in addition to eRPM)"
         field: useDshotEdt
+        condition: USE_DSHOT_BIDIR
         type: bool
         default_value: OFF
       - name: motor_poles

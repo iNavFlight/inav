@@ -20,13 +20,18 @@
  */
 
 #include <float.h>
+#include <math.h>
 #include <string.h>
 
 #include "platform.h"
 #include "common/utils.h"
-#include "drivers/dshot.h"
+#include "drivers/bidir_dshot.h"
 
-#ifdef USE_DSHOT
+// Bidirectional DSHOT telemetry only: eRPM / EDT decoding, RPM state for the RPM filter and
+// the ESC sensor. Frame generation, DMA and DSHOT commands for plain DSHOT live in
+// pwm_output.c under USE_DSHOT. Every user of this API is guarded by USE_DSHOT_BIDIR.
+
+#ifdef USE_DSHOT_BIDIR
 
 #include "common/filter.h"
 #include "common/maths.h"
@@ -111,9 +116,10 @@ bool isDshotTelemetryActive(void)
     return useDshotTelemetry;
 }
 
+// useDshotTelemetry itself is set by the motor driver (pwmMotorPreconfigure()), which
+// knows whether the outputs were configured for DSHOT at all
 void initDshotTelemetry(timeUs_t looptimeUs)
 {
-    useDshotTelemetry = motorConfig()->useDshotTelemetry && (motorConfig()->motorPwmProtocol >= PWM_TYPE_DSHOT150);
     edtAlwaysDecode = motorConfig()->useDshotEdt != 0;
 
     dshotResetTelemetry();
@@ -210,28 +216,14 @@ bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex)
         return false;
     }
 
-    data->rpm = state->telemetryData[DSHOT_TELEMETRY_TYPE_ERPM];
+    // escSensorData_t units: rpm (mechanical), degrees C, 0.01 V, 0.01 A. EDT reports
+    // the temperature in degrees C, the voltage in 0.25 V and the current in 1 A steps.
+    data->rpm = lrintf(dshotRpm[motorIndex]);
     data->temperature = (state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_TEMPERATURE)) ? state->telemetryData[DSHOT_TELEMETRY_TYPE_TEMPERATURE] : 0;
-    data->voltage = (state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_VOLTAGE)) ? state->telemetryData[DSHOT_TELEMETRY_TYPE_VOLTAGE] * 250 : 0;
-    data->current = (state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_CURRENT)) ? state->telemetryData[DSHOT_TELEMETRY_TYPE_CURRENT] * 1000 : 0;
+    data->voltage = (state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_VOLTAGE)) ? state->telemetryData[DSHOT_TELEMETRY_TYPE_VOLTAGE] * 25 : 0;
+    data->current = (state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_CURRENT)) ? state->telemetryData[DSHOT_TELEMETRY_TYPE_CURRENT] * 100 : 0;
 
     return true;
 }
 
-#endif
-
-#ifndef USE_DSHOT
-bool useDshotTelemetry = false;
-dshotTelemetryState_t dshotTelemetryState;
-
-void initDshotTelemetry(timeUs_t looptimeUs) { UNUSED(looptimeUs); }
-void dshotResetTelemetry(void) {}
-bool isDshotTelemetryConfigured(void) { return false; }
-bool isDshotTelemetryActive(void) { return false; }
-uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex) { UNUSED(motorIndex); return rawValue; }
-float getDshotRpm(uint8_t motorIndex) { UNUSED(motorIndex); return 0.0f; }
-uint16_t getDshotErpm(uint8_t motorIndex) { UNUSED(motorIndex); return 0; }
-float getDshotRpmAverage(void) { return 0.0f; }
-float getMotorFrequencyHz(uint8_t motorIndex) { UNUSED(motorIndex); return 0.0f; }
-bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex) { UNUSED(data); UNUSED(motorIndex); return false; }
 #endif

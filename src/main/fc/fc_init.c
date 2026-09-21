@@ -50,7 +50,7 @@
 #include "drivers/compass/compass.h"
 #include "drivers/bus.h"
 #include "drivers/dma.h"
-#include "drivers/dshot.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
@@ -765,6 +765,8 @@ void init(void)
 
 #ifdef USE_DSHOT
     initDShotCommands();
+#endif
+#ifdef USE_DSHOT_BIDIR
     initDshotTelemetry(getLooptime());
 #endif
 
@@ -799,7 +801,11 @@ void init(void)
 
 #ifdef USE_RPM_FILTER
     disableRpmFilters();
-    if ((escSensorIsActive() || isDshotTelemetryActive()) && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
+    bool rpmSourceActive = escSensorIsActive();
+#ifdef USE_DSHOT_BIDIR
+    rpmSourceActive = rpmSourceActive || isDshotTelemetryActive();
+#endif
+    if (rpmSourceActive && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
         rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
     }
