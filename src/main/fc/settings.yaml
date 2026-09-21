@@ -342,6 +342,12 @@ groups:
         min: 0
         max: 2
         default_value: 0
+      - name: gyro_secondary_enabled
+        description: "On a board with two IMUs, also log the one `gyro_to_use` did not select, to Blackbox as `gyroRaw2`. It is read only while it measures its zero after power-up and while a log is being written, one extra SPI transaction per gyro cycle, and never reaches attitude estimation or the PID loops. While this is off the second IMU is not initialised at all. Log `GYRO_RAW` as well to compare the two sensors."
+        default_value: OFF
+        condition: USE_DUAL_GYRO
+        field: gyro_secondary_enabled
+        type: bool
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
         default_value: ON
