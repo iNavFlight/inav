@@ -4260,7 +4260,7 @@ Pitch Angle deadband when soaring mode enabled (deg). Angle mode inactive within
 
 ### nav_fw_turn_ff_gain
 
-Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven.
+Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4300,7 +4300,7 @@ Unmodelled roll-response lag (servo + airframe inertia) added to the computed ro
 
 ### nav_fw_wp_turn_max_lead_time
 
-COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint.
+COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4310,7 +4310,7 @@ COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. Th
 
 ### nav_fw_wp_turn_mode
 
-How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn. The COORD modes fly coordinated arcs of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY cuts the corner and passes the waypoint abeam, COORD_FLYOVER overflies the waypoint before turning onto the next leg, COORD_FLYINTO crosses the waypoint already aligned with the outbound leg (survey line entries).
+How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn. The COORD modes fly coordinated arcs of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY cuts the corner and passes the waypoint abeam, COORD_FLYOVER overflies the waypoint before turning onto the next leg, COORD_FLYINTO crosses the waypoint already aligned with the outbound leg (survey line entries). On targets with 512 KB flash or less, the arc coordinator is not built in to save flash: the COORD modes remain selectable but silently fly a plain DIRECT turn.
 
 | Allowed Values |  |
 | --- | --- |
