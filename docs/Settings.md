@@ -2209,6 +2209,16 @@ Software based gyro main lowpass filter. Value is cutoff frequency (Hz)
 
 ---
 
+### gyro_secondary_enabled
+
+On a board with two IMUs, also log the one `gyro_to_use` did not select, to Blackbox as `gyroRaw2`. It is read only while it measures its zero after power-up and while a log is being written, one extra SPI transaction per gyro cycle, and never reaches attitude estimation or the PID loops. While this is off the second IMU is not initialised at all. Log `GYRO_RAW` as well to compare the two sensors.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### gyro_to_use
 
 On multi-gyro targets, allows to choose which gyro to use. 0 = first gyro, 1 = second gyro
@@ -2648,6 +2658,26 @@ Used to prevent Iterm accumulation on during maneuvers. Iterm will be dampened w
 | Default | Min | Max |
 | --- | --- | --- |
 | 50 | 0 | 90 |
+
+---
+
+### ledstrip_rainbow_delta_deg
+
+Hue offset in degrees between adjacent LEDs carrying the rainbow overlay. 0 makes every rainbow LED the same color; larger values spread more of the spectrum across the strip.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 30 | 0 | 359 |
+
+---
+
+### ledstrip_rainbow_sweep_rate
+
+Rainbow overlay sweep rate. Higher values sweep faster. 0 freezes the rainbow.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 255 |
 
 ---
 
