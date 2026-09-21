@@ -1379,7 +1379,6 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     /* FLY_BY corner cut: start the turn R*tan(angle/2) before the WP so the arc joins the next leg
      * at any speed. FLY_BY legs only - the landing approach forces FLY_BY in every mode. */
     int32_t waypointTurnAngle = posControl.activeWaypoint.nextTurnAngle == -1 ? -1 : ABS(posControl.activeWaypoint.nextTurnAngle);
-    posControl.flags.wpTurnSmoothingActive = false;
     // not fwEffectiveTurnMode(): the call costs 448 B of flash here at -O2 (F405), none at -Os
     const bool flyByLeg = navConfig()->fw.wp_turn_mode == NAV_FW_WP_TURN_COORD_FLY_BY
                           || posControl.navState == NAV_STATE_FW_LANDING_APPROACH;

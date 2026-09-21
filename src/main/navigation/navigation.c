@@ -4085,6 +4085,7 @@ static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
     if (posControl.navState != newState) {
         posControl.navState = newState;
         posControl.navPersistentId = navFSM[newState].persistentId;
+        posControl.flags.wpTurnSmoothingActive = false;     // a turn's "WP reached" verdict is only valid in the state that produced it
     }
     return previousState;
 }
@@ -4531,7 +4532,8 @@ bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBe
     uint16_t relativeBearingTargetAngle = 10000;
 
     if (STATE(AIRPLANE) && posControl.flags.wpTurnSmoothingActive) {
-        // FLY_BY turn: the waypoint is reached when the anticipated corner-cut turn is initiated
+        // The turn coordinator declared the WP reached (FLY_BY at turn start, FLY_INTO at the S pickup).
+        // Set once, consumed here only - it must survive until this check runs, so nothing clears it per tick.
         posControl.flags.wpTurnSmoothingActive = false;
         return true;
     }
