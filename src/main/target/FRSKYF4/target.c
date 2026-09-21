@@ -25,7 +25,7 @@
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3, PB0, TIM_USE_OUTPUT_AUTO,    1, 0), // S1_OUT
     DEF_TIM(TIM3, CH4, PB1, TIM_USE_OUTPUT_AUTO,    1, 0), // S2_OUT
-    DEF_TIM(TIM2, CH4, PA3, TIM_USE_OUTPUT_AUTO,    1, 0), // S3_OUT
+    DEF_TIM(TIM2, CH4, PA3, TIM_USE_OUTPUT_AUTO,    1, 1), // S3_OUT -- dmavar 1: dedicated stream, avoids sharing S1_OUT's DMA stream
     DEF_TIM(TIM2, CH3, PA2, TIM_USE_OUTPUT_AUTO,    1, 0), // S4_OUT
     DEF_TIM(TIM5, CH2, PA1, TIM_USE_OUTPUT_AUTO,    1, 0), // S5_OUT
     DEF_TIM(TIM1, CH1, PA8, TIM_USE_OUTPUT_AUTO,    1, 0), // S6_OUT

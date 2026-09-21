@@ -1,6 +1,6 @@
 # Backup and Restore
 
-INAV Configurator can automatically back up your configuration before flashing firmware and offer to restore it afterwards. When upgrading across major versions (e.g. 7.x → 8.x → 9.x), settings are automatically migrated to the new firmware format.
+INAV Configurator can automatically back up your configuration before flashing firmware and offer to restore it afterwards. When upgrading across major versions (e.g. 7.x → 8.x → 9.x → 10.x), settings are automatically migrated to the new firmware format.
 
 For manual CLI-based backup and restore, see the [CLI documentation](Cli.md#backup-via-cli).
 
@@ -34,7 +34,7 @@ When updating across major versions (e.g. 7.x → 9.x), the Configurator shows a
 
 You can review all changes before confirming or cancelling the restore.
 
-Multi-step migrations are handled automatically. For example, a 7.x → 9.x upgrade applies migration profiles in sequence (7→8, then 8→9).
+Multi-step migrations are handled automatically. For example, a 7.x → 10.x upgrade applies migration profiles in sequence (7→8, 8→9, then 9→10).
 
 ## Manual Backup & Restore
 
