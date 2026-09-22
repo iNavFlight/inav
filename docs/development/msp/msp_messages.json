@@ -11703,6 +11703,83 @@
             },
             "notes": "Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.",
             "description": "Initiates binding for MSP receivers (mLRS)."
+        },
+        "MSP2_INAV_MAG_UNALIGNED": {
+            "code": 8754,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "magADCUnaligned",
+                        "ctype": "int16_t",
+                        "desc": "X, Y and Z components, rounded to signed 16-bit values.",
+                        "units": "",
+                        "array": true,
+                        "array_size": 3
+                    }
+                ]
+            },
+            "notes": "Returns rounded mag.magADCUnaligned values before board alignment. Returns three zeroes without USE_MAG.",
+            "description": "Reads the unaligned magnetometer vector."
+        },
+        "MSP2_INAV_ESC_SRXL2_STATUS": {
+            "code": 8755,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "phase",
+                        "ctype": "uint8_t",
+                        "desc": "Calibration phase (srxl2CalPhase_e).",
+                        "units": ""
+                    },
+                    {
+                        "name": "connected",
+                        "ctype": "uint8_t",
+                        "desc": "1 when every opened ESC is connected; otherwise 0.",
+                        "units": ""
+                    },
+                    {
+                        "name": "lastResult",
+                        "ctype": "uint8_t",
+                        "desc": "Last calibration start result (srxl2CalResult_e).",
+                        "units": ""
+                    },
+                    {
+                        "name": "portCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of opened SRXL2 motor ports.",
+                        "units": ""
+                    },
+                    {
+                        "name": "motorCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of motors in the current mixer.",
+                        "units": ""
+                    }
+                ]
+            },
+            "notes": "Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.",
+            "description": "Reads SRXL2 ESC calibration and connection status."
+        },
+        "MSP2_INAV_ESC_SRXL2_CALIBRATE": {
+            "code": 8756,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "phase",
+                        "ctype": "uint8_t",
+                        "desc": "Requested calibration action (srxl2CalPhase_e): 0, 1, 4 or 5.",
+                        "units": ""
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.",
+            "description": "Controls SRXL2 ESC throttle-range calibration."
         }
     }
 }
