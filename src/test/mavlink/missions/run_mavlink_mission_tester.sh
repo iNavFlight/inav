@@ -7,7 +7,7 @@ WORKSPACE_ROOT="$(cd -- "${INAV_DIR}/.." && pwd)"
 BRANCH_DIR="${WORKSPACE_ROOT}/mydev/branch/mavlink_multiport2"
 LOG_DIR="${SCRIPT_DIR}/results"
 
-SITL_BINARY="${INAV_DIR}/cmake/build_SITL/inav_9.1.1_SITL"
+SITL_BINARY="${INAV_DIR}/cmake/build_SITL/bin/SITL.elf"
 EEPROM_PATH="../mydev/branch/mavlink_multiport2/eeprom.bin"
 CONFIG_PATH="${SCRIPT_DIR}/mavlink_mission_tester.ini"
 REPORT_PATH="${LOG_DIR}/mission_tester_report.json"
@@ -154,7 +154,7 @@ rm -f "${REPORT_PATH}"
 
 echo "mission_tester_start"
 echo "inav_dir=."
-echo "sitl_binary=cmake/build_SITL/inav_9.1.1_SITL"
+echo "sitl_binary=cmake/build_SITL/bin/SITL.elf"
 echo "results_dir=src/test/mavlink/missions/results"
 
 (
