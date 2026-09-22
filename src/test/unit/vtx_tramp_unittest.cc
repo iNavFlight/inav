@@ -135,6 +135,18 @@ TEST_F(TrampTest, DefaultTableRemainsAutomatic) {
     start(); EXPECT_EQ(5, device->capability.powerCount);
     EXPECT_STREQ("800", device->capability.powerNames[5]);
 }
+TEST_F(TrampTest, CustomTableWaitsForReportedPowerLimit) {
+    custom();
+    ASSERT_TRUE(vtxTrampInit());
+    EXPECT_FALSE(device->vTable->isReady(device));
+    ASSERT_EQ(5, device->capability.powerCount);
+    EXPECT_STREQ("25 ", device->capability.powerNames[1]);
+    EXPECT_STREQ("600", device->capability.powerNames[5]);
+    tick(3);
+    ASSERT_TRUE(device->vTable->isReady(device));
+    ASSERT_EQ(4, device->capability.powerCount);
+    EXPECT_STREQ("2500", device->capability.powerNames[4]);
+}
 TEST_F(TrampTest, CustomTableUsesAllFourBlitzPowers) {
     custom(); start(); ASSERT_EQ(4, device->capability.powerCount);
     const char *labels[] = {"25", "400", "1000", "2500"};

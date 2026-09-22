@@ -624,6 +624,11 @@ static char *customPowerNamePointers[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1];
 
 static bool vtxProtoUseCustomPowerTable(void)
 {
+    // Keep the startup table until the device supplies a usable power limit.
+    if (!vtxState.capabilities.powerMax) {
+        return false;
+    }
+
     const uint16_t *levels = vtxSettingsConfig()->trampPowerLevels;
     unsigned count = 0;
     bool ended = false;
