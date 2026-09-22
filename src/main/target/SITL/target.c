@@ -593,6 +593,9 @@ static dshotDirection_t sitlDirectionConfig;
 
 const dshotDirection_t *pwmDshotDirectionStatus(void)
 {
+    if (dshotDirectionExpireTest(&sitlDirectionConfig, micros()) && !ARMING_FLAG(ARMED)) {
+        for (uint8_t i = 0; i < getMotorCount(); i++) motor[i] = motor_disarmed[i];
+    }
     return &sitlDirectionConfig;
 }
 

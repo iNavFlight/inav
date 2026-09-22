@@ -70,6 +70,29 @@ static void pulse(uint32_t start)
     assert(dshotDirectionTestBegin(&s, start + 2100000, 0, 3));
     assert(!s.testActive); // A delayed retry cannot restart an aborted pulse.
 }
+static void pulseRequestAtDeadline(uint32_t start)
+{
+    dshotDirection_t s = {0};
+    assert(dshotDirectionTestBegin(&s, start, 2, 1));
+    assert(!dshotDirectionTestBegin(&s, start + 1499999, 1, 2));
+    // No output update occurs between the requests.
+    assert(dshotDirectionTestBegin(&s, start + 1500000, 1, 2));
+    assert(s.testActive && s.testMotor == 1 && s.testToken == 2);
+    assert(s.testStartedUs == start + 1500000);
+    // A duplicate token after expiry must acknowledge without restarting.
+    assert(dshotDirectionTestBegin(&s, start + 3000000, 1, 2));
+    assert(!s.testActive && s.testStartedUs == start + 1500000);
+    assert(!dshotDirectionTestBegin(&s, start + 3000001, 2, 2));
+    assert(dshotDirectionTestBegin(&s, start + 3000002, 2, 3));
+    // Status uses the same expiry helper and must retain the last token.
+    assert(!dshotDirectionExpireTest(&s, start + 4500001));
+    assert(dshotDirectionExpireTest(&s, start + 4500002));
+    assert(!dshotDirectionBusy(&s) && s.testToken == 3 && s.testMotor == 2);
+    assert(!dshotDirectionExpireTest(&s, start + 4500003));
+    assert(dshotDirectionTestBegin(&s, start + 4500004, 2, 3));
+    assert(!s.testActive);
+}
+
 static void outputOwnership(void)
 {
     dshotDirection_t s = {0};
@@ -111,6 +134,8 @@ int main(void)
         sequence(UINT32_MAX - 500000, reverse, 500);
         sequence(0, reverse, 2300);
     }
+    pulseRequestAtDeadline(0);
+    pulseRequestAtDeadline(UINT32_MAX - 500000);
     pulse(0);
     pulse(UINT32_MAX - 500000);
     puts("DShot direction: sequence, timing, repetition, completion and clock wrap tests passed");

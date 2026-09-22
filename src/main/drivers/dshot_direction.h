@@ -66,10 +66,19 @@ static inline int16_t dshotDirectionFrame(dshotDirection_t *s, uint32_t now)
     return 0;
 }
 
+// Requests and status reads must observe the deadline even before the next frame.
+static inline bool dshotDirectionExpireTest(dshotDirection_t *s, uint32_t now)
+{
+    if (!s->testActive || (uint32_t)(now - s->testStartedUs) < 1500000) return false;
+    s->testActive = false;
+    return true;
+}
+
 // A finite pulse, not a latched throttle command: loss of USB/UI cannot leave
 // a motor running. Duplicate requests never extend or restart a pulse.
 static inline bool dshotDirectionTestBegin(dshotDirection_t *s, uint32_t now, uint8_t motor, uint8_t token)
 {
+    dshotDirectionExpireTest(s, now);
     if (token == 0 || (s->phase > 0 && s->phase < 6)) return false;
     if (token == s->testToken) return motor == s->testMotor;
     if (s->testActive) return false;
@@ -82,7 +91,7 @@ static inline bool dshotDirectionTestBegin(dshotDirection_t *s, uint32_t now, ui
 
 static inline uint16_t dshotDirectionTestFrame(dshotDirection_t *s, uint32_t now)
 {
-    if (s->testActive && (uint32_t)(now - s->testStartedUs) >= 1500000) s->testActive = false;
+    dshotDirectionExpireTest(s, now);
     // Fixed low test output (~3.6% of the DShot throttle range); no arbitrary
     // throttle value is accepted over this configuration-only interface.
     return s->testActive ? 120 : 0;

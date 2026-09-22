@@ -542,6 +542,7 @@ static dshotDirectionOutput_t directionOutput;
 
 const dshotDirection_t *pwmDshotDirectionStatus(void)
 {
+    dshotDirectionExpireTest(&directionConfig, micros());
     return &directionConfig;
 }
 
