@@ -98,6 +98,7 @@
 #include "io/rangefinder.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "io/serial_4way.h"
 #include "io/vtx.h"
@@ -342,7 +343,10 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
     sbufWriteU8(dst, afatfs_getLastError());
     // Write free space and total space in kilobytes
     sbufWriteU32(dst, afatfs_getContiguousFreeSpace() / 1024);
-    sbufWriteU32(dst, sdcard_getMetadata()->numBlocks / 2); // Block size is half a kilobyte
+    // NULL until a card driver has been bound, which is the normal state of a board whose
+    // blackbox does not use the SD card, and of SITL launched without --sdcard
+    const sdcardMetadata_t *metadata = sdcard_getMetadata();
+    sbufWriteU32(dst, metadata ? metadata->numBlocks / 2 : 0); // Block size is half a kilobyte
 #else
     sbufWriteU8(dst, 0);
     sbufWriteU8(dst, 0);
@@ -493,17 +497,22 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         sbufWriteU8(dst, 0);
 #endif
-        // Board communication capabilities (uint8)
+        // Board capabilities (uint8)
         // Bit 0: 1 iff the board has VCP
         // Bit 1: 1 iff the board supports software serial
-        uint8_t commCapabilities = 0;
+        // Bit 2: 1 iff the board auto-detects compass mounting orientation during
+        // magnetometer calibration (USE_MAG_CALIBRATION_ORIENTATION)
+        uint8_t capabilities = 0;
 #ifdef USE_VCP
-        commCapabilities |= 1 << 0;
+        capabilities |= 1 << 0;
 #endif
 #if defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2)
-        commCapabilities |= 1 << 1;
+        capabilities |= 1 << 1;
 #endif
-        sbufWriteU8(dst, commCapabilities);
+#ifdef USE_MAG_CALIBRATION_ORIENTATION
+        capabilities |= 1 << 2;
+#endif
+        sbufWriteU8(dst, capabilities);
 
         sbufWriteU8(dst, strlen(targetName));
         sbufWriteData(dst, targetName, strlen(targetName));
@@ -1693,6 +1702,24 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
+#ifdef USE_MOTOR_SRXL2
+    case MSP2_INAV_ESC_SRXL2_STATUS:
+        sbufWriteU8(dst, srxl2MotorCalibrationPhase());
+        sbufWriteU8(dst, srxl2MotorIsConnected() ? 1 : 0);
+        /* Why the last start was refused. MSP2_INAV_ESC_SRXL2_CALIBRATE is an IN
+         * command and so has nowhere to answer; without this a caller sees only
+         * that it failed, and can tell the operator nothing. */
+        sbufWriteU8(dst, srxl2MotorCalibrationLastResult());
+        /* Ports opened, and motors the mixer wants. These are the two numbers
+         * pwmInitMotors() compares to decide whether the board may arm, so
+         * reporting both means a caller never has to infer either. In particular
+         * MSP2_INAV_MIXER does NOT carry the model motor count - its last two
+         * bytes are MAX_SUPPORTED_MOTORS and MAX_SUPPORTED_SERVOS, the ceilings. */
+        sbufWriteU8(dst, srxl2MotorCount());
+        sbufWriteU8(dst, getMotorCount());
+        break;
+#endif
+
     case MSP2_INAV_WIND:
 #ifdef USE_WIND_ESTIMATOR
         {
@@ -1712,6 +1739,16 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, 0);
         sbufWriteU8(dst, 0);
 #endif
+        break;
+
+    case MSP2_INAV_MAG_UNALIGNED:
+        for (int i = 0; i < 3; i++) {
+#ifdef USE_MAG
+            sbufWriteU16(dst, (int16_t)lrintf(mag.magADCUnaligned[i]));
+#else
+            sbufWriteU16(dst, 0);
+#endif
+        }
         break;
 
     case MSP2_INAV_MIXER:
@@ -3816,6 +3853,32 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
+#ifdef USE_MOTOR_SRXL2
+    case MSP2_INAV_ESC_SRXL2_CALIBRATE:
+        /*
+         * One of these phases commands full throttle with the aircraft disarmed,
+         * so the refusals live in the driver and are not re-implemented here: a
+         * caller that skipped them would otherwise be trusted.
+         */
+        if (!sbufReadU8Safe(&tmp_u8, src)) {
+            return MSP_RESULT_ERROR;
+        }
+        if (tmp_u8 == SRXL2_CAL_OFF) {
+            srxl2MotorCalibrationAbort();
+        } else if (tmp_u8 == SRXL2_CAL_WAIT_BATTERY) {
+            if (srxl2MotorCalibrationBegin() != SRXL2_CAL_ACCEPTED) {
+                return MSP_RESULT_ERROR;
+            }
+        } else if (tmp_u8 == SRXL2_CAL_HIGH_MANUAL || tmp_u8 == SRXL2_CAL_LOW_MANUAL) {
+            if (srxl2MotorCalibrationManual(tmp_u8) != SRXL2_CAL_ACCEPTED) {
+                return MSP_RESULT_ERROR;
+            }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
+
     case MSP2_INAV_SELECT_MIXER_PROFILE:
         if (!ARMING_FLAG(ARMED) && sbufReadU8Safe(&tmp_u8, src)) {
                 setConfigMixerProfileAndWriteEEPROM(tmp_u8);
@@ -5113,42 +5176,41 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     int dataSize = sbufBytesRemaining(src);
-    UNUSED(dataSize);
 
     switch (cmdMSP) {
 #if defined(USE_RANGEFINDER_MSP)
         case MSP2_SENSOR_RANGEFINDER:
-            mspRangefinderReceiveNewData(sbufPtr(src));
+            mspRangefinderReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_OPFLOW_MSP)
         case MSP2_SENSOR_OPTIC_FLOW:
-            mspOpflowReceiveNewData(sbufPtr(src));
+            mspOpflowReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_GPS_PROTO_MSP)
         case MSP2_SENSOR_GPS:
-            mspGPSReceiveNewData(sbufPtr(src));
+            mspGPSReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_MAG_MSP)
         case MSP2_SENSOR_COMPASS:
-            mspMagReceiveNewData(sbufPtr(src));
+            mspMagReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_BARO_MSP)
         case MSP2_SENSOR_BAROMETER:
-            mspBaroReceiveNewData(sbufPtr(src));
+            mspBaroReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_PITOT_MSP)
         case MSP2_SENSOR_AIRSPEED:
-            mspPitotmeterReceiveNewData(sbufPtr(src));
+            mspPitotmeterReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 

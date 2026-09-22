@@ -75,20 +75,20 @@
 #define DJI_OSD_FLAGS_OSD_FEATURE           (1 << 0)
 #define EFFICIENCY_UPDATE_INTERVAL          (5 * 1000)
 
-enum djiOsdTempSource_e {
+typedef enum {
     DJI_OSD_TEMP_ESC    = 0,
     DJI_OSD_TEMP_CORE   = 1,
     DJI_OSD_TEMP_BARO   = 2
-};
+} djiOsdTempSource_e;
 
-enum djiRssiSource_e {
+typedef enum {
     DJI_RSSI = 0,
     DJI_CRSF_LQ = 1
-};
+} djiRssiSource_e;
 
-enum djiOsdProtoWorkarounds_e {
+typedef enum {
     DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA    = 1 << 0,
-};
+} djiOsdProtoWorkarounds_e;
 
 typedef struct djiOsdConfig_s {
     uint8_t use_name_for_messages;

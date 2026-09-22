@@ -105,7 +105,9 @@ static bool mlx90393Read(magDev_t * mag)
 
     uint8_t buf[7] = {0};
 
-    busReadBuf(mag->busDev, MLX90393_READ_MEASUREMENT | MLX90393_MEASURE_3D, buf, 7);
+    if (!busReadBuf(mag->busDev, MLX90393_READ_MEASUREMENT | MLX90393_MEASURE_3D, buf, sizeof(buf))) {
+        return false;
+    }
 
     mag->magADCRaw[X] = ((short)(buf[1] << 8 | buf[2]));
     mag->magADCRaw[Y] = ((short)(buf[3] << 8 | buf[4]));

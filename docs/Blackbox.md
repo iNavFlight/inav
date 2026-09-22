@@ -168,6 +168,14 @@ The CLI command `blackbox` allows setting which Blackbox fields are recorded to 
 * `PEAKS_Y` - Yaw axis noise peak
 * `SERVOS` - Servo outputs (for planes, tris, etc.)
 
+On a board with two IMUs, `gyro_secondary_enabled` adds `gyroRaw2[0..2]`, the second
+sensor's rates in deg/s, in the same body frame as `gyroRaw` and with that sensor's
+own alignment already applied. It has no flag of its own here: that setting is the
+switch, and nothing else puts the field in the log, not even another feature that
+starts the second sensor for its own reasons. With the setting on, the flight
+controller reads that sensor only while a log is being written. Include `GYRO_RAW` as well to compare the two sensors, since
+`gyroADC` is filtered and `gyroRaw2` is not.
+
 Usage:
 
 * `blackbox` currently enabled Blackbox fields
@@ -185,6 +193,7 @@ Available debug modes include:
 - `POS_EST` - Position estimation debugging
 - `GPS` - GPS debugging
 - `ALTITUDE` - Altitude estimation debugging
+- `MAG` - Raw, uncalibrated magnetometer samples (useful for external compass calibration)
 - And 20+ other modes for specific subsystems
 
 To use debug mode logging:
