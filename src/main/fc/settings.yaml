@@ -27,7 +27,14 @@ tables:
   - name: blackbox_device
     values: ["SERIAL", "SPIFLASH", "SDCARD", "FILE"]
   - name: motor_pwm_protocol
-    values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600"]
+    values: ["STANDARD", "ONESHOT125", "MULTISHOT", "BRUSHED", "DSHOT150", "DSHOT300", "DSHOT600", "SRXL2"]
+  # The default is FIRST on purpose, so that it is index 0. This field was appended
+  # to motorConfig_t and landed inside the struct's existing padding, so sizeof did
+  # not grow and pgLoad()'s memcpy copies the old zero over the reset default: an
+  # existing configuration reads whatever index 0 happens to be. Putting the default
+  # there makes that harmless instead of silently selecting the fastest rate.
+  - name: esc_srxl2_telemetry_rate
+    values: ["1HZ", "3HZ", "2HZ"]
   - name: servo_protocol
     values: ["PWM", "SBUS", "SBUS_PWM"]
   - name: failsafe_procedure
@@ -84,7 +91,9 @@ tables:
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
       "NAV_YAW", "PCF8574", "DYN_GYRO_LPF", "AUTOLEVEL", "ALTITUDE",
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
-      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV"]
+      "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH",
+      "MAG_CALIB", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV", "ESC",
+      "FW_TURN", "MAG"]
   - name: vtol_mc_protection_mode
     values: ["OFF", "NAV", "NAV_AND_STABILIZED"]
   - name: aux_operator
@@ -191,9 +200,9 @@ tables:
   - name: dynamic_gyro_notch_mode
     values: ["2D", "3D"]
     enum: dynamicGyroNotchMode_e
-  - name: nav_fw_wp_turn_smoothing
-    values: ["OFF", "ON", "ON-CUT"]
-    enum: wpFwTurnSmoothing_e
+  - name: nav_fw_wp_turn_mode
+    values: ["DIRECT", "COORD_FLYBY", "COORD_FLYOVER", "COORD_FLYINTO"]
+    enum: navFwWpTurnMode_e
   - name: gps_auto_baud_max
     values: [ '115200', '57600', '38400', '19200', '9600', '230400', '460800', '921600']
     enum: gpsBaudRate_e
@@ -334,6 +343,12 @@ groups:
         min: 0
         max: 2
         default_value: 0
+      - name: gyro_secondary_enabled
+        description: "On a board with two IMUs, also log the one `gyro_to_use` did not select, to Blackbox as `gyroRaw2`. It is read only while it measures its zero after power-up and while a log is being written, one extra SPI transaction per gyro cycle, and never reaches attitude estimation or the PID loops. While this is off the second IMU is not initialised at all. Log `GYRO_RAW` as well to compare the two sensors."
+        default_value: OFF
+        condition: USE_DUAL_GYRO
+        field: gyro_secondary_enabled
+        type: bool
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
         default_value: ON
@@ -858,10 +873,29 @@ groups:
         min: 50
         max: 32000
       - name: motor_pwm_protocol
-        description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, ONESHOT42, MULTISHOT, DSHOT150, DSHOT300, DSHOT600, DSHOT1200, BRUSHED"
+        description: "Protocol that is used to send motor updates to ESCs. Possible values - STANDARD, ONESHOT125, MULTISHOT, BRUSHED, DSHOT150, DSHOT300, DSHOT600"
         default_value: "ONESHOT125"
         field: motorPwmProtocol
         table: motor_pwm_protocol
+      - name: esc_srxl2_telemetry
+        description: "Read ESC telemetry off the SRXL2 link. Only applies when motor_pwm_protocol is SRXL2, where telemetry shares the throttle wire and so cannot be turned off by leaving a port unassigned as it would be for a conventional ESC."
+        default_value: ON
+        field: srxl2Telemetry
+        condition: USE_MOTOR_SRXL2
+        type: bool
+      - name: esc_srxl2_telemetry_rate
+        description: "How often ESC telemetry arrives from an SRXL2 Smart ESC, in readings per second. The ESC answers about two requests in three and rotates its reply between three sensors, so it delivers roughly a ninth of what is asked for - these are the delivered rates, measured, not the request rate. The reply shares the throttle wire, so a faster rate leaves the bus less headroom; only the RPM filter benefits from it. The range is bounded at both ends by the ESC: asking on every frame makes an Avian keep the link and stop obeying the throttle, and asking slower than 1 Hz makes the link time out on a healthy ESC, because its reply is the only thing that proves it is still there."
+        default_value: "1HZ"   # must stay index 0, see the table comment
+        field: srxl2TelemetryRate
+        condition: USE_MOTOR_SRXL2
+        table: esc_srxl2_telemetry_rate
+      - name: esc_srxl2_reverse_channel
+        description: "For an SRXL2 Smart ESC, the 1-based auxiliary channel its \"Thrust Rev.\" setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse, and anything between 1 and 4 is treated as 0 at boot - the range cannot express the hole, and a channel the ESC cannot watch would offer a mode that does nothing."
+        default_value: 7
+        field: srxl2ReverseChannel
+        condition: USE_MOTOR_SRXL2
+        min: 0
+        max: 9
       - name: motor_poles
         field: motorPoleCount
         description: "The number of motor poles. Required to compute motor RPM"
@@ -1469,7 +1503,7 @@ groups:
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: tpa_pitch_compensation
-        description: "Pitch angle based throttle compensation for fixed wing. Positive values will increase throttle when pitching up, and decrease throttle when pitching down."
+        description: "Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains) when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active."
         default_value: 8
         field: throttle.tpa_pitch_compensation
         min: 0
@@ -2077,7 +2111,7 @@ groups:
         min: RPYL_PID_MIN
         max: RPYL_PID_MAX
       - name: fw_d_level
-        description: "Fixed-wing attitude stabilisation HORIZON transition point"
+        description: "Fixed-wing HORIZON transition point, expressed as stick deflection in percent. At this deflection self-levelling is faded out completely and the axis behaves like ACRO; below it, ANGLE and ACRO are blended proportionally. Despite the 0-255 CLI range, which is shared with the other PID values, the number is not scaled to 255: it is clamped to 100 internally, so 75 really means 75% stick and any value above 100 acts the same as 100."
         default_value: 75
         field: bank_fw.pid[PID_LEVEL].D
         min: RPYL_PID_MIN
@@ -2759,11 +2793,29 @@ groups:
         field: fw.wp_tracking_max_angle
         min: 30
         max: 80
-      - name: nav_fw_wp_turn_smoothing
-        description: "Smooths turns during WP missions by switching to a loiter turn at waypoints. When set to ON the craft will reach the waypoint during the turn. When set to ON-CUT the craft will turn inside the waypoint without actually reaching it (cuts the corner)."
-        default_value: "OFF"
-        field: fw.wp_turn_smoothing
-        table: nav_fw_wp_turn_smoothing
+      - name: nav_fw_wp_turn_mode
+        description: "How the aircraft turns at waypoints during FW WP missions. DIRECT uses the legacy heading-PID turn. The COORD modes fly coordinated arcs of the real turn radius (from speed and nav_fw_bank_angle): COORD_FLYBY cuts the corner and passes the waypoint abeam, COORD_FLYOVER overflies the waypoint before turning onto the next leg, COORD_FLYINTO crosses the waypoint already aligned with the outbound leg (survey line entries)."
+        default_value: "COORD_FLYBY"
+        field: fw.wp_turn_mode
+        table: nav_fw_wp_turn_mode
+      - name: nav_fw_turn_ff_gain
+        description: "Turn coordination feed-forward gain [%]. Feeds the geometrically required bank for the current turn radius forward to the roll controller so the PID only trims the residual. 0 disables the feed-forward (pure PID). Default fits most models; tuning candidate to be fixed once field-proven."
+        default_value: 100
+        field: fw.turn_ff_gain
+        min: 0
+        max: 200
+      - name: nav_fw_wp_turn_max_lead_time
+        description: "COORD_FLYBY only. Cap on how early a turn may start before the waypoint [ms]. The required lead time grows with speed and turn angle (up to ~10 s for fast models in sharp corners); a too-low cap forces late turn-ins and overshoot. Raise towards 12000 for sluggish models, lower towards 3000 to keep turns close to the waypoint."
+        default_value: 6000
+        field: fw.wp_turn_max_lead_time
+        min: 3000
+        max: 12000
+      - name: nav_fw_wp_turn_control_ease
+        description: "Unmodelled roll-response lag (servo + airframe inertia) added to the computed roll-in/out ease time [ms] for coordinated WP turns. Sizes and anticipates the entry/exit ramps; increase for large or slow-responding airframes."
+        default_value: 100
+        field: fw.wp_turn_control_ease
+        min: 0
+        max: 500
       - name: nav_auto_speed
         description: "Speed in fully autonomous modes (RTH, WP) [cm/s]. Used for WP mode when no specific WP speed set. [Multirotor only]"
         default_value: 500
@@ -2958,6 +3010,11 @@ groups:
         field: general.cruise_yaw_rate
         min: 0
         max: 120
+      - name: nav_cruise_lock_on_level
+        description: "Fixed wing only: when ON the COURSE HOLD/CRUISE course is locked only once the aircraft has rolled out level (below 10 deg bank) after a heading adjustment or a banked mode entry, following the actual course until then. Prevents overshooting the locked course during the level-off. OFF locks the course as soon as the sticks are centered (legacy behaviour)."
+        default_value: ON
+        field: general.cruise_lock_on_level
+        type: bool
       - name: nav_mc_bank_angle
         description: "Maximum banking angle (deg) that multicopter navigation is allowed to set. Machine must be able to satisfy this angle without loosing altitude"
         default_value: 35
@@ -3056,7 +3113,7 @@ groups:
         field: mc.slowDownForTurning
         type: bool
       - name: nav_fw_bank_angle
-        description: "Max roll angle when rolling / turning in GPS assisted modes, is also restrained by global max_angle_inclination_rll"
+        description: "Maximum sustained roll angle when turning in GPS assisted modes: the target bank that turn and loiter radii are planned for. Corrections may exceed it temporarily; the absolute ceiling remains max_angle_inclination_rll"
         default_value: 35
         field: fw.max_bank_angle
         min: 5
@@ -3145,7 +3202,7 @@ groups:
         min: 1
         max: 10
       - name: nav_fw_control_smoothness
-        description: "How smoothly the autopilot controls the airplane to correct the navigation error"
+        description: "How smoothly the autopilot corrects the navigation error. Pitch uses a low-pass filter. Roll uses an S-curve easing window of n x 100 ms (max 900 ms) applied only when the commanded bank changes abruptly, so steady course tracking is never lagged. 0 = no roll smoothing."
         default_value: 0
         field: fw.control_smoothness
         min: 0
@@ -4662,7 +4719,7 @@ groups:
         min: 100
         max: 5000
       - name: nav_fw_land_flare_alt
-        description: "Initial altitude of the flare phase"
+        description: "Initial altitude of the flare phase. Requires a healthy rangefinder; without one the aircraft stays in the glide phase (see nav_fw_land_glide_alt/nav_fw_land_glide_pitch) all the way to touchdown."
         default_value: 150
         field: flareAltitude
         min: 0
@@ -4674,7 +4731,7 @@ groups:
         min: -15
         max: 45
       - name: nav_fw_land_flare_pitch
-        description: "Pitch value for flare phase. In degrees"
+        description: "Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder; the flare phase never activates without one."
         default_value: 8
         field: flarePitch
         min: -15
@@ -4823,6 +4880,23 @@ groups:
         field: noWayHomeAction
         table: geozone_rth_no_way_home
         type: uint8_t
+  - name: PG_LED_STRIP_CONFIG
+    type: ledStripConfig_t
+    headers: ["io/ledstrip.h"]
+    condition: USE_LED_STRIP
+    members:
+    - name: ledstrip_rainbow_sweep_rate
+      description: "Rainbow overlay sweep rate. Higher values sweep faster. 0 freezes the rainbow."
+      default_value: 100
+      field: ledstrip_rainbow_sweep_rate
+      min: 0
+      max: 255
+    - name: ledstrip_rainbow_delta_deg
+      description: "Hue offset in degrees between adjacent LEDs carrying the rainbow overlay. 0 makes every rainbow LED the same color; larger values spread more of the spectrum across the strip."
+      default_value: 30
+      field: ledstrip_rainbow_delta_deg
+      min: 0
+      max: 359
   - name: PG_DRONECAN_CONFIG
     type: dronecanConfig_t
     headers: ["drivers/dronecan/dronecan.h"]

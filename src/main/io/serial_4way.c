@@ -21,12 +21,14 @@
 #include <string.h>
 
 #include "platform.h"
+#include "build/debug.h"
 
 #ifdef  USE_SERIAL_4WAY_BLHELI_INTERFACE
 
 #include "drivers/buf_writer.h"
 #include "drivers/io.h"
 #include "drivers/serial.h"
+#include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
@@ -74,9 +76,9 @@
 // *** change to adapt Revision
 #define SERIAL_4WAY_VER_MAIN 20
 #define SERIAL_4WAY_VER_SUB_1 (uint8_t) 0
-#define SERIAL_4WAY_VER_SUB_2 (uint8_t) 05
+#define SERIAL_4WAY_VER_SUB_2 (uint8_t) 06
 
-#define SERIAL_4WAY_PROTOCOL_VER 107
+#define SERIAL_4WAY_PROTOCOL_VER 108
 // *** end
 
 #if (SERIAL_4WAY_VER_MAIN > 24)
@@ -328,10 +330,8 @@ uint16_t _crc_xmodem_update (uint16_t crc, uint8_t data) {
 #define ATMEL_DEVICE_MATCH ((pDeviceInfo->words[0] == 0x9307) || (pDeviceInfo->words[0] == 0x930A) || \
         (pDeviceInfo->words[0] == 0x930F) || (pDeviceInfo->words[0] == 0x940B))
 
-#define SILABS_DEVICE_MATCH ((pDeviceInfo->words[0] == 0xF310)||(pDeviceInfo->words[0] == 0xF330) || \
-        (pDeviceInfo->words[0] == 0xF410) || (pDeviceInfo->words[0] == 0xF390) || \
-        (pDeviceInfo->words[0] == 0xF850) || (pDeviceInfo->words[0] == 0xE8B1) || \
-        (pDeviceInfo->words[0] == 0xE8B2))
+// Range-based detection for newer SiLabs BLHeli_S MCUs (EFM8BB51x reports 0xE8B5)
+#define SILABS_DEVICE_MATCH ((pDeviceInfo->words[0] > 0xE800) && (pDeviceInfo->words[0] < 0xF900))
 
 // BLHeli_32 MCU ID hi > 0x00 and < 0x90 / lo always = 0x06
 #define ARM_DEVICE_MATCH ((pDeviceInfo->bytes[1] > 0x00) && (pDeviceInfo->bytes[1] < 0x90) && (pDeviceInfo->bytes[0] == 0x06))
@@ -340,23 +340,35 @@ static uint8_t CurrentInterfaceMode;
 
 static uint8_t Connect(uint8_32_u *pDeviceInfo)
 {
+    // DEBUG_ESC: [0] = raw bootloader signature (words[0]), [1] = interface mode
+    // (imSIL_BLB=1 SiLabs/BLHeli_S-Bluejay, imATM_BLB=2 Atmel, imSK=3 SimonK, imARM_BLB=4 ARM/BLHeli32-AM32).
+    DEBUG_SET(DEBUG_ESC, 0, 0);
+    DEBUG_SET(DEBUG_ESC, 1, 0);
+
     for (uint8_t I = 0; I < 3; ++I) {
         #if (defined(USE_SERIAL_4WAY_BLHELI_BOOTLOADER) && defined(USE_SERIAL_4WAY_SK_BOOTLOADER))
         if ((CurrentInterfaceMode != imARM_BLB) && Stk_ConnectEx(pDeviceInfo) && ATMEL_DEVICE_MATCH) {
             CurrentInterfaceMode = imSK;
+            DEBUG_SET(DEBUG_ESC, 0, pDeviceInfo->words[0]);
+            DEBUG_SET(DEBUG_ESC, 1, imSK);
             return 1;
         } else {
             if (BL_ConnectEx(pDeviceInfo)) {
+                DEBUG_SET(DEBUG_ESC, 0, pDeviceInfo->words[0]);
                 if  SILABS_DEVICE_MATCH {
                     CurrentInterfaceMode = imSIL_BLB;
+                    DEBUG_SET(DEBUG_ESC, 1, imSIL_BLB);
                     return 1;
                 } else if ATMEL_DEVICE_MATCH {
                     CurrentInterfaceMode = imATM_BLB;
+                    DEBUG_SET(DEBUG_ESC, 1, imATM_BLB);
                     return 1;
                 } else if ARM_DEVICE_MATCH {
                     CurrentInterfaceMode = imARM_BLB;
+                    DEBUG_SET(DEBUG_ESC, 1, imARM_BLB);
                     return 1;
                 }
+                DEBUG_SET(DEBUG_ESC, 1, 0);
             }
         }
         #elif defined(USE_SERIAL_4WAY_BLHELI_BOOTLOADER)
@@ -456,9 +468,9 @@ void esc4wayProcess(serialPort_t *mspPort)
         InBuff = ParamBuf;
         uint8_t i = I_PARAM_LEN;
         do {
-          *InBuff = ReadByteCrc();
-          InBuff++;
-          i--;
+            *InBuff = ReadByteCrc();
+            InBuff++;
+            i--;
         } while (i != 0);
 
         CRC_check.bytes[1] = ReadByte();
@@ -561,9 +573,13 @@ void esc4wayProcess(serialPort_t *mspPort)
 
                 case cmd_DeviceReset:
                 {
+                    bool rebootEsc = false;
                     if (ParamBuf[0] < escCount) {
                         // Channel may change here
                         selected_esc = ParamBuf[0];
+                        if (ioMem.D_FLASH_ADDR_L == 1) {
+                            rebootEsc = true;
+                        }
                     }
                     else {
                         ACK_OUT = ACK_I_INVALID_CHANNEL;
@@ -577,6 +593,16 @@ void esc4wayProcess(serialPort_t *mspPort)
                         case imARM_BLB:
                         {
                             BL_SendCMDRunRestartBootloader(&DeviceInfo);
+                            // Bluejay/AM32 ESCs enter their bootloader after the signal line is
+                            // pulled low briefly and released.
+                            if (rebootEsc) {
+                                ESC_OUTPUT;
+                                setEscLo(selected_esc);
+                                timeMs_t m = millis();
+                                while (millis() - m < 300);
+                                setEscHi(selected_esc);
+                                ESC_INPUT;
+                            }
                             break;
                         }
                         #endif
@@ -872,7 +898,7 @@ void esc4wayProcess(serialPort_t *mspPort)
         WriteByteCrc(ioMem.D_FLASH_ADDR_L);
         WriteByteCrc(O_PARAM_LEN);
 
-        i=O_PARAM_LEN;
+        i = O_PARAM_LEN;
         do {
             while (!serialTxBytesFree(port));
 

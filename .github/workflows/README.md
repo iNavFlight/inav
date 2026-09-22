@@ -35,19 +35,24 @@ fire.
 ### Code Quality
 
 #### `pg-version-check.yml` - Parameter Group Version Check
-**Triggers:** Pull requests to maintenance-9.x and maintenance-10.x
+**Triggers:** Pull requests to maintenance-9.x, maintenance-10.x, and release/9.1
 **Purpose:** Detects parameter group struct modifications and verifies version increments
 **Why:** Prevents settings corruption when struct layout changes without version bump
 
 **How it works:**
-1. Scans changed .c/.h files for `PG_REGISTER` entries
-2. Detects if associated struct typedefs were modified
-3. Checks if the PG version parameter was incremented
+1. Maps every `PG_REGISTER` in the repository's .c/.h files to its struct, so a registration in a
+   different file than the struct is still found
+2. Detects if associated struct typedefs were modified, comparing against the PR's merge base
+   so later changes on the base branch are not attributed to the PR
+3. Checks if the PG version parameter was incremented, per preprocessor condition: a struct
+   guarded by `#ifdef` is only compared under the conditions where it actually changes
 4. Posts helpful comment if version not incremented
 
 **Reference:** See `docs/development/parameter_groups/` for PG system documentation
 
-**Script:** `.github/scripts/check-pg-versions.sh`
+**Script:** `.github/scripts/check-pg-versions.sh`, a thin wrapper around
+`.github/scripts/check-pg-versions.py` (standard library only, python3 required). Its regression
+fixtures live in `.github/scripts/test-check-pg-versions.py` and run in CI.
 
 **When to increment PG versions:**
 - ✅ Adding/removing fields from struct
@@ -77,22 +82,38 @@ every PR.
    `nightly-build.yml` ("Build pre-release") invokes `ci.yml` via
    `workflow_call` as part of building nightly releases — this already
    produces the size report above at no extra build cost. When that
-   completes, `ci-size-report.yml` persists it as a release asset
-   (`size-baseline-<branch>`) in the companion `iNavFlight/pr-test-builds`
-   repo — the "known good" baseline for that branch, overwritten on every
-   push. (`ci.yml`'s *own* `on: push:` trigger is broken — a `branches:`
-   list containing only a negative pattern matches nothing per GitHub's
-   docs — so this deliberately listens to `nightly-build.yml` instead of
-   trying to fix that separately; verified empirically that `ci.yml` alone
-   has zero push-triggered runs in this repo's history.)
-3. On PR builds, it fetches the PR's base branch's persisted baseline (no
-   rebuild), diffs it against the PR's own size report, and posts/updates a
-   comment (marker `<!-- pr-size-diff -->`).
+   completes, `ci-size-report.yml` persists it as TWO release assets in the
+   companion `iNavFlight/pr-test-builds` repo: `size-baseline-<branch>`
+   (latest-tip pointer, kept for backward compatibility) and
+   `size-baseline-<commit-sha>` (primary — lets PR comparisons key off the
+   exact base commit). Per-commit baselines are pruned to the newest 50 per
+   branch (plus a global cap) so the companion repo doesn't grow unbounded.
+   (`ci.yml`'s *own* `on: push:` trigger is broken — a `branches:` list
+   containing only a negative pattern matches nothing per GitHub's docs —
+   so this deliberately listens to `nightly-build.yml` instead of trying to
+   fix that separately; verified empirically that `ci.yml` alone has zero
+   push-triggered runs in this repo's history.)
+3. On PR builds, it computes the PR's TRUE base commit — the merge-base of
+   the PR head and base ref via the compare API — fetches the per-commit
+   baseline for that exact commit, falling back to the nearest ancestor
+   commit that has one (never the branch tip, which would include unrelated
+   changes merged after the PR forked), diffs it against the PR's own size
+   report, and posts/updates a comment (marker `<!-- pr-size-diff -->`)
+   naming the baseline commit that was used.
 
-**Script:** `.github/scripts/extract-size-report.sh` (size extraction),
+**Scripts:** `.github/scripts/extract-size-report.sh` (size extraction),
 `.github/scripts/merge-size-reports.sh` (merges per-shard reports),
+`.github/scripts/publish-size-baseline.sh` (per-commit publish + pruning),
+`.github/scripts/fetch-size-baseline.sh` (merge-base baseline resolution),
 `.github/scripts/size-diff-comment.js` (pure diff + markdown rendering,
 unit tested in `.github/scripts/size-diff-comment.test.js`)
+
+**⚠️ Every job that calls a `.github/scripts/` file MUST first run
+`- uses: actions/checkout@v4` as its first step.** The runner workspace is
+empty until a checkout — `bash .github/scripts/...` then fails with exit
+127 and the job silently does nothing, so a missing checkout looks like a
+missing baseline/artifact instead of a broken job. Repo scripts MUST NEVER
+be invoked from a job that has not checked out a known branch first.
 
 **Uses the same `PR_BUILDS_TOKEN` secret and `workflow_run` trigger pattern
 as `pr-test-builds.yml`** (secrets available even for fork PRs).
@@ -166,7 +187,10 @@ Scripts in `.github/scripts/` can be run locally:
 cd inav
 export GITHUB_BASE_REF=maintenance-9.x
 export GITHUB_HEAD_REF=feature-branch
-bash .github/scripts/check-pg-versions.sh
+bash .github/scripts/check-pg-versions.sh   # needs python3 on PATH
+
+# run the checker's own regression fixtures
+python3 .github/scripts/test-check-pg-versions.py
 ```
 
 ## References

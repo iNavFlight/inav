@@ -95,6 +95,7 @@ bool cliMode = false;
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/osd/custom_elements.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 
 #include "fc/fc_msp_box.h"
@@ -231,9 +232,13 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "LULU",
     "SBUS2",
     "OSD_REFRESH",
+    "MAG_CALIB",
     "VTOL_TRANSITION",
     "VTOL_MC_PROTECT",
-    "TERRAIN_NAV"
+    "TERRAIN_NAV",
+    "ESC",
+    "FW_TURN",
+    "MAG"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
@@ -2046,8 +2051,8 @@ static void cliWaypoints(char *cmdline)
 static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledConfig_t *defaultLedConfigs)
 {
     const char *format = "led %u %s";
-    char ledConfigBuffer[20];
-    char ledConfigDefaultBuffer[20];
+    char ledConfigBuffer[LED_CONFIG_STRING_LENGTH];
+    char ledConfigDefaultBuffer[LED_CONFIG_STRING_LENGTH];
     for (uint32_t i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
         ledConfig_t ledConfig = ledConfigs[i];
         generateLedConfig(&ledConfig, ledConfigBuffer, sizeof(ledConfigBuffer));
@@ -4741,6 +4746,88 @@ static void cliDiff(char *cmdline)
     printConfig(cmdline, true);
 }
 
+#ifdef USE_MOTOR_SRXL2
+static void cliEscCalibratePrintResult(srxl2CalResult_e r)
+{
+    switch (r) {
+    case SRXL2_CAL_ACCEPTED:
+        break;
+    case SRXL2_CAL_REJECT_ARMED:
+        cliPrintErrorLinef("Not while armed");
+        break;
+    case SRXL2_CAL_REJECT_NO_PORT:
+        cliPrintErrorLinef("No SRXL2 ESC port. Assign one and set motor_pwm_protocol = SRXL2");
+        break;
+    case SRXL2_CAL_REJECT_BATTERY_PRESENT:
+        cliPrintErrorLinef("Disconnect the battery first. The ESC only reads its");
+        cliPrintErrorLinef("endpoints as it powers up, and full throttle must not be");
+        cliPrintErrorLinef("presented to an ESC that can already act on it.");
+        break;
+    case SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR:
+        cliPrintErrorLinef("No battery voltage sensing, so the ESC powering up cannot be");
+        cliPrintErrorLinef("detected. Use 'esc_calibrate high' and 'low' by hand instead.");
+        break;
+    }
+}
+
+static void cliEscCalibrate(char *cmdline)
+{
+    static const char * const phaseName[] = {
+        "off", "waiting for battery", "holding high", "holding low",
+        "holding high (manual)", "holding low (manual)"
+    };
+
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("Phase: %s", phaseName[srxl2MotorCalibrationPhase()]);
+        cliPrintLine("");
+        cliPrintLine("Teaches a Spektrum Smart ESC its throttle endpoints. The ESC reads");
+        cliPrintLine("them from the signal present as it powers up, so the sequence is");
+        cliPrintLine("timed from the moment the battery goes in.");
+        cliPrintLine("");
+        cliPrintLine("REMOVE THE PROPELLER. This commands full throttle.");
+        cliPrintLine("");
+        cliPrintLine("  esc_calibrate start    battery DISCONNECTED, then plug it in");
+        cliPrintLine("                         when told. The rest is automatic.");
+        cliPrintLine("  esc_calibrate off      abort");
+        cliPrintLine("");
+        cliPrintLine("By hand, for boards without battery voltage sensing:");
+        cliPrintLine("  esc_calibrate high     then connect the battery");
+        cliPrintLine("  esc_calibrate low      within five seconds of the two short tones");
+        cliPrintLine("");
+        cliPrintLine("Every phase ends by itself. Arming cancels it.");
+        return;
+    }
+
+    if (sl_strcasecmp(cmdline, "start") == 0) {
+        const srxl2CalResult_e r = srxl2MotorCalibrationBegin();
+        cliEscCalibratePrintResult(r);
+        if (r == SRXL2_CAL_ACCEPTED) {
+            cliPrintLine("Propeller off? Full throttle is now on the wire.");
+            cliPrintLine("Connect the battery. The ESC will sound its tones, and the");
+            cliPrintLine("throttle drops to minimum on its own about three seconds later.");
+            cliPrintLine("A long tone means the range was stored.");
+        }
+    } else if (sl_strcasecmp(cmdline, "high") == 0) {
+        const srxl2CalResult_e r = srxl2MotorCalibrationManual(SRXL2_CAL_HIGH_MANUAL);
+        cliEscCalibratePrintResult(r);
+        if (r == SRXL2_CAL_ACCEPTED) {
+            cliPrintLine("Full throttle on the wire. Connect the battery now.");
+        }
+    } else if (sl_strcasecmp(cmdline, "low") == 0) {
+        const srxl2CalResult_e r = srxl2MotorCalibrationManual(SRXL2_CAL_LOW_MANUAL);
+        cliEscCalibratePrintResult(r);
+        if (r == SRXL2_CAL_ACCEPTED) {
+            cliPrintLine("Low throttle on the wire. Listen for the cell count, then a long tone.");
+        }
+    } else if (sl_strcasecmp(cmdline, "off") == 0) {
+        srxl2MotorCalibrationAbort();
+        cliPrintLine("Aborted.");
+    } else {
+        cliShowParseError();
+    }
+}
+#endif
+
 #ifdef USE_USB_MSC
 static void cliMsc(char *cmdline)
 {
@@ -5023,6 +5110,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
+#ifdef USE_MOTOR_SRXL2
+    CLI_COMMAND_DEF("esc_calibrate", "teach a Spektrum Smart ESC its throttle range", "[start|high|low|off]", cliEscCalibrate),
+#endif
 #ifdef USE_USB_MSC
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif

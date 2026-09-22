@@ -66,11 +66,11 @@ to automatic selection.
 
 ### Tramp pit mode on an AUX switch
 
-Assign **VTX PIT MODE** in Modes (permanent mode ID 72). For example, with the
+Assign **VTX PIT MODE** in Modes (permanent mode ID 73). For example, with the
 first two mode-condition slots already in use, this assigns AUX5 / channel 9:
 
 ```
-aux 2 72 4 1800 2100
+aux 2 73 4 1800 2100
 save
 ```
 
