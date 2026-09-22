@@ -825,24 +825,6 @@ static void osdFormatCraftName(char *buff)
     }
 }
 
-// Name of a profile slot, upper-cased like the pilot name. An unnamed slot shows the
-// symbol and the slot number instead so the element never renders blank.
-static void osdFormatProfileName(char *buff, const char *name, char symbol, uint8_t slot)
-{
-    if (name[0] == '\0') {
-        tfp_sprintf(buff, "%c%u", symbol, slot);
-        return;
-    }
-
-    // name is MAX_PROFILE_NAME_LENGTH + 1 bytes and always terminated, so the loop copies the terminator too
-    for (int i = 0; i <= MAX_PROFILE_NAME_LENGTH; i++) {
-        buff[i] = sl_toupper((unsigned char)name[i]);
-        if (name[i] == 0) {
-            break;
-        }
-    }
-}
-
 void osdFormatPilotName(char *buff)
 {
     if (strlen(systemConfig()->pilotName) == 0)

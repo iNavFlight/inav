@@ -275,7 +275,9 @@ migrated and the appended names start empty. Other storage versions or record
 sizes retain the normal reset behavior. This does not migrate OSD layout matrices;
 the OSD layout version change still resets those layouts.
 
-Profile-name elements are rendered by the INAV OSD (including MSP DisplayPort).
+Profile-name elements occupy 12 characters, padded with spaces so a shorter name
+or an unnamed slot clears the previous text. They are rendered by the INAV OSD
+(including MSP DisplayPort).
 The legacy native DJI MSP telemetry OSD does not expose these elements: its
 Betaflight rate/PID/profile-name slots do not represent INAV control, battery and
 mixer profiles, and this feature does not add a native DJI name payload. Use
