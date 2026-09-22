@@ -113,6 +113,33 @@ be invoked from a job that has not checked out a known branch first.
 **Uses the same `PR_BUILDS_TOKEN` secret and `workflow_run` trigger pattern
 as `pr-test-builds.yml`** (secrets available even for fork PRs).
 
+### Distinguishing firmware runs from the non-code stub
+
+Both `ci.yml` and `non-code-change.yaml` are named `Build firmware`. The artifact
+consumers therefore compare `github.event.workflow_run.path` with
+`.github/workflows/ci.yml`, in addition to checking the pull-request event and
+successful conclusion. A matching workflow name alone is not sufficient.
+
+The path condition was exercised by the size-report consumer on the fork's
+default branch after merge `ac6fbcdece18170a79e415bcfc92a8d79b3598aa`:
+
+- [Run 34614556238](https://github.com/Raffi1202/inav/actions/runs/34614556238),
+  job `pr-comment` / `103313115327`: successful artifact downloads and PR comment.
+- [Run 34616048856](https://github.com/Raffi1202/inav/actions/runs/34616048856),
+  job `pr-comment` / `103318129472`: successful artifact downloads and PR comment.
+
+These jobs could only execute after the path expression evaluated true. Thus the
+field was present and matched for actual firmware-triggered `workflow_run`
+events; an absent field would have skipped the whole job. The PR-test-builds
+consumer uses the same path expression; its publishing job was checked by
+inspection only, so these runs do not validate the release-publishing steps.
+
+The filter fails closed for missing or unexpected paths. Do not replace it with a
+hard-coded workflow ID: IDs differ between the upstream repository and forks.
+When changing these consumers, test both a real firmware run and the same-name
+non-code stub using the consumer on the repository's default branch, because a
+PR's consumer revision is not the one GitHub executes for `workflow_run`.
+
 #### `pr-branch-suggestion.yml` - Branch Targeting Suggestion
 **Triggers:** PRs targeting master branch
 **Purpose:** Suggests using maintenance-9.x or maintenance-10.x instead
