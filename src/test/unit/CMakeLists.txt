@@ -174,6 +174,11 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_T
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")
 
+set_property(SOURCE profile_name_migration_unittest.cc PROPERTY depends "config/parameter_group.c")
+set_property(SOURCE profile_name_migration_extended_unittest.cc PROPERTY depends "config/parameter_group.c")
+set_property(SOURCE profile_name_migration_extended_unittest.cc PROPERTY definitions
+    USE_AUTO_TRANSITION USE_ADC USE_DSHOT USE_POWER_LIMITS USE_RATE_DYNAMICS)
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )

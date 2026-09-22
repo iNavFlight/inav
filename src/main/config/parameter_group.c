@@ -22,6 +22,7 @@
 #include "platform.h"
 
 #include "parameter_group.h"
+#include "config/profile_name_migration.h"
 #include "common/maths.h"
 
 const pgRegistry_t* pgFind(pgn_t pgn)
@@ -90,6 +91,8 @@ void pgLoad(const pgRegistry_t* reg, int profileIndex, const void *from, int siz
     if (version == pgVersion(reg)) {
         const int take = MIN(size, pgSize(reg));
         memcpy(pgOffset(reg, profileIndex), from, take);
+    } else {
+        pgMigrateProfileNames(reg, pgOffset(reg, profileIndex), from, size, version);
     }
 }
 
