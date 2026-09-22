@@ -4362,9 +4362,9 @@ static void cliStatus(char *cmdline)
         }
         cliPrintLinefeed();
         cliPrintLinef("  SATS: %i", gpsSol.numSat);
-        cliPrintLinef("  HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
-        cliPrintLinef("  EPH : %f m", (double)(gpsSol.eph / 100.0f));
-        cliPrintLinef("  EPV : %f m", (double)(gpsSol.epv / 100.0f));
+        cliPrintLinef("  HDOP: %d.%02d", gpsSol.hdop / HDOP_SCALE, gpsSol.hdop % HDOP_SCALE);
+        cliPrintLinef("  EPH : %d.%02d m", gpsSol.eph / 100, gpsSol.eph % 100);
+        cliPrintLinef("  EPV : %d.%02d m", gpsSol.epv / 100, gpsSol.epv % 100);
         //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
         cliPrintLinef("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");
