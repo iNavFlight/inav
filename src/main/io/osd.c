@@ -1538,8 +1538,8 @@ static void osdDisplayTelemetry(void)
           trk_bearing += 360 + 180;
           trk_bearing %= 360;
           int32_t alt = CENTIMETERS_TO_METERS(osdGetAltitude());
-          float at = atan2f((float)alt, (float)GPS_distanceToHome);
-          trk_elevation = at * 57.2957795f; // 57.2957795 = 1 rad
+          float at = atan2_approx((float)alt, (float)GPS_distanceToHome);
+          trk_elevation = lrintf(at * 57.2957795f); // 57.2957795 = 1 rad
           trk_elevation += 37; // because elevation in telemetry should be from -37 to 90
           if (trk_elevation < 0) {
             trk_elevation = 0;
