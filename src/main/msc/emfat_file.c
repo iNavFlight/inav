@@ -337,7 +337,8 @@ static const emfat_entry_t entriesPredefined[] =
 #define EMFAT_DIR_STORAGE static
 #endif
 
-EMFAT_DIR_STORAGE emfat_entry_t entries[EMFAT_MAX_ENTRY];
+// One extra slot keeps the zero-name terminator inside the array when every entry is used
+EMFAT_DIR_STORAGE emfat_entry_t entries[EMFAT_MAX_ENTRY + 1];
 
 emfat_t emfat;
 static uint32_t cmaTime = CMA_TIME;
@@ -354,7 +355,7 @@ static void emfat_set_entry_cma(emfat_entry_t *entry)
 #ifdef USE_FLASHFS
 static void emfat_add_log(emfat_entry_t *entry, int number, uint32_t offset, uint32_t size)
 {
-    EMFAT_DIR_STORAGE char logNames[EMFAT_MAX_LOG_ENTRY][8+1+3];
+    EMFAT_DIR_STORAGE char logNames[EMFAT_MAX_LOG_ENTRY][8+1+3+1];
 
     tfp_sprintf(logNames[number], "INAV_%03d.BBL", number + 1);
     entry->name = logNames[number];
