@@ -629,7 +629,9 @@ static uint16_t NOINLINE prepareMotorDshotPacket(uint8_t index)
     return prepareDshotPacket(value, telemetry);
 }
 
-static bool executeDShotCommands(void){
+// LTO must not pull command sequencing into the ITCM-resident scheduler.
+// Keep the normal and configuration command paths in flash on F7/H7.
+static bool NOINLINE executeDShotCommands(void){
     
     timeUs_t tNow = micros();
     directionOutput.active = false;
