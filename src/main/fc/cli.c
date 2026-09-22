@@ -999,9 +999,9 @@ static void cliSerialPassthrough(char *cmdline)
                 baud = fastA2I(tok);
                 break;
             case 2:
-                if (strstr(tok, "rx") || strstr(tok, "RX"))
+                if (sl_strstr(tok, "rx") || sl_strstr(tok, "RX"))
                     mode |= MODE_RX;
-                if (strstr(tok, "tx") || strstr(tok, "TX"))
+                if (sl_strstr(tok, "tx") || sl_strstr(tok, "TX"))
                     mode |= MODE_TX;
                 break;
             case 3:
@@ -4014,7 +4014,7 @@ static void cliSet(char *cmdline)
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
             cliPrintLinefeed();
         }
-    } else if ((eqptr = strstr(cmdline, "=")) != NULL) {
+    } else if ((eqptr = strchr(cmdline, '=')) != NULL) {
         // has equals
 
         char *lastNonSpaceCharacter = eqptr;
