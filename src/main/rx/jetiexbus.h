@@ -25,7 +25,7 @@
 
 #define EXBUS_EX_REQUEST                (0x3A)
 
-enum exBusHeader_e {
+typedef enum {
     EXBUS_HEADER_SYNC = 0,
     EXBUS_HEADER_REQ,
     EXBUS_HEADER_MSG_LEN,
@@ -33,7 +33,7 @@ enum exBusHeader_e {
     EXBUS_HEADER_DATA_ID,
     EXBUS_HEADER_SUBLEN,
     EXBUS_HEADER_DATA
-};
+} exBusHeader_e;
 
 enum {
     EXBUS_STATE_ZERO = 0,
