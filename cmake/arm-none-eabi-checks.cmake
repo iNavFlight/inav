@@ -108,7 +108,10 @@ endfunction()
 
 function(arm_none_eabi_gcc_add_path)
     set(gcc_path "${TOOLS_DIR}/${base_dir_name}/bin")
-    if(CMAKE_HOST_SYSTEM MATCHES ".*Windows.*")
+    # CMAKE_HOST_SYSTEM is still empty here, since this file is included before
+    # project() has been called, so the test would always fail and PATH would be
+    # built with ':' as the separator even on Windows.
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
         set(sep "\\;")
     else()
         set(sep ":")
