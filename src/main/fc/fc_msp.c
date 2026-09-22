@@ -318,43 +318,33 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
 {
     mspSdcardSummaryReply_t reply = { .sdCardSupported = 0 };
 #ifdef USE_SDCARD
-    /* sdcardVTable is only bound by sdcard_init(), which fc_init skips unless
-     * something asked for the card (blackbox logging to SD, or terrain). Until
-     * then every query below describes a card the firmware cannot see, so report
-     * no support rather than a fabricated state: the configurator polls this
-     * message every two seconds for as long as the support flag is set.
-     * sdcard_getMetadata() is NULL exactly when the vtable is; the drivers
-     * themselves always hand back a static struct. */
-    const sdcardMetadata_t *metadata = sdcard_getMetadata();
-    if (metadata) {
-        reply.sdCardSupported = MSP_SDCARD_FLAG_SUPPORTTED;
+    reply.sdCardSupported = MSP_SDCARD_FLAG_SUPPORTTED;
 
-        // Merge the card and filesystem states together
-        if (!sdcard_isInserted()) {
-            reply.sdCardState = MSP_SDCARD_STATE_NOT_PRESENT;
-        } else if (!sdcard_isFunctional()) {
-            reply.sdCardState = MSP_SDCARD_STATE_FATAL;
-        } else {
-            switch (afatfs_getFilesystemState()) {
-                case AFATFS_FILESYSTEM_STATE_READY:
-                    reply.sdCardState = MSP_SDCARD_STATE_READY;
-                    break;
-                case AFATFS_FILESYSTEM_STATE_INITIALIZATION:
-                    reply.sdCardState = sdcard_isInitialized() ? MSP_SDCARD_STATE_FS_INIT : MSP_SDCARD_STATE_CARD_INIT;
-                    break;
-                case AFATFS_FILESYSTEM_STATE_FATAL:
-                case AFATFS_FILESYSTEM_STATE_UNKNOWN:
-                default:
-                    reply.sdCardState = MSP_SDCARD_STATE_FATAL;
-                    break;
-            }
+    // Merge the card and filesystem states together
+    if (!sdcard_isInserted()) {
+        reply.sdCardState = MSP_SDCARD_STATE_NOT_PRESENT;
+    } else if (!sdcard_isFunctional()) {
+        reply.sdCardState = MSP_SDCARD_STATE_FATAL;
+    } else {
+        switch (afatfs_getFilesystemState()) {
+            case AFATFS_FILESYSTEM_STATE_READY:
+                reply.sdCardState = MSP_SDCARD_STATE_READY;
+                break;
+            case AFATFS_FILESYSTEM_STATE_INITIALIZATION:
+                reply.sdCardState = sdcard_isInitialized() ? MSP_SDCARD_STATE_FS_INIT : MSP_SDCARD_STATE_CARD_INIT;
+                break;
+            case AFATFS_FILESYSTEM_STATE_FATAL:
+            case AFATFS_FILESYSTEM_STATE_UNKNOWN:
+            default:
+                reply.sdCardState = MSP_SDCARD_STATE_FATAL;
+                break;
         }
-
-        reply.fsError = afatfs_getLastError();
-        // Free space and total space in kilobytes
-        reply.freeSpaceKB = afatfs_getContiguousFreeSpace() / 1024;
-        reply.totalSpaceKB = metadata->numBlocks / 2; // Block size is half a kilobyte
     }
+
+    reply.fsError = afatfs_getLastError();
+    // Free space and total space in kilobytes
+    reply.freeSpaceKB = afatfs_getContiguousFreeSpace() / 1024;
+    reply.totalSpaceKB = sdcard_getMetadata()->numBlocks / 2; // Block size is half a kilobyte
 #endif
     mspWriteReply(dst, &reply);
 }
