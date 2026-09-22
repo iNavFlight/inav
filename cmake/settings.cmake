@@ -38,12 +38,12 @@ function(enable_settings exe name)
         set(USE_HOST_GCC "-g")
     endif()
     # CFLAGS contains defines with quotes (e.g. -D__TARGET__="SITL"), which
-    # cmd.exe mangles on Windows, and PATH contains ';', which CMake would split
-    # into a list when generating the command line. The settings generator
-    # parses CFLAGS with Shellwords (which strips the quotes anyway), so drop
-    # them here and escape PATH to keep both values intact on Windows too.
+    # cmd.exe mangles on Windows. The settings generator parses CFLAGS with
+    # Shellwords (which strips the quotes anyway), so drop them here. PATH is
+    # escaped by escape_env(), since CMake would split it into a list on
+    # Windows, where entries are separated by ';'.
     string(REPLACE "\"" "" cflags "${cflags}")
-    string(REPLACE ";" "\\;" escaped_path "$ENV{PATH}")
+    escape_env(escaped_path PATH)
     set(output ${dir}/${SETTINGS_GENERATED_H} ${dir}/${SETTINGS_GENERATED_C})
     add_custom_command(
         OUTPUT ${output}
