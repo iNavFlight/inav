@@ -49,7 +49,8 @@ static uint8_t runProfile;
 static uint8_t runMixerProfile;
 static int16_t runThrottle;
 
-void chirpFlightUpdate(float dt, bool controllerReady)
+// Keep LTO from copying the experiment's state machine into pidController's limited ITCM.
+void NOINLINE chirpFlightUpdate(float dt, bool controllerReady)
 {
     const chirpConfig_t *config = chirpConfig();
     const bool enabled = config->axis != CHIRP_AXIS_OFF;
