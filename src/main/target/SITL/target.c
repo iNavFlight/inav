@@ -51,6 +51,8 @@
 #include "scheduler/scheduler.h"
 #include "drivers/system.h"
 #include "drivers/pwm_mapping.h"
+#include "drivers/pwm_output.h"
+#include "flight/mixer.h"
 #include "drivers/timer.h"
 #include "drivers/serial.h"
 #include "drivers/serial_tcp.h"
@@ -614,27 +616,32 @@ bool pwmDshotDirectionBegin(uint8_t motor, uint8_t reverse, uint8_t token)
     return true;
 }
 
-bool pwmDshotDirectionTest(uint8_t motor, uint8_t run, uint8_t token)
+bool pwmDshotDirectionTest(uint8_t motorIndex, uint8_t run, uint8_t token)
 {
     if (run == 0) {
+        if (sitlDirectionConfig.testActive && !ARMING_FLAG(ARMED)) {
+            for (uint8_t i = 0; i < getMotorCount(); i++) motor[i] = motor_disarmed[i];
+        }
         sitlDirectionConfig.testActive = false;
         return true;
     }
-    if (run != 1 || !pwmDshotDirectionSupported() || areMotorsRunning() || motor >= getMotorCount()) {
+    if (run != 1 || !pwmDshotDirectionSupported() || areMotorsRunning() || motorIndex >= getMotorCount()) {
         return false;
     }
-    if (!dshotDirectionTestBegin(&sitlDirectionConfig, micros(), motor, token)) return false;
+    if (!dshotDirectionTestBegin(&sitlDirectionConfig, micros(), motorIndex, token)) return false;
     return true;
 }
 
 void sitlDshotDirectionUpdate(void)
 {
-    if (ARMING_FLAG(ARMED) && dshotDirectionBusy(&sitlDirectionConfig)) {
-        dshotDirectionCancel(&sitlDirectionConfig);
+    const dshotDirectionOutput_t output = dshotDirectionOutput(&sitlDirectionConfig, micros(), ARMING_FLAG(ARMED));
+    if (!output.active) return; // Keep normal mixer values, including armed output.
+    for (uint8_t i = 0; i < getMotorCount(); i++) {
+        // Simulator backends consume PWM-range motor[], not DShot values.
+        const uint16_t value = dshotDirectionMotorValue(&output, i, 0);
+        motor[i] = 1000 + (value >= 48 ? (value - 48) * 1000 / (2047 - 48) : 0);
     }
-    dshotDirectionTestFrame(&sitlDirectionConfig, micros());
-    const int16_t command = dshotDirectionFrame(&sitlDirectionConfig, micros());
-    if (command > 0) {
-        fprintf(stderr, "[ESC DEMO] motor=%u command=%d (simulated, no hardware)\n", sitlDirectionConfig.motor + 1, command);
+    if (output.ready && output.telemetry) {
+        fprintf(stderr, "[ESC DEMO] motor=%u command=%u (simulated, no hardware)\n", output.motor + 1, output.value);
     }
 }

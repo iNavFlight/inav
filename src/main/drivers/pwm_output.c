@@ -538,6 +538,7 @@ void pwmRequestMotorTelemetry(int motorIndex)
 
 #ifdef USE_DSHOT
 static dshotDirection_t directionConfig;
+static dshotDirectionOutput_t directionOutput;
 
 const dshotDirection_t *pwmDshotDirectionStatus(void)
 {
@@ -587,9 +588,8 @@ bool pwmDshotDirectionTest(uint8_t motor, uint8_t run, uint8_t token)
 }
 
 void sendDShotCommand(dshotCommands_e cmd) {
-    if (dshotDirectionBusy(&directionConfig)) {
-        return;
-    }
+    // Preserve normal requests, particularly turtle-mode direction commands.
+    // Arming cancels configuration before the scheduler drains this queue.
     circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmd);
 }
 
@@ -618,21 +618,21 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
 // when LTO inlines the normal motor-output path.
 static bool NOINLINE executeDShotDirectionFrame(timeUs_t tNow)
 {
-    const uint16_t testValue = dshotDirectionTestFrame(&directionConfig, tNow);
-    const int16_t command = dshotDirectionFrame(&directionConfig, tNow);
-    if (command < 0) {
-        return false;
-    }
-    for (uint8_t i = 0; i < getMotorCount(); i++) {
-        motors[i].value = testValue ? (i == directionConfig.testMotor ? testValue : 0) : (i == directionConfig.motor ? command : 0);
-        motors[i].requestTelemetry = command != 0 && i == directionConfig.motor;
-    }
-    return true;
+    directionOutput = dshotDirectionOutput(&directionConfig, tNow, false);
+    return directionOutput.ready;
+}
+
+static uint16_t NOINLINE prepareMotorDshotPacket(uint8_t index)
+{
+    const uint16_t value = dshotDirectionMotorValue(&directionOutput, index, motors[index].value);
+    const bool telemetry = directionOutput.active ? directionOutput.telemetry && index == directionOutput.motor : motors[index].requestTelemetry;
+    return prepareDshotPacket(value, telemetry);
 }
 
 static bool executeDShotCommands(void){
     
     timeUs_t tNow = micros();
+    directionOutput.active = false;
 
     if (ARMING_FLAG(ARMED) && dshotDirectionBusy(&directionConfig)) {
         dshotDirectionCancel(&directionConfig);
@@ -701,7 +701,7 @@ void pwmCompleteMotorUpdate(void) {
 #ifdef USE_DSHOT_DMAR
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
+                uint16_t packet = prepareMotorDshotPacket(index);
                 loadDmaBufferDshotStride(&motors[index].pwmPort->dmaBurstBuffer[motors[index].pwmPort->tch->timHw->channelIndex], 4, packet);
                 motors[index].requestTelemetry = false;
             }
@@ -715,7 +715,7 @@ void pwmCompleteMotorUpdate(void) {
         // Generate DMA buffers
         for (int index = 0; index < motorCount; index++) {
             if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
+                uint16_t packet = prepareMotorDshotPacket(index);
                 loadDmaBufferDshot(motors[index].pwmPort->dmaBuffer, packet);
                 timerPWMPrepareDMA(motors[index].pwmPort->tch, DSHOT_DMA_BUFFER_SIZE);
                 motors[index].requestTelemetry = false;

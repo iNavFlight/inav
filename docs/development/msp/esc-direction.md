@@ -70,8 +70,8 @@ checks, tokens and simulated status. Native Electron/SITL checks cover wizard an
 individual mode, release/timeout, unchanged ordinary motor-test availability and
 platform visibility.
 
-SITL uses the same sequencer, reports simulation explicitly and has no physical
-ESC storage. Hardware validation has not been performed. Before merging:
+SITL uses the same sequencer and publishes isolated test pulses in the simulator
+motor-value range. It reports simulation explicitly and has no physical ESC storage. Hardware validation has not been performed. Before merging:
 
 1. Remove all propellers. Verify mapped output isolation and command timing at
    DShot150/300/600, with burst and non-burst DMA, on STM32 and AT32.
@@ -90,3 +90,21 @@ Upstream Configurator currently accepts 9.x only while the firmware development
 branch now reports 10.0.0. Version-policy changes are deliberately outside this
 feature PR. The local native validation package temporarily accepts 10.x; that
 packaging-only override is not included in the PR source.
+
+## Review regression coverage
+
+Configurator probes capability once on mounting. Periodic status requests run only
+while the dialog is open or an operation needs tracking; unsupported firmware stops
+polling. Write acknowledgements have separate nullable state fields and never imply
+ESC persistence. Queue drops and MSP errors are failures; unconditional stops retry
+up to three times, including after cleanup. The firmware deadline remains the final
+guarantee after a total connection loss.
+
+Quad diagrams are bundled directly, including reversed mixer direction, without
+copying the asynchronously loaded Outputs preview. Dialog/map sizing is fluid and
+text uses relative units; the icon close control has a localized accessible name.
+
+Firmware prepares configuration frames as an overlay without replacing cached
+normal outputs. Stop/arming cancellation therefore cannot replay a previous test
+value. Ordinary DShot commands remain queued and execute after configuration ends
+or arming cancels it, including turtle-mode direction commands.

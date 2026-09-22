@@ -102,3 +102,32 @@ static inline void dshotDirectionCancel(dshotDirection_t *s)
     s->repeats = 0;
     s->testActive = false;
 }
+
+typedef struct {
+    bool active;
+    bool ready;
+    uint8_t motor;
+    uint16_t value;
+    bool telemetry;
+} dshotDirectionOutput_t;
+
+// A frame overlay, never a replacement for the cached normal mixer outputs.
+// Stop/arming therefore cannot retransmit a stale test throttle or save command.
+static inline dshotDirectionOutput_t dshotDirectionOutput(dshotDirection_t *s, uint32_t now, bool armed)
+{
+    if (armed) dshotDirectionCancel(s);
+    dshotDirectionOutput_t output = { .active = dshotDirectionBusy(s), .ready = true };
+    if (!output.active) return output;
+    const uint16_t testValue = dshotDirectionTestFrame(s, now);
+    const int16_t command = dshotDirectionFrame(s, now);
+    output.ready = command >= 0;
+    output.motor = testValue ? s->testMotor : s->motor;
+    output.value = testValue ? testValue : (command > 0 ? command : 0);
+    output.telemetry = command > 0;
+    return output;
+}
+
+static inline uint16_t dshotDirectionMotorValue(const dshotDirectionOutput_t *output, uint8_t motor, uint16_t normalValue)
+{
+    return output->active ? (motor == output->motor ? output->value : 0) : normalValue;
+}
