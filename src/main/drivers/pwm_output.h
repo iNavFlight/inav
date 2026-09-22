@@ -64,4 +64,16 @@ bool beeperPwmInit(ioTag_t tag, uint16_t frequency);
 void sendDShotCommand(dshotCommands_e cmd);
 void initDShotCommands(void);
 
+#if (defined(USE_DSHOT) && !defined(RP2350)) || defined(SITL_BUILD)
+#define USE_DSHOT_DIRECTION_CONFIG
+#include "drivers/dshot_direction.h"
+const dshotDirection_t *pwmDshotDirectionStatus(void);
+bool pwmDshotDirectionBegin(uint8_t motor, uint8_t reverse, uint8_t token);
+bool pwmDshotDirectionSupported(void);
+bool pwmDshotDirectionTest(uint8_t motor, uint8_t run, uint8_t token);
+#ifdef SITL_BUILD
+void sitlDshotDirectionUpdate(void);
+#endif
+#endif
+
 uint32_t getEscUpdateFrequency(void);

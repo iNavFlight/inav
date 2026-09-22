@@ -45,6 +45,8 @@
 #include "target.h"
 
 #include "fc/runtime_config.h"
+#include "fc/config.h"
+#include "config/feature.h"
 #include "common/utils.h"
 #include "scheduler/scheduler.h"
 #include "drivers/system.h"
@@ -581,4 +583,58 @@ char *prettyPrintAddress(struct sockaddr* p, char *outbuf, size_t buflen)
 	return bufp;
     }
     return NULL;
+}
+
+// Exercise the same command sequencer through real MSP in the built-in demo.
+// SITL has no physical ESCs; it explicitly advertises simulated output.
+static dshotDirection_t sitlDirectionConfig;
+
+const dshotDirection_t *pwmDshotDirectionStatus(void)
+{
+    return &sitlDirectionConfig;
+}
+
+bool pwmDshotDirectionSupported(void)
+{
+    return getMotorCount() > 0 && !feature(FEATURE_REVERSIBLE_MOTORS);
+}
+
+bool pwmDshotDirectionBegin(uint8_t motor, uint8_t reverse, uint8_t token)
+{
+    if (!pwmDshotDirectionSupported() || areMotorsRunning() || motor >= getMotorCount() || reverse > 1 || token == 0 || sitlDirectionConfig.testActive) {
+        return false;
+    }
+    if (sitlDirectionConfig.token && token == sitlDirectionConfig.token) {
+        return motor == sitlDirectionConfig.motor && reverse == sitlDirectionConfig.reverse;
+    }
+    if (sitlDirectionConfig.phase && sitlDirectionConfig.phase != 6) {
+        return false;
+    }
+    dshotDirectionBegin(&sitlDirectionConfig, micros(), motor, reverse, token);
+    return true;
+}
+
+bool pwmDshotDirectionTest(uint8_t motor, uint8_t run, uint8_t token)
+{
+    if (run == 0) {
+        sitlDirectionConfig.testActive = false;
+        return true;
+    }
+    if (run != 1 || !pwmDshotDirectionSupported() || areMotorsRunning() || motor >= getMotorCount()) {
+        return false;
+    }
+    if (!dshotDirectionTestBegin(&sitlDirectionConfig, micros(), motor, token)) return false;
+    return true;
+}
+
+void sitlDshotDirectionUpdate(void)
+{
+    if (ARMING_FLAG(ARMED) && dshotDirectionBusy(&sitlDirectionConfig)) {
+        dshotDirectionCancel(&sitlDirectionConfig);
+    }
+    dshotDirectionTestFrame(&sitlDirectionConfig, micros());
+    const int16_t command = dshotDirectionFrame(&sitlDirectionConfig, micros());
+    if (command > 0) {
+        fprintf(stderr, "[ESC DEMO] motor=%u command=%d (simulated, no hardware)\n", sitlDirectionConfig.motor + 1, command);
+    }
 }

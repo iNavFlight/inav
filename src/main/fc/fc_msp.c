@@ -1695,6 +1695,27 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         break;
 
+#ifdef USE_DSHOT_DIRECTION_CONFIG
+    case MSP2_INAV_ESC_DIRECTION: {
+        const dshotDirection_t *s = pwmDshotDirectionStatus();
+        sbufWriteU8(dst, 2); // Includes the bounded motor-test capability.
+        sbufWriteU8(dst, pwmDshotDirectionSupported() ? getMotorCount() : 0);
+        sbufWriteU8(dst, s->phase);
+        sbufWriteU8(dst, s->motor);
+        sbufWriteU8(dst, s->reverse);
+        sbufWriteU8(dst, s->token);
+#ifdef SITL_BUILD
+        sbufWriteU8(dst, 1); // Explicit simulated-output capability, never an ESC acknowledgement.
+#else
+        sbufWriteU8(dst, 0);
+#endif
+        sbufWriteU8(dst, s->testMotor);
+        sbufWriteU8(dst, s->testActive);
+        sbufWriteU8(dst, s->testToken);
+        break;
+    }
+#endif
+
 #ifdef USE_MOTOR_SRXL2
     case MSP2_INAV_ESC_SRXL2_STATUS:
         sbufWriteU8(dst, srxl2MotorCalibrationPhase());
@@ -2551,7 +2572,31 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+#ifdef USE_DSHOT_DIRECTION_CONFIG
+    case MSP2_INAV_SET_ESC_DIRECTION_TEST: {
+        if (dataSize != 3) return MSP_RESULT_ERROR;
+        const uint8_t motor = sbufReadU8(src);
+        const uint8_t run = sbufReadU8(src);
+        const uint8_t token = sbufReadU8(src);
+        return pwmDshotDirectionTest(motor, run, token) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+    }
+    case MSP2_INAV_SET_ESC_DIRECTION: {
+        if (dataSize != 3) {
+            return MSP_RESULT_ERROR;
+        }
+        const uint8_t motor = sbufReadU8(src);
+        const uint8_t reverse = sbufReadU8(src);
+        const uint8_t token = sbufReadU8(src);
+        return pwmDshotDirectionBegin(motor, reverse, token) ? MSP_RESULT_ACK : MSP_RESULT_ERROR;
+    }
+#endif
+
     case MSP_SET_MOTOR:
+#ifdef USE_DSHOT_DIRECTION_CONFIG
+        if (dshotDirectionBusy(pwmDshotDirectionStatus())) {
+            return MSP_RESULT_ERROR;
+        }
+#endif
         if (dataSize >= 8 * sizeof(uint16_t)) {
             for (int i = 0; i < 8; i++) {
                 const int16_t disarmed = sbufReadU16(src);
@@ -5214,6 +5259,14 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
+#ifdef USE_DSHOT_DIRECTION_CONFIG
+    const uint8_t directionPhase = pwmDshotDirectionStatus()->phase;
+    // Flash writes, reboot and passthrough interrupt consecutive ESC commands.
+    if (((directionPhase > 0 && directionPhase < 6) || pwmDshotDirectionStatus()->testActive) &&
+        (cmdMSP == MSP_REBOOT || cmdMSP == MSP_EEPROM_WRITE || cmdMSP == MSP_RESET_CONF || cmdMSP == MSP_SET_PASSTHROUGH)) {
+        ret = MSP_RESULT_ERROR;
+    } else
+#endif
     if (MSP2_IS_SENSOR_MESSAGE(cmdMSP)) {
         ret = mspProcessSensorCommand(cmdMSP, src);
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {

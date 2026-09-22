@@ -597,6 +597,8 @@ void FAST_CODE writeMotors(void)
 
         pwmWriteMotor(i, motorValue);
     }
+#else
+    sitlDshotDirectionUpdate();
 #endif
 }
 

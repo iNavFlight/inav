@@ -163,5 +163,10 @@
 // 0x2232 was taken by MSP2_INAV_MAG_UNALIGNED upstream while this branch was
 // out of tree, so these moved up rather than the other way round: a released
 // command keeps its number, an unmerged one has no claim on it.
+// Experimental allocation; coordinate with maintainers before merging.
+#define MSP2_INAV_SET_ESC_DIRECTION_TEST       0x2237
+#define MSP2_INAV_ESC_DIRECTION                0x2235
+#define MSP2_INAV_SET_ESC_DIRECTION            0x2236
+
 #define MSP2_INAV_ESC_SRXL2_STATUS              0x2233
 #define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2234

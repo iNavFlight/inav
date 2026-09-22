@@ -537,7 +537,59 @@ void pwmRequestMotorTelemetry(int motorIndex)
 }
 
 #ifdef USE_DSHOT
+static dshotDirection_t directionConfig;
+
+const dshotDirection_t *pwmDshotDirectionStatus(void)
+{
+    return &directionConfig;
+}
+
+bool pwmDshotDirectionSupported(void)
+{
+    if (!isMotorProtocolDshot() || !pwmMotorsEnabled || !feature(FEATURE_PWM_OUTPUT_ENABLE) || feature(FEATURE_REVERSIBLE_MOTORS) || !getMotorCount()) {
+        return false;
+    }
+    for (uint8_t i = 0; i < getMotorCount(); i++) {
+        if (!motors[i].pwmPort || !motors[i].pwmPort->configured) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool pwmDshotDirectionBegin(uint8_t motor, uint8_t reverse, uint8_t token)
+{
+    if (!pwmDshotDirectionSupported() || areMotorsRunning() || motor >= getMotorCount() || reverse > 1 || token == 0 || directionConfig.testActive) {
+        return false;
+    }
+    // A retried MSP write must not restart the sequence or rewrite ESC flash.
+    if (directionConfig.token && token == directionConfig.token) {
+        return motor == directionConfig.motor && reverse == directionConfig.reverse;
+    }
+    if ((directionConfig.phase && directionConfig.phase != 6) || currentExecutingCommand.remainingRepeats || !circularBufferIsEmpty(&commandsCircularBuffer)) {
+        return false;
+    }
+    dshotDirectionBegin(&directionConfig, micros(), motor, reverse, token);
+    return true;
+}
+
+bool pwmDshotDirectionTest(uint8_t motor, uint8_t run, uint8_t token)
+{
+    if (run == 0) {
+        directionConfig.testActive = false;
+        return true;
+    }
+    if (run != 1 || !pwmDshotDirectionSupported() || areMotorsRunning() || motor >= getMotorCount() || currentExecutingCommand.remainingRepeats || !circularBufferIsEmpty(&commandsCircularBuffer)) {
+        return false;
+    }
+    if (!dshotDirectionTestBegin(&directionConfig, micros(), motor, token)) return false;
+    return true;
+}
+
 void sendDShotCommand(dshotCommands_e cmd) {
+    if (dshotDirectionBusy(&directionConfig)) {
+        return;
+    }
     circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmd);
 }
 
@@ -565,6 +617,22 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
 static bool executeDShotCommands(void){
     
     timeUs_t tNow = micros();
+
+    if (ARMING_FLAG(ARMED) && dshotDirectionBusy(&directionConfig)) {
+        dshotDirectionCancel(&directionConfig);
+    }
+    if (dshotDirectionBusy(&directionConfig)) {
+        const uint16_t testValue = dshotDirectionTestFrame(&directionConfig, tNow);
+        const int16_t command = dshotDirectionFrame(&directionConfig, tNow);
+        if (command < 0) {
+            return false;
+        }
+        for (uint8_t i = 0; i < getMotorCount(); i++) {
+            motors[i].value = testValue ? (i == directionConfig.testMotor ? testValue : 0) : (i == directionConfig.motor ? command : 0);
+            motors[i].requestTelemetry = command != 0 && i == directionConfig.motor;
+        }
+        return true;
+    }
 
     if(currentExecutingCommand.remainingRepeats == 0) {
        const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
