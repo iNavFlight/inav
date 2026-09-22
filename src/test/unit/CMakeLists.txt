@@ -187,6 +187,8 @@ set_property(SOURCE vtx_pit_mode_unittest.cc PROPERTY definitions USE_VTX_CONTRO
 set_property(SOURCE vtx_pit_mode_unittest.cc PROPERTY depends "io/vtx.c")
 
 set_property(SOURCE vtx_tramp_unittest.cc PROPERTY definitions USE_VTX_CONTROL USE_VTX_TRAMP)
+set_property(SOURCE cms_vtx_unittest.cc PROPERTY definitions USE_CMS USE_VTX_CONTROL)
+set_property(SOURCE cms_vtx_unittest.cc PROPERTY depends "cms/cms_menu_vtx.c" "io/vtx_string.c")
 set_property(SOURCE vtx_tramp_unittest.cc PROPERTY depends "io/vtx_tramp.c" "io/vtx_string.c" "common/crc.c" "common/streambuf.c")
 
 set_property(SOURCE vtx_settings_migration_unittest.cc PROPERTY depends "config/parameter_group.c")

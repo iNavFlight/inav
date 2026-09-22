@@ -81,6 +81,7 @@ typedef struct {
     timeMs_t        lastStatusQueryMs;
     int             protoTimeoutCount;
     unsigned        updateReqMask;
+    unsigned        nextUpdateBit;
 
     // VTX capabilities
     struct {
@@ -304,6 +305,7 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
             vtxState.protoTimeoutCount = 0;
             vtxState.request.pitModeRetries = 0;
             vtxState.updateReqMask = VTX_UPDATE_REQ_NONE;
+            vtxState.nextUpdateBit = VTX_UPDATE_REQ_FREQUENCY;
             vtxProtoSetState(VTX_STATE_OFFILE);
             break;
 
@@ -335,21 +337,28 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
         // Send requests to update freqnecy and power, periodically poll device for liveness
         case VTX_STATE_IDLE:
             if (vtxState.updateReqMask != VTX_UPDATE_REQ_NONE) {
-                // Updates pending. Send an appropriate command
-                if (vtxState.updateReqMask & VTX_UPDATE_REQ_FREQUENCY) {
-                    vtxState.updateReqMask &= ~VTX_UPDATE_REQ_FREQUENCY;
+                // Rotate through pending updates so a rejected value cannot
+                // starve another setting, including a request to leave pit mode.
+                unsigned updateBit = VTX_UPDATE_REQ_NONE;
+                for (unsigned i = 0; i < 3; i++) {
+                    const unsigned candidate = vtxState.nextUpdateBit;
+                    vtxState.nextUpdateBit = candidate == VTX_UPDATE_REQ_PITMODE
+                        ? VTX_UPDATE_REQ_FREQUENCY : candidate << 1;
+                    if (vtxState.updateReqMask & candidate) {
+                        updateBit = candidate;
+                        break;
+                    }
+                }
+                vtxState.updateReqMask &= ~updateBit;
+                if (updateBit == VTX_UPDATE_REQ_FREQUENCY) {
                     vtxProtoSetFrequency(vtxState.request.freq);
                     vtxProtoSetState(VTX_STATE_QUERY_DELAY);
                 }
-                else if (vtxState.updateReqMask & VTX_UPDATE_REQ_POWER) {
-                    vtxState.updateReqMask &= ~VTX_UPDATE_REQ_POWER;
+                else if (updateBit == VTX_UPDATE_REQ_POWER) {
                     vtxProtoSetPower(vtxState.request.power);
                     vtxProtoSetState(VTX_STATE_QUERY_DELAY);
                 }
-                // Pit mode last: channel and power must go out even while a
-                // device keeps reporting a pit state we did not ask for.
-                else if (vtxState.updateReqMask & VTX_UPDATE_REQ_PITMODE) {
-                    vtxState.updateReqMask &= ~VTX_UPDATE_REQ_PITMODE;
+                else if (updateBit == VTX_UPDATE_REQ_PITMODE) {
                     vtxProtoSetPitMode(vtxState.request.pitMode);
                     vtxProtoSetState(VTX_STATE_QUERY_DELAY);
                 }
@@ -390,7 +399,8 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
                     }
 
                     if (vtxState.request.pitModeRequested && vtxState.state.pitMode != vtxState.request.pitMode) {
-                        if (vtxState.request.pitModeRetries < VTX_PITMODE_MAX_RETRIES) {
+                        if (!(vtxState.updateReqMask & VTX_UPDATE_REQ_PITMODE)
+                            && vtxState.request.pitModeRetries < VTX_PITMODE_MAX_RETRIES) {
                             vtxState.request.pitModeRetries++;
                             vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
                         }

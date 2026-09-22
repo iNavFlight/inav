@@ -47,6 +47,7 @@ static std::vector<std::array<uint8_t, 16>> sent;
 static timeMs_t now;
 static uint16_t reportedMax, actualPower, actualFrequency;
 static bool connected;
+static bool ignoreFrequency, ignorePower;
 static bool actualPit, ignoreNextPit, ignoreAllPit, corruptNextStatus;
 
 static void respond(char command, uint16_t a, uint16_t b, uint16_t c)
@@ -87,8 +88,8 @@ void serialWriteBuf(serialPort_t *, const uint8_t *data, int size)
     switch (data[1]) {
     case 'r': respond('r', 5000, 5999, reportedMax); break;
     case 'v': respond('v', actualFrequency, actualPower, 0); break;
-    case 'F': actualFrequency = value; break;
-    case 'P': actualPower = value; break;
+    case 'F': if (!ignoreFrequency) actualFrequency = value; break;
+    case 'P': if (!ignorePower) actualPower = value; break;
     case 'I':
         if (ignoreAllPit) break;
         if (ignoreNextPit) ignoreNextPit = false;
@@ -104,6 +105,7 @@ protected:
         std::memset(&vtxSettingsConfig_System, 0, sizeof(vtxSettingsConfig_System));
         std::memset(&vtxConfig_System, 0, sizeof(vtxConfig_System));
         armingFlags = 0; connected = true;
+        ignoreFrequency = false; ignorePower = false;
         now = 0; reportedMax = 2500; actualPower = 25; actualFrequency = 5732;
         actualPit = false; ignoreNextPit = false; ignoreAllPit = false; corruptNextStatus = false;
         received.clear(); sent.clear(); device = nullptr;
@@ -162,6 +164,22 @@ TEST_F(TrampTest, CustomPowerStillRespectsReportedLimit) {
     ASSERT_EQ(2,device->capability.powerCount);
     EXPECT_STREQ("400",device->capability.powerNames[2]);
     device->vTable->setPowerByIndex(device, 2); tick(20); EXPECT_EQ(400, actualPower);
+}
+TEST_F(TrampTest, RejectedFrequencyAndPowerCannotStarvePitRequests) {
+    custom(); start();
+    ignoreFrequency = true; ignorePower = true;
+    device->vTable->setBandAndChannel(device, 5, 4);
+    device->vTable->setPowerByIndex(device, 4);
+    device->vTable->setPitMode(device, 1);
+    tick(100);
+    EXPECT_GT(commands('F'), 0);
+    EXPECT_GT(commands('P'), 0);
+    EXPECT_EQ(1, commands('I', 0));
+    EXPECT_TRUE(actualPit);
+    device->vTable->setPitMode(device, 0);
+    tick(100);
+    EXPECT_EQ(1, commands('I', 1));
+    EXPECT_FALSE(actualPit);
 }
 TEST_F(TrampTest, ExplicitOverrideAllowsConfiguredMaximum) {
     custom(); reportedMax = 400; vtxSettingsConfig_System.maxPowerOverride = 2500; start();

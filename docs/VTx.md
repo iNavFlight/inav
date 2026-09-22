@@ -83,7 +83,10 @@ signal. Without a mode assignment, existing hardware-button/MSP control is left
 alone. Pit mode changes use the Tramp `I` command (0 = enter, 1 = exit), and the
 driver retries if subsequent status reports do not match the request. Retries are
 bounded so an unsupported command cannot block channel or power changes, and a
-reconnection renews the retry budget. Queued enter requests are cancelled on arming.
+reconnection renews the retry budget. Pending frequency, power and pit commands
+are served in rotation so a rejected setting cannot starve another request.
+Queued enter requests are cancelled on arming. The CMS power selection follows
+the detected table and is clamped to its available levels before display or save.
 Blackbox records the AUX switch in `flightModeFlags3` (bit 0). Verify the
 VTX's own pit indicator before relying on it; driver support is not a guarantee
 that every Tramp-compatible device implements the command.
