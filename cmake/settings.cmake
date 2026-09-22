@@ -37,11 +37,18 @@ function(enable_settings exe name)
     if(host STREQUAL TOOLCHAIN)
         set(USE_HOST_GCC "-g")
     endif()
+    # CFLAGS contains defines with quotes (e.g. -D__TARGET__="SITL"), which
+    # cmd.exe mangles on Windows, and PATH contains ';', which CMake would split
+    # into a list when generating the command line. The settings generator
+    # parses CFLAGS with Shellwords (which strips the quotes anyway), so drop
+    # them here and escape PATH to keep both values intact on Windows too.
+    string(REPLACE "\"" "" cflags "${cflags}")
+    string(REPLACE ";" "\\;" escaped_path "$ENV{PATH}")
     set(output ${dir}/${SETTINGS_GENERATED_H} ${dir}/${SETTINGS_GENERATED_C})
     add_custom_command(
         OUTPUT ${output}
         COMMAND
-            ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH="$ENV{PATH}" SETTINGS_CXX=${args_SETTINGS_CXX}
+            ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH="${escaped_path}" SETTINGS_CXX=${args_SETTINGS_CXX}
             ${RUBY_EXECUTABLE} ${SETTINGS_GENERATOR} ${MAIN_DIR} ${SETTINGS_FILE} -o "${dir}" ${USE_HOST_GCC} 
         DEPENDS ${SETTINGS_GENERATOR} ${SETTINGS_FILE}
     )
