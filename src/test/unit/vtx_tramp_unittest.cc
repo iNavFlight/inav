@@ -33,6 +33,8 @@ extern "C" {
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_tramp.h"
+#include "fc/runtime_config.h"
+uint32_t armingFlags;
 vtxSettingsConfig_t vtxSettingsConfig_System;
 vtxConfig_t vtxConfig_System;
 }
@@ -44,7 +46,8 @@ static std::deque<uint8_t> received;
 static std::vector<std::array<uint8_t, 16>> sent;
 static timeMs_t now;
 static uint16_t reportedMax, actualPower, actualFrequency;
-static bool actualPit, ignoreNextPit, corruptNextStatus;
+static bool connected;
+static bool actualPit, ignoreNextPit, ignoreAllPit, corruptNextStatus;
 
 static void respond(char command, uint16_t a, uint16_t b, uint16_t c)
 {
@@ -80,12 +83,14 @@ void serialWriteBuf(serialPort_t *, const uint8_t *data, int size)
     EXPECT_EQ(0, data[15]);
     sent.push_back(frame);
     uint16_t value = data[2] | (data[3] << 8);
+    if (!connected) return;
     switch (data[1]) {
     case 'r': respond('r', 5000, 5999, reportedMax); break;
     case 'v': respond('v', actualFrequency, actualPower, 0); break;
     case 'F': actualFrequency = value; break;
     case 'P': actualPower = value; break;
     case 'I':
+        if (ignoreAllPit) break;
         if (ignoreNextPit) ignoreNextPit = false;
         else actualPit = value == 0;
         break;
@@ -98,8 +103,9 @@ protected:
     void SetUp() override {
         std::memset(&vtxSettingsConfig_System, 0, sizeof(vtxSettingsConfig_System));
         std::memset(&vtxConfig_System, 0, sizeof(vtxConfig_System));
+        armingFlags = 0; connected = true;
         now = 0; reportedMax = 2500; actualPower = 25; actualFrequency = 5732;
-        actualPit = false; ignoreNextPit = false; corruptNextStatus = false;
+        actualPit = false; ignoreNextPit = false; ignoreAllPit = false; corruptNextStatus = false;
         received.clear(); sent.clear(); device = nullptr;
     }
     void tick(int n = 1) {
@@ -141,7 +147,9 @@ TEST_F(TrampTest, CustomTableUsesAllFourBlitzPowers) {
 }
 TEST_F(TrampTest, CustomPowerStillRespectsReportedLimit) {
     custom(); reportedMax = 400; start();
-    device->vTable->setPowerByIndex(device, 4); tick(20); EXPECT_EQ(400, actualPower);
+    ASSERT_EQ(2,device->capability.powerCount);
+    EXPECT_STREQ("400",device->capability.powerNames[2]);
+    device->vTable->setPowerByIndex(device, 2); tick(20); EXPECT_EQ(400, actualPower);
 }
 TEST_F(TrampTest, ExplicitOverrideAllowsConfiguredMaximum) {
     custom(); reportedMax = 400; vtxSettingsConfig_System.maxPowerOverride = 2500; start();
@@ -164,7 +172,7 @@ TEST_F(TrampTest, OutOfRangeCustomTableFallsBackToAutomatic) {
     custom(); vtxSettingsConfig_System.trampPowerLevels[3] = 10001; start(); EXPECT_EQ(5, device->capability.powerCount);
 }
 TEST_F(TrampTest, FiveDigitLabelFits) {
-    custom(); vtxSettingsConfig_System.trampPowerLevels[4] = 10000; start();
+    custom(); reportedMax = 10000; vtxSettingsConfig_System.trampPowerLevels[4] = 10000; start();
     EXPECT_EQ(5, device->capability.powerCount); EXPECT_STREQ("10000", device->capability.powerNames[5]);
 }
 TEST_F(TrampTest, PitModeUsesCorrectCommandAndPolarity) {
@@ -194,4 +202,28 @@ TEST_F(TrampTest, CorruptStatusCannotChangeReportedPitMode) {
     EXPECT_TRUE(device->vTable->getPitMode(device, &pit)); EXPECT_EQ(0, pit);
     tick(20); // subsequent valid polls recover normally
     EXPECT_TRUE(device->vTable->getPitMode(device, &pit)); EXPECT_EQ(1, pit);
+}
+
+TEST_F(TrampTest, PermanentPitFailureDoesNotBlockPowerOrChannelAndRetriesStop) {
+ start(); ASSERT_TRUE(device->capability.supportsPitMode); ignoreAllPit=true;
+ device->vTable->setPitMode(device,1);
+ device->vTable->setPowerByIndex(device,2);
+ device->vTable->setBandAndChannel(device,1,1);
+ tick(100);
+ EXPECT_GT(commands('P'),0); EXPECT_GT(commands('F'),0);
+ const int retries=commands('I'); EXPECT_GT(retries,0); EXPECT_LE(retries,4);
+ for (int i=0;i<100;i++) { device->vTable->setPitMode(device,1); tick(); }
+ EXPECT_EQ(retries,commands('I'));
+}
+
+TEST_F(TrampTest, ArmingCancelsQueuedEnterBeforeDispatch) {
+ start(); device->vTable->setPitMode(device,1); armingFlags=ARMED; tick(50);
+ EXPECT_FALSE(actualPit); EXPECT_EQ(0,commands('I',0));
+ device->vTable->setPitMode(device,1); tick(50); EXPECT_EQ(0,commands('I',0));
+}
+TEST_F(TrampTest, ReconnectRenewsExhaustedPitRetryBudget) {
+ start(); ignoreAllPit=true; device->vTable->setPitMode(device,1); tick(100);
+ const int before=commands('I'); ASSERT_GT(before,0);
+ connected=false; tick(100); connected=true; ignoreAllPit=false; tick(100);
+ EXPECT_TRUE(actualPit); EXPECT_GT(commands('I'),before);
 }

@@ -189,6 +189,9 @@ set_property(SOURCE vtx_pit_mode_unittest.cc PROPERTY depends "io/vtx.c")
 set_property(SOURCE vtx_tramp_unittest.cc PROPERTY definitions USE_VTX_CONTROL USE_VTX_TRAMP)
 set_property(SOURCE vtx_tramp_unittest.cc PROPERTY depends "io/vtx_tramp.c" "io/vtx_string.c" "common/crc.c" "common/streambuf.c")
 
+set_property(SOURCE vtx_settings_migration_unittest.cc PROPERTY depends "config/parameter_group.c")
+set_property(SOURCE vtx_settings_migration_unittest.cc PROPERTY definitions USE_VTX_CONTROL)
+
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
     string(REPLACE ".cc" "" name ${basename} )

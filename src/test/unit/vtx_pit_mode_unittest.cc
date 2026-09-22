@@ -29,7 +29,9 @@ uint32_t armingFlags;
 uint8_t cliMode;
 }
 static bool assigned, receiving, modeActive, pit;
-static int requests;
+static int requests, powerRequests;
+static uint8_t power;
+static vtxDevType_e deviceType;
 static vtxDevice_t device{};
 extern "C" {
 bool isModeActivationConditionPresent(boxId_e id) { return id == BOXVTXPITMODE && assigned; }
@@ -40,8 +42,12 @@ void vtxControlInputPoll(void) {}
 vtxDevice_t *vtxCommonDevice(void) { return &device; }
 bool vtxCommonGetPitMode(vtxDevice_t *, uint8_t *value) { *value = pit; return true; }
 void vtxCommonSetPitMode(vtxDevice_t *, uint8_t value) { pit = value; ++requests; }
-bool vtxCommonGetPowerIndex(vtxDevice_t *, uint8_t *) { return false; }
-void vtxCommonSetPowerByIndex(vtxDevice_t *, uint8_t) {}
+vtxDevType_e vtxCommonGetDeviceType(vtxDevice_t *) { return deviceType; }
+bool vtxCommonGetPowerIndex(vtxDevice_t *, uint8_t *value) { *value = power; return true; }
+void vtxCommonSetPowerByIndex(vtxDevice_t *d, uint8_t value) {
+ if (value > d->capability.powerCount) return;
+ power = value; ++powerRequests;
+}
 bool vtxCommonGetBandAndChannel(vtxDevice_t *, uint8_t *, uint8_t *) { return false; }
 void vtxCommonSetBandAndChannel(vtxDevice_t *, uint8_t, uint8_t) {}
 void vtxCommonProcess(vtxDevice_t *, timeUs_t) {}
@@ -51,6 +57,10 @@ protected:
  void SetUp() override {
   assigned = true; receiving = true; modeActive = false; pit = false;
   requests = 0; armingFlags = 0; cliMode = 0;
+  device.capability.supportsPitMode = true;
+  device.capability.powerCount = 3;
+  deviceType = VTXDEV_TRAMP; power = 1; powerRequests = 0;
+  vtxSettingsConfigMutable()->power = 1;
  }
  void update() { for (int i=0; i<3; ++i) vtxUpdate(0); }
 };
@@ -75,4 +85,19 @@ TEST_F(PitModeTest, NoCommandWhenReportedStateMatchesSwitch) {
 }
 TEST_F(PitModeTest, CliDoesNotSendPitCommands) {
  cliMode=1; modeActive=true; update(); EXPECT_FALSE(pit); EXPECT_EQ(0,requests);
+}
+
+TEST_F(PitModeTest, UnsupportedDeviceDoesNotReceivePitRequests) {
+ device.capability.supportsPitMode=false; modeActive=true; update();
+ EXPECT_FALSE(pit); EXPECT_EQ(0,requests);
+}
+TEST_F(PitModeTest, SavedPowerAboveShorterTrampTableIsClampedOnce) {
+ vtxSettingsConfigMutable()->power=5; update();
+ EXPECT_EQ(3,power); EXPECT_EQ(1,powerRequests);
+ update(); EXPECT_EQ(1,powerRequests);
+ EXPECT_EQ(5,vtxSettingsConfig()->power);
+}
+TEST_F(PitModeTest, OtherDevicePowerSemanticsAreUnchanged) {
+ deviceType=VTXDEV_SMARTAUDIO; vtxSettingsConfigMutable()->power=5; update();
+ EXPECT_EQ(1,power); EXPECT_EQ(0,powerRequests);
 }

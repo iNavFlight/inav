@@ -42,6 +42,7 @@
 #include "io/vtx_tramp.h"
 #include "io/vtx_control.h"
 #include "io/vtx.h"
+#include "fc/runtime_config.h"
 #include "io/vtx_string.h"
 
 #define VTX_PKT_SIZE                16
@@ -289,9 +290,19 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
         return;
     }
 
+    // Arming can occur after the AUX scheduler queued an enter request. Cancel
+    // it before either dispatch or mismatch retries can transmit it in flight.
+    if (ARMING_FLAG(ARMED) && vtxState.request.pitMode) {
+        vtxState.request.pitMode = false;
+        vtxState.request.pitModeRequested = true;
+        vtxState.request.pitModeRetries = 0;
+        vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
+    }
+
     switch((int)vtxState.protoState) {
         case VTX_STATE_RESET:
             vtxState.protoTimeoutCount = 0;
+            vtxState.request.pitModeRetries = 0;
             vtxState.updateReqMask = VTX_UPDATE_REQ_NONE;
             vtxProtoSetState(VTX_STATE_OFFILE);
             break;
@@ -467,7 +478,7 @@ static void impl_SetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
 {
     UNUSED(vtxDevice);
 
-    const bool newPitMode = onoff != 0;
+    const bool newPitMode = onoff != 0 && !ARMING_FLAG(ARMED);
 
     // io/vtx.c re-issues the same request about twice a second, so the retry
     // budget may only be refilled when the pilot actually flips the switch.
@@ -583,6 +594,7 @@ static vtxDevice_t impl_vtxDevice = {
     .capability.bandCount = VTX_TRAMP_5G8_BAND_COUNT,
     .capability.channelCount = VTX_TRAMP_5G8_CHANNEL_COUNT,
     .capability.powerCount = VTX_TRAMP_5G8_MAX_POWER_COUNT,
+    .capability.supportsPitMode = true,
     .capability.bandNames = (char **)vtx58BandNames,
     .capability.channelNames = (char **)vtx58ChannelNames,
     .capability.powerNames = NULL,
@@ -606,6 +618,7 @@ const char * const trampPowerNames_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = 
 const uint16_t trampPowerTable_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT]         = { 25, 200, 2000 };
 const char * const trampPowerNames_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = { "---", "25 ", "200", "2000" };
 
+static uint16_t customPowerLevels[VTX_TRAMP_5G8_MAX_POWER_COUNT];
 static char customPowerNames[VTX_TRAMP_5G8_MAX_POWER_COUNT][6];
 static char *customPowerNamePointers[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1];
 
@@ -629,12 +642,20 @@ static bool vtxProtoUseCustomPowerTable(void)
         return false;
     }
 
+    const unsigned configuredCount = count;
+    count = 0;
     customPowerNamePointers[0] = "---";
-    for (unsigned i = 0; i < count; i++) {
-        snprintf(customPowerNames[i], sizeof(customPowerNames[i]), "%u", (unsigned)levels[i]);
-        customPowerNamePointers[i + 1] = customPowerNames[i];
+    for (unsigned i = 0; i < configuredCount; i++) {
+        const uint16_t effectivePower = MIN(levels[i], vtxState.capabilities.powerMax);
+        if (count && effectivePower == customPowerLevels[count - 1]) {
+            continue;
+        }
+        customPowerLevels[count] = effectivePower;
+        snprintf(customPowerNames[count], sizeof(customPowerNames[count]), "%u", (unsigned)effectivePower);
+        customPowerNamePointers[count + 1] = customPowerNames[count];
+        count++;
     }
-    vtxState.metadata.powerTablePtr = levels;
+    vtxState.metadata.powerTablePtr = customPowerLevels;
     vtxState.metadata.powerTableCount = count;
     impl_vtxDevice.capability.powerCount = count;
     impl_vtxDevice.capability.powerNames = customPowerNamePointers;

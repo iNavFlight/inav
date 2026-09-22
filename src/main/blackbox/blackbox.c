@@ -496,6 +496,7 @@ static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
     {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"flightModeFlags2",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"flightModeFlags3",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"activeFlightModeFlags", -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
     {"stateFlags",            -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
 
@@ -625,6 +626,7 @@ typedef struct blackboxGpsState_s {
 typedef struct blackboxSlowState_s {
     uint32_t rcModeFlags;
     uint32_t rcModeFlags2;
+    uint32_t rcModeFlags3;
     uint32_t activeFlightModeFlags;
     uint32_t stateFlags;
     uint8_t failsafePhase;
@@ -1430,6 +1432,7 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.activeWpNumber);
     blackboxWriteUnsignedVB(slowHistory.rcModeFlags);
     blackboxWriteUnsignedVB(slowHistory.rcModeFlags2);
+    blackboxWriteUnsignedVB(slowHistory.rcModeFlags3);
     blackboxWriteUnsignedVB(slowHistory.activeFlightModeFlags);
     blackboxWriteUnsignedVB(slowHistory.stateFlags);
 
@@ -1511,6 +1514,8 @@ static void loadSlowState(blackboxSlowState_t *slow)
     slow->rcModeFlags = rcModeActivationMask.bits[0];   // first 32 bits of boxId_e
     slow->rcModeFlags2 = rcModeActivationMask.bits[1];  // remaining bits of boxId_e
 #endif
+
+    slow->rcModeFlags3 = rcModeActivationMask.bits[2]; // box IDs 64 and above
 
     // Also log Nav auto enabled flight modes rather than just those selected by boxmode
     if (navigationGetHeadingControlState() == NAV_HEADING_CONTROL_AUTO) {

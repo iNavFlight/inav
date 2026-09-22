@@ -119,8 +119,14 @@ static bool vtxProcessPower(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t * 
         return false;
     }
 
-    if (vtxPower != runtimeSettings->power) {
-        vtxCommonSetPowerByIndex(vtxDevice, runtimeSettings->power);
+    // Clamp before the common setter, which rejects indices beyond the device's
+    // table. A saved level can outlive a shorter custom Tramp power table.
+    uint8_t requestedPower = runtimeSettings->power;
+    if (vtxCommonGetDeviceType(vtxDevice) == VTXDEV_TRAMP && vtxDevice->capability.powerCount) {
+        requestedPower = MIN(requestedPower, vtxDevice->capability.powerCount);
+    }
+    if (vtxPower != requestedPower) {
+        vtxCommonSetPowerByIndex(vtxDevice, requestedPower);
         return true;
     }
 
@@ -132,7 +138,8 @@ static bool vtxProcessPitMode(vtxDevice_t *vtxDevice, const vtxSettingsConfig_t 
     UNUSED(runtimeSettings);
 
     // Leave button/MSP control alone unless the pilot assigned this mode.
-    if (!isModeActivationConditionPresent(BOXVTXPITMODE) || !rxIsReceivingSignal()) {
+    if (!vtxDevice->capability.supportsPitMode ||
+        !isModeActivationConditionPresent(BOXVTXPITMODE) || !rxIsReceivingSignal()) {
         return false;
     }
 

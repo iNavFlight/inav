@@ -35,6 +35,10 @@
 
 #include "io/osd.h"
 
+#ifdef USE_VTX_CONTROL
+#include "drivers/vtx_common.h"
+#endif
+
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 
@@ -342,11 +346,10 @@ void initActiveBoxIds(void)
     ADD_ACTIVE_BOX(BOXFAILSAFE);
 
 #ifdef USE_VTX_CONTROL
-    // No feature gate: FEATURE_VTX is vestigial in INAV. Nothing else in the
-    // tree reads it and no target enables it by default, so gating on it hid
-    // the switch on every board. VTX control is enabled by assigning a serial
-    // port function, the same way the camera boxes below are always offered.
-    ADD_ACTIVE_BOX(BOXVTXPITMODE);
+    const vtxDevice_t *vtxDevice = vtxCommonDevice();
+    if (vtxDevice && vtxDevice->capability.supportsPitMode) {
+        ADD_ACTIVE_BOX(BOXVTXPITMODE);
+    }
 #endif
 
 #if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT)

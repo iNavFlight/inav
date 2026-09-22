@@ -54,15 +54,18 @@ save
 ```
 
 This changes the power values and their labels, not the VTX's reported maximum.
-The driver continues to clamp requests to that maximum. Only if the hardware's
+The advertised custom table caps entries at that maximum and removes duplicate
+capped levels, so each label matches the transmitted power value. Only if the hardware's
 maximum is independently confirmed and the device reports it incorrectly, use
 `vtx_max_power_override` to provide the correct maximum. It does not unlock the
 VTX or verify actual RF power. Power selection remains one-based: this example
-maps levels 1–4 to 25, 400, 1000 and 2500 mW.
+maps levels 1–4 to 25, 400, 1000 and 2500 mW when the effective maximum is
+at least 2500 mW. A reported 400 mW maximum instead exposes only 25 and 400 mW.
 
-The VTX settings parameter-group version changes from 2 to 3. Save `diff all`
-before upgrading and restore the VTX settings afterwards; the new table defaults
-to automatic selection.
+The VTX settings parameter-group version changes from 2 to 3. Version-2 settings
+are migrated with band, channel, power, low-power behavior, pit frequency, maximum
+power override and frequency group preserved. The new table starts in automatic
+selection mode.
 
 ### Tramp pit mode on an AUX switch
 
@@ -78,6 +81,15 @@ The assigned range requests pit mode while disarmed. Arming exits pit mode and
 prevents entering it in flight. The switch is ignored without a valid receiver
 signal. Without a mode assignment, existing hardware-button/MSP control is left
 alone. Pit mode changes use the Tramp `I` command (0 = enter, 1 = exit), and the
-driver retries if subsequent status reports do not match the request. Verify the
+driver retries if subsequent status reports do not match the request. Retries are
+bounded so an unsupported command cannot block channel or power changes, and a
+reconnection renews the retry budget. Queued enter requests are cancelled on arming.
+Blackbox records the AUX switch in `flightModeFlags3` (bit 0). Verify the
 VTX's own pit indicator before relying on it; driver support is not a guarantee
 that every Tramp-compatible device implements the command.
+
+The AUX pit-mode assignment is advertised only by drivers with functional pit-mode
+read/write support (currently Tramp). Unsupported drivers do not receive AUX pit
+commands. If a saved Tramp power index exceeds a shortened custom power table,
+the runtime request uses its highest level, still capped by the device maximum;
+the saved index is left unchanged.
