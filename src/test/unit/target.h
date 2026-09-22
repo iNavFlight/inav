@@ -52,3 +52,14 @@
 #define TARGET_IO_PORTB         0xffff
 #define TARGET_IO_PORTC         0xffff
 
+
+#if defined(GPS_UBLOX_PROTOCOL_UNIT_TEST) && !defined(__APPLE__)
+#include <stddef.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+char *strnstr(const char *haystack, const char *needle, size_t length);
+#ifdef __cplusplus
+}
+#endif
+#endif

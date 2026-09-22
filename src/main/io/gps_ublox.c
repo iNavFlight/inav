@@ -546,14 +546,18 @@ static void configureSBAS(void)
 
 static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
 {
-    if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strncmp(proto, "PROTVER ", 8))) {
-        proto+=8;
-
-        float ver = fastA2F(proto);
-
-        gpsState.swVersionMajor = (uint8_t)ver;
-        gpsState.swVersionMinor = (uint8_t)((ver - gpsState.swVersionMajor) * 100.0f);
+    // MON-VER uses a fixed-width extension field; do not read beyond it or
+    // lose the hundredths digit through floating-point truncation.
+    if (bufferLength < 14 || (strncmp(proto, "PROTVER=", 8) && strncmp(proto, "PROTVER ", 8))) {
+        return;
     }
+    if (!isdigit((unsigned char)proto[8]) || !isdigit((unsigned char)proto[9]) || proto[10] != '.' ||
+        !isdigit((unsigned char)proto[11]) || !isdigit((unsigned char)proto[12]) || proto[13] != '\0') {
+        return;
+    }
+
+    gpsState.swVersionMajor = (proto[8] - '0') * 10 + proto[9] - '0';
+    gpsState.swVersionMinor = (proto[11] - '0') * 10 + proto[12] - '0';
 }
 
 static uint8_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
@@ -685,7 +689,7 @@ static bool gpsParseFrameUBLOX(void)
         _new_speed = true;
         break;
     case MSG_VER:
-        if (_class == CLASS_MON) {
+        if (_class == CLASS_MON && _payload_length >= sizeof(ubx_mon_ver)) {
             gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
             if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
                 if (_buffer.ver.swVersion[9] > '2' || true) {
@@ -712,12 +716,12 @@ static bool gpsParseFrameUBLOX(void)
                         }
                     }
                 }
-                for(int j = 40; j < _payload_length; j += 30) {
-                    if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
-                        gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
-                        break;
-                    }
-                }
+            }
+            // Protocol support is independent of the hardware ID table. New
+            // receivers must not fall back to legacy CFG commands just because
+            // their hardware string is not recognized.
+            for (unsigned j = sizeof(ubx_mon_ver); j + 30 <= _payload_length; j += 30) {
+                gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
             }
         }
         break;
@@ -1065,7 +1069,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     }// end message config
 
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_SHORT_TIMEOUT);
-    if ((gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
+    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7 || ubloxVersionGTE(15, 0)) {
         configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
     } else {
         configureRATE(hz2rate(5)); // 5Hz
@@ -1190,6 +1194,8 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Attempt to detect GPS hw version
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    gpsState.swVersionMajor = 0;
+    gpsState.swVersionMinor = 0;
     gpsState.autoConfigStep = 0;
 
     // Configure GPS module if enabled
@@ -1197,8 +1203,9 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         do {
             pollVersion();
             gpsState.autoConfigStep++;
-            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
-        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
+            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN || gpsState.swVersionMajor != 0), GPS_CFG_CMD_TIMEOUT_MS);
+        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES &&
+            gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN && gpsState.swVersionMajor == 0);
 
         gpsState.autoConfigStep = 0;
         ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
@@ -1228,7 +1235,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
 
-                if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
+                if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN && gpsState.swVersionMajor == 0)
                 {
                     pollVersion();
                 }
