@@ -227,3 +227,9 @@ foreach(source ${TEST_PROGRAMS})
 endforeach()
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS ${test_targets})
+
+# ELF does not synthesize the firmware PG section boundaries for host tests.
+if(UNIX AND NOT APPLE)
+    target_link_options(profile_name_migration_unittest PRIVATE "-Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/parameter_group_test.ld")
+    target_link_options(profile_name_migration_extended_unittest PRIVATE "-Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/parameter_group_test.ld")
+endif()
