@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 1
+        "patch": 2
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -11896,6 +11896,212 @@
             },
             "notes": "Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.",
             "description": "Retrieves the estimated horizontal wind speed and direction from the internal wind estimator."
+        },
+        "MSP2_INAV_MAG_UNALIGNED": {
+            "code": 8754,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "magADCUnaligned",
+                        "ctype": "int16_t",
+                        "desc": "X, Y and Z components, rounded to signed 16-bit values.",
+                        "units": "",
+                        "array": true,
+                        "array_size": 3
+                    }
+                ]
+            },
+            "notes": "Returns rounded mag.magADCUnaligned values before board alignment. Returns three zeroes without USE_MAG.",
+            "description": "Reads the unaligned magnetometer vector."
+        },
+        "MSP2_INAV_ESC_SRXL2_STATUS": {
+            "code": 8755,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "phase",
+                        "ctype": "uint8_t",
+                        "desc": "Calibration phase (srxl2CalPhase_e).",
+                        "units": ""
+                    },
+                    {
+                        "name": "connected",
+                        "ctype": "uint8_t",
+                        "desc": "1 when every opened ESC is connected; otherwise 0.",
+                        "units": ""
+                    },
+                    {
+                        "name": "lastResult",
+                        "ctype": "uint8_t",
+                        "desc": "Last calibration start result (srxl2CalResult_e).",
+                        "units": ""
+                    },
+                    {
+                        "name": "portCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of opened SRXL2 motor ports.",
+                        "units": ""
+                    },
+                    {
+                        "name": "motorCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of motors in the current mixer.",
+                        "units": ""
+                    }
+                ]
+            },
+            "notes": "Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.",
+            "description": "Reads SRXL2 ESC calibration and connection status."
+        },
+        "MSP2_INAV_ESC_SRXL2_CALIBRATE": {
+            "code": 8756,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "phase",
+                        "ctype": "uint8_t",
+                        "desc": "Requested calibration action (srxl2CalPhase_e): 0, 1, 4 or 5.",
+                        "units": ""
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.",
+            "description": "Controls SRXL2 ESC throttle-range calibration."
+        },
+        "MSP2_INAV_ESC_DIRECTION": {
+            "code": 8757,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "version",
+                        "ctype": "uint8_t",
+                        "desc": "Protocol version, currently 2.",
+                        "units": ""
+                    },
+                    {
+                        "name": "motorCount",
+                        "ctype": "uint8_t",
+                        "desc": "Available motor count; 0 when direction configuration is unavailable.",
+                        "units": ""
+                    },
+                    {
+                        "name": "phase",
+                        "ctype": "uint8_t",
+                        "desc": "0 idle/cancelled, 1 stopping, 2 direction, 3 gap, 4 save, 5 settling, 6 sent.",
+                        "units": ""
+                    },
+                    {
+                        "name": "motor",
+                        "ctype": "uint8_t",
+                        "desc": "Zero-based direction motor index.",
+                        "units": ""
+                    },
+                    {
+                        "name": "reverse",
+                        "ctype": "uint8_t",
+                        "desc": "0 normal, 1 reversed relative to ESC configuration and wiring.",
+                        "units": ""
+                    },
+                    {
+                        "name": "token",
+                        "ctype": "uint8_t",
+                        "desc": "Current or retained direction request token.",
+                        "units": ""
+                    },
+                    {
+                        "name": "simulated",
+                        "ctype": "uint8_t",
+                        "desc": "1 for SITL simulation, otherwise 0; not an ESC acknowledgement.",
+                        "units": ""
+                    },
+                    {
+                        "name": "testMotor",
+                        "ctype": "uint8_t",
+                        "desc": "Zero-based test motor index.",
+                        "units": ""
+                    },
+                    {
+                        "name": "testActive",
+                        "ctype": "uint8_t",
+                        "desc": "1 while the bounded test pulse is active, otherwise 0.",
+                        "units": ""
+                    },
+                    {
+                        "name": "testToken",
+                        "ctype": "uint8_t",
+                        "desc": "Current or retained test request token.",
+                        "units": ""
+                    }
+                ]
+            },
+            "notes": "Provisional ID. Requires USE_DSHOT_DIRECTION_CONFIG. Version 2 reply is ten bytes. Phase 6 means commands sent, not acknowledged ESC storage. See esc-direction.md for timing and safety requirements.",
+            "description": "Reads per-motor DShot direction configuration and bounded test status."
+        },
+        "MSP2_INAV_SET_ESC_DIRECTION": {
+            "code": 8758,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "motor",
+                        "ctype": "uint8_t",
+                        "desc": "Zero-based motor index.",
+                        "units": ""
+                    },
+                    {
+                        "name": "reverse",
+                        "ctype": "uint8_t",
+                        "desc": "0 normal or 1 reversed.",
+                        "units": ""
+                    },
+                    {
+                        "name": "token",
+                        "ctype": "uint8_t",
+                        "desc": "Nonzero request token; reuse only to retry the same request.",
+                        "units": ""
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Provisional ID. Requires USE_DSHOT_DIRECTION_CONFIG and exactly three request bytes. Refused while armed, during ordinary motor tests, with invalid arguments or conflicting operations. A duplicate retained token cannot repeat the save. ACK means accepted, not confirmed ESC persistence. Remove propellers; see esc-direction.md.",
+            "description": "Starts direction configuration for one DShot motor."
+        },
+        "MSP2_INAV_SET_ESC_DIRECTION_TEST": {
+            "code": 8759,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "motor",
+                        "ctype": "uint8_t",
+                        "desc": "Zero-based motor index; ignored for stop.",
+                        "units": ""
+                    },
+                    {
+                        "name": "run",
+                        "ctype": "uint8_t",
+                        "desc": "0 stop, 1 start; other values rejected.",
+                        "units": ""
+                    },
+                    {
+                        "name": "token",
+                        "ctype": "uint8_t",
+                        "desc": "Nonzero start token; ignored for stop. Retained after expiry or cancellation.",
+                        "units": ""
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Provisional ID. Requires USE_DSHOT_DIRECTION_CONFIG and exactly three request bytes. Run=1 requests DShot120 for at most 1.5 seconds and is refused while armed, during ordinary motor tests or conflicting operations. Run=0 stops unconditionally, ignoring motor and token. Duplicate tokens cannot extend or restart a pulse. Remove propellers; see esc-direction.md.",
+            "description": "Starts or stops a bounded single-motor DShot test pulse."
         },
         "MSP2_BETAFLIGHT_BIND": {
             "code": 12288,

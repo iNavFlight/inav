@@ -471,6 +471,12 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8744 - MSP2_INAV_TIMESYNC](#msp2_inav_timesync)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [8753 - MSP2_INAV_WIND](#msp2_inav_wind)  
+[8754 - MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)  
+[8755 - MSP2_INAV_ESC_SRXL2_STATUS](#msp2_inav_esc_srxl2_status)  
+[8756 - MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)  
+[8757 - MSP2_INAV_ESC_DIRECTION](#msp2_inav_esc_direction)  
+[8758 - MSP2_INAV_SET_ESC_DIRECTION](#msp2_inav_set_esc_direction)  
+[8759 - MSP2_INAV_SET_ESC_DIRECTION_TEST](#msp2_inav_set_esc_direction_test)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -5001,6 +5007,95 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `flags` | `uint8_t` | 1 | - | Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved. |
 
 **Notes:** Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.
+
+## <a id="msp2_inav_mag_unaligned"></a>`MSP2_INAV_MAG_UNALIGNED (8754 / 0x2232)`
+**Description:** Reads the unaligned magnetometer vector.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `magADCUnaligned` | `int16_t[3]` | 6 | X, Y and Z components, rounded to signed 16-bit values. |
+
+**Notes:** Returns rounded mag.magADCUnaligned values before board alignment. Returns three zeroes without USE_MAG.
+
+## <a id="msp2_inav_esc_srxl2_status"></a>`MSP2_INAV_ESC_SRXL2_STATUS (8755 / 0x2233)`
+**Description:** Reads SRXL2 ESC calibration and connection status.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `phase` | `uint8_t` | 1 | Calibration phase (srxl2CalPhase_e). |
+| `connected` | `uint8_t` | 1 | 1 when every opened ESC is connected; otherwise 0. |
+| `lastResult` | `uint8_t` | 1 | Last calibration start result (srxl2CalResult_e). |
+| `portCount` | `uint8_t` | 1 | Number of opened SRXL2 motor ports. |
+| `motorCount` | `uint8_t` | 1 | Number of motors in the current mixer. |
+
+**Notes:** Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.
+
+## <a id="msp2_inav_esc_srxl2_calibrate"></a>`MSP2_INAV_ESC_SRXL2_CALIBRATE (8756 / 0x2234)`
+**Description:** Controls SRXL2 ESC throttle-range calibration.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `phase` | `uint8_t` | 1 | Requested calibration action (srxl2CalPhase_e): 0, 1, 4 or 5. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
+
+## <a id="msp2_inav_esc_direction"></a>`MSP2_INAV_ESC_DIRECTION (8757 / 0x2235)`
+**Description:** Reads per-motor DShot direction configuration and bounded test status.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `version` | `uint8_t` | 1 | Protocol version, currently 2. |
+| `motorCount` | `uint8_t` | 1 | Available motor count; 0 when direction configuration is unavailable. |
+| `phase` | `uint8_t` | 1 | 0 idle/cancelled, 1 stopping, 2 direction, 3 gap, 4 save, 5 settling, 6 sent. |
+| `motor` | `uint8_t` | 1 | Zero-based direction motor index. |
+| `reverse` | `uint8_t` | 1 | 0 normal, 1 reversed relative to ESC configuration and wiring. |
+| `token` | `uint8_t` | 1 | Current or retained direction request token. |
+| `simulated` | `uint8_t` | 1 | 1 for SITL simulation, otherwise 0; not an ESC acknowledgement. |
+| `testMotor` | `uint8_t` | 1 | Zero-based test motor index. |
+| `testActive` | `uint8_t` | 1 | 1 while the bounded test pulse is active, otherwise 0. |
+| `testToken` | `uint8_t` | 1 | Current or retained test request token. |
+
+**Notes:** Provisional ID. Requires USE_DSHOT_DIRECTION_CONFIG. Version 2 reply is ten bytes. Phase 6 means commands sent, not acknowledged ESC storage. See esc-direction.md for timing and safety requirements.
+
+## <a id="msp2_inav_set_esc_direction"></a>`MSP2_INAV_SET_ESC_DIRECTION (8758 / 0x2236)`
+**Description:** Starts direction configuration for one DShot motor.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `motor` | `uint8_t` | 1 | Zero-based motor index. |
+| `reverse` | `uint8_t` | 1 | 0 normal or 1 reversed. |
+| `token` | `uint8_t` | 1 | Nonzero request token; reuse only to retry the same request. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Provisional ID. Requires USE_DSHOT_DIRECTION_CONFIG and exactly three request bytes. Refused while armed, during ordinary motor tests, with invalid arguments or conflicting operations. A duplicate retained token cannot repeat the save. ACK means accepted, not confirmed ESC persistence. Remove propellers; see esc-direction.md.
+
+## <a id="msp2_inav_set_esc_direction_test"></a>`MSP2_INAV_SET_ESC_DIRECTION_TEST (8759 / 0x2237)`
+**Description:** Starts or stops a bounded single-motor DShot test pulse.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `motor` | `uint8_t` | 1 | Zero-based motor index; ignored for stop. |
+| `run` | `uint8_t` | 1 | 0 stop, 1 start; other values rejected. |
+| `token` | `uint8_t` | 1 | Nonzero start token; ignored for stop. Retained after expiry or cancellation. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Provisional ID. Requires USE_DSHOT_DIRECTION_CONFIG and exactly three request bytes. Run=1 requests DShot120 for at most 1.5 seconds and is refused while armed, during ordinary motor tests or conflicting operations. Run=0 stops unconditionally, ignoring motor and token. Duplicate tokens cannot extend or restart a pulse. Remove propellers; see esc-direction.md.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

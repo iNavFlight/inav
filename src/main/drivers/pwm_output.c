@@ -614,6 +614,22 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
     return repeats;
 }
 
+// Keep the configuration-only sequencer out of the ITCM-resident scheduler
+// when LTO inlines the normal motor-output path.
+static bool NOINLINE executeDShotDirectionFrame(timeUs_t tNow)
+{
+    const uint16_t testValue = dshotDirectionTestFrame(&directionConfig, tNow);
+    const int16_t command = dshotDirectionFrame(&directionConfig, tNow);
+    if (command < 0) {
+        return false;
+    }
+    for (uint8_t i = 0; i < getMotorCount(); i++) {
+        motors[i].value = testValue ? (i == directionConfig.testMotor ? testValue : 0) : (i == directionConfig.motor ? command : 0);
+        motors[i].requestTelemetry = command != 0 && i == directionConfig.motor;
+    }
+    return true;
+}
+
 static bool executeDShotCommands(void){
     
     timeUs_t tNow = micros();
@@ -622,16 +638,7 @@ static bool executeDShotCommands(void){
         dshotDirectionCancel(&directionConfig);
     }
     if (dshotDirectionBusy(&directionConfig)) {
-        const uint16_t testValue = dshotDirectionTestFrame(&directionConfig, tNow);
-        const int16_t command = dshotDirectionFrame(&directionConfig, tNow);
-        if (command < 0) {
-            return false;
-        }
-        for (uint8_t i = 0; i < getMotorCount(); i++) {
-            motors[i].value = testValue ? (i == directionConfig.testMotor ? testValue : 0) : (i == directionConfig.motor ? command : 0);
-            motors[i].requestTelemetry = command != 0 && i == directionConfig.motor;
-        }
-        return true;
+        return executeDShotDirectionFrame(tNow);
     }
 
     if(currentExecutingCommand.remainingRepeats == 0) {
