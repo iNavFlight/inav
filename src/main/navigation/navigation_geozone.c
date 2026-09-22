@@ -1684,6 +1684,7 @@ static void geoZoneInit(void)
         activeGeoZones[activeGeoZonesCount].config = safeHomeGeozoneConfig;
         activeGeoZones[activeGeoZonesCount].verticesLocal = (fpVector2_t*)&posControl.safehomeState.nearestSafeHome;
         activeGeoZones[activeGeoZonesCount].radius = navConfig()->general.safehome_max_distance;
+        activeGeoZones[activeGeoZonesCount].enable = true;
         activeGeoZonesCount++;
         expectedVertices++;
         configuredVertices++;
