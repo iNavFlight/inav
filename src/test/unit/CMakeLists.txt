@@ -145,6 +145,9 @@ set_property(SOURCE canard_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_
 set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd_utils.c" "io/displayport_msp_osd.c" "common/typeconversion.c")
 set_property(SOURCE osd_unittest.cc PROPERTY definitions OSD_UNIT_TEST USE_MSP_DISPLAYPORT)
 
+set_property(SOURCE gps_ublox_protocol_unittest.cc PROPERTY definitions GPS_UBLOX_PROTOCOL_UNIT_TEST)
+set_property(SOURCE gps_ublox_protocol_unittest.cc PROPERTY depends "io/gps_ublox.c" "io/gps_ublox_utils.c")
+
 set_property(SOURCE gps_ublox_unittest.cc PROPERTY depends "io/gps_ublox_utils.c")
 set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TEST)
 
