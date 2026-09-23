@@ -81,6 +81,8 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBX_HW_VERSION_UBLOX8       (UBX_HW_SERIES_UBLOX_NM | 8)   // 0x48
 #define UBX_HW_VERSION_UBLOX9       (UBX_HW_SERIES_UBLOX_NM | 9)   // 0x49
 #define UBX_HW_VERSION_UBLOX10      (UBX_HW_SERIES_UBLOX_NM | 10)  // 0x4A
+// X20 stays in the u-blox series so the ">= UBX_HW_VERSION_UBLOX10" checks include it.
+#define UBX_HW_VERSION_UBLOX20      (UBX_HW_SERIES_UBLOX_NM | 20)  // 0x54
 
 #define UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1   0x2091002a // U1
 #define UBLOX_CFG_MSGOUT_NAV_SAT_UART1      0x20910016 // U1

@@ -627,6 +627,11 @@ static uint8_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
         return UBX_HW_VERSION_UBLOX10;
     }
 
+    // ublox_X20 hwVersion 000B0000
+    if (strncmp(szBuf, "000B0000", nBufSize) == 0) {
+        return UBX_HW_VERSION_UBLOX20;
+    }
+
     return UBX_HW_VERSION_UNKNOWN;
 }
 

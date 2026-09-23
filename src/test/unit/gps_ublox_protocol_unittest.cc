@@ -152,6 +152,15 @@ protected:
             return p[2] == msgClass && p[3] == id;
         });
     }
+
+    bool sentValset(uint32_t key, uint8_t value)
+    {
+        const uint8_t keyValue[] = {uint8_t(key), uint8_t(key >> 8), uint8_t(key >> 16), uint8_t(key >> 24), value};
+        return std::any_of(tx.begin(), tx.end(), [&](const std::vector<uint8_t>& p) {
+            return p[2] == CLASS_CFG && p[3] == 0x8a &&
+                std::search(p.begin(), p.end(), std::begin(keyValue), std::end(keyValue)) != p.end();
+        });
+    }
 };
 
 TEST_F(GPSUbloxProtocolTest, UnknownHardwareUsesAdvertisedProtocolAndCompletesConfiguration)
@@ -197,6 +206,31 @@ TEST_F(GPSUbloxProtocolTest, KnownM10RetainsModernConfiguration)
     EXPECT_EQ(34, gpsState.swVersionMajor);
     EXPECT_EQ(10, gpsState.swVersionMinor);
     EXPECT_EQ(0u, countMessages(CLASS_CFG, MSG_CFG_NAV_SETTINGS));
+    EXPECT_GT(solutions, 0u);
+}
+
+TEST_F(GPSUbloxProtocolTest, X20AppliesConstellationSettings)
+{
+    // MON-VER captured from a ZED-X20P running HPG 2.10.
+    const char *extensions[] = {"ROM BASE 0x00A9D329", "FWVER=HPG 2.10", "PROTVER=50.11", "MOD=ZED-X20P",
+        "GPS;GLO;GAL;BDS", "SBAS;QZSS", "NAVIC;LBAND"};
+    versionPayload.assign(250, 0);
+    memcpy(versionPayload.data(), "EXT HPG 2.10 (b0eda3)", 21);
+    memcpy(versionPayload.data() + 30, "000B0000", 8);
+    for (size_t i = 0; i < sizeof(extensions) / sizeof(extensions[0]); ++i) {
+        memcpy(versionPayload.data() + 40 + i * 30, extensions[i], strlen(extensions[i]));
+    }
+    gpsConfig_System.ubloxUseGalileo = true;
+    gpsConfig_System.ubloxUseBeidou = true;
+    gpsConfig_System.ubloxUseGlonass = false;
+    run(4000);
+    EXPECT_EQ(UBX_HW_VERSION_UBLOX20, gpsState.hwVersion);
+    EXPECT_EQ(50, gpsState.swVersionMajor);
+    EXPECT_EQ(11, gpsState.swVersionMinor);
+    EXPECT_EQ(0u, countMessages(CLASS_CFG, MSG_CFG_NAV_SETTINGS));
+    EXPECT_TRUE(sentValset(UBLOX_CFG_SIGNAL_GAL_ENA, 1));
+    EXPECT_TRUE(sentValset(UBLOX_CFG_SIGNAL_BDS_ENA, 1));
+    EXPECT_TRUE(sentValset(UBLOX_CFG_GLO_ENA, 0));
     EXPECT_GT(solutions, 0u);
 }
 
