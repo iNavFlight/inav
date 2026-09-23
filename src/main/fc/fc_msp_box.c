@@ -345,13 +345,6 @@ void initActiveBoxIds(void)
 
     ADD_ACTIVE_BOX(BOXFAILSAFE);
 
-#ifdef USE_VTX_CONTROL
-    const vtxDevice_t *vtxDevice = vtxCommonDevice();
-    if (vtxDevice && vtxDevice->capability.supportsPitMode) {
-        ADD_ACTIVE_BOX(BOXVTXPITMODE);
-    }
-#endif
-
 #if defined(USE_RCDEVICE) || defined(USE_MSP_DISPLAYPORT)
     ADD_ACTIVE_BOX(BOXCAMERA1);
     ADD_ACTIVE_BOX(BOXCAMERA2);
@@ -428,6 +421,15 @@ void initActiveBoxIds(void)
      */
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2 && motorConfig()->srxl2ReverseChannel != 0) {
         ADD_ACTIVE_BOX(BOXTHRUSTREVERSE);
+    }
+#endif
+
+    // Keep new boxes last. Configurators that do not know a box drop it from
+    // their list and map the activity bits of the remaining boxes by position.
+#ifdef USE_VTX_CONTROL
+    const vtxDevice_t *vtxDevice = vtxCommonDevice();
+    if (vtxDevice && vtxDevice->capability.supportsPitMode) {
+        ADD_ACTIVE_BOX(BOXVTXPITMODE);
     }
 #endif
 }
