@@ -1043,7 +1043,7 @@ void dshotSpinDirectionApply(bool invert)
     dshotSpinDirectionSentAtUs = micros();
 }
 
-void dshotSpinDirectionUpdate(timeUs_t currentTimeUs)
+void NOINLINE dshotSpinDirectionUpdate(timeUs_t currentTimeUs)
 {
     // Called from a busy loop; one evaluation per poll interval is plenty
     if (currentTimeUs - dshotSpinDirectionPolledAtUs < DSHOT_SPIN_DIRECTION_POLL_US) {

@@ -505,7 +505,9 @@ void initDShotCommands(void) {
     currentExecutingCommand.remainingRepeats = 0;
 }
 
-static bool executeDShotCommands(void){
+// LTO must not pull the command sequencing into the ITCM-resident scheduler; the F745
+// targets have 16 KB of it and the per-motor frames pushed it over the edge
+static bool NOINLINE executeDShotCommands(void){
 
     timeUs_t tNow = micros();
 
