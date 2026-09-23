@@ -472,6 +472,8 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [8753 - MSP2_INAV_WIND](#msp2_inav_wind)  
 [8754 - MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)  
+[8755 - MSP2_INAV_ESC_SRXL2_STATUS](#msp2_inav_esc_srxl2_status)  
+[8756 - MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -5016,6 +5018,34 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `magZ` | `int16_t` | 2 | Raw units | Compass Z reading, as `magX` |
 
 **Notes:** Always answers with 6 bytes; they are zero on targets built without `USE_MAG`.
+
+## <a id="msp2_inav_esc_srxl2_status"></a>`MSP2_INAV_ESC_SRXL2_STATUS (8755 / 0x2233)`
+**Description:** Reports the Spektrum Smart ESC (SRXL2) link and the state of its throttle range calibration.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `calibrationPhase` | `uint8_t` | 1 | [srxl2CalPhase_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-srxl2calphase_e) | Where the throttle range calibration is (`srxl2MotorCalibrationPhase()`): 0 off, 1 full throttle waiting for the ESC to power up, 2 holding high while the ESC takes the endpoint, 3 low, 4 high driven by hand, 5 low driven by hand |
+| `linked` | `uint8_t` | 1 | Boolean | 1 if every SRXL2 port has an ESC that completed its handshake and was heard within the link timeout (`srxl2MotorIsConnected()`), otherwise 0 |
+| `lastCalibrationResult` | `uint8_t` | 1 | [srxl2CalResult_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-srxl2calresult_e) | Why the last request to start a calibration was refused, or 0 if it was not (`srxl2MotorCalibrationLastResult()`): 1 armed, 2 no SRXL2 port, 3 battery connected, 4 no battery voltage sensor |
+| `portCount` | `uint8_t` | 1 | Count | SRXL2 ports opened (`srxl2MotorCount()`) |
+| `motorCount` | `uint8_t` | 1 | Count | Motors the mixer wants (`getMotorCount()`). Arming is refused while this is more than `portCount` |
+
+**Notes:** Requires `USE_MOTOR_SRXL2`. `lastCalibrationResult` exists because `MSP2_INAV_ESC_SRXL2_CALIBRATE` has no reply to carry a refusal reason in.
+
+## <a id="msp2_inav_esc_srxl2_calibrate"></a>`MSP2_INAV_ESC_SRXL2_CALIBRATE (8756 / 0x2234)`
+**Description:** Starts, drives or aborts the SRXL2 throttle range calibration.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `phase` | `uint8_t` | 1 | [srxl2CalPhase_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-srxl2calphase_e) | What to do (`srxl2CalPhase_e`): 0 abort, 1 start the unattended sequence, 4 drive high by hand, 5 drive low by hand. Other values are refused |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires `USE_MOTOR_SRXL2`. Fails when the driver refuses: armed, no SRXL2 port, battery already connected for the unattended sequence, or no voltage sensor to detect the ESC powering up. `MSP2_INAV_ESC_SRXL2_STATUS` reports which. Phases 1 and 4 command full throttle with the aircraft disarmed; both end on a timeout, and arming cancels any phase.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

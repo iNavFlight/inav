@@ -11926,6 +11926,67 @@
             "notes": "Always answers with 6 bytes; they are zero on targets built without `USE_MAG`.",
             "description": "Retrieves the calibrated compass reading in the sensor's own frame, before the board and sensor alignment are applied."
         },
+        "MSP2_INAV_ESC_SRXL2_STATUS": {
+            "code": 8755,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "calibrationPhase",
+                        "ctype": "uint8_t",
+                        "desc": "Where the throttle range calibration is (`srxl2MotorCalibrationPhase()`): 0 off, 1 full throttle waiting for the ESC to power up, 2 holding high while the ESC takes the endpoint, 3 low, 4 high driven by hand, 5 low driven by hand",
+                        "units": "Enum",
+                        "enum": "srxl2CalPhase_e"
+                    },
+                    {
+                        "name": "linked",
+                        "ctype": "uint8_t",
+                        "desc": "1 if every SRXL2 port has an ESC that completed its handshake and was heard within the link timeout (`srxl2MotorIsConnected()`), otherwise 0",
+                        "units": "Boolean"
+                    },
+                    {
+                        "name": "lastCalibrationResult",
+                        "ctype": "uint8_t",
+                        "desc": "Why the last request to start a calibration was refused, or 0 if it was not (`srxl2MotorCalibrationLastResult()`): 1 armed, 2 no SRXL2 port, 3 battery connected, 4 no battery voltage sensor",
+                        "units": "Enum",
+                        "enum": "srxl2CalResult_e"
+                    },
+                    {
+                        "name": "portCount",
+                        "ctype": "uint8_t",
+                        "desc": "SRXL2 ports opened (`srxl2MotorCount()`)",
+                        "units": "Count"
+                    },
+                    {
+                        "name": "motorCount",
+                        "ctype": "uint8_t",
+                        "desc": "Motors the mixer wants (`getMotorCount()`). Arming is refused while this is more than `portCount`",
+                        "units": "Count"
+                    }
+                ]
+            },
+            "notes": "Requires `USE_MOTOR_SRXL2`. `lastCalibrationResult` exists because `MSP2_INAV_ESC_SRXL2_CALIBRATE` has no reply to carry a refusal reason in.",
+            "description": "Reports the Spektrum Smart ESC (SRXL2) link and the state of its throttle range calibration."
+        },
+        "MSP2_INAV_ESC_SRXL2_CALIBRATE": {
+            "code": 8756,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "phase",
+                        "ctype": "uint8_t",
+                        "desc": "What to do (`srxl2CalPhase_e`): 0 abort, 1 start the unattended sequence, 4 drive high by hand, 5 drive low by hand. Other values are refused",
+                        "units": "Enum",
+                        "enum": "srxl2CalPhase_e"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires `USE_MOTOR_SRXL2`. Fails when the driver refuses: armed, no SRXL2 port, battery already connected for the unattended sequence, or no voltage sensor to detect the ESC powering up. `MSP2_INAV_ESC_SRXL2_STATUS` reports which. Phases 1 and 4 command full throttle with the aircraft disarmed; both end on a timeout, and arming cancels any phase.",
+            "description": "Starts, drives or aborts the SRXL2 throttle range calibration."
+        },
         "MSP2_BETAFLIGHT_BIND": {
             "code": 12288,
             "mspv": 2,
