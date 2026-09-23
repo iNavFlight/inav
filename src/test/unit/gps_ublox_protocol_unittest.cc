@@ -281,6 +281,37 @@ TEST_F(GPSUbloxProtocolTest, X20AppliesConstellationSettings)
     EXPECT_GT(solutions, 0u);
 }
 
+TEST_F(GPSUbloxProtocolTest, F9PKeepsM9Configuration)
+{
+    // MON-VER and MON-GNSS captured from a ZED-F9P running HPG 1.51. The F9P
+    // reports the M9 hardware ID and still accepts legacy CFG messages.
+    const char *extensions[] = {"ROM BASE 0x118B2060", "FWVER=HPG 1.51", "PROTVER=27.50", "MOD=ZED-F9P",
+        "GPS;GLO;GAL;BDS", "SBAS;QZSS"};
+    versionPayload.assign(220, 0);
+    memcpy(versionPayload.data(), "EXT CORE 1.00 (9e1716)", 22);
+    memcpy(versionPayload.data() + 30, "00190000", 8);
+    for (size_t i = 0; i < sizeof(extensions) / sizeof(extensions[0]); ++i) {
+        memcpy(versionPayload.data() + 40 + i * 30, extensions[i], strlen(extensions[i]));
+    }
+    gnssPayload = {0x00, 0x0f, 0x0f, 0x0f, 0x04, 0x00, 0x00, 0x00};
+    modernOnly = false;
+    gpsConfig_System.ubloxUseGalileo = true;
+    run(4000);
+    EXPECT_EQ(UBX_HW_VERSION_UBLOX9, gpsState.hwVersion);
+    EXPECT_EQ(27, gpsState.swVersionMajor);
+    EXPECT_EQ(50, gpsState.swVersionMinor);
+    EXPECT_EQ(4, gpsUbloxMaxGnss());
+    EXPECT_EQ(0u, countMessages(CLASS_CFG, MSG_CFG_NAV_SETTINGS));
+    // Constellations still go out as legacy CFG-GNSS: gnssId 2 (Galileo), enabled, E1.
+    const uint8_t galileoBlock[] = {2, 4, 8, 0, 0x01, 0x00, 0x01, 0x00};
+    EXPECT_TRUE(std::any_of(tx.begin(), tx.end(), [&](const std::vector<uint8_t>& p) {
+        return p[2] == CLASS_CFG && p[3] == MSG_CFG_GNSS &&
+            std::search(p.begin(), p.end(), std::begin(galileoBlock), std::end(galileoBlock)) != p.end();
+    }));
+    EXPECT_LE(maxSilenceMs, gpsState.baseTimeoutMs);
+    EXPECT_GT(solutions, 0u);
+}
+
 TEST_F(GPSUbloxProtocolTest, TruncatedExtensionDoesNotReusePreviousPayload)
 {
     version("UNKNOWN", "PROTVER=50.10");
