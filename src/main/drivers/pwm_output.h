@@ -31,11 +31,6 @@ typedef enum {
     DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
 } dshotCommands_e;
 
-typedef struct {
-    dshotCommands_e cmd;
-    int remainingRepeats;
-} currentExecutingCommand_t;
-
 void pwmRequestMotorTelemetry(int motorIndex);
 
 ioTag_t pwmGetMotorPinTag(int motorIndex);
@@ -61,7 +56,12 @@ bool pwmServoConfig(const struct timerHardware_s *timerHardware, uint8_t servoIn
 void pwmWriteBeeper(bool onoffBeep);
 bool beeperPwmInit(ioTag_t tag, uint16_t frequency);
 
+// Queue one command for every motor
 void sendDShotCommand(dshotCommands_e cmd);
+// Queue one frame in which each motor in the mask gets SPIN_DIRECTION_REVERSED and every
+// other motor SPIN_DIRECTION_NORMAL. The ESC does not store either, so the caller re-sends
+// them whenever the ESC may have restarted
+void sendDShotSpinDirection(uint16_t reversedMotorMask);
 void initDShotCommands(void);
 
 uint32_t getEscUpdateFrequency(void);

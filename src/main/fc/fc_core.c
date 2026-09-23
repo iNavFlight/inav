@@ -483,7 +483,8 @@ void disarm(disarmReason_t disarmReason)
         DISABLE_STATE(IN_FLIGHT_EMERG_REARM);
 #ifdef USE_DSHOT
         if (FLIGHT_MODE(TURTLE_MODE)) {
-            sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
+            // Back from all-inverted to the configured directions, not to all-normal
+            dshotSpinDirectionApply(false);
             DISABLE_FLIGHT_MODE(TURTLE_MODE);
         }
 #endif
@@ -583,7 +584,8 @@ void tryArm(void)
     const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE);
 #endif
     if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
-        sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+        // Every motor the other way round relative to its configured direction
+        dshotSpinDirectionApply(true);
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_FLIGHT_MODE(TURTLE_MODE);
         return;
@@ -607,6 +609,15 @@ void tryArm(void)
         }
 
         lastDisarmReason = DISARM_NONE;
+
+#ifdef USE_DSHOT
+        // An ESC may have restarted since the last refresh: send the directions once more so
+        // they are out before the first throttle frame. Not on an in-flight rearm, where the
+        // motors are turning and would ignore them anyway
+        if (motorConfig()->dshotReversedMotors && !STATE(IN_FLIGHT_EMERG_REARM)) {
+            dshotSpinDirectionApply(false);
+        }
+#endif
 
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
@@ -1080,6 +1091,7 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_DSHOT
+    dshotSpinDirectionUpdate(currentTimeUs);
     pwmCompleteMotorUpdate();
 #endif
 

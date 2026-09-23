@@ -53,6 +53,8 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "io/beeper.h"
+
 #include "navigation/navigation.h"
 
 #include "rx/rx.h"
@@ -89,13 +91,16 @@ PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
     .neutral = SETTING_3D_NEUTRAL_DEFAULT
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 12);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmProtocol = SETTING_MOTOR_PWM_PROTOCOL_DEFAULT,
     .motorPwmRate = SETTING_MOTOR_PWM_RATE_DEFAULT,
     .mincommand = SETTING_MIN_COMMAND_DEFAULT,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
+#ifdef USE_DSHOT
+    .dshotReversedMotors = SETTING_DSHOT_REVERSED_MOTORS_DEFAULT,
+#endif
 );
 PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
 
@@ -1002,6 +1007,75 @@ bool areMotorsStopped(void)
 {
     return motor[0] == motorZeroCommand;
 }
+
+#ifdef USE_DSHOT
+/*
+ * DShot commands 20/21 are not stored by the ESC: it forgets them when it restarts, and
+ * without telemetry the FC cannot see an ESC restart - the battery plugged in after USB
+ * is the everyday case. So the configured directions go out again on every arm, as soon
+ * as the setting changes, and every DSHOT_SPIN_DIRECTION_REFRESH_US while disarmed. On
+ * arm the command frames replace the first throttle frames, so an ESC that was listening
+ * has its direction before it gets throttle.
+ */
+#define DSHOT_SPIN_DIRECTION_POLL_US    100000
+#define DSHOT_SPIN_DIRECTION_REFRESH_US 2000000
+
+static uint16_t dshotSpinDirectionSent = 0;         // reversed mask the ESCs last received
+static timeUs_t dshotSpinDirectionSentAtUs = 0;
+static timeUs_t dshotSpinDirectionPolledAtUs = 0;
+
+static uint16_t dshotReversedMotorMask(void)
+{
+    return motorConfig()->dshotReversedMotors & ((1u << motorCount) - 1);
+}
+
+void dshotSpinDirectionApply(bool invert)
+{
+    if (!isMotorProtocolDshot()) {
+        return;
+    }
+
+    const uint16_t allMotors = (1u << motorCount) - 1;
+    const uint16_t mask = invert ? (~dshotReversedMotorMask() & allMotors) : dshotReversedMotorMask();
+
+    sendDShotSpinDirection(mask);
+    dshotSpinDirectionSent = mask;
+    dshotSpinDirectionSentAtUs = micros();
+}
+
+void dshotSpinDirectionUpdate(timeUs_t currentTimeUs)
+{
+    // Called from a busy loop; one evaluation per poll interval is plenty
+    if (currentTimeUs - dshotSpinDirectionPolledAtUs < DSHOT_SPIN_DIRECTION_POLL_US) {
+        return;
+    }
+    dshotSpinDirectionPolledAtUs = currentTimeUs;
+
+    if (!isMotorProtocolDshot()) {
+        return;
+    }
+
+    const uint16_t mask = dshotReversedMotorMask();
+
+    // Nothing configured and nothing ever sent: stay silent, so an all-normal setup behaves
+    // exactly as it did before the setting existed
+    if (mask == 0 && dshotSpinDirectionSent == 0) {
+        return;
+    }
+
+    if (mask == dshotSpinDirectionSent && currentTimeUs - dshotSpinDirectionSentAtUs < DSHOT_SPIN_DIRECTION_REFRESH_US) {
+        return;
+    }
+
+    // Only a stopped motor listens to commands (the motor test counts as running), and an
+    // ESC that is still playing a beacon tone ignores them too
+    if (areMotorsRunning() || currentTimeUs - getLastDshotBeeperCommandTimeUs() < getDShotBeaconGuardDelayUs()) {
+        return;
+    }
+
+    dshotSpinDirectionApply(false);
+}
+#endif
 
 uint16_t getMaxThrottle(void) {
 

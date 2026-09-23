@@ -868,6 +868,13 @@ groups:
         min: 4
         max: 255
         default_value: 14
+      - name: dshot_reversed_motors
+        description: "Bitmask of motors that are told to spin opposite to the direction stored in their ESC, using the DShot spin direction command: bit 0 is motor 1, bit 1 motor 2, and so on. Fixes a motor that turns the wrong way without touching the ESC configuration. The ESC does not store it, so it is sent again on every arm, whenever this setting changes and every two seconds while disarmed. Needs an ESC that understands DShot commands 20 and 21, the same ones turtle mode uses."
+        default_value: 0
+        field: dshotReversedMotors
+        condition: USE_DSHOT
+        min: 0
+        max: 4095
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
