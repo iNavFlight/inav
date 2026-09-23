@@ -11897,6 +11897,35 @@
             "notes": "Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.",
             "description": "Retrieves the estimated horizontal wind speed and direction from the internal wind estimator."
         },
+        "MSP2_INAV_MAG_UNALIGNED": {
+            "code": 8754,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "magX",
+                        "ctype": "int16_t",
+                        "desc": "Compass X reading with zero offset and gain calibration applied, before any alignment rotation (`mag.magADCUnaligned[X]`). 0 if `USE_MAG` is not defined",
+                        "units": "Raw units"
+                    },
+                    {
+                        "name": "magY",
+                        "ctype": "int16_t",
+                        "desc": "Compass Y reading, as `magX`",
+                        "units": "Raw units"
+                    },
+                    {
+                        "name": "magZ",
+                        "ctype": "int16_t",
+                        "desc": "Compass Z reading, as `magX`",
+                        "units": "Raw units"
+                    }
+                ]
+            },
+            "notes": "Always answers with 6 bytes; they are zero on targets built without `USE_MAG`.",
+            "description": "Retrieves the calibrated compass reading in the sensor's own frame, before the board and sensor alignment are applied."
+        },
         "MSP2_BETAFLIGHT_BIND": {
             "code": 12288,
             "mspv": 2,

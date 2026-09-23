@@ -471,6 +471,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8744 - MSP2_INAV_TIMESYNC](#msp2_inav_timesync)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [8753 - MSP2_INAV_WIND](#msp2_inav_wind)  
+[8754 - MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -5001,6 +5002,20 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `flags` | `uint8_t` | 1 | - | Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved. |
 
 **Notes:** Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.
+
+## <a id="msp2_inav_mag_unaligned"></a>`MSP2_INAV_MAG_UNALIGNED (8754 / 0x2232)`
+**Description:** Retrieves the calibrated compass reading in the sensor's own frame, before the board and sensor alignment are applied.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `magX` | `int16_t` | 2 | Raw units | Compass X reading with zero offset and gain calibration applied, before any alignment rotation (`mag.magADCUnaligned[X]`). 0 if `USE_MAG` is not defined |
+| `magY` | `int16_t` | 2 | Raw units | Compass Y reading, as `magX` |
+| `magZ` | `int16_t` | 2 | Raw units | Compass Z reading, as `magX` |
+
+**Notes:** Always answers with 6 bytes; they are zero on targets built without `USE_MAG`.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
