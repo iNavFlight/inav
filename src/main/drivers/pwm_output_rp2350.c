@@ -52,6 +52,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "build/build_config.h"
 
