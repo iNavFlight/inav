@@ -34,7 +34,9 @@ baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = {};
 static std::deque<uint8_t> rx;
 static std::vector<std::vector<uint8_t>> tx;
 static std::vector<uint8_t> versionPayload;
+static std::vector<uint8_t> gnssPayload;
 static timeMs_t nowMs;
+static timeMs_t maxSilenceMs;
 static unsigned solutions;
 static bool modernOnly;
 static serialPort_t port;
@@ -85,9 +87,18 @@ void serialSetBaudRate(serialPort_t *, uint32_t) {}
 void serialPrint(serialPort_t *, const char *) {}
 int gpsBaudRateToInt(gpsBaudRate_e) { return 115200; }
 void gpsSetState(gpsState_e state) { gpsState.state = state; }
-void gpsSetProtocolTimeout(timeMs_t timeout) { gpsState.timeoutMs = timeout; }
+// Both refresh the timestamp that the GPS timeout in gps.c checks.
+void gpsSetProtocolTimeout(timeMs_t timeout)
+{
+    gpsState.lastMessageMs = nowMs;
+    gpsState.timeoutMs = timeout;
+}
 void gpsProcessNewDriverData(void) {}
-void gpsProcessNewSolutionData(bool) { ++solutions; }
+void gpsProcessNewSolutionData(bool)
+{
+    ++solutions;
+    gpsState.lastMessageMs = nowMs;
+}
 uint16_t gpsConstrainEPE(uint32_t value) { return std::min(value, uint32_t(UINT16_MAX)); }
 uint16_t gpsConstrainHDOP(uint32_t value) { return std::min(value, uint32_t(UINT16_MAX)); }
 void serialWriteBuf(serialPort_t *, const uint8_t *data, int count)
@@ -95,6 +106,10 @@ void serialWriteBuf(serialPort_t *, const uint8_t *data, int count)
     tx.emplace_back(data, data + count);
     if (data[2] == CLASS_MON && data[3] == MSG_VER) {
         receive(CLASS_MON, MSG_VER, versionPayload);
+    } else if (data[2] == CLASS_MON && data[3] == MSG_MON_GNSS) {
+        if (!gnssPayload.empty()) {
+            receive(CLASS_MON, MSG_MON_GNSS, gnssPayload);
+        }
     } else if (data[2] == CLASS_CFG) {
         // New receivers do not acknowledge removed legacy CFG messages.
         if (!modernOnly || data[3] == 0x8a) {
@@ -111,7 +126,9 @@ protected:
         rx.clear();
         tx.clear();
         versionPayload.clear();
+        gnssPayload.clear();
         nowMs = 0;
+        maxSilenceMs = 0;
         solutions = 0;
         modernOnly = true;
         gpsState = {};
@@ -142,6 +159,7 @@ protected:
                 receive(CLASS_NAV, MSG_PVT, std::vector<uint8_t>(sizeof(ubx_nav_pvt), 0));
             }
             gpsHandleUBLOX();
+            maxSilenceMs = std::max(maxSilenceMs, nowMs - gpsState.lastMessageMs);
             nowMs += 10;
         }
     }
@@ -209,9 +227,22 @@ TEST_F(GPSUbloxProtocolTest, KnownM10RetainsModernConfiguration)
     EXPECT_GT(solutions, 0u);
 }
 
-TEST_F(GPSUbloxProtocolTest, X20AppliesConstellationSettings)
+// MON-GNSS captured from a ZED-X20P running HPG 2.10. It is message version 1
+// (signal plans), which the driver does not parse.
+static const uint8_t x20MonGnss[] = {
+    0x01, 0x04, 0x02, 0x01, 0x01, 0x53, 0x50, 0x31, 0x00, 0x00, 0x0d, 0x00, 0x0b, 0x00, 0x1b, 0x00,
+    0x00, 0x00, 0x01, 0x00, 0x3b, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x02, 0x53, 0x50, 0x32, 0x00, 0x00, 0x0d, 0x00, 0x0b, 0x00, 0x1a, 0x00, 0x03, 0x00, 0x01, 0x00,
+    0x3b, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x53, 0x50, 0x33,
+    0x00, 0x00, 0x0d, 0x00, 0x0b, 0x00, 0x1b, 0x00, 0x00, 0x00, 0x01, 0x00, 0x3b, 0x00, 0x01, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x53, 0x50, 0x36, 0x00, 0x00, 0x0d, 0x00,
+    0x03, 0x00, 0x0b, 0x00, 0x03, 0x00, 0x01, 0x00, 0x3b, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+};
+
+static void x20Receiver(void)
 {
-    // MON-VER captured from a ZED-X20P running HPG 2.10.
+    // MON-VER captured from the same receiver.
     const char *extensions[] = {"ROM BASE 0x00A9D329", "FWVER=HPG 2.10", "PROTVER=50.11", "MOD=ZED-X20P",
         "GPS;GLO;GAL;BDS", "SBAS;QZSS", "NAVIC;LBAND"};
     versionPayload.assign(250, 0);
@@ -220,6 +251,22 @@ TEST_F(GPSUbloxProtocolTest, X20AppliesConstellationSettings)
     for (size_t i = 0; i < sizeof(extensions) / sizeof(extensions[0]); ++i) {
         memcpy(versionPayload.data() + 40 + i * 30, extensions[i], strlen(extensions[i]));
     }
+    gnssPayload.assign(std::begin(x20MonGnss), std::end(x20MonGnss));
+}
+
+TEST_F(GPSUbloxProtocolTest, X20StaysWithinGpsTimeout)
+{
+    x20Receiver();
+    run(4000);
+    EXPECT_EQ(UBX_HW_VERSION_UBLOX20, gpsState.hwVersion);
+    // gps.c restarts the driver when this gap exceeds the base timeout.
+    EXPECT_LE(maxSilenceMs, gpsState.baseTimeoutMs);
+    EXPECT_GT(solutions, 0u);
+}
+
+TEST_F(GPSUbloxProtocolTest, X20AppliesConstellationSettings)
+{
+    x20Receiver();
     gpsConfig_System.ubloxUseGalileo = true;
     gpsConfig_System.ubloxUseBeidou = true;
     gpsConfig_System.ubloxUseGlonass = false;

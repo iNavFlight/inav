@@ -1278,6 +1278,10 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         // UBLOX documents that this is M8N and later
         if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
             do {
+                // The receiver has answered MON-VER, so it is alive even when no usable
+                // MON-GNSS comes back (the X20 sends version 1, which is not parsed).
+                // Refresh the timeout so gps.c does not restart the driver meanwhile.
+                gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
                 pollGnssCapabilities();
                 gpsState.autoConfigStep++;
                 ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
