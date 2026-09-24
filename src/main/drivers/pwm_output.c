@@ -321,23 +321,34 @@ void pwmSetMotorDMACircular(bool circular)
         return;
     }
 
+    int motorCount = getMotorCount();
+    const uint32_t dshotHz = getDshotHz(initMotorProtocol);
+    const uint32_t keepaliveSlots = DSHOT_KEEPALIVE_SLOTS(dshotHz);
+    // A frame started by pwmCompleteMotorUpdate() may still be in flight for this long
+    const uint32_t frameUs = DSHOT_DMA_BUFFER_SIZE * DSHOT_MOTOR_BITLENGTH * 1000000UL / dshotHz;
+
 #ifdef USE_DSHOT_BIDIR
-    // No replay for bidir: the ports switch direction per frame and one may sit in input
-    // capture, so the circular replay below does not apply. The ESC sees a frame gap (line
-    // idle-high) for the flash write, as in Betaflight.
+    // No keep-alive frames for bidir: the ESC sees a frame gap for the flash write, as in
+    // Betaflight. Between frames a bidir port waits in input capture with the line held
+    // high only by its pull-up, so on entry complete the turnaround the normal way (frame
+    // in flight, its reply, every port back to output): in output CCR is 0, which with
+    // the bidir polarity drives the line at its idle-high level for the whole write.
+    // Nothing to undo on exit, the next frame starts from that same output state.
     if (useDshotTelemetry) {
+        if (circular) {
+            // Let a frame in flight finish, with the deadtime as margin for its completion
+            // IRQ, then wait out the reply and turn the ports round as before any frame
+            delayMicroseconds(frameUs + DSHOT_TELEMETRY_DEADTIME_US);
+            while (!pwmDshotDecodeTelemetry()) { }
+        }
         return;
     }
 #endif
 
-    int motorCount = getMotorCount();
-    const uint32_t dshotHz = getDshotHz(initMotorProtocol);
-    const uint32_t keepaliveSlots = DSHOT_KEEPALIVE_SLOTS(dshotHz);
-
     if (circular) {
         // A frame started by pwmCompleteMotorUpdate() may still be in flight: let it finish
         // and keep the line low for one full gap before the keep-alive stream starts
-        delayMicroseconds(DSHOT_DMA_BUFFER_SIZE * DSHOT_MOTOR_BITLENGTH * 1000000UL / dshotHz + DSHOT_KEEPALIVE_GAP_US);
+        delayMicroseconds(frameUs + DSHOT_KEEPALIVE_GAP_US);
 
         // Load a zero-throttle packet into the shared keep-alive buffer. The padding slots
         // must be zero (line low between frames); DMA_RAM is NOLOAD and not cleared at
