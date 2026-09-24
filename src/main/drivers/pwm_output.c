@@ -652,6 +652,15 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     LL_DMA_EnableIT_TC(dmaBase, streamLL);
     port->telemetryInputActive = false;
 #elif defined(AT32F43x)
+    // Telemetry input capture widens the period to 0xffff (see pwmDshotSetDirectionInput);
+    // restore the DSHOT bit period now, bypassing the period buffer so it takes effect
+    // immediately, and reset the counter so a stale count above the new period doesn't
+    // have to run all the way round (TMR2/TMR5 are 32-bit) before the first compare.
+    tmr_period_buffer_enable(port->tch->timHw->tim, FALSE);
+    tmr_period_value_set(port->tch->timHw->tim, DSHOT_MOTOR_BITLENGTH - 1);
+    tmr_period_buffer_enable(port->tch->timHw->tim, TRUE);
+    tmr_counter_value_set(port->tch->timHw->tim, 0);
+
     tmr_output_config_type output = {0};
     tmr_output_default_para_init(&output);
     output.oc_mode = TMR_OUTPUT_CONTROL_PWM_MODE_A;
@@ -753,6 +762,11 @@ static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
     LL_DMA_EnableStream(dmaBase, streamLL);
     LL_TIM_EnableDMAReq_CCx(port->tch->timHw->tim, dshotDmaSource(port));
 #elif defined(AT32F43x)
+    // Widen the period so the free-running counter doesn't wrap every DSHOT bit period
+    // (20 ticks) while timing GCR edges, which span ~21 bits per telemetry frame.
+    tmr_period_buffer_enable(port->tch->timHw->tim, TRUE);
+    tmr_period_value_set(port->tch->timHw->tim, 0xffff);
+
     tmr_input_config_type input;
     tmr_input_default_para_init(&input);
     input.input_channel_select = dshotTimChannel(port);
