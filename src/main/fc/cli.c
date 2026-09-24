@@ -254,11 +254,10 @@ static const char * const hardwareSensorStatusNames[] = {
     "NONE", "OK", "UNAVAILABLE", "FAILING"
 };
 
-// A sensor that is detected and healthy, but has never been calibrated, is reported as
-// UNCALIBRATED. Every other state is reported exactly as hardwareSensorStatus_e defines it.
-static const char * hardwareSensorStatusName(hardwareSensorStatus_e status, bool isCalibrated)
+// Not a hardwareSensorStatus_e value: MSP and blackbox pack that enum into two bits
+static const char *hardwareSensorStatusName(hardwareSensorStatus_e status, bool isCalibrated)
 {
-    if ((status == HW_SENSOR_OK) && !isCalibrated) {
+    if (status == HW_SENSOR_OK && !isCalibrated) {
         return "UNCALIBRATED";
     }
 
@@ -4195,16 +4194,10 @@ static void cliStatus(char *cmdline)
 #endif // for if at32
 #endif // for SITL
 
-#ifdef USE_MAG
-    const bool compassIsCalibrated = compassIsCalibrationComplete();
-#else
-    const bool compassIsCalibrated = true;
-#endif
-
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, PITOT=%s, GPS=%s",
-        hardwareSensorStatusName(getHwGyroStatus(), gyroIsCalibrationComplete()),
+        hardwareSensorStatusNames[getHwGyroStatus()],
         hardwareSensorStatusName(getHwAccelerometerStatus(), STATE(ACCELEROMETER_CALIBRATED)),
-        hardwareSensorStatusName(getHwCompassStatus(), compassIsCalibrated),
+        hardwareSensorStatusName(getHwCompassStatus(), STATE(COMPASS_CALIBRATED)),
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
