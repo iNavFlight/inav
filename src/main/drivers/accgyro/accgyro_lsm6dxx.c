@@ -217,12 +217,7 @@ static void lsm6dxxConfig(gyroDev_t *gyro)
     lsm6dxxWriteRegisterBits(dev, LSM6DXX_REG_CTRL6_C, (lsm6dID == LSM6DSO_CHIP_ID? LSM6DXX_MASK_CTRL6_C:LSM6DSL_MASK_CTRL6_C), (LSM6DXX_VAL_CTRL6_C_XL_HM_MODE | getLsmDlpfBandwidth(gyro)), 1);
 
     // Configure control register 7
-    // Leave the gyro's on-chip high-pass filter disabled: at its slowest (16mHz) cutoff it
-    // has a ~10s RC time constant, so the chip's own output keeps settling for ~20-30s after
-    // every power-on/reset - well past INAV's ~2s startup gyro calibration window. That
-    // produces a real post-calibration step in the raw gyro reading as the on-chip filter
-    // catches up, which the AHRS then reads as attitude drift. INAV already removes gyro bias
-    // in software (see sensors/gyro.c calibration), making the on-chip HPF redundant here.
+    // On-chip HPF disabled: slow settling causes drift
     lsm6dxxWriteRegisterBits(dev, LSM6DXX_REG_CTRL7_G, LSM6DXX_MASK_CTRL7_G, 0, 1);
 
     // Configure control register 9
