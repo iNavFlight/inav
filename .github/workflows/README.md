@@ -126,6 +126,13 @@ as `pr-test-builds.yml`** (secrets available even for fork PRs).
 **Triggers:** Pull requests
 **Purpose:** Detects PRs with only documentation/formatting changes
 
+It shares the name `Build firmware` with `ci.yml` but produces none of its
+artifacts. The `workflow_run` consumers `pr-test-builds.yml` and
+`ci-size-report.yml` therefore also require
+`github.event.workflow.path == '.github/workflows/ci.yml'` (a path, not a
+workflow ID, so forks behave the same). Check both conditions with
+`node --test .github/scripts/artifact-workflow-filter.test.js`.
+
 ## Configuration Files
 
 - `../.github/stale.yml` - Stale issue/PR management
