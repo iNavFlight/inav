@@ -91,6 +91,13 @@ gpsStatistics_t   gpsStats;
 gpsSolutionData_t gpsSolDRV;  //filled by driver
 gpsSolutionData_t gpsSol;     //used in the rest of the code
 
+// The GPS port gets a receive buffer of its own, larger than the one every port has. It has
+// to hold what arrives between two runs of the GPS task, 20 ms apart, which is up to 460 bytes
+// at 230400, and a reply to a poll has to fit whole: MON-VER alone can be 258 bytes. In
+// FASTRAM, which is CCM on F405 and RAM1 on AT32F43x, where there is room to spare.
+#define GPS_RX_BUFFER_SIZE  512
+STATIC_FASTRAM volatile uint8_t gpsRxBuffer[GPS_RX_BUFFER_SIZE];
+
 // Map gpsBaudRate_e index to baudRate_e
 baudRate_e gpsToSerialBaudRate[GPS_BAUDRATE_COUNT] = { BAUD_115200, BAUD_57600, BAUD_38400, BAUD_19200, BAUD_9600, BAUD_230400, BAUD_460800, BAUD_921600 };
 
@@ -522,6 +529,8 @@ void gpsInit(void)
         featureClear(FEATURE_GPS);
         return;
     }
+
+    serialSetRxBuffer(gpsState.gpsPort, gpsRxBuffer, sizeof(gpsRxBuffer));
 
     gpsSetState(GPS_INITIALIZING);
 }
