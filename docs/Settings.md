@@ -91,6 +91,7 @@ Selection of acc hardware. See Wiki Sensor auto detect and hardware failure dete
 | LSM6DXX |  |
 | ICM45686 |  |
 | ICM40609D |  |
+| ICM56686 |  |
 | FAKE |  |
 
 ---

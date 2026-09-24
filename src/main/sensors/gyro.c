@@ -49,6 +49,7 @@
 #include "drivers/accgyro/accgyro_icm42605.h"
 #include "drivers/accgyro/accgyro_icm45686.h"
 #include "drivers/accgyro/accgyro_icm40609d.h"
+#include "drivers/accgyro/accgyro_icm56686.h"
 #include "drivers/accgyro/accgyro_lsm6dxx.h"
 #include "drivers/accgyro/accgyro_fake.h"
 #include "drivers/io.h"
@@ -263,6 +264,15 @@ STATIC_UNIT_TESTED gyroSensor_e gyroDetect(gyroDev_t *dev, gyroSensor_e gyroHard
     case GYRO_ICM40609D:
         if (icm40609dGyroDetect(dev)) {
             gyroHardware = GYRO_ICM40609D;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
+#ifdef USE_IMU_ICM56686
+    case GYRO_ICM56686:
+        if (icm56686GyroDetect(dev)) {
+            gyroHardware = GYRO_ICM56686;
             break;
         }
         FALLTHROUGH;
