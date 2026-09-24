@@ -1057,8 +1057,7 @@ void NOINLINE dshotSpinDirectionUpdate(timeUs_t currentTimeUs)
 
     const uint16_t mask = dshotReversedMotorMask();
 
-    // Nothing configured and nothing ever sent: stay silent, so an all-normal setup behaves
-    // exactly as it did before the setting existed
+    // All normal and the last frame (if any) was all normal: quiet while disarmed, tryArm() still sends it
     if (mask == 0 && dshotSpinDirectionSent == 0) {
         return;
     }
