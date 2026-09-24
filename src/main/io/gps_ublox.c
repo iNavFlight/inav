@@ -32,7 +32,6 @@
 
 
 #include "common/axis.h"
-#include "common/typeconversion.h"
 #include "common/gps_conversion.h"
 #include "common/maths.h"
 #include "common/utils.h"
@@ -686,9 +685,7 @@ static bool gpsParseFrameUBLOX(void)
     case MSG_VER:
         if (_class == CLASS_MON && _payload_length >= sizeof(ubx_mon_ver)) {
             gpsState.hwVersion = ubloxDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
-            // Protocol support is independent of the hardware ID table. New
-            // receivers must not fall back to legacy CFG commands just because
-            // their hardware string is not recognized.
+            // Parsed before the gates below so receivers missing from the hardware ID table are not treated as legacy
             for (unsigned j = sizeof(ubx_mon_ver); j + 30 <= _payload_length; j += 30) {
                 uint8_t major, minor;
                 if (ubloxParseProtocolVersion((const char *)(_buffer.bytes + j), 30, &major, &minor)) {
@@ -1105,7 +1102,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     // Configure GNSS for M8N and later
-    if (ubloxCanConfigureGnss(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) { // TODO: This check can be remove in INAV 9.0.0
+    if (ubloxCanConfigureGnss(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
 
         if (ubloxUseM10GnssKeys(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
@@ -1206,22 +1203,28 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
+        // Before MON-VER, whose extensions set the constellation bits
+        ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
         do {
+            // gps.c counts its timeout from this call, not from received frames, so the retries would be cut short
+            gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
             pollVersion();
             gpsState.autoConfigStep++;
             ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN || gpsState.swVersionMajor != 0), GPS_CFG_CMD_TIMEOUT_MS);
         } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES &&
             gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN && gpsState.swVersionMajor == 0);
 
+        // Without a version the receiver would be set up on the legacy path, so restart like a communication loss
+        if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN && gpsState.swVersionMajor == 0) {
+            ptStop(0);
+        }
+
         gpsState.autoConfigStep = 0;
-        ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
         // M7 and earlier will never get pass this step, so skip it (#9440).
         // UBLOX documents that this is M8N and later
         if (ubloxCanConfigureGnss(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
             do {
-                // The receiver has answered MON-VER, so it is alive even when no usable
-                // MON-GNSS comes back (the X20 sends version 1, which is not parsed).
-                // Refresh the timeout so gps.c does not restart the driver meanwhile.
+                // MON-VER was answered, so stay alive even when MON-GNSS (version 1 on the X20) is not parsed
                 gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
                 pollGnssCapabilities();
                 gpsState.autoConfigStep++;

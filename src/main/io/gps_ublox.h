@@ -65,10 +65,11 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 /*
  * hwVersion encoding (fits in uint8_t):
  *   bits [7:6]  series:  0b00=unknown, 0b01=u-blox Neo/M series
- *   bits [5:0]  generation within series (e.g. 8=M8, 9=M9, 10=M10)
+ *   bits [5:0]  generation within series (e.g. 8=M8, 9=M9, 10=M10, 20=X20)
  *
- * This leaves 0b10 and 0b11 available for future series (e.g. u-blox F9,
- * other manufacturers).
+ * The ZED-X20P reports 000B0000 (after the M10's 000A0000); the ZED-F9P reports 00190000 and decodes as M9.
+ *
+ * This leaves 0b10 and 0b11 available for future series (e.g. other manufacturers).
  */
 #define UBX_HW_SERIES_MASK          0xC0
 #define UBX_HW_GEN_MASK             0x3F
