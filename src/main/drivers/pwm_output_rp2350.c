@@ -52,6 +52,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "build/build_config.h"
 
@@ -192,9 +193,9 @@ static bool    servoInitialized = false;
  */
 static timMotorServoHardware_t rp2350OutputAssignment;
 
-/* Pending DShot command (e.g. spin direction).  Commands are sent 10×. */
-static dshotCommands_e pendingCmd     = 0;
-static int             pendingCmdReps = 0;
+/* Pending DShot command per motor (e.g. spin direction).  Commands are sent 10×. */
+static uint8_t pendingCmd[DSHOT_MAX_MOTORS];
+static int     pendingCmdReps = 0;
 
 /* ── DShot packet construction ───────────────────────────────────────────── */
 
@@ -261,7 +262,7 @@ void pwmCompleteMotorUpdate(void)
         bool telemetry = dshotMotors[i].requestTelemetry;
 
         if (pendingCmdReps > 0) {
-            value    = (uint16_t)pendingCmd;
+            value    = pendingCmd[i];
             telemetry = true;
         }
 
@@ -334,14 +335,22 @@ bool isMotorProtocolDigital(void)
 
 void initDShotCommands(void)
 {
-    pendingCmd     = 0;
+    memset(pendingCmd, 0, sizeof(pendingCmd));
     pendingCmdReps = 0;
 }
 
 void sendDShotCommand(dshotCommands_e cmd)
 {
-    pendingCmd     = cmd;
+    memset(pendingCmd, cmd, sizeof(pendingCmd));
     pendingCmdReps = 10;  /* DShot spec: send each command 10 times */
+}
+
+void sendDShotSpinDirection(uint16_t reversedMotorMask)
+{
+    for (uint i = 0; i < DSHOT_MAX_MOTORS; i++) {
+        pendingCmd[i] = (reversedMotorMask & (1u << i)) ? DSHOT_CMD_SPIN_DIRECTION_REVERSED : DSHOT_CMD_SPIN_DIRECTION_NORMAL;
+    }
+    pendingCmdReps = 10;
 }
 
 /* ── Telemetry / pin tag ─────────────────────────────────────────────────── */

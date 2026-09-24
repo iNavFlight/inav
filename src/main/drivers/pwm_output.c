@@ -64,7 +64,20 @@
 #define DSHOT_COMMAND_DELAY_US 1000
 #define DSHOT_COMMAND_INTERVAL_US 10000
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
-#define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
+#define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommandFrame_t)
+
+// One queued command frame: the command each motor receives, sent `repeats` times.
+// Motors carry their own command so one frame can tell some ESCs to spin normal and
+// others reversed; a frame for "every motor" simply repeats the same command.
+typedef struct {
+    uint8_t cmd[MAX_MOTORS];
+    uint8_t repeats;
+} dshotCommandFrame_t;
+
+typedef struct {
+    dshotCommandFrame_t frame;
+    int remainingRepeats;
+} currentExecutingCommand_t;
 #endif
 
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
@@ -455,16 +468,6 @@ void pwmRequestMotorTelemetry(int motorIndex)
 }
 
 #ifdef USE_DSHOT
-void sendDShotCommand(dshotCommands_e cmd) {
-    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmd);
-}
-
-void initDShotCommands(void) {
-    circularBufferInit(&commandsCircularBuffer, commandsBuff,DHSOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommands_e));
-
-    currentExecutingCommand.remainingRepeats = 0;
-}
-
 static int getDShotCommandRepeats(dshotCommands_e cmd) {
     int repeats = 1;
 
@@ -480,18 +483,40 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
     return repeats;
 }
 
-static bool executeDShotCommands(void){
-    
+void sendDShotCommand(dshotCommands_e cmd) {
+    dshotCommandFrame_t frame;
+    memset(frame.cmd, cmd, sizeof(frame.cmd));
+    frame.repeats = getDShotCommandRepeats(cmd);
+    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &frame);
+}
+
+void sendDShotSpinDirection(uint16_t reversedMotorMask) {
+    dshotCommandFrame_t frame;
+    for (int i = 0; i < MAX_MOTORS; i++) {
+        frame.cmd[i] = (reversedMotorMask & (1 << i)) ? DSHOT_CMD_SPIN_DIRECTION_REVERSED : DSHOT_CMD_SPIN_DIRECTION_NORMAL;
+    }
+    frame.repeats = getDShotCommandRepeats(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
+    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &frame);
+}
+
+void initDShotCommands(void) {
+    circularBufferInit(&commandsCircularBuffer, commandsBuff,DHSOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommandFrame_t));
+
+    currentExecutingCommand.remainingRepeats = 0;
+}
+
+// LTO must not pull the command sequencing into the ITCM-resident scheduler; the F745
+// targets have 16 KB of it and the per-motor frames pushed it over the edge
+static bool NOINLINE executeDShotCommands(void){
+
     timeUs_t tNow = micros();
 
     if(currentExecutingCommand.remainingRepeats == 0) {
        const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
         if (isTherePendingCommands && (tNow - lastCommandSent > DSHOT_COMMAND_INTERVAL_US)){
             //Load the command
-            dshotCommands_e cmd;
-            circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
-            currentExecutingCommand.cmd = cmd;
-            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
+            circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &currentExecutingCommand.frame);
+            currentExecutingCommand.remainingRepeats = currentExecutingCommand.frame.repeats;
             commandPostDelay = DSHOT_COMMAND_INTERVAL_US;
         } else {
             if (commandPostDelay) {
@@ -506,7 +531,7 @@ static bool executeDShotCommands(void){
     }
     for (uint8_t i = 0; i < getMotorCount(); i++) {
          motors[i].requestTelemetry = true;
-         motors[i].value = currentExecutingCommand.cmd;
+         motors[i].value = currentExecutingCommand.frame.cmd[i];
     }
     if (tNow - lastCommandSent >= DSHOT_COMMAND_DELAY_US) {
         currentExecutingCommand.remainingRepeats--; 

@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "common/time.h"
+
 #include "config/parameter_group.h"
 
 #include "drivers/timer.h"
@@ -95,6 +97,9 @@ typedef struct motorConfig_s {
     uint8_t  motorPwmProtocol;
     uint16_t digitalIdleOffsetValue;
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
+#ifdef USE_DSHOT
+    uint16_t dshotReversedMotors;           // bit n set: motor n+1 is told to spin reversed (DShot command 21 instead of 20)
+#endif
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
@@ -140,5 +145,12 @@ void stopPwmAllMotors(void);
 void loadPrimaryMotorMixer(void);
 bool areMotorsRunning(void);
 bool areMotorsStopped(void);
+
+#ifdef USE_DSHOT
+// Send every motor its configured spin direction now; `invert` flips all of them (turtle mode)
+void dshotSpinDirectionApply(bool invert);
+// Re-send the configured directions while disarmed when they changed or an ESC may have restarted
+void dshotSpinDirectionUpdate(timeUs_t currentTimeUs);
+#endif
 
 uint16_t getMaxThrottle(void);

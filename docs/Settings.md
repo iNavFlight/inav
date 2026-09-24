@@ -941,6 +941,16 @@ Sets the DShot beeper tone
 
 ---
 
+### dshot_reversed_motors
+
+Bitmask of motors that are told to spin opposite to the direction stored in their ESC, using the DShot spin direction command: bit 0 is motor 1, bit 1 motor 2, and so on. Fixes a motor that turns the wrong way without touching the ESC configuration. The ESC does not store it, so it is sent again on every arm, whenever this setting changes and every two seconds while disarmed. Needs an ESC that understands DShot commands 20 and 21, the same ones turtle mode uses.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 4095 |
+
+---
+
 ### dterm_lpf2_hz
 
 Dterm pre-differentiation LPF cutoff (Hz). Filters gyro before differentiation to reduce noise amplification. Higher = less delay, more noise. 0 = disabled. Values around 200-250Hz can add smoothing with small delay.
