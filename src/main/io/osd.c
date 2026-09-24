@@ -2845,11 +2845,10 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_RX_POWER_DOWNLINK:
         {
-            // Only the MSP and MAVLink RC links report the transmit power of the receiver, the CRSF
-            // link statistics frame has no such field. Hide the element instead of showing a permanent 0.
+            // 0 means the link does not report receiver power (e.g. ExpressLRS over CRSF)
             if (rxLinkStatistics.downlinkTXPower == 0) {
                 displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
-                return false;
+                return true;
             }
 
             if (!failsafeIsReceivingRxData())
