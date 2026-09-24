@@ -113,22 +113,6 @@ be invoked from a job that has not checked out a known branch first.
 **Uses the same `PR_BUILDS_TOKEN` secret and `workflow_run` trigger pattern
 as `pr-test-builds.yml`** (secrets available even for fork PRs).
 
-### Distinguishing firmware runs from the non-code stub
-
-Both `ci.yml` and `non-code-change.yaml` are named `Build firmware`. Artifact
-consumers identify the source through `github.event.workflow.path`, in addition
-to checking the pull-request event and successful conclusion. This is the
-workflow object in the completed event, not an optional field on the run.
-GitHub's [completed-event schema](https://github.com/octokit/webhooks/blob/main/payload-schemas/api.github.com/workflow_run/completed.schema.json)
-includes `workflow`, whose [schema](https://github.com/octokit/webhooks/blob/main/payload-schemas/api.github.com/common/workflow.schema.json)
-requires `path`. Missing or unexpected workflow paths fail closed.
-
-Run `node --test .github/scripts/artifact-workflow-filter.test.js` to check both
-consumer conditions against firmware, same-name non-code, failed, push and
-incomplete event payloads. The tests omit `workflow_run.path` deliberately.
-They validate the job filters, not artifact download or release publication.
-Workflow IDs are not hard-coded because they differ between repositories.
-
 #### `pr-branch-suggestion.yml` - Branch Targeting Suggestion
 **Triggers:** PRs targeting master branch
 **Purpose:** Suggests using maintenance-9.x or maintenance-10.x instead
@@ -136,6 +120,13 @@ Workflow IDs are not hard-coded because they differ between repositories.
 #### `non-code-change.yaml` - Non-Code Change Detection
 **Triggers:** Pull requests
 **Purpose:** Detects PRs with only documentation/formatting changes
+
+It shares the name `Build firmware` with `ci.yml` but produces none of its
+artifacts. The `workflow_run` consumers `pr-test-builds.yml` and
+`ci-size-report.yml` therefore also require
+`github.event.workflow.path == '.github/workflows/ci.yml'` (a path, not a
+workflow ID, so forks behave the same). Check both conditions with
+`node --test .github/scripts/artifact-workflow-filter.test.js`.
 
 ## Configuration Files
 

@@ -13,7 +13,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    # Only act on pull_request-triggered runs that succeeded.
+    # Only act on successful pull_request runs of ci.yml. non-code-change.yaml
+    # shares the name "Build firmware" but uploads no artifacts.
     if: >
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow.path == '.github/workflows/ci.yml' &&

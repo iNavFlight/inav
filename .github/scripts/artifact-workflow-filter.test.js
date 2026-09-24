@@ -6,12 +6,12 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
 function conditionFor(file, job) {
-    const source = fs.readFileSync(path.join(__dirname, '../workflows', file), 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, '../workflows', file), 'utf8').replace(/\r\n/g, '\n');
     const jobBody = source.split(`\n  ${job}:\n`)[1]?.split(/\n  [\w-]+:\n/)[0];
     const expression = jobBody?.match(/\n    if: >\n((?:      .*\n)+)/)?.[1].trim();
     assert.ok(expression, `Missing condition for ${file}:${job}`);
-    // These checked-in conditions use only member access, == and &&, shared
-    // by GitHub expressions and JavaScript. Read them directly to catch drift.
+    // The conditions use only member access, == and &&, so they run as JavaScript.
+    // GitHub's == ignores case and a missing object yields null; JS models neither.
     return new Function('github', `return Boolean(${expression});`);
 }
 
@@ -52,3 +52,7 @@ for (const [file, job] of [['pr-test-builds.yml', 'publish'], ['ci-size-report.y
         }
     });
 }
+
+test('firmware workflow path exists', () => {
+    assert.ok(fs.existsSync(path.join(__dirname, '../..', event().workflow.path)));
+});
