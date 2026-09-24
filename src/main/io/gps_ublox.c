@@ -579,62 +579,6 @@ static void configureSBAS(void)
     sendConfigMessageUBLOX();
 }
 
-static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
-{
-    // MON-VER uses a fixed-width extension field; do not read beyond it or
-    // lose the hundredths digit through floating-point truncation.
-    if (bufferLength < 14 || (strncmp(proto, "PROTVER=", 8) && strncmp(proto, "PROTVER ", 8))) {
-        return;
-    }
-    if (!isdigit((unsigned char)proto[8]) || !isdigit((unsigned char)proto[9]) || proto[10] != '.' ||
-        !isdigit((unsigned char)proto[11]) || !isdigit((unsigned char)proto[12]) || proto[13] != '\0') {
-        return;
-    }
-
-    gpsState.swVersionMajor = (proto[8] - '0') * 10 + proto[9] - '0';
-    gpsState.swVersionMinor = (proto[11] - '0') * 10 + proto[12] - '0';
-}
-
-static uint8_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
-{
-    // ublox_5   hwVersion 00040005
-    if (strncmp(szBuf, "00040005", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX5;
-    }
-
-    // ublox_6   hwVersion 00040007
-    if (strncmp(szBuf, "00040007", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX6;
-    }
-
-    // ublox_7   hwVersion 00070000
-    if (strncmp(szBuf, "00070000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX7;
-    }
-
-    // ublox_M8  hwVersion 00080000
-    if (strncmp(szBuf, "00080000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX8;
-    }
-
-    // ublox_M9  hwVersion 00190000
-    if (strncmp(szBuf, "00190000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX9;
-    }
-
-    // ublox_M10 hwVersion 000A0000
-    if (strncmp(szBuf, "000A0000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX10;
-    }
-
-    // ublox_X20 hwVersion 000B0000
-    if (strncmp(szBuf, "000B0000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX20;
-    }
-
-    return UBX_HW_VERSION_UNKNOWN;
-}
-
 static bool gpsParseFrameUBLOX(void)
 {
     switch (_msg_id) {
@@ -742,7 +686,7 @@ static bool gpsParseFrameUBLOX(void)
         break;
     case MSG_VER:
         if (_class == CLASS_MON && _payload_length >= sizeof(ubx_mon_ver)) {
-            gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
+            gpsState.hwVersion = ubloxDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
             if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
                 if (_buffer.ver.swVersion[9] > '2' || true) {
                     // check extensions;
@@ -773,7 +717,11 @@ static bool gpsParseFrameUBLOX(void)
             // receivers must not fall back to legacy CFG commands just because
             // their hardware string is not recognized.
             for (unsigned j = sizeof(ubx_mon_ver); j + 30 <= _payload_length; j += 30) {
-                gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
+                uint8_t major, minor;
+                if (ubloxParseProtocolVersion((const char *)(_buffer.bytes + j), 30, &major, &minor)) {
+                    gpsState.swVersionMajor = major;
+                    gpsState.swVersionMinor = minor;
+                }
             }
         }
         break;

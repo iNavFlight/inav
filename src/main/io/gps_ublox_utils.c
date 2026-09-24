@@ -16,6 +16,8 @@
  */
 
 
+#include <ctype.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -113,4 +115,60 @@ void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *
                         // bit7: carrier correction used
                         // bit8: doper corrections used
     //uint8_t reserved[4];
+}
+
+uint8_t ubloxDecodeHardwareVersion(const char *field, size_t len)
+{
+    // ublox_5   hwVersion 00040005
+    if (strncmp(field, "00040005", len) == 0) {
+        return UBX_HW_VERSION_UBLOX5;
+    }
+
+    // ublox_6   hwVersion 00040007
+    if (strncmp(field, "00040007", len) == 0) {
+        return UBX_HW_VERSION_UBLOX6;
+    }
+
+    // ublox_7   hwVersion 00070000
+    if (strncmp(field, "00070000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX7;
+    }
+
+    // ublox_M8  hwVersion 00080000
+    if (strncmp(field, "00080000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX8;
+    }
+
+    // ublox_M9  hwVersion 00190000
+    if (strncmp(field, "00190000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX9;
+    }
+
+    // ublox_M10 hwVersion 000A0000
+    if (strncmp(field, "000A0000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX10;
+    }
+
+    // ublox_X20 hwVersion 000B0000
+    if (strncmp(field, "000B0000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX20;
+    }
+
+    return UBX_HW_VERSION_UNKNOWN;
+}
+
+bool ubloxParseProtocolVersion(const char *field, size_t len, uint8_t *major, uint8_t *minor)
+{
+    // Parsed digit by digit because a float round-trip turns 34.10 into 34.09
+    if (len < 14 || (strncmp(field, "PROTVER=", 8) && strncmp(field, "PROTVER ", 8))) {
+        return false;
+    }
+    if (!isdigit((unsigned char)field[8]) || !isdigit((unsigned char)field[9]) || field[10] != '.' ||
+        !isdigit((unsigned char)field[11]) || !isdigit((unsigned char)field[12]) || field[13] != '\0') {
+        return false;
+    }
+
+    *major = (field[8] - '0') * 10 + field[9] - '0';
+    *minor = (field[11] - '0') * 10 + field[12] - '0';
+    return true;
 }
