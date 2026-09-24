@@ -208,7 +208,9 @@ static bool icm56686WaitIregDone(const busDevice_t *dev)
 static bool icm56686WriteIREG(const busDevice_t *dev, uint16_t reg, uint8_t value)
 {
     const uint8_t buf[3] = { (uint8_t)((reg >> 8) & 0xFF), (uint8_t)(reg & 0xFF), value };
-    busWriteBuf(dev, ICM56686_REG_IREG_ADDR_15_8, buf, sizeof(buf));
+    if (!busWriteBuf(dev, ICM56686_REG_IREG_ADDR_15_8, buf, sizeof(buf))) {
+        return false;
+    }
 
     return icm56686WaitIregDone(dev);
 }
@@ -219,26 +221,32 @@ static bool icm56686WriteIREG(const busDevice_t *dev, uint16_t reg, uint8_t valu
 static bool icm56686ReadIREG(const busDevice_t *dev, uint16_t reg, uint8_t *value)
 {
     const uint8_t buf[2] = { (uint8_t)((reg >> 8) & 0xFF), (uint8_t)(reg & 0xFF) };
-    busWriteBuf(dev, ICM56686_REG_IREG_ADDR_15_8, buf, sizeof(buf));
+    if (!busWriteBuf(dev, ICM56686_REG_IREG_ADDR_15_8, buf, sizeof(buf))) {
+        return false;
+    }
 
     if (!icm56686WaitIregDone(dev)) {
         return false;
     }
 
-    busRead(dev, ICM56686_REG_IREG_DATA, value);
-    // The address auto-increments and a new pre-fetch is triggered; let it settle.
-    icm56686WaitIregDone(dev);
+    if (!busRead(dev, ICM56686_REG_IREG_DATA, value)) {
+        return false;
+    }
 
-    return true;
+    // The address auto-increments and a new pre-fetch is triggered; the IREG
+    // engine must complete it before the next access, so a timeout here is a
+    // failure too.
+    return icm56686WaitIregDone(dev);
 }
 
 // Read-modify-write a field of an IREG register, preserving reserved bits at
-// their reset values.
+// their reset values. Fails (without writing) if the read fails, so reserved
+// bits are never clobbered with a guessed value.
 static bool icm56686ModifyIREG(const busDevice_t *dev, uint16_t reg, uint8_t mask, uint8_t value)
 {
     uint8_t cur = 0;
     if (!icm56686ReadIREG(dev, reg, &cur)) {
-        return icm56686WriteIREG(dev, reg, value & mask);
+        return false;
     }
 
     return icm56686WriteIREG(dev, reg, (cur & ~mask) | (value & mask));
@@ -306,6 +314,45 @@ static bool icm56686ReadTemperature(gyroDev_t *gyro, int16_t *temp)
     return true;
 }
 
+// Program the IREG configuration (data format and filters) while both sensors
+// are off. Returns false as soon as any required IREG write or read-modify-write
+// fails, so the caller never powers up a partially configured sensor.
+static bool icm56686ConfigureIREG(const busDevice_t *dev, const gyroFilterAndRateConfig_t *config)
+{
+    // 16-bit little-endian output. Clearing sreg_sifs_20bits_en is also
+    // required for FS_SEL to set the digital full-scale.
+    if (!icm56686WriteIREG(dev, ICM56686_SREG_CTRL_IREG_ADDR, ICM56686_SREG_CTRL_16BIT_LE)) {
+        return false;
+    }
+
+    // Gyro: SRC + pre-filter, UI LPF, bypass the undocumented-frequency notch so
+    // GYRO_UI_LPFBW_SEL is the only hardware lowpass.
+    if (!icm56686ModifyIREG(dev, ICM56686_GYRO_SRC_CTRL_IREG_ADDR,
+                            ICM56686_GYRO_SRC_CTRL_MASK, ICM56686_GYRO_SRC_CTRL_SRC_PREFILT_ON)) {
+        return false;
+    }
+    if (!icm56686ModifyIREG(dev, ICM56686_GYRO_UI_LPF_CFG_IREG_ADDR,
+                            ICM56686_GYRO_UI_LPFBW_MASK, (uint8_t)(config->gyroConfigValues[0] << ICM56686_GYRO_UI_LPFBW_SHIFT))) {
+        return false;
+    }
+    if (!icm56686ModifyIREG(dev, ICM56686_GYRO_NOTCH_CFG_IREG_ADDR,
+                            ICM56686_GYRO_NOTCH_BYPASS, ICM56686_GYRO_NOTCH_BYPASS)) {
+        return false;
+    }
+
+    // Accel: SRC + pre-filter, UI LPF at ODR/8 (~200 Hz with the 1.6 kHz ODR below).
+    if (!icm56686ModifyIREG(dev, ICM56686_ACCEL_SRC_CTRL_IREG_ADDR,
+                            ICM56686_ACCEL_SRC_CTRL_MASK, ICM56686_ACCEL_SRC_CTRL_SRC_PREFILT_ON)) {
+        return false;
+    }
+    if (!icm56686ModifyIREG(dev, ICM56686_ACCEL_UI_LPF_CFG_IREG_ADDR,
+                            ICM56686_ACCEL_UI_LPFBW_MASK, ICM56686_UI_LPFBW_ODR_DIV_8)) {
+        return false;
+    }
+
+    return true;
+}
+
 // Program filters, ODR/FSR and INT1 while both sensors are off, then power up.
 // DRDY is enabled last, after all driver state has been set (betaflight#15750).
 static void icm56686AccAndGyroInit(gyroDev_t *gyro)
@@ -321,24 +368,15 @@ static void icm56686AccAndGyroInit(gyroDev_t *gyro)
     // the register description says so; SRC, the UI LPF and the notch do not.
     busWrite(dev, ICM56686_PWR_MGMT0, ICM56686_GYRO_MODE_OFF | ICM56686_ACCEL_MODE_OFF);
 
-    // 16-bit little-endian output. Clearing sreg_sifs_20bits_en is also
-    // required for FS_SEL to set the digital full-scale.
-    icm56686WriteIREG(dev, ICM56686_SREG_CTRL_IREG_ADDR, ICM56686_SREG_CTRL_16BIT_LE);
-
-    // Gyro: SRC + pre-filter, UI LPF, bypass the undocumented-frequency notch so
-    // GYRO_UI_LPFBW_SEL is the only hardware lowpass.
-    icm56686ModifyIREG(dev, ICM56686_GYRO_SRC_CTRL_IREG_ADDR,
-                       ICM56686_GYRO_SRC_CTRL_MASK, ICM56686_GYRO_SRC_CTRL_SRC_PREFILT_ON);
-    icm56686ModifyIREG(dev, ICM56686_GYRO_UI_LPF_CFG_IREG_ADDR,
-                       ICM56686_GYRO_UI_LPFBW_MASK, (uint8_t)(config->gyroConfigValues[0] << ICM56686_GYRO_UI_LPFBW_SHIFT));
-    icm56686ModifyIREG(dev, ICM56686_GYRO_NOTCH_CFG_IREG_ADDR,
-                       ICM56686_GYRO_NOTCH_BYPASS, ICM56686_GYRO_NOTCH_BYPASS);
-
-    // Accel: SRC + pre-filter, UI LPF at ODR/8 (~200 Hz with the 1.6 kHz ODR below).
-    icm56686ModifyIREG(dev, ICM56686_ACCEL_SRC_CTRL_IREG_ADDR,
-                       ICM56686_ACCEL_SRC_CTRL_MASK, ICM56686_ACCEL_SRC_CTRL_SRC_PREFILT_ON);
-    icm56686ModifyIREG(dev, ICM56686_ACCEL_UI_LPF_CFG_IREG_ADDR,
-                       ICM56686_ACCEL_UI_LPFBW_MASK, ICM56686_UI_LPFBW_ODR_DIV_8);
+    // SREG_CTRL, SRC, UI LPF and notch. If any of these fails the sensor may
+    // still be in its 20-bit big-endian reset format or have the wrong
+    // filters, which the read paths cannot decode correctly: leave both
+    // sensors off with DRDY disabled and take INAV's gyro init failure path.
+    if (!icm56686ConfigureIREG(dev, config)) {
+        busSetSpeed(dev, BUS_SPEED_FAST);
+        failureMode(FAILURE_GYRO_INIT_FAILED);
+        return;
+    }
 
     // ODR and full-scale; program before enabling so the startup interval
     // runs against the final configuration.
