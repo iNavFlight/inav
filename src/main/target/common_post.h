@@ -194,7 +194,7 @@ extern uint8_t __config_end;
 #if defined(USE_DSHOT_DMAR) && !defined(USE_DSHOT)
 #error "USE_DSHOT_DMAR requires USE_DSHOT"
 #endif
-#if defined(USE_DSHOT) && defined(STM32H7) && !defined(USE_DSHOT_DMAR)
+#if defined(USE_DSHOT) && !defined(USE_DSHOT_DMAR)
 #define USE_DSHOT_BIDIR
 #endif
 #if defined(USE_DSHOT_BIDIR) && (!defined(USE_DSHOT) || defined(USE_DSHOT_DMAR))
