@@ -122,6 +122,7 @@ void serialPrint(serialPort_t *instance, const char *str);
 uint32_t serialGetBaudRate(serialPort_t *instance);
 bool serialIsConnected(const serialPort_t *instance);
 bool serialIsIdle(serialPort_t *instance);
+void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size);
 
 // A shim that adapts the bufWriter API to the serialWriteBuf() API.
 void serialWriteBufShim(void *instance, const uint8_t *data, int count);
