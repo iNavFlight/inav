@@ -1,5 +1,5 @@
 sitl:
-  binary: cmake/build_SITL/inav_9.1.1_SITL
+  binary: cmake/build_SITL/bin/SITL.elf
   workdir: inav/cmake
   eeprom_path: src/test/mavlink/sanity/results/eeprom.bin
   runtime_log: src/test/mavlink/sanity/results/sitl_runtime_sanity.log

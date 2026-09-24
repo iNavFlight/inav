@@ -21,7 +21,7 @@
 
 #include "common/time.h"
 
-typedef enum disarmReason_e {
+typedef enum {
     DISARM_NONE         = 0,
     DISARM_TIMEOUT      = 1,
     DISARM_STICKS       = 2,
@@ -31,16 +31,16 @@ typedef enum disarmReason_e {
     DISARM_NAVIGATION   = 7,
     DISARM_LANDING      = 8,
     DISARM_REASON_COUNT
-} disarmReason_t;
+} disarmReason_e;
 
 
 void handleInflightCalibrationStickPosition(void);
 
-void disarm(disarmReason_t disarmReason);
+void disarm(disarmReason_e disarmReason);
 timeUs_t getLastDisarmTimeUs(void);
 void tryArm(void);
 bool fcSetArmState(bool arm);
-disarmReason_t getDisarmReason(void);
+disarmReason_e getDisarmReason(void);
 
 bool emergencyArmingUpdate(bool armingSwitchIsOn, bool forceArm);
 

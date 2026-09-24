@@ -1,0 +1,59 @@
+name: MSP consistency
+
+on:
+  push:
+    paths:
+      - 'docs/development/msp/**'
+      - 'src/main/msp/**'
+      - 'src/utils/gen_msp_docs.sh'
+      - 'src/utils/gen_msp_md.py'
+      - 'src/utils/gen_enum_md.py'
+      - 'src/utils/get_all_inav_enums_h.py'
+      - 'src/utils/get_fc_build_info.sh'
+      - 'src/utils/check_msp.py'
+      - '.github/workflows/msp.yml'
+  pull_request:
+    paths:
+      - 'docs/development/msp/**'
+      - 'src/main/msp/**'
+      - 'src/utils/gen_msp_docs.sh'
+      - 'src/utils/gen_msp_md.py'
+      - 'src/utils/gen_enum_md.py'
+      - 'src/utils/get_all_inav_enums_h.py'
+      - 'src/utils/get_fc_build_info.sh'
+      - 'src/utils/check_msp.py'
+      - '.github/workflows/msp.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  msp-consistency:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Check MSP C/spec consistency
+        run: python3 src/utils/check_msp.py
+
+      - name: Regenerate MSP documentation
+        run: bash src/utils/gen_msp_docs.sh
+
+      # Only README.md is checked. inav_enums.json and inav_enums_ref.md are
+      # rebuilt from every enum under src/main, so diffing them would fail this
+      # job for unrelated enum changes, and their source attribution depends on
+      # directory traversal order, which differs between machines.
+      - name: Check generated MSP files
+        run: |
+          if ! git diff --exit-code -- docs/development/msp/README.md
+          then
+            echo "::error::MSP documentation is stale. Run: ./src/utils/gen_msp_docs.sh"
+            exit 1
+          fi

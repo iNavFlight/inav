@@ -28,6 +28,9 @@ set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
 
 set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")
 
+set_property(SOURCE navigation_fixedwing_turn_math_unittest.cc PROPERTY depends
+    "navigation/navigation_fixedwing_turn_math.c" "common/maths.c")
+
 set_property(SOURCE olc_unittest.cc PROPERTY depends "common/olc.c")
 
 set_property(SOURCE rcdevice_unittest.cc PROPERTY definitions USE_RCDEVICE)
@@ -177,6 +180,9 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY extra_sources
 set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK USE_MAVLINK_MSP_TUNNEL)
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")
+
+set_property(SOURCE servos_swap_roll_yaw_unittest.cc PROPERTY depends
+    "flight/servos.c" "common/maths.c" "common/filter.c" "common/lulu.c" "programming/logic_condition.c")
 
 function(unit_test src)
     get_filename_component(basename ${src} NAME)

@@ -127,7 +127,7 @@ int16_t headFreeModeHold;
 uint8_t motorControlEnable = false;
 
 static bool isRXDataNew;
-static disarmReason_t lastDisarmReason = DISARM_NONE;
+static disarmReason_e lastDisarmReason = DISARM_NONE;
 timeUs_t lastDisarmTimeUs = 0;
 timeMs_t emergRearmStabiliseTimeout = 0;
 
@@ -499,7 +499,7 @@ static RP2350_FAST_CODE void processPilotAndFailSafeActions(float dT)
     }
 }
 
-void disarm(disarmReason_t disarmReason)
+void disarm(disarmReason_e disarmReason)
 {
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
@@ -529,7 +529,7 @@ timeUs_t getLastDisarmTimeUs(void) {
     return lastDisarmTimeUs;
 }
 
-disarmReason_t getDisarmReason(void)
+disarmReason_e getDisarmReason(void)
 {
     return lastDisarmReason;
 }

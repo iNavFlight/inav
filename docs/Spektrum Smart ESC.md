@@ -21,11 +21,21 @@ The ESC's normal three-wire servo lead goes to a **UART**, not to a motor pad:
 | Wire | Goes to |
 |---|---|
 | signal | the **TX pin** of a port assigned `Spektrum Smart ESC (SRXL2)` |
-| +5 V (BEC) | as usual |
-| ground | as usual |
+| ground | ground |
+| red (BEC output) | **not** the flight controller's 5 V pad, see below |
 
 The signal goes to TX rather than RX because the protocol is half duplex: one
 conductor carries both directions, and the UART is put into single-wire mode.
+
+**The red wire is the ESC's BEC output, and it is not 5 V.** Its voltage is one of
+the ESC's own settings, `BEC VOLTAGE` in its menu, and it was 6.0 V on the Avian
+70 A used for this work. On the flight controller's 5 V pad that voltage lands on
+the board's 5 V rail and on everything connected to it, all of it built for 5 V.
+
+A flight controller powered from the battery through its own regulator has no use
+for it: leave the red wire unconnected and insulate it. Where it is wanted, for
+servos on a separate rail for instance, measure the voltage first, connect it only
+to something rated for it, and never in parallel with another regulator's output.
 
 Nothing connects to the flight controller's ESC telemetry pad. That pad is for ESCs
 with a separate telemetry lead, such as BLHeli or HobbyWing; a Smart ESC has no such

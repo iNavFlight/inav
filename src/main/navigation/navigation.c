@@ -4085,6 +4085,7 @@ static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
     if (posControl.navState != newState) {
         posControl.navState = newState;
         posControl.navPersistentId = navFSM[newState].persistentId;
+        posControl.flags.wpTurnSmoothingActive = false;     // a turn's "WP reached" verdict is only valid in the state that produced it
     }
     return previousState;
 }
@@ -4531,7 +4532,8 @@ bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBe
     uint16_t relativeBearingTargetAngle = 10000;
 
     if (STATE(AIRPLANE) && posControl.flags.wpTurnSmoothingActive) {
-        // FLY_BY turn: the waypoint is reached when the anticipated corner-cut turn is initiated
+        // The turn coordinator declared the WP reached (FLY_BY at turn start, FLY_INTO at the S pickup).
+        // Set once, consumed here only - it must survive until this check runs, so nothing clears it per tick.
         posControl.flags.wpTurnSmoothingActive = false;
         return true;
     }
@@ -4541,11 +4543,8 @@ bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBe
         return true;
     }
 
-    /* The bearing check above settles at (180 - turn angle) once the aircraft is established on the
-     * outbound leg, so beyond a ~80 deg turn it can only fire on the brief swing next to the WP.
-     * Miss that and the WP stays active behind the aircraft, which then turns back to it. Catch the
-     * pass geometrically: the WP is behind once the aircraft crosses the plane through it normal to
-     * the inbound leg. Cannot fire early - at WP activation the aircraft sits a leg length short. */
+    /* Beyond a ~80 deg turn the bearing check above can only fire on the brief swing next to the WP,
+     * leaving the WP active behind the aircraft; the plane test cannot fire early (a leg length short). */
     if (STATE(AIRPLANE) && FLIGHT_MODE(NAV_WP_MODE)) {
         const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
         const float legRad = CENTIDEGREES_TO_RADIANS((float)*waypointBearing);
