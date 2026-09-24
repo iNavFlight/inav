@@ -189,12 +189,13 @@ extern uint8_t __config_end;
 //  - USE_DSHOT_DMAR: one burst DMA stream per timer (target choice)
 //  - USE_DSHOT_BIDIR: bidirectional DSHOT (eRPM telemetry on the motor line,
 //    dshot_bidir_enabled). Needs a DMA stream per motor channel for the direction
-//    switching, so it excludes USE_DSHOT_DMAR. H7 only: the direction switching is
-//    verified there. Elsewhere the setting is hidden and stays off.
+//    switching, so it excludes USE_DSHOT_DMAR. Implemented by the timer/DMA motor
+//    driver (pwm_output.c); RP2350 drives its motors from a PIO program that only
+//    transmits, so the setting is hidden there and stays off.
 #if defined(USE_DSHOT_DMAR) && !defined(USE_DSHOT)
 #error "USE_DSHOT_DMAR requires USE_DSHOT"
 #endif
-#if defined(USE_DSHOT) && !defined(USE_DSHOT_DMAR)
+#if defined(USE_DSHOT) && !defined(USE_DSHOT_DMAR) && !defined(RP2350)
 #define USE_DSHOT_BIDIR
 #endif
 #if defined(USE_DSHOT_BIDIR) && (!defined(USE_DSHOT) || defined(USE_DSHOT_DMAR))
