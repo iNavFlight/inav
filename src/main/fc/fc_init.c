@@ -801,7 +801,7 @@ void init(void)
 
 #ifdef USE_RPM_FILTER
     disableRpmFilters();
-    bool rpmSourceActive = escSensorIsActive();
+    bool rpmSourceActive = STATE(ESC_SENSOR_ENABLED);
 #ifdef USE_DSHOT_BIDIR
     rpmSourceActive = rpmSourceActive || isDshotTelemetryActive();
 #endif

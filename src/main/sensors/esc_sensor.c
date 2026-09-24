@@ -185,11 +185,6 @@ void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16
     escSensorDataNeedsUpdate = true;
 }
 
-bool escSensorIsActive(void)
-{
-    return escSensorPort || escSensorDshotActive;
-}
-
 escSensorData_t * escSensorGetData(void)
 {
     /*
@@ -203,10 +198,6 @@ escSensorData_t * escSensorGetData(void)
      * so nothing changes there.
      */
     if (!STATE(ESC_SENSOR_ENABLED)) {
-        return NULL;
-    }
-
-    if (!escSensorIsActive()) {
         return NULL;
     }
 
@@ -444,7 +435,6 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 #endif
 
 #ifndef USE_ESC_SENSOR
-bool escSensorIsActive(void) { return false; }
 void escSensorInitData(void) {}
 void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16_t voltage, int32_t current)
 {
