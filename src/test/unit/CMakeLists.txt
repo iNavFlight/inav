@@ -145,7 +145,7 @@ set_property(SOURCE canard_unittest.cc PROPERTY extra_includes
     "../../lib/main/Dronecan/dsdlc_generated/include")
 set_property(SOURCE canard_unittest.cc PROPERTY definitions USE_DRONECAN CANARD_ENABLE_TAO_OPTION=0 CANARD_INTERNAL=)
 
-set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd_utils.c" "io/displayport_msp_osd.c" "common/typeconversion.c")
+set_property(SOURCE osd_unittest.cc PROPERTY depends "io/osd_utils.c" "io/displayport_msp_osd.c" "common/typeconversion.c" "common/string_light.c")
 set_property(SOURCE osd_unittest.cc PROPERTY definitions OSD_UNIT_TEST USE_MSP_DISPLAYPORT)
 
 set_property(SOURCE gps_ublox_unittest.cc PROPERTY depends "io/gps_ublox_utils.c")
@@ -180,6 +180,11 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY extra_sources
 set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK USE_MAVLINK_MSP_TUNNEL)
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")
+
+set_property(SOURCE profile_name_migration_unittest.cc PROPERTY depends "config/parameter_group.c")
+set_property(SOURCE profile_name_migration_extended_unittest.cc PROPERTY depends "config/parameter_group.c")
+set_property(SOURCE profile_name_migration_extended_unittest.cc PROPERTY definitions
+    USE_AUTO_TRANSITION USE_ADC USE_DSHOT USE_POWER_LIMITS USE_RATE_DYNAMICS)
 
 set_property(SOURCE servos_swap_roll_yaw_unittest.cc PROPERTY depends
     "flight/servos.c" "common/maths.c" "common/filter.c" "common/lulu.c" "programming/logic_condition.c")
@@ -232,3 +237,9 @@ foreach(source ${TEST_PROGRAMS})
 endforeach()
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS ${test_targets})
+
+# ELF does not synthesize the firmware PG section boundaries for host tests.
+if(UNIX AND NOT APPLE)
+    target_link_options(profile_name_migration_unittest PRIVATE "-Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/parameter_group_test.ld")
+    target_link_options(profile_name_migration_extended_unittest PRIVATE "-Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/parameter_group_test.ld")
+endif()

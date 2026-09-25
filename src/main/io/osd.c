@@ -91,6 +91,7 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_profile.h"
 #include "flight/pid.h"
 #include "flight/power_limits.h"
 #include "flight/rth_estimator.h"
@@ -238,7 +239,7 @@ static bool osdDisplayHasCanvas;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 4);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 5);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
  * for reduced code size and CPU overhead. */
@@ -2701,6 +2702,18 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_PILOT_NAME:
         osdFormatPilotName(buff);
+        break;
+
+    case OSD_CONTROL_PROFILE_NAME:
+        osdFormatProfileName(buff, controlProfiles(getConfigProfile())->name, SYM_PROFILE, getConfigProfile() + 1);
+        break;
+
+    case OSD_BATTERY_PROFILE_NAME:
+        osdFormatProfileName(buff, batteryProfiles(getConfigBatteryProfile())->name, SYM_BATT_FULL, getConfigBatteryProfile() + 1);
+        break;
+
+    case OSD_MIXER_PROFILE_NAME:
+        osdFormatProfileName(buff, mixerProfiles(getConfigMixerProfile())->name, 'M', getConfigMixerProfile() + 1);
         break;
 
     case OSD_PILOT_LOGO:
