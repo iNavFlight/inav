@@ -512,6 +512,29 @@ static void configureNAV5(uint8_t dynModel, uint8_t fixMode)
     sendConfigMessageUBLOX();
 }
 
+// AssistNow Autonomous on M8 (UBX-CFG-NAVX5): with mask1 bit 14 the receiver applies aopCfg and aopOrbMaxErr only
+static void configureAssistNowAutonomous(bool enable)
+{
+    send_buffer.message.header.msg_class = CLASS_CFG;
+    send_buffer.message.header.msg_id = MSG_CFG_NAVX5;
+    send_buffer.message.header.length = sizeof(ubx_cfg_navx5_t);
+    memset(&send_buffer.message.payload.navx5, 0, sizeof(ubx_cfg_navx5_t));
+    send_buffer.message.payload.navx5.version = 2;
+    send_buffer.message.payload.navx5.mask1 = 1 << 14;
+    send_buffer.message.payload.navx5.aopCfg = enable ? 1 : 0;
+    send_buffer.message.payload.navx5.aopOrbMaxErr = 100;
+    sendConfigMessageUBLOX();
+}
+
+// AssistNow Autonomous on receivers with the configuration interface (M9 with protocol > 23.01, M10)
+static void configureAssistNowAutonomousValset(bool enable)
+{
+    ubx_config_data8_payload_t anaValues[] = {
+        {UBLOX_CFG_ANA_USE_ANA, enable ? 1 : 0},
+    };
+    ubloxSendSetCfgBytes(anaValues, 1);
+}
+
 static void configureMSG(uint8_t msg_class, uint8_t id, uint8_t rate)
 {
     send_buffer.message.header.msg_class = CLASS_CFG;
@@ -1171,6 +1194,16 @@ STATIC_PROTOTHREAD(gpsConfigure)
             gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
         }
+
+        // AssistNow Autonomous: orbit prediction from the receiver's own observations, kept in its backup memory.
+        // A NAK (receiver without the feature) is harmless, the receiver keeps working without it.
+        gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+        if (use_VALSET) {
+            configureAssistNowAutonomousValset(gpsState.gpsConfig->ubloxAssistNowAutonomous);
+        } else {
+            configureAssistNowAutonomous(gpsState.gpsConfig->ubloxAssistNowAutonomous);
+        }
+        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
     }
 
 	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
