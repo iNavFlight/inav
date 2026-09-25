@@ -378,7 +378,6 @@ void processSaveConfigAndNotify(void)
     writeEEPROM();
     readEEPROM();
     resumeRxSignal();
-    // Distinct sequence so the pilot can tell a completed save from a plain stick command acknowledgement
     beeper(BEEPER_ACTION_SUCCESS);
 #ifdef USE_OSD
     osdShowEEPROMSavedNotification();

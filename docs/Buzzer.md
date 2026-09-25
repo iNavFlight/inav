@@ -36,7 +36,7 @@ Sequences:
     7    BAT_LOW               25, 50		Battery is getting low (repeats)
     8    NULL                  multi beeps		GPS status (sat count)
     9    RX_SET                10, 10		RX is set (when aux channel is set for beep or beep sequence how many satellites has found if GPS enabled)
-    11   ACTION_SUCCESS        5, 5, 5, 5		An action succeeded: ACC inflight calibration, or settings saved by stick command
+    10   ACC_CALIBRATION       5, 5, 5, 5		ACC inflight calibration completed
     11   ACC_CALIBRATION_FAIL  20, 15, 35, 5	ACC inflight calibration failed
     12   READY_BEEP            4, 5, 4, 5, 8, 5, 15, 5, 8, 5, 4, 5, 4, 5	GPS locked and copter ready   
     13   NULL                  multi beeps		Variable # of beeps (confirmation, GPS sat count, etc)
