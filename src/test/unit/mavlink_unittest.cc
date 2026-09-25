@@ -3229,7 +3229,7 @@ TEST(MavlinkTelemetryTest, MissionCurrentReportsLoadedMission)
     initMavlinkTestState();
     waypointCount = 2;
 
-    handleMAVLinkTelemetry(1000000);
+    handleMAVLinkTelemetry(1100000);
 
     mavlink_message_t currentMsg;
     ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
@@ -3248,7 +3248,7 @@ TEST(MavlinkTelemetryTest, MissionCurrentCompletionOutranksWpModeAndClearsOnReen
     waypointCount = 2;
     flightModeFlags = NAV_WP_MODE;
 
-    handleMAVLinkTelemetry(1000000);
+    handleMAVLinkTelemetry(1100000);
 
     mavlink_message_t currentMsg;
     mavlink_mission_current_t current;
@@ -3261,7 +3261,7 @@ TEST(MavlinkTelemetryTest, MissionCurrentCompletionOutranksWpModeAndClearsOnReen
     posControl.wpReachedSeq = 1;
     posControl.wpReachedNotificationPending = true;
     resetSerialBuffers();
-    handleMAVLinkTelemetry(2000000);
+    handleMAVLinkTelemetry(2100000);
     ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
     mavlink_msg_mission_current_decode(&currentMsg, &current);
     EXPECT_EQ(current.mission_state, MISSION_STATE_COMPLETE);
@@ -3269,7 +3269,7 @@ TEST(MavlinkTelemetryTest, MissionCurrentCompletionOutranksWpModeAndClearsOnReen
     // Leaving WP mode keeps COMPLETE.
     flightModeFlags = 0;
     resetSerialBuffers();
-    handleMAVLinkTelemetry(3000000);
+    handleMAVLinkTelemetry(3100000);
     ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
     mavlink_msg_mission_current_decode(&currentMsg, &current);
     EXPECT_EQ(current.mission_state, MISSION_STATE_COMPLETE);
@@ -3277,10 +3277,111 @@ TEST(MavlinkTelemetryTest, MissionCurrentCompletionOutranksWpModeAndClearsOnReen
     // Re-engaging WP mode is a new run: stale COMPLETE must clear.
     flightModeFlags = NAV_WP_MODE;
     resetSerialBuffers();
-    handleMAVLinkTelemetry(4000000);
+    handleMAVLinkTelemetry(4100000);
     ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_CURRENT, &currentMsg));
     mavlink_msg_mission_current_decode(&currentMsg, &current);
     EXPECT_EQ(current.mission_state, MISSION_STATE_ACTIVE);
+}
+
+static int countTxMessagesById(uint32_t msgid)
+{
+    int count = 0;
+    for (const mavlink_message_t &msg : parseTxMessages()) {
+        if (msg.msgid == msgid) {
+            count++;
+        }
+    }
+    return count;
+}
+
+static void sendCommandLong(uint16_t command, float param1, float param2)
+{
+    mavlink_message_t msg;
+    mavlink_msg_command_long_pack(
+        42, 200, &msg,
+        1, testTargetComponent,
+        command,
+        0,
+        param1, param2, 0, 0, 0, 0, 0);
+    pushRxMessage(&msg);
+}
+
+TEST(MavlinkTelemetryTest, SetMessageIntervalControlsMissionCurrent)
+{
+    initMavlinkTestState();
+    waypointCount = 2;
+
+    sendCommandLong(MAV_CMD_GET_MESSAGE_INTERVAL, (float)MAVLINK_MSG_ID_MISSION_CURRENT, 0);
+    handleMAVLinkTelemetry(1000);
+    mavlink_message_t intervalMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MESSAGE_INTERVAL, &intervalMsg));
+    mavlink_message_interval_t interval;
+    mavlink_msg_message_interval_decode(&intervalMsg, &interval);
+    EXPECT_EQ(interval.message_id, MAVLINK_MSG_ID_MISSION_CURRENT);
+    EXPECT_EQ(interval.interval_us, 1000000);
+
+    resetSerialBuffers();
+    sendCommandLong(MAV_CMD_SET_MESSAGE_INTERVAL, (float)MAVLINK_MSG_ID_MISSION_CURRENT, 200000.0f);
+    handleMAVLinkTelemetry(2000);
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_COMMAND_ACK, &ackMsg));
+    EXPECT_EQ(mavlink_msg_command_ack_get_result(&ackMsg), MAV_RESULT_ACCEPTED);
+
+    resetSerialBuffers();
+    for (timeUs_t t = 100000; t <= 1100000; t += 10000) {
+        handleMAVLinkTelemetry(t);
+    }
+    EXPECT_GE(countTxMessagesById(MAVLINK_MSG_ID_MISSION_CURRENT), 4);
+
+    sendCommandLong(MAV_CMD_SET_MESSAGE_INTERVAL, (float)MAVLINK_MSG_ID_MISSION_CURRENT, -1.0f);
+    handleMAVLinkTelemetry(1110000);
+    resetSerialBuffers();
+    for (timeUs_t t = 1200000; t <= 4200000; t += 10000) {
+        handleMAVLinkTelemetry(t);
+    }
+    EXPECT_EQ(countTxMessagesById(MAVLINK_MSG_ID_MISSION_CURRENT), 0);
+}
+
+TEST(MavlinkTelemetryTest, MissionCurrentDefaultIgnoresDataStreamRates)
+{
+    initMavlinkTestState();
+
+    const uint8_t streams[] = { MAV_DATA_STREAM_HEARTBEAT, MAV_DATA_STREAM_ALL };
+    for (size_t i = 0; i < ARRAYLEN(streams); i++) {
+        mavlink_message_t streamMsg;
+        mavlink_msg_request_data_stream_pack(
+            42, 200, &streamMsg,
+            1, testTargetComponent,
+            streams[i], 5, 1);
+        pushRxMessage(&streamMsg);
+        handleMAVLinkTelemetry(1000);
+
+        resetSerialBuffers();
+        sendCommandLong(MAV_CMD_GET_MESSAGE_INTERVAL, (float)MAVLINK_MSG_ID_MISSION_CURRENT, 0);
+        handleMAVLinkTelemetry(2000);
+
+        mavlink_message_t intervalMsg;
+        ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MESSAGE_INTERVAL, &intervalMsg));
+        mavlink_message_interval_t interval;
+        mavlink_msg_message_interval_decode(&intervalMsg, &interval);
+        EXPECT_EQ(interval.interval_us, 1000000);
+    }
+}
+
+TEST(MavlinkTelemetryTest, HighLatencyPortDoesNotSendMissionCurrent)
+{
+    initMavlinkTestState();
+    waypointCount = 2;
+
+    sendCommandLong(MAV_CMD_CONTROL_HIGH_LATENCY, 1.0f, 0);
+    handleMAVLinkTelemetry(1000);
+
+    resetSerialBuffers();
+    for (timeUs_t t = 100000; t <= 6100000; t += 10000) {
+        handleMAVLinkTelemetry(t);
+    }
+    EXPECT_GT(countTxMessagesById(MAVLINK_MSG_ID_HIGH_LATENCY2), 0);
+    EXPECT_EQ(countTxMessagesById(MAVLINK_MSG_ID_MISSION_CURRENT), 0);
 }
 
 TEST(MavlinkTelemetryTest, MissionItemReachedSurvivesPortlessCycle)
