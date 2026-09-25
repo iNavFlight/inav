@@ -9,3 +9,6 @@ typedef enum {
 } mavlinkFcDispatchResult_e;
 
 mavlinkFcDispatchResult_e mavlinkFcDispatchIncomingMessage(uint8_t ingressPortIndex);
+#ifdef USE_MAVLINK_MSP_TUNNEL
+void mavlinkFlushTunnelMspReply(uint8_t portIndex);
+#endif

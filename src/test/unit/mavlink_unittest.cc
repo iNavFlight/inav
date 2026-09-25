@@ -80,6 +80,7 @@ extern "C" {
     #include "sensors/temperature.h"
 
     #include "mavlink/mavlink_types.h"
+    #include "mavlink/mavlink_internal.h"
     #include "telemetry/mavlink.h"
     #include "telemetry/telemetry.h"
 
@@ -106,6 +107,19 @@ static uint8_t serialTxBuffer[2048];
 static size_t serialRxLen;
 static size_t serialRxPos;
 static size_t serialTxLen;
+// Negative: unlimited (stub reports 1024). Otherwise free TX bytes, consumed by writes, refilled by tests per cycle.
+static int32_t serialTxBudget;
+static bool serialTxOverrun;
+static const int32_t testUartTxBufferFree = 255;
+static bool testSecondPortEnabled;
+static bool testSecondPortServed;
+static serialPort_t testSerialPort2;
+static serialPortConfig_t testPortConfig2;
+static uint8_t serialRxBuffer2[512];
+static uint8_t serialTxBuffer2[2048];
+static size_t serialRxLen2;
+static size_t serialRxPos2;
+static size_t serialTxLen2;
 static const uint8_t testTargetComponent = MAV_COMP_ID_AUTOPILOT1;
 static const uint8_t testTunnelSourceSystem = 42;
 static const uint8_t testTunnelSourceComponent = 200;
@@ -165,6 +179,9 @@ static void resetSerialBuffers(void)
     serialRxLen = 0;
     serialRxPos = 0;
     serialTxLen = 0;
+    serialRxLen2 = 0;
+    serialRxPos2 = 0;
+    serialTxLen2 = 0;
 }
 
 static std::vector<uint8_t> makeMspV1Request(uint8_t cmd, const std::vector<uint8_t> &payload = {})
@@ -210,10 +227,15 @@ static std::vector<uint8_t> encodeMspV1Reply(uint8_t cmd, int16_t result, const 
     return encodeMspReply(cmd, result, MSP_V1, payload);
 }
 
-static void pushRxMessage(const mavlink_message_t *msg)
+static void pushRxMessage(const mavlink_message_t *msg, bool secondPort = false)
 {
     uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
     int length = mavlink_msg_to_send_buffer(buffer, msg);
+    if (secondPort) {
+        memcpy(&serialRxBuffer2[serialRxLen2], buffer, (size_t)length);
+        serialRxLen2 += (size_t)length;
+        return;
+    }
     memcpy(&serialRxBuffer[serialRxLen], buffer, (size_t)length);
     serialRxLen += (size_t)length;
 }
@@ -230,7 +252,8 @@ static void pushTunnelPayload(
     const std::vector<uint8_t> &payload,
     uint8_t targetComponent = testTargetComponent,
     uint8_t sourceSystem = testTunnelSourceSystem,
-    uint8_t sourceComponent = testTunnelSourceComponent)
+    uint8_t sourceComponent = testTunnelSourceComponent,
+    bool secondPort = false)
 {
     uint8_t tunnelPayload[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN] = { 0 };
     size_t copyLength = payload.size();
@@ -251,7 +274,7 @@ static void pushTunnelPayload(
         0x8001,
         payloadLength,
         tunnelPayload);
-    pushRxMessage(&msg);
+    pushRxMessage(&msg, secondPort);
 }
 
 static bool popTxMessage(mavlink_message_t *msg)
@@ -282,20 +305,36 @@ static bool findTxMessageById(uint32_t msgid, mavlink_message_t *match)
     return false;
 }
 
-static std::vector<mavlink_message_t> parseTxMessages(void)
+static std::vector<mavlink_message_t> parseTxMessagesFrom(const uint8_t *buffer, size_t length)
 {
     std::vector<mavlink_message_t> messages;
     mavlink_status_t status;
     memset(&status, 0, sizeof(status));
 
     mavlink_message_t msg;
-    for (size_t i = 0; i < serialTxLen; i++) {
-        if (mavlink_parse_char(0, serialTxBuffer[i], &msg, &status) == MAVLINK_FRAMING_OK) {
+    for (size_t i = 0; i < length; i++) {
+        if (mavlink_parse_char(0, buffer[i], &msg, &status) == MAVLINK_FRAMING_OK) {
             messages.push_back(msg);
         }
     }
 
     return messages;
+}
+
+static std::vector<mavlink_message_t> parseTxMessages(void)
+{
+    return parseTxMessagesFrom(serialTxBuffer, serialTxLen);
+}
+
+static std::vector<mavlink_message_t> filterTunnelMessages(const std::vector<mavlink_message_t> &messages)
+{
+    std::vector<mavlink_message_t> tunnelMessages;
+    for (const mavlink_message_t &msg : messages) {
+        if (msg.msgid == MAVLINK_MSG_ID_TUNNEL) {
+            tunnelMessages.push_back(msg);
+        }
+    }
+    return tunnelMessages;
 }
 
 static std::vector<uint8_t> collectTunnelPayload(
@@ -321,9 +360,12 @@ static std::vector<uint8_t> collectTunnelPayload(
     return payload;
 }
 
-static void initMavlinkTestState(void)
+static void initMavlinkTestState(bool secondPort = false)
 {
+    testSecondPortEnabled = secondPort;
     resetSerialBuffers();
+    serialTxBudget = -1;
+    serialTxOverrun = false;
     fakeMillis = 0;
     fakeMicros = 0;
     setWaypointCalls = 0;
@@ -598,6 +640,213 @@ TEST(MavlinkTelemetryTest, TunnelReplyFragmentationIsExactAt127128And129Bytes)
             collectTunnelPayload(messages),
             encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, expectedPayload));
     }
+}
+
+static std::vector<uint8_t> makeTestReplyPayload(uint16_t length)
+{
+    std::vector<uint8_t> payload(length);
+    for (size_t i = 0; i < payload.size(); i++) {
+        payload[i] = (uint8_t)i;
+    }
+    return payload;
+}
+
+static void runTelemetryCycleWithTxBudget(int32_t txBudget)
+{
+    serialTxBudget = txBudget;
+    handleMAVLinkTelemetry(1000);
+}
+
+TEST(MavlinkTelemetryTest, TunnelLargeReplyResumesAcrossCyclesOnSmallTxBuffer)
+{
+    initMavlinkTestState();
+    serialTxBudget = testUartTxBufferFree;
+
+    const std::vector<uint8_t> request = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(parseTxMessages().size(), 1U);
+
+    runTelemetryCycleWithTxBudget(testUartTxBufferFree);
+
+    const std::vector<mavlink_message_t> messages = parseTxMessages();
+    ASSERT_EQ(messages.size(), 3U);
+    for (size_t i = 1; i < messages.size(); i++) {
+        EXPECT_EQ(messages[i].seq, (uint8_t)(messages[i - 1].seq + 1));
+    }
+    EXPECT_EQ(collectTunnelPayload(messages), encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, makeTestReplyPayload(300)));
+    EXPECT_FALSE(serialTxOverrun);
+    EXPECT_EQ(mavlinkContext.portStates[0].txDroppedFrames, 0U);
+
+    const size_t txLenAfterReply = serialTxLen;
+    runTelemetryCycleWithTxBudget(testUartTxBufferFree);
+    EXPECT_EQ(serialTxLen, txLenAfterReply);
+}
+
+TEST(MavlinkTelemetryTest, TunnelChunkIsHeldBackWhileItDoesNotFit)
+{
+    initMavlinkTestState();
+    testReplyPayloadLength = 500;
+    serialTxBudget = 100;
+
+    const std::vector<uint8_t> request = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(serialTxLen, 0U);
+
+    runTelemetryCycleWithTxBudget(0);
+    runTelemetryCycleWithTxBudget(144);
+    EXPECT_EQ(serialTxLen, 0U);
+
+    int cycles = 0;
+    while (parseTxMessages().size() < 4U && cycles < 20) {
+        runTelemetryCycleWithTxBudget(testUartTxBufferFree);
+        cycles++;
+    }
+
+    const std::vector<mavlink_message_t> messages = parseTxMessages();
+    ASSERT_EQ(messages.size(), 4U);
+    EXPECT_EQ(cycles, 4);
+    for (size_t i = 1; i < messages.size(); i++) {
+        EXPECT_EQ(messages[i].seq, (uint8_t)(messages[i - 1].seq + 1));
+    }
+    EXPECT_EQ(collectTunnelPayload(messages), encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, makeTestReplyPayload(500)));
+    EXPECT_FALSE(serialTxOverrun);
+    EXPECT_EQ(mavlinkContext.portStates[0].txDroppedFrames, 0U);
+}
+
+TEST(MavlinkTelemetryTest, TunnelRequestWhileReplyPendingIsDropped)
+{
+    initMavlinkTestState();
+    serialTxBudget = testUartTxBufferFree;
+
+    const std::vector<uint8_t> largeRequest = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)largeRequest.size(), largeRequest);
+    handleMAVLinkTelemetry(1000);
+    EXPECT_EQ(mspCommandCallCount, 1);
+
+    const std::vector<uint8_t> simpleRequest = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload((uint8_t)simpleRequest.size(), simpleRequest);
+    serialTxBudget = 0;
+    handleMavlinkUntilRxEmpty(1000);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+
+    runTelemetryCycleWithTxBudget(testUartTxBufferFree);
+
+    EXPECT_EQ(
+        collectTunnelPayload(parseTxMessages()),
+        encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, makeTestReplyPayload(300)));
+    EXPECT_FALSE(serialTxOverrun);
+
+    resetSerialBuffers();
+    pushTunnelPayload((uint8_t)simpleRequest.size(), simpleRequest);
+    runTelemetryCycleWithTxBudget(testUartTxBufferFree);
+
+    EXPECT_EQ(mspCommandCallCount, 2);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelStalledReplyIsAbandonedAfterClientTimeout)
+{
+    initMavlinkTestState();
+    serialTxBudget = testUartTxBufferFree;
+
+    const std::vector<uint8_t> largeRequest = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)largeRequest.size(), largeRequest);
+    handleMAVLinkTelemetry(1000);
+
+    resetSerialBuffers();
+    fakeMillis += 1000;
+    runTelemetryCycleWithTxBudget(testUartTxBufferFree);
+    EXPECT_EQ(serialTxLen, 0U);
+
+    const std::vector<uint8_t> simpleRequest = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload((uint8_t)simpleRequest.size(), simpleRequest);
+    runTelemetryCycleWithTxBudget(testUartTxBufferFree);
+
+    EXPECT_EQ(mspCommandCallCount, 2);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply(testSimpleMspCommand, MSP_RESULT_ACK));
+}
+
+TEST(MavlinkTelemetryTest, TunnelPendingReplyIsDiscardedOnPortReinit)
+{
+    initMavlinkTestState();
+    serialTxBudget = testUartTxBufferFree;
+
+    const std::vector<uint8_t> request = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+    EXPECT_EQ(parseTxMessages().size(), 1U);
+
+    freeMAVLinkTelemetryPort();
+    checkMAVLinkTelemetryState();
+
+    resetSerialBuffers();
+    runTelemetryCycleWithTxBudget(testUartTxBufferFree);
+    EXPECT_EQ(serialTxLen, 0U);
+}
+
+TEST(MavlinkTelemetryTest, TunnelRequestOnOtherPortWhileReplyPendingIsDroppedWithoutWritingPendingPort)
+{
+    initMavlinkTestState(true);
+    ASSERT_EQ(mavlinkContext.portCount, 2);
+
+    // Port 0 is a half-duplex MAVLink RX port, so its pending reply must wait out the RX backoff.
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_MAVLINK;
+    rxConfigMutable()->halfDuplex = TRISTATE_ON;
+    testPortConfig.functionMask |= FUNCTION_RX_SERIAL;
+    serialTxBudget = testUartTxBufferFree;
+
+    const std::vector<uint8_t> largeRequest = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)largeRequest.size(), largeRequest);
+    handleMAVLinkTelemetry(1000);
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(filterTunnelMessages(parseTxMessages()).size(), 1U);
+
+    const size_t pendingPortTxLen = serialTxLen;
+    const uint8_t otherSystem = testTunnelSourceSystem + 1;
+    const std::vector<uint8_t> simpleRequest = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload((uint8_t)simpleRequest.size(), simpleRequest, testTargetComponent, otherSystem, testTunnelSourceComponent, true);
+    serialTxBudget = testUartTxBufferFree;
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(serialRxPos2, serialRxLen2);
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(serialTxLen, pendingPortTxLen);
+    EXPECT_TRUE(filterTunnelMessages(parseTxMessagesFrom(serialTxBuffer2, serialTxLen2)).empty());
+
+    const timeUs_t afterBackoffUs = 1000 + TELEMETRY_MAVLINK_DELAY;
+    for (int cycle = 0; cycle < 5; cycle++) {
+        serialTxBudget = testUartTxBufferFree;
+        handleMAVLinkTelemetry(afterBackoffUs);
+    }
+
+    EXPECT_EQ(
+        collectTunnelPayload(filterTunnelMessages(parseTxMessages())),
+        encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, makeTestReplyPayload(300)));
+    EXPECT_TRUE(filterTunnelMessages(parseTxMessagesFrom(serialTxBuffer2, serialTxLen2)).empty());
+    EXPECT_FALSE(serialTxOverrun);
+}
+
+TEST(MavlinkTelemetryTest, TunnelRebootReplyIsFlushedBeforeRebootWhenTxRingIsFull)
+{
+    initMavlinkTestState();
+    serialTxBudget = 0;
+
+    const std::vector<uint8_t> request = makeMspV1Request((uint8_t)MSP_REBOOT);
+    pushTunnelPayload((uint8_t)request.size(), request);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(waitForSerialPortToFinishTransmittingCalls, 2);
+    EXPECT_EQ(mspRebootPostProcessCount, 1);
+    EXPECT_EQ(collectTunnelPayload(parseTxMessages()), encodeMspV1Reply((uint8_t)MSP_REBOOT, MSP_RESULT_ACK));
+    EXPECT_FALSE(serialTxOverrun);
 }
 
 TEST(MavlinkTelemetryTest, PreparedFrameMatchesExactV1V2AndV2OverV1Bytes)
@@ -3497,13 +3746,21 @@ serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function)
     testPortConfig.functionMask = FUNCTION_TELEMETRY_MAVLINK;
     testPortConfig.identifier = SERIAL_PORT_USART1;
     testPortConfig.telemetry_baudrateIndex = BAUD_115200;
+    testPortConfig2.functionMask = FUNCTION_TELEMETRY_MAVLINK;
+    testPortConfig2.identifier = SERIAL_PORT_USART2;
+    testPortConfig2.telemetry_baudrateIndex = BAUD_115200;
+    testSecondPortServed = false;
     return &testPortConfig;
 }
 
 serialPortConfig_t *findNextSerialPortConfig(serialPortFunction_e function)
 {
     UNUSED(function);
-    return NULL;
+    if (!testSecondPortEnabled || testSecondPortServed) {
+        return NULL;
+    }
+    testSecondPortServed = true;
+    return &testPortConfig2;
 }
 
 // No mixer-profile switching is configured in these tests, so nothing here is a VTOL and
@@ -3525,14 +3782,13 @@ serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFuncti
                              serialReceiveCallbackPtr rxCallback, void *rxCallbackData,
                              uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    UNUSED(identifier);
     UNUSED(function);
     UNUSED(rxCallback);
     UNUSED(rxCallbackData);
     UNUSED(baudRate);
     UNUSED(mode);
     UNUSED(options);
-    return &testSerialPort;
+    return identifier == testPortConfig2.identifier ? &testSerialPort2 : &testSerialPort;
 }
 
 void closeSerialPort(serialPort_t *serialPort)
@@ -3542,31 +3798,59 @@ void closeSerialPort(serialPort_t *serialPort)
 
 uint32_t serialRxBytesWaiting(const serialPort_t *instance)
 {
-    UNUSED(instance);
+    if (instance == &testSerialPort2) {
+        return (uint32_t)(serialRxLen2 - serialRxPos2);
+    }
     return (uint32_t)(serialRxLen - serialRxPos);
 }
 
 uint32_t serialTxBytesFree(const serialPort_t *instance)
 {
-    UNUSED(instance);
-    return 1024;
+    if (instance == &testSerialPort2) {
+        return 1024;
+    }
+    return serialTxBudget < 0 ? 1024 : (uint32_t)serialTxBudget;
+}
+
+static void consumeSerialTxBudget(int count)
+{
+    if (serialTxBudget < 0) {
+        return;
+    }
+    if (count > serialTxBudget) {
+        serialTxOverrun = true;
+        serialTxBudget = 0;
+        return;
+    }
+    serialTxBudget -= count;
 }
 
 uint8_t serialRead(serialPort_t *instance)
 {
-    UNUSED(instance);
+    if (instance == &testSerialPort2) {
+        return serialRxBuffer2[serialRxPos2++];
+    }
     return serialRxBuffer[serialRxPos++];
 }
 
 void serialWrite(serialPort_t *instance, uint8_t ch)
 {
-    UNUSED(instance);
+    if (instance == &testSerialPort2) {
+        serialTxBuffer2[serialTxLen2++] = ch;
+        return;
+    }
+    consumeSerialTxBudget(1);
     serialTxBuffer[serialTxLen++] = ch;
 }
 
 void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count)
 {
-    UNUSED(instance);
+    if (instance == &testSerialPort2) {
+        memcpy(&serialTxBuffer2[serialTxLen2], data, (size_t)count);
+        serialTxLen2 += (size_t)count;
+        return;
+    }
+    consumeSerialTxBudget(count);
     memcpy(&serialTxBuffer[serialTxLen], data, (size_t)count);
     serialTxLen += (size_t)count;
 }
@@ -3607,6 +3891,9 @@ bool isSerialTransmitBufferEmpty(const serialPort_t *instance)
 
 void waitForSerialPortToFinishTransmitting(serialPort_t *serialPort)
 {
+    if (serialTxBudget >= 0) {
+        serialTxBudget = testUartTxBufferFree;
+    }
     waitForSerialPortToFinishTransmittingCalls++;
     lastPostProcessPort = serialPort;
 }
