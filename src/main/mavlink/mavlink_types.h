@@ -46,7 +46,7 @@
 #define ARDUPILOT_VERSION_MAJOR 4
 #define ARDUPILOT_VERSION_MINOR 7
 #define ARDUPILOT_VERSION_PATCH 0
-#define MAVLINK_MAX_ROUTES 32
+#define MAVLINK_MAX_ROUTES 8 // GCS plus a few companions; INAV does not route fleets
 #define MAVLINK_PORT_MASK(portIndex) (1U << (portIndex))
 #define MAXSTREAMS MAVLINK_STREAM_COUNT
 
