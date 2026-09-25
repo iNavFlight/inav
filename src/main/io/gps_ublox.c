@@ -1330,6 +1330,8 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
         gpsState.autoConfigStep = 0;
         ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+        // Or the wait below ends at once on the count from before a restart, with an empty mask
+        ubx_capabilities.capMaxGnss = 0;
         // M7 and earlier will never get pass this step, so skip it (#9440).
         // UBLOX documents that this is M8N and later
         if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
