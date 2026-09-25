@@ -41,6 +41,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "flight/mixer.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
 #include "drivers/pwm_mapping.h"
@@ -80,6 +81,7 @@ static int              bufferPosition = 0;
 static escSensorData_t  escSensorData[MAX_SUPPORTED_MOTORS];
 static escSensorData_t  escSensorDataCombined;
 static bool             escSensorDataNeedsUpdate;
+static bool             escSensorDshotActive;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 1);
 PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
@@ -157,6 +159,32 @@ escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
     return &escSensorData[esc];
 }
 
+void escSensorInitData(void)
+{
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        escSensorData[i].dataAge = ESC_DATA_INVALID;
+        escSensorData[i].temperature = 0;
+        escSensorData[i].voltage = 0;
+        escSensorData[i].current = 0;
+        escSensorData[i].rpm = 0;
+    }
+    escSensorDataNeedsUpdate = true;
+}
+
+void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16_t voltage, int32_t current)
+{
+    if (esc >= MAX_SUPPORTED_MOTORS) {
+        return;
+    }
+
+    escSensorData[esc].dataAge = 0;
+    escSensorData[esc].rpm = rpm;
+    escSensorData[esc].temperature = temperature;
+    escSensorData[esc].voltage = voltage;
+    escSensorData[esc].current = current;
+    escSensorDataNeedsUpdate = true;
+}
+
 escSensorData_t * escSensorGetData(void)
 {
     /*
@@ -219,6 +247,7 @@ bool escSensorInitialize(void)
 {
     escSensorDataNeedsUpdate = true;
     escSensorPort = NULL;
+    escSensorDshotActive = false;
 
     // Fail immediately if motor output are disabled or motor outputs are not configured
     if (!feature(FEATURE_PWM_OUTPUT_ENABLE) || getMotorCount() == 0) {
@@ -249,6 +278,17 @@ bool escSensorInitialize(void)
     }
 #endif
 
+    escSensorInitData();
+
+#ifdef USE_DSHOT_BIDIR
+    // Telemetry on the motor line: fed by the motor driver, no port to open
+    if (isDshotTelemetryActive()) {
+        escSensorDshotActive = true;
+        ENABLE_STATE(ESC_SENSOR_ENABLED);
+        return true;
+    }
+#endif
+
     // FUNCTION_ESCSERIAL is shared between SERIALSHOT and ESC_SENSOR telemetry
     // They are mutually exclusive
     serialPortConfig_t * portConfig = findSerialPortConfig(FUNCTION_ESCSERIAL);
@@ -261,10 +301,6 @@ bool escSensorInitialize(void)
         return false;
     }
 
-    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        escSensorData[i].dataAge = ESC_DATA_INVALID;
-    }
-
     ENABLE_STATE(ESC_SENSOR_ENABLED);
 
     return true;
@@ -272,6 +308,25 @@ bool escSensorInitialize(void)
 
 void escSensorUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_DSHOT_BIDIR
+    if (escSensorDshotActive) {
+        // The motor driver refreshes the data with every decoded frame. Age it at the serial
+        // poll rate, so a silent ESC drops out of the combined values the same way (the serial
+        // poll timer doubles as the aging clock, nothing polls here)
+        const timeMs_t currentTimeMs = currentTimeUs / 1000;
+        if (currentTimeMs - escTriggerTimeMs >= ESC_REQUEST_TIMEOUT_MS) {
+            escTriggerTimeMs = currentTimeMs;
+            for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+                if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
+                    escSensorData[i].dataAge++;
+                    escSensorDataNeedsUpdate = true;
+                }
+            }
+        }
+        return;
+    }
+#endif
+
 #ifdef USE_MOTOR_SRXL2
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
         /* One ESC per port, so escSensorData[i] belongs to the i-th assigned
@@ -377,4 +432,13 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 
 }
 
+#endif
+
+#ifndef USE_ESC_SENSOR
+void escSensorInitData(void) {}
+void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16_t voltage, int32_t current)
+{
+    UNUSED(esc); UNUSED(rpm); UNUSED(temperature); UNUSED(voltage); UNUSED(current);
+}
+escSensorData_t * escSensorGetData(void) { return NULL; }
 #endif

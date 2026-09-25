@@ -185,7 +185,25 @@ extern uint8_t __config_end;
 #endif
 #endif
 
-#ifdef USE_ESC_SENSOR
+// DSHOT variants, all on top of USE_DSHOT:
+//  - USE_DSHOT_DMAR: one burst DMA stream per timer (target choice)
+//  - USE_DSHOT_BIDIR: bidirectional DSHOT (eRPM telemetry on the motor line,
+//    dshot_bidir_enabled). Needs a DMA stream per motor channel for the direction
+//    switching, so it excludes USE_DSHOT_DMAR. Implemented by the timer/DMA motor
+//    driver (pwm_output.c); RP2350 drives its motors from a PIO program that only
+//    transmits, so the setting is hidden there and stays off.
+#if defined(USE_DSHOT_DMAR) && !defined(USE_DSHOT)
+#error "USE_DSHOT_DMAR requires USE_DSHOT"
+#endif
+#if defined(USE_DSHOT) && !defined(USE_DSHOT_DMAR) && !defined(RP2350)
+#define USE_DSHOT_BIDIR
+#endif
+#if defined(USE_DSHOT_BIDIR) && (!defined(USE_DSHOT) || defined(USE_DSHOT_DMAR))
+#error "USE_DSHOT_BIDIR requires USE_DSHOT and excludes USE_DSHOT_DMAR"
+#endif
+
+// RPM filter sources: serial ESC telemetry or bidirectional DSHOT
+#if defined(USE_ESC_SENSOR) || defined(USE_DSHOT_BIDIR)
     #define USE_RPM_FILTER
 #endif
 
