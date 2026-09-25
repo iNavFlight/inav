@@ -1,8 +1,8 @@
 {
     "version": {
         "major": 2,
-        "minor": 1,
-        "patch": 1
+        "minor": 2,
+        "patch": 0
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -4922,6 +4922,47 @@
                         "name": "hwVersion",
                         "ctype": "uint8_t",
                         "desc": "GPS hardware version bit-field: bits[7:6]=series (0b01=u-blox Neo/M), bits[5:0]=generation. E.g. 0x48=M8, 0x49=M9, 0x4A=M10, 0=unknown.",
+                        "units": ""
+                    },
+                    {
+                        "name": "supportedGnss",
+                        "ctype": "uint8_t",
+                        "desc": "Bitmask: major constellations the receiver reports in UBX-MON-GNSS: Bit 0=GPS, Bit 1=GLONASS, Bit 2=BeiDou, Bit 3=Galileo. 0 if the receiver has not reported them, or the provider is not u-blox",
+                        "units": "Bitmask",
+                        "bitmask": true
+                    },
+                    {
+                        "name": "enabledGnss",
+                        "ctype": "uint8_t",
+                        "desc": "Bitmask: which of those constellations the receiver says are running. Same bit order as `supportedGnss`",
+                        "units": "Bitmask",
+                        "bitmask": true
+                    },
+                    {
+                        "name": "extendedGnss",
+                        "ctype": "uint8_t",
+                        "desc": "Bitmask: augmentation and regional systems listed in the UBX-MON-VER extensions, which UBX-MON-GNSS does not carry: Bit 0=SBAS, Bit 1=QZSS, Bit 2=NavIC",
+                        "units": "Bitmask",
+                        "bitmask": true
+                    },
+                    {
+                        "name": "maxGnss",
+                        "ctype": "uint8_t",
+                        "desc": "How many major constellations the receiver can track at the same time, as reported by UBX-MON-GNSS. 0 if unknown",
+                        "units": "Count"
+                    },
+                    {
+                        "name": "moduleNameLength",
+                        "ctype": "uint8_t",
+                        "desc": "Length of the module name string that follows. 0 if the receiver does not report one",
+                        "units": ""
+                    },
+                    {
+                        "name": "moduleName",
+                        "desc": "Module name as the receiver reports it in the UBX-MON-VER extensions (e.g., \"NEO-M10N\"). Length given by previous field",
+                        "ctype": "char",
+                        "array": true,
+                        "array_size": 0,
                         "units": ""
                     }
                 ]

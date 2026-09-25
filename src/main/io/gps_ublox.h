@@ -119,6 +119,10 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBLOX_CFG_GLO_ENA               0x10310025 // U1 default off - may conflict with other constelations
 #define UBLOX_CFG_GLO_L1_ENA            0x10310018 // U1 default off
 
+// Only on receivers that list NAVIC in their MON-VER extensions, such as the F10
+#define UBLOX_CFG_NAVIC_ENA             0x10310026 // U1 default off
+#define UBLOX_CFG_NAVIC_L5_ENA          0x1031001d // U1 default off
+
 #define UBLOX_CFG_SBAS_PRNSCANMASK      0x50360006 // 0 = auto // X8
 #define UBLOX_SBAS_ALL                  0x0000000000000000 //Enable search for all SBAS PRNs
 #define UBLOX_SBAS_PRN120               0x0000000000000001 //Enable search for SBAS PRN120
@@ -535,7 +539,21 @@ typedef enum {
     NAV_STATUS_FIX_VALID = 1
 } ubx_nav_status_bits_t;
 
+// Long enough for the names u-blox ships, such as NEO-F10N and ZED-F9P
+#define UBLOX_MODULE_NAME_LEN 16
+
+/* The augmentation and regional systems a receiver lists in its MON-VER extensions.
+ * UBX-MON-GNSS only reports the four major constellations, so these come from the
+ * version strings instead, where the list reads SBAS;QZSS and NAVIC. */
+#define UBLOX_EXT_GNSS_SBAS     (1 << 0)
+#define UBLOX_EXT_GNSS_QZSS     (1 << 1)
+#define UBLOX_EXT_GNSS_NAVIC    (1 << 2)
+
 uint8_t gpsUbloxMaxGnss(void);
+uint8_t gpsUbloxSupportedGnss(void);
+uint8_t gpsUbloxEnabledGnss(void);
+const char * gpsUbloxModuleName(void);
+uint8_t gpsUbloxExtendedGnss(void);
 timeMs_t gpsUbloxCapLastUpdate(void);
 
 bool gpsUbloxHasGalileo(void);
