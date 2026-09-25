@@ -471,16 +471,10 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         currentTimeMs - mavMissionTransfer.lastActivityMs >= MAVLINK_MISSION_DOWNLOAD_TIMEOUT_MS) {
         mavlinkResetMissionTransfer();
     }
+}
 
-    if (currentTimeMs - mavlinkContext.lastMissionCurrentMs < MAVLINK_MISSION_CURRENT_INTERVAL_MS) {
-        return;
-    }
-
-    const uint8_t sendMask = mavlinkActivePortMask();
-    if (sendMask == 0) {
-        return;
-    }
-
+void mavlinkSendMissionCurrent(void)
+{
     const uint16_t total = getWaypointCount();
     const bool active = FLIGHT_MODE(NAV_WP_MODE);
     const uint16_t seq = total > 0 && active && getActiveWpNumber() > 0 ? getActiveWpNumber() - 1 : 0;
@@ -492,7 +486,7 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         // LAND) the FSM parks in NAV_STATE_WAYPOINT_FINISHED, which still
         // maps to NAV_WP_MODE - a landed vehicle must not report ACTIVE
         // until the pilot flips the mode switch. A re-flight clears
-        // missionCompleted on the WP-mode rising edge above.
+        // missionCompleted on the WP-mode rising edge in mavlinkMissionUpdate().
         missionState = MISSION_STATE_COMPLETE;
     } else if (active) {
         missionState = MISSION_STATE_ACTIVE;
@@ -500,7 +494,6 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         missionState = MISSION_STATE_NOT_STARTED;
     }
 
-    mavSendMask = sendMask;
     mavlink_msg_mission_current_pack(
         mavlinkGetCommonConfig()->sysid,
         MAV_COMP_ID_AUTOPILOT1,
@@ -513,8 +506,6 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         0,
         0);
     mavlinkSendMessage();
-    mavSendMask = 0;
-    mavlinkContext.lastMissionCurrentMs = currentTimeMs;
 }
 
 static bool mavlinkHandleArmedGuidedMissionItem(

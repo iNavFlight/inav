@@ -113,7 +113,6 @@ typedef struct mavlinkContext_s {
     uint8_t componentId;
     uint8_t recvPortIndex;
     mavlinkMissionTransfer_t missionTransfer;
-    timeMs_t lastMissionCurrentMs;
     bool missionCompleted;
     bool lastWpModeActive;
     uint32_t lastArmingDisableFlags;

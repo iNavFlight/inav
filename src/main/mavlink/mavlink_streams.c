@@ -2,6 +2,7 @@
 
 #include "common/time.h"
 
+#include "mavlink/mavlink_mission.h"
 #include "mavlink/mavlink_modes.h"
 #include "mavlink/mavlink_routing.h"
 #include "mavlink/mavlink_runtime.h"
@@ -140,6 +141,9 @@ bool mavlinkPeriodicMessageFromMessageId(uint16_t messageId, mavlinkPeriodicMess
         case MAVLINK_MSG_ID_SYSTEM_TIME:
             *periodicMessage = MAVLINK_PERIODIC_MESSAGE_SYSTEM_TIME;
             return true;
+        case MAVLINK_MSG_ID_MISSION_CURRENT:
+            *periodicMessage = MAVLINK_PERIODIC_MESSAGE_MISSION_CURRENT;
+            return true;
         default:
             return false;
     }
@@ -195,13 +199,23 @@ static void mavlinkResetMessagesForStream(uint8_t streamNum)
     }
 }
 
+static int32_t mavlinkDefaultIntervalUs(mavlinkPeriodicMessage_e periodicMessage, const uint8_t *streamRates)
+{
+    // MISSION_CURRENT belongs to no data stream: its default is fixed on every port
+    if (periodicMessage == MAVLINK_PERIODIC_MESSAGE_MISSION_CURRENT) {
+        return MAVLINK_MISSION_CURRENT_INTERVAL_MS * 1000;
+    }
+
+    return mavlinkRateToIntervalUs(streamRates[mavlinkPeriodicMessageBaseStream(periodicMessage)]);
+}
+
 int32_t mavlinkMessageBaseIntervalUs(mavlinkPeriodicMessage_e periodicMessage)
 {
     if (!mavActivePort) {
         return -1;
     }
 
-    return mavlinkRateToIntervalUs(mavActivePort->mavRates[mavlinkPeriodicMessageBaseStream(periodicMessage)]);
+    return mavlinkDefaultIntervalUs(periodicMessage, mavActivePort->mavRates);
 }
 
 int32_t mavlinkMessageIntervalUs(mavlinkPeriodicMessage_e periodicMessage)
@@ -306,7 +320,7 @@ void configureMAVLinkStreamRates(uint8_t portIndex)
         const int32_t overrideUs = state->mavMessageOverrideIntervalsUs[messageIndex];
         const int32_t intervalUs = overrideUs != 0
             ? overrideUs
-            : mavlinkRateToIntervalUs(selectedRates[mavlinkPeriodicMessageBaseStream((mavlinkPeriodicMessage_e)messageIndex)]);
+            : mavlinkDefaultIntervalUs((mavlinkPeriodicMessage_e)messageIndex, selectedRates);
         state->mavMessageNextDue[messageIndex] = intervalUs > 0
             ? currentTimeUs + intervalUs + 3000 * messageIndex
             : 0;
@@ -1143,6 +1157,9 @@ bool mavlinkSendRequestedMessage(uint16_t messageId)
         case MAVLINK_MSG_ID_HEARTBEAT:
             mavlinkSendHeartbeat();
             return true;
+        case MAVLINK_MSG_ID_MISSION_CURRENT:
+            mavlinkSendMissionCurrent();
+            return true;
         case MAVLINK_MSG_ID_AUTOPILOT_VERSION:
             if (mavlinkGetProtocolVersion() != 1) {
                 mavlinkSendAutopilotVersion();
@@ -1550,6 +1567,10 @@ void processMAVLinkTelemetry(timeUs_t currentTimeUs)
 
     if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_SYSTEM_TIME, currentTimeUs)) {
         mavlinkSendSystemTime();
+    }
+
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_MISSION_CURRENT, currentTimeUs)) {
+        mavlinkSendMissionCurrent();
     }
 
     if (mavlinkStreamTrigger(MAV_DATA_STREAM_EXTRA3, currentTimeUs)) {
