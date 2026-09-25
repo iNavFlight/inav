@@ -89,6 +89,31 @@ TEST(GPSUbloxTest, TestUbloxCfgFillBytes)
     //EXPECT_FALSE(strcmp(buf, " 123.45"));
 }
 
+TEST(GPSUbloxTest, TestUbloxCfgFillU8)
+{
+    // The SBAS scan mask is the one eight byte item INAV sends. EGNOS is PRN 121,
+    // 123, 126, 136 and 150, which puts bits 1, 3, 6, 16 and 30 in the mask
+    ubx_config_data64_t cfg = {};
+    ubx_config_data64_payload_t kvPairs[] = {
+        { 0x50360006, 0x4001004A }
+    };
+
+    EXPECT_EQ(1, ubloxCfgFillU8(&cfg, kvPairs, 1));
+
+    const uint8_t expected[] = {
+        0xB5, 0x62, 0x06, 0x8A, 0x10, 0x00,                 // CFG-VALSET, 16 byte payload
+        0x01, 0x01, 0x00, 0x00,                             // version 1, RAM layer
+        0x06, 0x00, 0x36, 0x50,                             // CFG-SBAS-PRNSCANMASK
+        0x4A, 0x00, 0x01, 0x40, 0x00, 0x00, 0x00, 0x00,     // the mask, little endian
+        0xB9, 0xBF                                          // checksum
+    };
+    EXPECT_EQ(0, memcmp(expected, &cfg, sizeof(expected)));
+
+    // Asking for more than the message holds gets what fits, not an overrun
+    ubx_config_data64_payload_t many[MAX_CONFIG_SET_VAL_VALUES_64 + 3] = {};
+    EXPECT_EQ(MAX_CONFIG_SET_VAL_VALUES_64, ubloxCfgFillU8(&cfg, many, MAX_CONFIG_SET_VAL_VALUES_64 + 3));
+}
+
 TEST(GPSUbloxTest, navSigStructureSizes) {
     EXPECT_TRUE(sizeof(ubx_nav_sig_info) == 16);
 
