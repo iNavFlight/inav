@@ -89,13 +89,6 @@ static bool mavlinkSendTunnelMspReply(uint8_t ingressPortIndex, uint8_t targetSy
     return true;
 }
 
-static bool mavlinkTunnelMspReplyIsBusy(uint8_t ingressPortIndex)
-{
-    // Flushes only the ingress port; writing another port here would bypass its half-duplex backoff.
-    mavlinkFlushTunnelMspReply(ingressPortIndex);
-    return mavlinkTunnelMspReplyIsPending();
-}
-
 static bool mavlinkTunnelMessageTargetsLocalFc(const mavlink_tunnel_t *msg)
 {
     return msg->payload_type == MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP &&
@@ -134,7 +127,7 @@ static bool mavlinkProcessCompletedTunnelCommand(uint8_t ingressPortIndex)
     uint8_t *replyPayloadHead = reply.buf.ptr;
 
     // Clients wait for the full reply before the next request, so only pipelining clients or a second port hit this.
-    if (mavlinkTunnelMspReplyIsBusy(ingressPortIndex)) {
+    if (mavlinkTunnelMspReplyIsPending()) {
         mspPort->c_state = MSP_IDLE;
         return false;
     }

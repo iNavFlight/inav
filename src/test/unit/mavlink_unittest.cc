@@ -834,6 +834,41 @@ TEST(MavlinkTelemetryTest, TunnelRequestOnOtherPortWhileReplyPendingIsDroppedWit
     EXPECT_FALSE(serialTxOverrun);
 }
 
+TEST(MavlinkTelemetryTest, TunnelPipelinedRequestOnHalfDuplexPortDoesNotTransmitInsideBackoff)
+{
+    initMavlinkTestState();
+    rxConfigMutable()->receiverType = RX_TYPE_SERIAL;
+    rxConfigMutable()->serialrx_provider = SERIALRX_MAVLINK;
+    rxConfigMutable()->halfDuplex = TRISTATE_ON;
+    testPortConfig.functionMask |= FUNCTION_RX_SERIAL;
+    serialTxBudget = testUartTxBufferFree;
+
+    const std::vector<uint8_t> largeRequest = makeMspV1Request(testLargeReplyMspCommand);
+    pushTunnelPayload((uint8_t)largeRequest.size(), largeRequest);
+    handleMAVLinkTelemetry(1000);
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(filterTunnelMessages(parseTxMessages()).size(), 1U);
+
+    const size_t txLenBeforePipelinedRequest = serialTxLen;
+    const std::vector<uint8_t> simpleRequest = makeMspV1Request(testSimpleMspCommand);
+    pushTunnelPayload((uint8_t)simpleRequest.size(), simpleRequest);
+    serialTxBudget = testUartTxBufferFree;
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(serialRxPos, serialRxLen);
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(serialTxLen, txLenBeforePipelinedRequest);
+
+    serialTxBudget = testUartTxBufferFree;
+    handleMAVLinkTelemetry(1000 + TELEMETRY_MAVLINK_DELAY);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+    EXPECT_EQ(
+        collectTunnelPayload(filterTunnelMessages(parseTxMessages())),
+        encodeMspV1Reply(testLargeReplyMspCommand, MSP_RESULT_ACK, makeTestReplyPayload(300)));
+    EXPECT_FALSE(serialTxOverrun);
+}
+
 TEST(MavlinkTelemetryTest, TunnelRebootReplyIsFlushedBeforeRebootWhenTxRingIsFull)
 {
     initMavlinkTestState();
