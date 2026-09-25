@@ -119,6 +119,7 @@
 #define DMM_BLINK (1 << 4)
 #define DMM_INVERT_PIXEL_COLOR (1 << 3)
 #define DMM_CLEAR_DISPLAY (1 << 2)
+#define MAX7456_CLEAR_TIMEOUT_US 2000
 #define DMM_CLEAR_DISPLAY_VERT (DMM_CLEAR_DISPLAY | 1 << 1)
 #define DMM_AUTOINCREMENT (1 << 0)
 
@@ -648,11 +649,21 @@ void max7456RefreshAll(void)
         busRead(state.dev, MAX7456ADD_DMM | MAX7456ADD_READ, &dmm);
         busWrite(state.dev, MAX7456ADD_DMM, state.registers.dmm | DMM_CLEAR_DISPLAY);
 
-        // Wait for clear to complete (20us)
+        // Wait for clear to complete (20us). Bounded: on the LionBee the OSD
+        // chip never reports the bit cleared (DMM reads back 0x06), and an
+        // unbounded wait here stalls the whole scheduler, USB/MSP included.
+        // Betaflight does not poll this bit at all.
+        const timeUs_t clearStart = micros();
         while (1) {
              busRead(state.dev, MAX7456ADD_DMM | MAX7456ADD_READ, &dmm);
              if (!(dmm & DMM_CLEAR_DISPLAY)) {
                  state.registers.dmm = dmm;
+                 break;
+             }
+             if (cmpTimeUs(micros(), clearStart) > MAX7456_CLEAR_TIMEOUT_US) {
+                 // Keep the shadow as written: the readback is not trustworthy here
+                 // (0x06 has bit 1 set, which would turn every later clear into a
+                 // deferred VSYNC clear that can erase freshly drawn characters).
                  break;
              }
         }
