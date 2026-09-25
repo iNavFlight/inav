@@ -106,6 +106,9 @@ struct serialPortVTable {
     // Optional functions used to buffer large writes.
     void (*beginWrite)(serialPort_t *instance);
     void (*endWrite)(serialPort_t *instance);
+
+    // Optional: for a port whose reception is more than the ring, such as a DMA stream
+    void (*setRxBuffer)(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size);
 };
 
 void serialWrite(serialPort_t *instance, uint8_t ch);

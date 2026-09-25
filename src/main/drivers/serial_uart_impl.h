@@ -19,6 +19,10 @@
 
 // device specific uart implementation is defined here
 
+#include "build/atomic.h"
+
+#include "drivers/nvic.h"
+
 extern const struct serialPortVTable uartVTable[];
 
 void uartStartTxDMA(uartPort_t *s);
@@ -102,6 +106,22 @@ static inline bool uartRxDmaStart(uartPort_t *s) { (void)s; return false; }
 static inline bool uartRxDmaRunning(const uartPort_t *s) { (void)s; return false; }
 static inline uint32_t uartRxBufferHead(const uartPort_t *s) { return s->port.rxBufferHead; }
 #endif
+
+// A stream keeps writing where it was started, so it is started again on the new ring
+static inline void uartSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size)
+{
+    uartPort_t *s = (uartPort_t *)instance;
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        s->port.rxBuffer = buffer;
+        s->port.rxBufferSize = size;
+        s->port.rxBufferHead = 0;
+        s->port.rxBufferTail = 0;
+    }
+    if (uartRxDmaRunning(s)) {
+        uartRxDmaStart(s);
+    }
+}
 
 uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t options);
 uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t options);
