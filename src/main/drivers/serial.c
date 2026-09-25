@@ -20,6 +20,10 @@
 
 #include "platform.h"
 
+#include "build/atomic.h"
+
+#include "drivers/nvic.h"
+
 #include "serial.h"
 
 void serialPrint(serialPort_t *instance, const char *str)
@@ -132,4 +136,20 @@ bool serialIsIdle(serialPort_t *instance)
         return instance->vTable->isIdle(instance);
     else
         return false;
+}
+
+// A larger receive buffer, swapped in right after opening: what the old one held is dropped
+void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size)
+{
+    if (size <= instance->rxBufferSize) {
+        return;
+    }
+
+    // The receive interrupt must never see the new buffer with the old size or indices
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        instance->rxBuffer = buffer;
+        instance->rxBufferSize = size;
+        instance->rxBufferHead = 0;
+        instance->rxBufferTail = 0;
+    }
 }

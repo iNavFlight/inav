@@ -955,6 +955,12 @@ static uint16_t hz2rate(uint8_t hz)
     return 1000 / hz;
 }
 
+// Satellite details only feed gpssats and the OSD's GPS extra stats: about 2 Hz, in epochs
+static uint8_t ubloxSatInfoRate(void)
+{
+    return MAX(1, (gpsState.gpsConfig->ubloxNavHz + 1) / 2);
+}
+
 STATIC_PROTOTHREAD(gpsConfigure)
 {
     ptBegin(gpsConfigure);
@@ -1073,7 +1079,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
             {UBLOX_CFG_MSGOUT_NAV_VELNED_UART1, 0}, // 2
             {UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1, 0}, // 3
             {UBLOX_CFG_MSGOUT_NAV_PVT_UART1, 1}, // 4
-            {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, 1}, // 5
+            {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, ubloxSatInfoRate()}, // 5
             {UBLOX_CFG_MSGOUT_NAV_SAT_UART1, 0}  // 6
         };
 
@@ -1101,7 +1107,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
         configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
-        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 1);
+        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, ubloxSatInfoRate());
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
     } else { // Really old stuff, consider upgrading :), ols setting API, no PVT or NAV_SAT or NAV_SIG
         // TODO: remove in INAV 9.0.0
