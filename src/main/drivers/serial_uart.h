@@ -68,6 +68,10 @@ typedef struct {
 #ifdef USE_UART_RX_DMA
     struct dmaChannelDescriptor_s *rxDma;   // the stream filling rxBuffer, NULL where the byte interrupt does
 #endif
+#ifdef USE_UART_TX_DMA
+    struct dmaChannelDescriptor_s *txDma;   // the stream emptying txBuffer, NULL where the byte interrupt does
+    volatile uint32_t txDmaCount;           // bytes of the transfer on its way, 0 when the stream is idle
+#endif
 } uartPort_t;
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins);

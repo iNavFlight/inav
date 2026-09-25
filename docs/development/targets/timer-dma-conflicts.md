@@ -207,6 +207,40 @@ property of the target rather than of the MCU:
 On an H7 the ring of a port receiving through DMA moves to D2 SRAM, where the data cache
 does not reach: 256 bytes per port named.
 
+## UART Transmit Through DMA
+
+The same for sending: `UARTx_TX_DMA` names the stream that empties the port's transmit
+ring.
+
+```c
+#define UART2_TX_DMA            DMA_TAG(2, 7, 0)    // DMA2 stream 7
+```
+
+**What it changes.** The port takes one interrupt per transfer instead of one per byte. A
+message written whole with `serialWriteBuf()`, as MSP and MAVLink do, goes out in one
+transfer; bytes written one at a time, as the serial blackbox does, go out a few transfers
+at a time, since whatever is queued while one runs goes in the next. On an H7 at 480 MHz,
+MAVLink at 921600 baud sending 12.6 kB/s took 12 959 interrupts a second, 0.66% of the CPU,
+and 144 through DMA, 0.006%. It is worth a stream on a port that sends a lot: serial
+blackbox, MAVLink, MSP DisplayPort.
+
+**F4 and F7.** Each UART's transmitter is wired to fixed streams too:
+
+| UART | Stream and channel |
+|------|--------------------|
+| UART1 | `DMA_TAG(2, 7, 4)` |
+| UART2 | `DMA_TAG(1, 6, 4)` |
+| UART3 | `DMA_TAG(1, 3, 4)` or `DMA_TAG(1, 4, 7)` |
+| UART4 | `DMA_TAG(1, 4, 4)` |
+| UART5 | `DMA_TAG(1, 7, 4)` |
+| UART6 | `DMA_TAG(2, 6, 5)` or `DMA_TAG(2, 7, 5)` |
+| UART7 | `DMA_TAG(1, 1, 5)` |
+| UART8 | `DMA_TAG(1, 0, 5)` |
+
+On H7 and AT32F43x any free stream (channel) will do, and the rules for a free one are the
+ones above. A port's transmit stream has to be a different one from its receive stream,
+and on an H7 its transmit ring moves to D2 SRAM as well.
+
 ## Related Documentation
 
 - **overview.md** - Target system basics
