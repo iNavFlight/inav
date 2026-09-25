@@ -138,10 +138,7 @@ bool serialIsIdle(serialPort_t *instance)
         return false;
 }
 
-// Gives a port a receive buffer larger than the one its driver owns, for the one consumer
-// that needs more room than every port gets. Call it right after opening the port: whatever
-// the old buffer held is dropped. The size must be a power of two. A port whose own buffer
-// is already as large keeps it.
+// A larger receive buffer, swapped in right after opening: what the old one held is dropped
 void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size)
 {
     if (size <= instance->rxBufferSize) {

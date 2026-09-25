@@ -955,10 +955,7 @@ static uint16_t hz2rate(uint8_t hz)
     return 1000 / hz;
 }
 
-// NAV-SIG and NAV-SAT feed only the satellite list in the CLI, yet at every epoch they are
-// most of what the receiver sends: NAV-SIG carries 16 bytes for each tracked signal, several
-// hundred bytes on a multi-constellation receiver. Twice a second is plenty. The rate is
-// counted in navigation epochs, so it follows the configured navigation rate.
+// Satellite details only feed gpssats and the OSD's GPS extra stats: about 2 Hz, in epochs
 static uint8_t ubloxSatInfoRate(void)
 {
     return MAX(1, (gpsState.gpsConfig->ubloxNavHz + 1) / 2);
