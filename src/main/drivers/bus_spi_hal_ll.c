@@ -372,69 +372,116 @@ bool spiIsBusBusy(SPI_TypeDef *instance)
 #endif
 }
 
-bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len)
+// Bytes sent ahead of those read back: two keep the clock running, more measured no faster. The
+// RX FIFO (4 bytes on F7, 8 or 16 on H7) cannot overflow, and the clock stops when nothing is left
+#define SPI_BYTES_IN_FLIGHT 2
+
+#if defined(STM32H7)
+#define SPI_TX_READY(instance)  LL_SPI_IsActiveFlag_TXP(instance)
+#define SPI_RX_READY(instance)  LL_SPI_IsActiveFlag_RXP(instance)
+#else
+#define SPI_TX_READY(instance)  LL_SPI_IsActiveFlag_TXE(instance)
+#define SPI_RX_READY(instance)  LL_SPI_IsActiveFlag_RXNE(instance)
+#endif
+
+// A transfer that does not finish is abandoned leaving the SPI ready for the next one
+static void spiTransferAbort(SPI_TypeDef *instance)
 {
 #if defined(STM32H7)
-    LL_SPI_SetTransferSize(instance, len);
+    // Left enabled, the SPI would refuse the next transfer's size, and every later one would fail
+    LL_SPI_Disable(instance);
+    WRITE_REG(instance->IFCR, SPI_IFCR_EOTC | SPI_IFCR_TXTFC | SPI_IFCR_UDRC | SPI_IFCR_OVRC |
+              SPI_IFCR_CRCEC | SPI_IFCR_TIFREC | SPI_IFCR_MODFC | SPI_IFCR_TSERFC | SPI_IFCR_SUSPC);
+#else
+    // F7 stays enabled: drain what is left, or the next transfer would take it for its own
+    for (int spiTimeout = 1000; spiTimeout && (LL_SPI_GetTxFIFOLevel(instance) != LL_SPI_TX_FIFO_EMPTY || LL_SPI_IsActiveFlag_BSY(instance)); spiTimeout--);
+    for (int n = 0; n < 8 && LL_SPI_GetRxFIFOLevel(instance) != LL_SPI_RX_FIFO_EMPTY; n++) {
+        (void)LL_SPI_ReceiveData8(instance);
+    }
+#endif
+    spiTimeoutUserCallback(instance);
+}
+
+// The prefix byte (a register address, echo dropped), then len bytes, each sent while the
+// earlier ones are still coming back, so the clock never stops
+static bool spiTransferBackToBack(SPI_TypeDef *instance, const uint8_t *prefix, uint8_t *rxData, const uint8_t *txData, int len)
+{
+    const int total = len + (prefix ? 1 : 0);
+    if (total == 0) {
+        // On H7 a transfer size of 0 would mean one with no end
+        return true;
+    }
+
+    int toSend = total;
+    int toReceive = total;
+    int spiTimeout = 1000;
+
+#if defined(STM32H7)
+    // The size is taken only while the SPI is disabled
+    LL_SPI_Disable(instance);
+    LL_SPI_SetTransferSize(instance, total);
     LL_SPI_Enable(instance);
     LL_SPI_StartMasterTransfer(instance);
-    while (len) {
-        int spiTimeout = 1000;
-        while(!LL_SPI_IsActiveFlag_TXP(instance)) {
-            if ((spiTimeout--) == 0) {
-                spiTimeoutUserCallback(instance);
-                return false;
-            }
-        }
-        uint8_t b = txData ? *(txData++) : 0xFF;
-        LL_SPI_TransmitData8(instance, b);
-
-        spiTimeout = 1000;
-        while (!LL_SPI_IsActiveFlag_RXP(instance)) {
-            if ((spiTimeout--) == 0) {
-                spiTimeoutUserCallback(instance);
-                return false;
-            }
-        }
-        b = LL_SPI_ReceiveData8(instance);
-        if (rxData) {
-            *(rxData++) = b;
-        }
-        --len;
-    }
-    while (!LL_SPI_IsActiveFlag_EOT(instance));
-    LL_SPI_ClearFlag_TXTF(instance);
-    LL_SPI_Disable(instance);
 #else
     SET_BIT(instance->CR2, SPI_RXFIFO_THRESHOLD);
+#endif
 
-    while (len) {
-        int spiTimeout = 1000;
-        while (!LL_SPI_IsActiveFlag_TXE(instance)) {
-            if ((spiTimeout--) == 0) {
-                spiTimeoutUserCallback(instance);
-                return false;
-            }
-        }
-        uint8_t b = txData ? *(txData++) : 0xFF;
-        LL_SPI_TransmitData8(instance, b);
+    while (toReceive) {
+        bool progress = false;
 
-        spiTimeout = 1000;
-        while (!LL_SPI_IsActiveFlag_RXNE(instance)) {
-            if ((spiTimeout--) == 0) {
-                spiTimeoutUserCallback(instance);
-                return false;
+        if (toSend && toReceive - toSend < SPI_BYTES_IN_FLIGHT && SPI_TX_READY(instance)) {
+            uint8_t b;
+            if (prefix && toSend == total) {
+                b = *prefix;
+            } else {
+                b = txData ? *(txData++) : 0xFF;
             }
+            LL_SPI_TransmitData8(instance, b);
+            toSend--;
+            progress = true;
         }
-        b = LL_SPI_ReceiveData8(instance);
-        if (rxData) {
-            *(rxData++) = b;
+
+        if (SPI_RX_READY(instance)) {
+            const uint8_t b = LL_SPI_ReceiveData8(instance);
+            if (rxData && !(prefix && toReceive == total)) {
+                *(rxData++) = b;
+            }
+            toReceive--;
+            progress = true;
         }
-        --len;
+
+        if (progress) {
+            spiTimeout = 1000;
+        } else if ((spiTimeout--) == 0) {
+            spiTransferAbort(instance);
+            return false;
+        }
     }
+
+#if defined(STM32H7)
+    // Bounded: a transfer that never ends must not hang the caller
+    spiTimeout = 1000;
+    while (!LL_SPI_IsActiveFlag_EOT(instance)) {
+        if ((spiTimeout--) == 0) {
+            spiTransferAbort(instance);
+            return false;
+        }
+    }
+    LL_SPI_ClearFlag_TXTF(instance);
+    LL_SPI_Disable(instance);
 #endif
 
     return true;
+}
+
+bool spiTransferRegister(SPI_TypeDef *instance, uint8_t reg, uint8_t *rxData, const uint8_t *txData, int len)
+{
+    return spiTransferBackToBack(instance, &reg, rxData, txData, len);
+}
+
+bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len)
+{
+    return spiTransferBackToBack(instance, NULL, rxData, txData, len);
 }
 
 void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed)
@@ -442,7 +489,10 @@ void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed)
     SPIDevice device = spiDeviceByInstance(instance);
     LL_SPI_Disable(instance);
     LL_SPI_SetBaudRatePrescaler(instance, spiHardwareMap[device].divisorMap[speed]);
+    // H7 stays disabled: each transfer sets its size, which the SPI takes only while disabled
+#if !defined(STM32H7)
     LL_SPI_Enable(instance);
+#endif
 }
 
 SPI_TypeDef * spiInstanceByDevice(SPIDevice device)
