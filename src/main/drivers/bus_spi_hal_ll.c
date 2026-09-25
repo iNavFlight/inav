@@ -75,7 +75,7 @@
     (defined(STM32H7) && (defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3)))
 static const uint32_t spiDivisorMapFast[] = {
     LL_SPI_BAUDRATEPRESCALER_DIV256,    // SPI_CLOCK_INITIALIZATON      421.875 KBits/s
-    LL_SPI_BAUDRATEPRESCALER_DIV32,     // SPI_CLOCK_SLOW               843.75 KBits/s
+    LL_SPI_BAUDRATEPRESCALER_DIV128,    // SPI_CLOCK_SLOW               843.75 KBits/s
     LL_SPI_BAUDRATEPRESCALER_DIV16,     // SPI_CLOCK_STANDARD           6.75 MBits/s
     LL_SPI_BAUDRATEPRESCALER_DIV8,      // SPI_CLOCK_FAST               13.5 MBits/s
     LL_SPI_BAUDRATEPRESCALER_DIV4       // SPI_CLOCK_ULTRAFAST          27.0 MBits/s
