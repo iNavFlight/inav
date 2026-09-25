@@ -65,10 +65,11 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 /*
  * hwVersion encoding (fits in uint8_t):
  *   bits [7:6]  series:  0b00=unknown, 0b01=u-blox Neo/M series
- *   bits [5:0]  generation within series (e.g. 8=M8, 9=M9, 10=M10)
+ *   bits [5:0]  generation within series (e.g. 8=M8, 9=M9, 10=M10, 20=X20)
  *
- * This leaves 0b10 and 0b11 available for future series (e.g. u-blox F9,
- * other manufacturers).
+ * The ZED-X20P reports 000B0000 (after the M10's 000A0000); the ZED-F9P reports 00190000 and decodes as M9.
+ *
+ * This leaves 0b10 and 0b11 available for future series (e.g. other manufacturers).
  */
 #define UBX_HW_SERIES_MASK          0xC0
 #define UBX_HW_GEN_MASK             0x3F
@@ -81,6 +82,7 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBX_HW_VERSION_UBLOX8       (UBX_HW_SERIES_UBLOX_NM | 8)   // 0x48
 #define UBX_HW_VERSION_UBLOX9       (UBX_HW_SERIES_UBLOX_NM | 9)   // 0x49
 #define UBX_HW_VERSION_UBLOX10      (UBX_HW_SERIES_UBLOX_NM | 10)  // 0x4A
+#define UBX_HW_VERSION_UBLOX20      (UBX_HW_SERIES_UBLOX_NM | 20)  // 0x54, X20
 
 #define UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1   0x2091002a // U1
 #define UBLOX_CFG_MSGOUT_NAV_SAT_UART1      0x20910016 // U1
