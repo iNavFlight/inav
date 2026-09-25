@@ -251,11 +251,107 @@ static uartDevice_t* uartHardwareMap[] = {
 #endif
 };
 
+#ifdef USE_UART_RX_DMA
+static const dmaTag_t uartRxDmaTag[UARTDEV_MAX] = {
+#ifdef UART1_RX_DMA
+    [UARTDEV_1] = UART1_RX_DMA,
+#endif
+#ifdef UART2_RX_DMA
+    [UARTDEV_2] = UART2_RX_DMA,
+#endif
+#ifdef UART3_RX_DMA
+    [UARTDEV_3] = UART3_RX_DMA,
+#endif
+#ifdef UART4_RX_DMA
+    [UARTDEV_4] = UART4_RX_DMA,
+#endif
+#ifdef UART5_RX_DMA
+    [UARTDEV_5] = UART5_RX_DMA,
+#endif
+#ifdef UART6_RX_DMA
+    [UARTDEV_6] = UART6_RX_DMA,
+#endif
+#ifdef UART7_RX_DMA
+    [UARTDEV_7] = UART7_RX_DMA,
+#endif
+#ifdef UART8_RX_DMA
+    [UARTDEV_8] = UART8_RX_DMA,
+#endif
+};
+
+static UARTDevice_e uartDeviceOf(const uartPort_t *s)
+{
+    for (int device = 0; device < UARTDEV_MAX; device++) {
+        if (uartHardwareMap[device] && &uartHardwareMap[device]->port == s) {
+            return device;
+        }
+    }
+    return UARTDEV_MAX;
+}
+
+static void uartRxDmaStop(uartPort_t *s)
+{
+    if (s->rxDma) {
+        const uint32_t stream = DMATAG_GET_STREAM(s->rxDma->tag);  // LL_DMA_STREAM_n is n
+        CLEAR_BIT(s->USARTx->CR3, USART_CR3_DMAR);
+        LL_DMA_DisableStream(s->rxDma->dma, stream);
+        while (LL_DMA_IsEnabledStream(s->rxDma->dma, stream));
+        s->rxDma = NULL;
+    }
+}
+
+// The request itself, USART_CR3_DMAR, is set by uartReconfigure(): the HAL clears CR3
+// whenever the port is reprogrammed, and the stream keeps its place in the ring meanwhile
+bool uartRxDmaStart(uartPort_t *s)
+{
+    uartRxDmaStop(s);
+
+    const UARTDevice_e device = uartDeviceOf(s);
+    if (device == UARTDEV_MAX || uartRxDmaTag[device] == DMA_NONE || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+        return false;
+    }
+
+    const DMA_t dma = dmaGetByTag(uartRxDmaTag[device]);
+    if (!dma || !uartRxDmaAvailable(dma, device)) {
+        return false;
+    }
+
+    dmaInit(dma, OWNER_SERIAL, RESOURCE_INDEX(device));
+
+    const uint32_t stream = DMATAG_GET_STREAM(uartRxDmaTag[device]);
+    LL_DMA_DeInit(dma->dma, stream);
+
+    LL_DMA_InitTypeDef init;
+    LL_DMA_StructInit(&init);
+    init.Channel = DMATAG_GET_CHANNEL(uartRxDmaTag[device]) << DMA_SxCR_CHSEL_Pos;    // LL_DMA_CHANNEL_n is n in CHSEL
+    init.PeriphOrM2MSrcAddress = (uint32_t)&s->USARTx->RDR;
+    init.MemoryOrM2MDstAddress = (uint32_t)s->port.rxBuffer;
+    init.Direction = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
+    init.Mode = LL_DMA_MODE_CIRCULAR;
+    init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
+    init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
+    init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_BYTE;
+    init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_BYTE;
+    init.NbData = s->port.rxBufferSize;
+    init.Priority = LL_DMA_PRIORITY_MEDIUM;
+    // No FIFO, so each byte is in the ring as soon as the transfer count says it is
+    init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
+    LL_DMA_Init(dma->dma, stream, &init);
+    LL_DMA_EnableStream(dma->dma, stream);
+
+    s->port.rxBufferHead = s->port.rxBufferTail = 0;
+    s->rxDma = dma;
+    return true;
+}
+#endif
+
 void uartIrqHandler(uartPort_t *s)
 {
     UART_HandleTypeDef *huart = &s->Handle;
     /* UART in mode Receiver ---------------------------------------------------*/
-    if ((__HAL_UART_GET_IT(huart, UART_IT_RXNE) != RESET)) {
+    // This tests the flag alone, and a port receiving through DMA still takes interrupts
+    // for what it sends: a byte the stream has not collected yet is not ours to read
+    if ((__HAL_UART_GET_IT(huart, UART_IT_RXNE) != RESET) && !uartRxDmaRunning(s)) {
         uint8_t rbyte = (uint8_t)(huart->Instance->RDR & (uint8_t) 0xff);
 
         if (s->port.rxCallback) {
