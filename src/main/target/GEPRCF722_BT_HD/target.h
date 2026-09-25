@@ -80,6 +80,7 @@
 #define USE_SDCARD_SPI
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PB9
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 
 #define USE_SPI_DEVICE_3
