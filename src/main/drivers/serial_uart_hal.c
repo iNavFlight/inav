@@ -66,8 +66,21 @@ __attribute__((weak)) void uartConfigurePinSwap(uartPort_t *uartPort)
     UNUSED(uartPort);
 }
 
-static void uartReconfigure(uartPort_t *uartPort)
+// Everything but the tear-down, so that a baud rate change does not have to go through
+// HAL_UART_DeInit(): that releases the pins as well, and the line noise it leaves behind
+// is read as data by whatever is listening. A u-blox receiver went deaf for about a
+// second after each one, which is why autobaud so often failed to move it
+static void uartConfigure(uartPort_t *uartPort)
 {
+    // A port being reprogrammed in place still has its interrupts enabled, and one
+    // taken while HAL_UART_Init() has the handle marked busy would find the peripheral
+    // half written. They are masked here and enabled again at the end of this function.
+    // A port opened for the first time has no handle yet, and nothing to mask
+    if (uartPort->Handle.gState != HAL_UART_STATE_RESET) {
+        CLEAR_BIT(uartPort->USARTx->CR1, USART_CR1_PEIE | USART_CR1_RXNEIE | USART_CR1_TXEIE);
+        CLEAR_BIT(uartPort->USARTx->CR3, USART_CR3_EIE);
+    }
+
     /*RCC_PeriphCLKInitTypeDef RCC_PeriphClkInit;
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_USART3|
             RCC_PERIPHCLK_UART4|RCC_PERIPHCLK_UART5|RCC_PERIPHCLK_USART6|RCC_PERIPHCLK_UART7|RCC_PERIPHCLK_UART8;
@@ -81,7 +94,6 @@ static void uartReconfigure(uartPort_t *uartPort)
     RCC_PeriphClkInit.Uart8ClockSelection = RCC_UART8CLKSOURCE_SYSCLK;
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);*/
 
-    HAL_UART_DeInit(&uartPort->Handle);
     uartPort->Handle.Init.BaudRate = uartPort->port.baudRate;
     uartPort->Handle.Init.WordLength = (uartPort->port.options & SERIAL_PARITY_EVEN) ? UART_WORDLENGTH_9B : UART_WORDLENGTH_8B;
     uartPort->Handle.Init.StopBits = (uartPort->port.options & SERIAL_STOPBITS_2) ? USART_STOPBITS_2 : USART_STOPBITS_1;
@@ -125,6 +137,12 @@ static void uartReconfigure(uartPort_t *uartPort)
         SET_BIT(uartPort->USARTx->CR1, USART_CR1_TXEIE);
     }
     return;
+}
+
+static void uartReconfigure(uartPort_t *uartPort)
+{
+    HAL_UART_DeInit(&uartPort->Handle);
+    uartConfigure(uartPort);
 }
 
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
@@ -188,7 +206,8 @@ void uartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     uartPort_t *uartPort = (uartPort_t *)instance;
     uartPort->port.baudRate = baudRate;
-    uartReconfigure(uartPort);
+    // Only the rate changes, so the port is reconfigured in place and the pins are left alone
+    uartConfigure(uartPort);
 }
 
 void uartSetMode(serialPort_t *instance, portMode_t mode)
