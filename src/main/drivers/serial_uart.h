@@ -20,7 +20,7 @@
 #define UART_AF(uart, af) CONCAT3(GPIO_AF, af, _ ## uart)
 
 // Since serial ports can be used for any function these buffer sizes should be equal
-// The two largest things that need to be sent are: 1, MSP responses, 2, UBLOX SVINFO packet.
+// The largest thing that needs to be sent is an MSP response.
 
 // Size must be a power of two due to various optimizations which use 'and' instead of 'mod'.
 // Occupied and free sizes are returned as uint32_t, so a buffer may exceed 256 bytes. The GPS
