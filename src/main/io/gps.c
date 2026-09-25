@@ -95,7 +95,16 @@ gpsSolutionData_t gpsSol;     //used in the rest of the code
 // Covers 230400; at 460800 and above a NAV-PVT plus a large NAV-SIG can still overflow it
 #define GPS_RX_BUFFER_SIZE  512
 STATIC_ASSERT((GPS_RX_BUFFER_SIZE & (GPS_RX_BUFFER_SIZE - 1)) == 0, gps_rx_buffer_size_not_power_of_2);
-STATIC_FASTRAM volatile uint8_t gpsRxBuffer[GPS_RX_BUFFER_SIZE];
+// Where a UART may receive through DMA, the ring has to be memory a stream can reach: not
+// DTCM on H7, not CCM on F4, and RAM1 on AT32F43x is not known to be
+#if defined(USE_UART_RX_DMA) && defined(STM32H7)
+#define GPS_RX_BUFFER_RAM   DMA_RAM
+#elif defined(USE_UART_RX_DMA) && (defined(STM32F4) || defined(AT32F43x))
+#define GPS_RX_BUFFER_RAM
+#else
+#define GPS_RX_BUFFER_RAM   FASTRAM
+#endif
+static GPS_RX_BUFFER_RAM volatile uint8_t gpsRxBuffer[GPS_RX_BUFFER_SIZE];
 #endif
 
 // Map gpsBaudRate_e index to baudRate_e
