@@ -35,6 +35,7 @@
 #include "common/typeconversion.h"
 #include "common/gps_conversion.h"
 #include "common/maths.h"
+#include "common/string_light.h"
 #include "common/utils.h"
 
 #include "drivers/serial.h"
@@ -742,17 +743,17 @@ static bool gpsParseFrameUBLOX(void)
                     for (int j = 40; j < _payload_length && !found; j += 30)
                     {
                         // Example content: GPS;GAL;BDS;GLO
-                        if (strnstr((const char *)(_buffer.bytes + j), "GAL", 30))
+                        if (sl_strnstr((const char *)(_buffer.bytes + j), "GAL", 30))
                         {
                             ubx_capabilities.supported |= UBX_MON_GNSS_GALILEO_MASK;
                             found = true;
                         }
-                        if (strnstr((const char *)(_buffer.bytes + j), "BDS", 30))
+                        if (sl_strnstr((const char *)(_buffer.bytes + j), "BDS", 30))
                         {
                             ubx_capabilities.supported |= UBX_MON_GNSS_BEIDOU_MASK;
                             found = true;
                         }
-                        if (strnstr((const char *)(_buffer.bytes + j), "GLO", 30))
+                        if (sl_strnstr((const char *)(_buffer.bytes + j), "GLO", 30))
                         {
                             ubx_capabilities.supported |= UBX_MON_GNSS_GLONASS_MASK;
                             found = true;
@@ -760,7 +761,7 @@ static bool gpsParseFrameUBLOX(void)
                     }
                 }
                 for(int j = 40; j < _payload_length; j += 30) {
-                    if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
+                    if (sl_strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
                         gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
                         break;
                     }

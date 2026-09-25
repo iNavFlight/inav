@@ -184,9 +184,9 @@ void updateWindEstimator(timeMs_t currentTimeMs)
         memcpy(lastFuselageDirection, fuselageDirection, sizeof(lastFuselageDirection));
         memcpy(lastGroundVelocity, groundVelocity, sizeof(lastGroundVelocity));
 
-        float theta = atan2f(groundVelocityDiff[Y], groundVelocityDiff[X]) - atan2f(fuselageDirectionDiff[Y], fuselageDirectionDiff[X]);    // equation 9
-        float sintheta = sinf(theta);
-        float costheta = cosf(theta);
+        float theta = atan2_approx(groundVelocityDiff[Y], groundVelocityDiff[X]) - atan2_approx(fuselageDirectionDiff[Y], fuselageDirectionDiff[X]);    // equation 9
+        float sintheta = sin_approx(theta);
+        float costheta = cos_approx(theta);
 
         float wind[XYZ_AXIS_COUNT];
         wind[X] = (groundVelocitySum[X] - V * (costheta * fuselageDirectionSum[X] - sintheta * fuselageDirectionSum[Y])) * 0.5f;    // equation 10
