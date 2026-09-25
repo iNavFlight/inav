@@ -2851,6 +2851,12 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_RX_POWER_DOWNLINK:
         {
+            // 0 means the link does not report receiver power (e.g. ExpressLRS over CRSF)
+            if (rxLinkStatistics.downlinkTXPower == 0) {
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
+                return true;
+            }
+
             if (!failsafeIsReceivingRxData())
                 tfp_sprintf(buff, "%s%c%c", "    ", SYM_MW, SYM_AH_DECORATION_DOWN);
             else
