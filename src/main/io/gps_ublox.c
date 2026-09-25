@@ -1290,6 +1290,8 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
                 // until it is spoken to still has to be offered the command, so the last pass
                 // is the sweep this used to be
                 if (gpsState.autoBaudPass == 2) {
+                    // One rate at a time too, or the whole sweep outlasts the timeout
+                    gpsSetProtocolTimeout(GPS_BAUD_LISTEN_MS + GPS_BAUD_CHANGE_DELAY);
                     serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
                     ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
                     ptDelayMs(GPS_BAUD_CHANGE_DELAY);
