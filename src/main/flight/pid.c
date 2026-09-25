@@ -41,6 +41,7 @@
 #include "fc/settings.h"
 
 #include "flight/pid.h"
+#include "flight/chirp_flight.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
@@ -1749,7 +1750,11 @@ static float FAST_CODE applyItermRelax(const int axis, float currentPidSetpoint,
 static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pidState, float dT, float dT_inv)
 {
 
-    const float rateTarget = getFlightAxisRateOverride(pidState->axis, pidState->rateTarget);
+    float rateTarget = getFlightAxisRateOverride(pidState->axis, pidState->rateTarget);
+#if defined(USE_CHIRP) && defined(USE_BLACKBOX)
+    // Excite the actual rate controller after level/rate limiting and overrides.
+    rateTarget = chirpApplyRate(pidState->axis, rateTarget);
+#endif
 
     const float rateError = rateTarget - pidState->gyroRate;
     const float newPTerm = pTermProcess(pidState, rateError, dT);
@@ -1788,6 +1793,9 @@ static void FAST_CODE NOINLINE pidApplyMulticopterRateController(pidState_t *pid
     applyItermLimiting(pidState);
 
     axisPID[pidState->axis] = newOutputLimited;
+#if defined(USE_CHIRP) && defined(USE_BLACKBOX)
+    chirpLogResponse(pidState->axis, rateTarget, pidState->gyroRate, newOutputLimited);
+#endif
 
 #ifdef USE_BLACKBOX
     axisPID_P[pidState->axis] = newPTerm;
@@ -2059,6 +2067,9 @@ void FAST_CODE pidController(float dT)
 {
     const float dT_inv = 1.0f / dT;
     pidLoopNowMs = millis();
+#if defined(USE_CHIRP) && defined(USE_BLACKBOX)
+    chirpFlightUpdate(dT, pidFiltersConfigured && usedPidControllerType == PID_TYPE_PID);
+#endif
 
     if (!pidFiltersConfigured) {
 #ifdef USE_AUTO_TRANSITION

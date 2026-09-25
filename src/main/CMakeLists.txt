@@ -380,6 +380,11 @@ main_sources(COMMON_SRC
     flight/secondary_dynamic_gyro_notch.h
     flight/dynamic_lpf.c
     flight/dynamic_lpf.h
+    flight/chirp.c
+    flight/chirp.h
+    flight/chirp_flight.c
+    flight/chirp_flight.h
+
     flight/ez_tune.c
     flight/ez_tune.h
     flight/adaptive_filter.c
