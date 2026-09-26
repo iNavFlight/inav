@@ -338,6 +338,15 @@ uint16_t _crc_xmodem_update (uint16_t crc, uint8_t data) {
 
 static uint8_t CurrentInterfaceMode;
 
+// Wait after a SimonK (STK500v2) sign-on before the BLHeli init goes out. The AM32 bootloader
+// takes the pulse-coded sign-on for garbage bytes and answers with a one-byte "bad command"
+// NACK about 0.5 ms after the last pulse, lasting 0.52 ms (10 bits at 19200 baud). The init
+// used to follow the sign-on after only 0.5 ms, so the NACK overlapped its first byte; the
+// bootloader then received a 20-byte init it did not recognise, took the leading zeros for
+// CMD_RUN and jumped to the application, and the connect never succeeded. About 0.6 ms would
+// do; 5 ms leaves margin for other ESC MCUs' bit timing and was verified on hardware.
+#define STK_SETTLE_MS 5
+
 static uint8_t Connect(uint8_32_u *pDeviceInfo)
 {
     // DEBUG_ESC: [0] = raw bootloader signature (words[0]), [1] = interface mode
@@ -353,6 +362,10 @@ static uint8_t Connect(uint8_32_u *pDeviceInfo)
             DEBUG_SET(DEBUG_ESC, 1, imSK);
             return 1;
         } else {
+            if (CurrentInterfaceMode != imARM_BLB) {
+                // A SimonK sign-on went out: let the ESC finish any reply to it before the BLHeli init
+                delay(STK_SETTLE_MS);
+            }
             if (BL_ConnectEx(pDeviceInfo)) {
                 DEBUG_SET(DEBUG_ESC, 0, pDeviceInfo->words[0]);
                 if  SILABS_DEVICE_MATCH {
