@@ -791,6 +791,17 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
     }
 }
 
+// Helper function for ESC passthrough: hand the pin back to its timer after the 4-way
+// interface drove it as plain GPIO. The alternate function has to be given explicitly:
+// on HAL targets a bare IOConfigGPIO(IOCFG_AF_PP) programs AF0 and the timer loses the pin.
+void pwmRestoreMotorPin(int motorIndex)
+{
+    if (motors[motorIndex].pwmPort) {
+        const timerHardware_t *timHw = motors[motorIndex].pwmPort->tch->timHw;
+        IOConfigGPIOAF(IOGetByTag(timHw->tag), IOCFG_AF_PP, timHw->alternateFunction);
+    }
+}
+
 static void pwmServoWriteStandard(uint8_t index, uint16_t value)
 {
     if (index < MAX_SERVOS && servos[index]) {
