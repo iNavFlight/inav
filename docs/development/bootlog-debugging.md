@@ -31,7 +31,7 @@ static bool logIsEnabled(logTopic_e topic, unsigned level)
 Add to the target's `target.h`:
 
 ```c
-#define USE_BOOTLOG 4096   // bytes of RAM reserved for boot log buffer
+#define USE_BOOTLOG 1536   // bytes of RAM reserved for boot log buffer
 ```
 
 Then rebuild. The `bootlog` CLI command only appears when `USE_BOOTLOG` is defined.

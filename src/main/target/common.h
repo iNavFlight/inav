@@ -312,7 +312,6 @@
 #ifndef USE_LOG
 #define USE_LOG
 #endif
-#define USE_BOOTLOG 2048
 #ifndef USE_STATS
 #define USE_STATS
 #endif
