@@ -333,6 +333,8 @@ main_sources(COMMON_SRC
     flight/rate_dynamics.h
     flight/mixer.c
     flight/mixer.h
+    flight/mixer_disarmed_dshot.c
+    flight/mixer_disarmed_dshot.h
     flight/pid.c
     flight/pid.h
     flight/pid_autotune.c
