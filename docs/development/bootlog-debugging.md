@@ -42,7 +42,6 @@ The VCP port (port 20) shared with MSP is the most convenient choice since it re
 
 ```
 serial 20 32769 115200 115200 0 115200
-save
 ```
 
 `32769` = `FUNCTION_MSP (1) | FUNCTION_LOG (32768)`. When shared with MSP the port reuses the existing baud rate; when used standalone it opens at 921600.
@@ -74,6 +73,15 @@ log size written: 312 of 4096 bytes reserved
 [     0.013] OLED: I2C probe — 0x3C:NAK 0x3D:ACK
 [     0.013] OLED: Failed to read status register at 0x3C
 ```
+
+
+### Step 5 — Remove USE_BOOTLOG before PR. !IMPORTANT!
+
+It must not go to production with kilobytes of RAM wasted on somethign pilots never use.
+This can actually overflow into another region of RAM on certain boards, causing the FC to crash.
+
+### Step 5 — Remove USE_BOOTLOG before PR. !IMPORTANT!
+
 
 The number in brackets is the FC uptime in seconds at the time the message was logged.
 
