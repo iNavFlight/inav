@@ -86,6 +86,25 @@ extern "C" {
 }
 
 #define MAX_RESPONSES_COUNT 10
+
+TEST(RcModeBitmask, PitModeAndThrustReverseRemainIndependentAcrossWordBoundary)
+{
+    boxBitmask_t mask = {};
+    bitArraySet(mask.bits, BOXVTXPITMODE);
+    rcModeUpdate(&mask);
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXVTXPITMODE));
+    EXPECT_FALSE(IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE));
+
+    mask = {};
+    bitArraySet(mask.bits, BOXTHRUSTREVERSE);
+    rcModeUpdate(&mask);
+    EXPECT_FALSE(IS_RC_MODE_ACTIVE(BOXVTXPITMODE));
+    EXPECT_TRUE(IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE));
+
+    mask = {};
+    rcModeUpdate(&mask);
+}
+
 #define FIVE_KEY_JOYSTICK_MIN FIVE_KEY_CABLE_JOYSTICK_MIN - 1
 #define FIVE_KEY_JOYSTICK_MID FIVE_KEY_CABLE_JOYSTICK_MID_START + 1
 #define FIVE_KEY_JOYSTICK_MAX FIVE_KEY_CABLE_JOYSTICK_MAX + 1

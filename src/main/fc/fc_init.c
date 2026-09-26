@@ -598,10 +598,6 @@ void init(void)
 
     imuInit();
 
-    // Sensors have now been detected, mspFcInit() can now be called
-    // to set the boxes up
-    mspFcInit();
-
     cliInit(serialConfig());
 
     failsafeInit();
@@ -753,6 +749,9 @@ void init(void)
 #endif
 
 #endif // USE_VTX_CONTROL
+
+    // Advertised modes depend on both detected sensors and initialized VTX capabilities.
+    mspFcInit();
 
     // Now that everything has powered up the voltage and cell count be determined.
     if (feature(FEATURE_VBAT | FEATURE_CURRENT_METER))
