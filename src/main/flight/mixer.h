@@ -152,6 +152,7 @@ motorStatus_e getMotorStatus(void);
 
 void writeAllMotors(int16_t mc);
 void mixerInit(void);
+void mixerUpdateThrottleRateLimit(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
 void mixTable(float dT);
@@ -168,3 +169,10 @@ bool areMotorsRunning(void);
 bool areMotorsStopped(void);
 
 uint16_t getMaxThrottle(void);
+
+#ifdef UNIT_TEST
+// Test-only accessor for the file-static throttle rate limit maintained by
+// mixerUpdateThrottleRateLimit(). 0 means "no limiting". See mixTable()'s
+// "FW throttle rate limiter" section for how this is consumed.
+float mixerGetThrottleRateLimit(void);
+#endif

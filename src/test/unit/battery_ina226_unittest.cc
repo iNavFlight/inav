@@ -175,6 +175,10 @@ extern "C" {
         return 0;
     }
 
+    void mixerUpdateThrottleRateLimit(void)
+    {
+    }
+
     uint16_t fakeBattSensorGetVBat(void)
     {
         return 0;
