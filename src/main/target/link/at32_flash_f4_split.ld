@@ -21,7 +21,7 @@ __config_end = ORIGIN(FLASH_CONFIG) + LENGTH(FLASH_CONFIG);
 
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
-_Min_Stack_Size = 0x400; /* required amount of stack */
+_Min_Stack_Size = 0x2000; /* margin above the worst call+interrupt stack depth observed on AT32F43x hardware (see inav#12034) */
 
 /* Define output sections */
 SECTIONS
@@ -234,6 +234,12 @@ SECTIONS
   /* User_heap_stack section, used to check that there is enough RAM left */
   _heap_stack_end = ORIGIN(STACKRAM) + LENGTH(STACKRAM) - _Hot_Reboot_Flags_Size;
   _heap_stack_begin = _heap_stack_end - _Min_Stack_Size  - _Min_Heap_Size;
+
+  /* .bss (NOLOAD, placed earlier) and this section share the STACKRAM
+     region; nothing else stops .bss growing into the reserved stack/heap
+     space it precedes in memory. */
+  ASSERT(_ebss <= _heap_stack_begin, "AT32F43x: .bss overlaps the reserved stack/heap region — reduce .bss or free RAM headroom (see inav#12034)")
+
   . = _heap_stack_begin;
   ._user_heap_stack :
   {
