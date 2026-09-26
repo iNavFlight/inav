@@ -4022,7 +4022,7 @@
                     {
                         "name": "tpaBreakpoint",
                         "ctype": "uint16_t",
-                        "desc": "Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`)",
+                        "desc": "Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`)",
                         "units": ""
                     },
                     {
@@ -5146,7 +5146,7 @@
                     {
                         "name": "tpaBreakpoint",
                         "ctype": "uint16_t",
-                        "desc": "Sets `currentControlRateProfile->throttle.pa_breakpoint`",
+                        "desc": "Sets `currentControlRateProfile->throttle.tpa_breakpoint`",
                         "units": ""
                     },
                     {
@@ -7489,7 +7489,7 @@
                     {
                         "name": "tpaBreakpoint",
                         "ctype": "uint16_t",
-                        "desc": "TPA breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`)",
+                        "desc": "TPA breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`)",
                         "units": ""
                     },
                     {
@@ -7583,7 +7583,7 @@
                     {
                         "name": "tpaBreakpoint",
                         "ctype": "uint16_t",
-                        "desc": "Sets `currentControlRateProfile->throttle.pa_breakpoint`",
+                        "desc": "Sets `currentControlRateProfile->throttle.tpa_breakpoint`",
                         "units": ""
                     },
                     {

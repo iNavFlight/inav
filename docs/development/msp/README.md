@@ -2007,7 +2007,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `dynamicThrottlePID` | `uint8_t` | 1 | Dynamic Throttle PID (TPA) value (`currentControlRateProfile->throttle.dynPID`) |
 | `throttleMid` | `uint8_t` | 1 | Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`) |
 | `throttleExpo` | `uint8_t` | 1 | Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`) |
-| `tpaBreakpoint` | `uint16_t` | 2 | Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`) |
+| `tpaBreakpoint` | `uint16_t` | 2 | Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`) |
 | `rcYawExpo` | `uint8_t` | 1 | Yaw RC Expo (`currentControlRateProfile->stabilized.rcYawExpo8`) |
 
 **Notes:** Superseded by `MSP2_INAV_RATE_PROFILE` which includes manual rates/expos.
@@ -2441,7 +2441,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `dynamicThrottlePID` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.dynPID` (constrained) |
 | `throttleMid` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.rcMid8` |
 | `throttleExpo` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.rcExpo8` |
-| `tpaBreakpoint` | `uint16_t` | 2 | Sets `currentControlRateProfile->throttle.pa_breakpoint` |
+| `tpaBreakpoint` | `uint16_t` | 2 | Sets `currentControlRateProfile->throttle.tpa_breakpoint` |
 | `rcYawExpo` | `uint8_t` | 1 | (Optional) Sets `currentControlRateProfile->stabilized.rcYawExpo8` |
 
 **Reply Payload:** **None**  
@@ -3339,7 +3339,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `throttleMid` | `uint8_t` | 1 | Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`) |
 | `throttleExpo` | `uint8_t` | 1 | Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`) |
 | `dynamicThrottlePID` | `uint8_t` | 1 | TPA value (`currentControlRateProfile->throttle.dynPID`) |
-| `tpaBreakpoint` | `uint16_t` | 2 | TPA breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`) |
+| `tpaBreakpoint` | `uint16_t` | 2 | TPA breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`) |
 | `stabRcExpo` | `uint8_t` | 1 | Stabilized Roll/Pitch Expo (`currentControlRateProfile->stabilized.rcExpo8`) |
 | `stabRcYawExpo` | `uint8_t` | 1 | Stabilized Yaw Expo (`currentControlRateProfile->stabilized.rcYawExpo8`) |
 | `stabRollRate` | `uint8_t` | 1 | Stabilized Roll Rate (`currentControlRateProfile->stabilized.rates[FD_ROLL]`) |
@@ -3360,7 +3360,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `throttleMid` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.rcMid8` |
 | `throttleExpo` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.rcExpo8` |
 | `dynamicThrottlePID` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.dynPID` |
-| `tpaBreakpoint` | `uint16_t` | 2 | Sets `currentControlRateProfile->throttle.pa_breakpoint` |
+| `tpaBreakpoint` | `uint16_t` | 2 | Sets `currentControlRateProfile->throttle.tpa_breakpoint` |
 | `stabRcExpo` | `uint8_t` | 1 | Sets `currentControlRateProfile->stabilized.rcExpo8` |
 | `stabRcYawExpo` | `uint8_t` | 1 | Sets `currentControlRateProfile->stabilized.rcYawExpo8` |
 | `stabRollRate` | `uint8_t` | 1 | Sets `currentControlRateProfile->stabilized.rates[FD_ROLL]` (constrained) |

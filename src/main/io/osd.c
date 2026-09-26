@@ -3947,7 +3947,7 @@ static bool osdDrawSingleElement(uint8_t item)
 
             displayWrite(osdDisplayPort, elemPosX, elemPosY + 1, "BP");
             attr = TEXT_ATTRIBUTES_NONE;
-            osdFormatIntUnit(buff, 4, currentControlProfile->throttle.pa_breakpoint, 0);
+            osdFormatIntUnit(buff, 4, currentControlProfile->throttle.tpa_breakpoint, 0);
             if (isAdjustmentFunctionSelected(ADJUSTMENT_TPA_BREAKPOINT)) {
                 TEXT_ATTRIBUTES_ADD_BLINK(attr);
             }
