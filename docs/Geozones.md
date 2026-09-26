@@ -101,6 +101,7 @@ The most important feature for safety is the automatic path planning for RTH (St
 - If multiple zones with different minimum and maximum altitudes are combined, they need to vertically overlap at least 50m.
 - There is a chance that Smart RTH cannot find a path around NFZ areas, if there are multiple very big zones blocking the path. Due to hardware limitations, the amount of waypoints that Smart RTH can create are limited. Many Zones with very long border lines (>500m) cause additional waypoints.
 - It is not recommended to edit geozones in CLI by hand as this bypasses a lot of sanity checks. Potential errors in zones will disable them or can lead to unexpected behaviors. Transferring Geozones with a DIFF between aircraft is fine.
+- A zone whose vertices are incomplete - fewer points than its `geozone` entry declares, which a hand-edited CLI config or an interrupted upload can produce - blocks arming. The OSD shows `GEOZONE MISCONFIGURED` on the arming screen and `GEOZONE CONFIG ERR` as a warning, and the CLI `status` command lists the reason. Fix the zone or run `geozone reset`; the aircraft does not arm with a partial zone.
 
 ## CLI
 The Geozone Information are stored in two separate data arrays. The first array holds the main Geozone Information and settings. The second array holds the Geozone vertices. 
