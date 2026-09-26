@@ -133,8 +133,6 @@ typedef struct {
 #endif
 #ifdef USE_DSHOT_BIDIR
     bool telemetryInputActive;
-    timeUs_t telemetryInputStampUs;
-    timeUs_t dshotTelemetryDeadtimeUs;
 #endif
 #endif
 } pwmOutputPort_t;
@@ -169,6 +167,13 @@ static timeUs_t lastCommandSent = 0;
 static timeUs_t commandPostDelay = 0;
 #ifdef USE_DSHOT_BIDIR
 static bool dshotTelemetryPending = false;
+/* One stamp for the whole frame, taken from the last port turned round for the reply
+ * (all ports switch within microseconds of each other). Turning a port back to output
+ * resets the counter and period of its timer, which every other port on that timer
+ * shares, so no port may switch back while a sibling could still be capturing: the
+ * deadtime is therefore waited out once, for all ports, before any of them is touched */
+static timeUs_t dshotTelemetryInputStampUs = 0;
+static timeUs_t dshotTelemetryDeadtimeUs = 0;
 #endif
 
 static circularBuffer_t commandsCircularBuffer;
@@ -802,7 +807,6 @@ static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
     DMA_Cmd(port->tch->dma->ref, ENABLE);
     TIM_DMACmd(port->tch->timHw->tim, dshotDmaSource(port), ENABLE);
 #endif
-    port->telemetryInputStampUs = micros();
     port->telemetryInputActive = true;
 }
 
@@ -864,6 +868,7 @@ static void pwmDshotDmaIrqHandler(DMA_t descriptor)
 
     if (!port->telemetryInputActive) {
         pwmDshotSetDirectionInput(port);
+        dshotTelemetryInputStampUs = micros();
         dshotTelemetryPending = true;
     }
 
@@ -878,15 +883,21 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
         return true;
     }
 
-    const timeUs_t now = micros();
+    // Wait for the last reply of the frame before switching any port back (see
+    // dshotTelemetryInputStampUs)
+    if ((micros() - dshotTelemetryInputStampUs) < dshotTelemetryDeadtimeUs) {
+        return false;
+    }
+
+    // Cleared before the loop: a completion IRQ landing while the loop runs re-arms it, so a
+    // port the loop has already passed is picked up by the next call instead of being left
+    // in input for the following frame
+    dshotTelemetryPending = false;
+
     for (int motorIndex = 0; motorIndex < getMotorCount(); motorIndex++) {
         pwmOutputPort_t *port = motors[motorIndex].pwmPort;
         if (!port || !port->configured || !port->telemetryInputActive) {
             continue;
-        }
-
-        if ((now - port->telemetryInputStampUs) < port->dshotTelemetryDeadtimeUs) {
-            return false;
         }
 
         uint32_t edges = 0;
@@ -929,8 +940,8 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
         pwmDshotSetDirectionOutput(port);
     }
 
-    dshotTelemetryPending = false;
-    return true;
+    // Re-armed during the loop: some port is in input again, hold the frame until it is back
+    return !dshotTelemetryPending;
 }
 #endif // USE_DSHOT_BIDIR
 
@@ -984,7 +995,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
         if (useDshotTelemetry) {
             // Inverted signalling and per-frame direction switching; the port takes the
             // stream's completion interrupt over from the timer driver
-            port->dshotTelemetryDeadtimeUs = DSHOT_TELEMETRY_DEADTIME_US + 1000000 * (16 * DSHOT_MOTOR_BITLENGTH) / dshotHz;
+            dshotTelemetryDeadtimeUs = DSHOT_TELEMETRY_DEADTIME_US + 1000000 * (16 * DSHOT_MOTOR_BITLENGTH) / dshotHz;
             pwmDshotSetDirectionOutput(port);
             dmaSetHandler(port->tch->dma, pwmDshotDmaIrqHandler, NVIC_PRIO_TIMER_DMA, allocatedOutputPortCount - 1);
         }

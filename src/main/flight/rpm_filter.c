@@ -66,9 +66,7 @@ typedef struct
 typedef float (*rpmFilterApplyFnPtr)(rpmFilterBank_t *filter, uint8_t axis, float input);
 typedef void (*rpmFilterUpdateFnPtr)(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency);
 
-#ifdef USE_ESC_SENSOR
 static EXTENDED_FASTRAM pt1Filter_t motorFrequencyFilter[MAX_SUPPORTED_MOTORS];
-#endif
 static EXTENDED_FASTRAM rpmFilterBank_t gyroRpmFilters;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmGyroApplyFn;
 static EXTENDED_FASTRAM rpmFilterUpdateFnPtr rpmGyroUpdateFn;
@@ -161,11 +159,9 @@ void rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequ
 
 void rpmFiltersInit(void)
 {
-#ifdef USE_ESC_SENSOR
     for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, US2S(RPM_FILTER_UPDATE_RATE_US));
     }
-#endif
 
     rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
 
@@ -187,24 +183,26 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
 
     uint8_t motorCount = getMotorCount();
     /*
-     * For each motor, read ERPM, filter it and update motor frequency
+     * For each motor, read its frequency, filter it and update the notches. Both sources
+     * hand over their latest raw value; the LPF runs here, at this task's fixed rate, so its
+     * cutoff does not depend on how often new frames happened to arrive
      */
     for (uint8_t i = 0; i < motorCount; i++)
     {
-        float baseFrequency;
+        float motorFrequency;
 #ifdef USE_DSHOT_BIDIR
         if (isDshotTelemetryActive()) {
-            baseFrequency = getMotorFrequencyHz(i);
+            motorFrequency = getMotorFrequencyHz(i);
         } else
 #endif
         {
 #ifdef USE_ESC_SENSOR
-            const escSensorData_t *escState = getEscTelemetry(i);
-            baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], (float)escState->rpm / 60.0f);
+            motorFrequency = (float)getEscTelemetry(i)->rpm / 60.0f;
 #else
-            baseFrequency = 0.0f;
+            motorFrequency = 0.0f;
 #endif
         }
+        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], motorFrequency);
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
     }
 }

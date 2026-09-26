@@ -30,21 +30,21 @@
 // Bidirectional DSHOT telemetry only: eRPM / EDT decoding, RPM state for the RPM filter and
 // the ESC sensor. Frame generation, DMA and DSHOT commands for plain DSHOT live in
 // pwm_output.c under USE_DSHOT. Every user of this API is guarded by USE_DSHOT_BIDIR.
+//
+// Values are published as decoded, unfiltered: frames arrive at the DSHOT frame rate, which
+// follows the scheduler's idle time rather than any fixed period, so smoothing belongs to the
+// consumer that samples them at a known rate (rpmFilterUpdateTask()).
 
 #ifdef USE_DSHOT_BIDIR
 
-#include "common/filter.h"
 #include "common/maths.h"
 
 #include "flight/mixer.h"
 #include "drivers/pwm_mapping.h"
 
-#define DSHOT_RPM_LPF_HZ 150
-
 bool useDshotTelemetry = false;
 dshotTelemetryState_t dshotTelemetryState;
 
-static pt1Filter_t motorFreqLpf[MAX_SUPPORTED_MOTORS];
 static float motorFrequencyHz[MAX_SUPPORTED_MOTORS];
 static float dshotRpm[MAX_SUPPORTED_MOTORS];
 static float dshotRpmAverage;
@@ -118,7 +118,7 @@ bool isDshotTelemetryActive(void)
 
 // useDshotTelemetry itself is set by the motor driver (pwmMotorPreconfigure()), which
 // knows whether the outputs were configured for DSHOT at all
-void initDshotTelemetry(timeUs_t looptimeUs)
+void initDshotTelemetry(void)
 {
     edtAlwaysDecode = motorConfig()->useDshotEdt != 0;
 
@@ -129,10 +129,6 @@ void initDshotTelemetry(timeUs_t looptimeUs)
     }
 
     erpmToHz = ERPM_PER_LSB / 60.0f / (motorConfig()->motorPoleCount / 2.0f);
-
-    for (unsigned i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        pt1FilterInit(&motorFreqLpf[i], DSHOT_RPM_LPF_HZ, looptimeUs * 1e-6f);
-    }
 }
 
 uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
@@ -168,7 +164,7 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
 
     if (type == DSHOT_TELEMETRY_TYPE_ERPM) {
         dshotRpm[motorIndex] = erpmToRpm(decoded);
-        motorFrequencyHz[motorIndex] = pt1FilterApply(&motorFreqLpf[motorIndex], erpmToHz * decoded);
+        motorFrequencyHz[motorIndex] = erpmToHz * decoded;
     }
 
     float rpmTotal = 0.0f;

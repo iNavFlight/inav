@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#include "drivers/time.h"
+#include "drivers/time.h"   // timeUs_t for sensors/esc_sensor.h, which has no includes of its own
 #include "flight/mixer.h"
 
 #include "sensors/esc_sensor.h"
@@ -76,7 +76,7 @@ typedef struct {
 extern bool useDshotTelemetry;
 extern dshotTelemetryState_t dshotTelemetryState;
 
-void initDshotTelemetry(timeUs_t looptimeUs);
+void initDshotTelemetry(void);
 void dshotResetTelemetry(void);
 bool isDshotTelemetryConfigured(void);
 bool isDshotTelemetryActive(void);
@@ -84,6 +84,7 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex);
 float getDshotRpm(uint8_t motorIndex);
 uint16_t getDshotErpm(uint8_t motorIndex);
 float getDshotRpmAverage(void);
+// Mechanical frequency from the last decoded eRPM frame, unfiltered (see bidir_dshot.c)
 float getMotorFrequencyHz(uint8_t motorIndex);
 bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex);
 #endif

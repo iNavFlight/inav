@@ -767,7 +767,7 @@ void init(void)
     initDShotCommands();
 #endif
 #ifdef USE_DSHOT_BIDIR
-    initDshotTelemetry(getLooptime());
+    initDshotTelemetry();
 #endif
 
 #ifdef USE_SERIAL_GIMBAL
