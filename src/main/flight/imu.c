@@ -742,13 +742,13 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
         // second choice is gps
         static bool lastGPSHeartbeat;
         static pt1Filter_t GPS3DspeedFilter;
-        static float GPS3DspeedFiltered = 0.0f;
+        static float GPS3Dspeed = 0.0f;
         if (gpsSol.flags.gpsHeartbeat != lastGPSHeartbeat) {
             lastGPSHeartbeat = gpsSol.flags.gpsHeartbeat;
-            float GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
-            GPS3DspeedFiltered = pt1FilterApply4(&GPS3DspeedFilter, GPS3Dspeed, IMU_ROTATION_LPF, dT);
+            GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
         }
-        currentspeed = GPS3DspeedFiltered;
+        // Filter every loop: dT is the IMU loop time, not the GPS interval
+        currentspeed = pt1FilterApply4(&GPS3DspeedFilter, GPS3Dspeed, IMU_ROTATION_LPF, dT);
         *acc_ignore_slope_multipiler = 4.0f;
     }
     else
