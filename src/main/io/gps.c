@@ -343,7 +343,10 @@ void updateEstimatedGPSFix(void)
 
 void gpsProcessNewDriverData(void)
 {
+    // gpsHeartbeat is toggled on gpsSol only, so the driver copy must not reset it
+    const bool gpsHeartbeat = gpsSol.flags.gpsHeartbeat;
     gpsSol = gpsSolDRV;
+    gpsSol.flags.gpsHeartbeat = gpsHeartbeat;
 
 #ifdef USE_GPS_FIX_ESTIMATION
     processDisableGPSFix();
