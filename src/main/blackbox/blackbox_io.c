@@ -102,8 +102,31 @@ void blackboxOpen(void)
 }
 #endif // UNIT_TEST
 
+// Bytes this iteration and the most any iteration wrote, for blackboxDeviceBufferLow()
+static uint16_t blackboxIterationBytes;
+static uint16_t blackboxLargestIteration;
+
+void blackboxIterationBegin(void)
+{
+    blackboxIterationBytes = 0;
+}
+
+void blackboxIterationEnd(void)
+{
+    if (blackboxIterationBytes > blackboxLargestIteration) {
+        blackboxLargestIteration = blackboxIterationBytes;
+    }
+}
+
+uint16_t blackboxGetLargestIteration(void)
+{
+    return blackboxLargestIteration;
+}
+
 void blackboxWrite(uint8_t value)
 {
+    blackboxIterationBytes++;
+
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
     case BLACKBOX_DEVICE_FLASH:
@@ -169,6 +192,51 @@ int blackboxPrint(const char *s)
     }
 
     return length;
+}
+
+// The SD card drops what does not fit in afatfs's cache, often halfway through a frame, so pause
+// when less room is left than the most one iteration wrote plus a margin (at least 256 bytes),
+// and resume from twice that
+#define BLACKBOX_SDCARD_SECTOR_SIZE         512
+#define BLACKBOX_SDCARD_PAUSE_MIN_BYTES     256
+#define BLACKBOX_SDCARD_PAUSE_MARGIN_BYTES  64
+
+#ifdef USE_SDCARD
+// The free cache sectors, and what is left of the sector being written
+static int32_t blackboxSDCardWritableBytes(void)
+{
+    int32_t writable = afatfs_getFreeBufferSpace();
+    uint32_t position;
+    if (afatfs_ftell(blackboxSDCard.logFile, &position) && (position % BLACKBOX_SDCARD_SECTOR_SIZE) != 0) {
+        writable += BLACKBOX_SDCARD_SECTOR_SIZE - position % BLACKBOX_SDCARD_SECTOR_SIZE;
+    }
+    return writable;
+}
+
+static int32_t blackboxSDCardPauseBelow(void)
+{
+    return MAX(BLACKBOX_SDCARD_PAUSE_MIN_BYTES, blackboxLargestIteration + BLACKBOX_SDCARD_PAUSE_MARGIN_BYTES);
+}
+#endif
+
+bool blackboxDeviceBufferLow(void)
+{
+#ifdef USE_SDCARD
+    if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD) {
+        return blackboxSDCardWritableBytes() < blackboxSDCardPauseBelow();
+    }
+#endif
+    return false;
+}
+
+bool blackboxDeviceBufferRecovered(void)
+{
+#ifdef USE_SDCARD
+    if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD) {
+        return blackboxSDCardWritableBytes() >= 2 * blackboxSDCardPauseBelow();
+    }
+#endif
+    return true;
 }
 
 /**

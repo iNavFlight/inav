@@ -906,8 +906,23 @@ static bool testBlackboxCondition(FlightLogFieldCondition condition)
     return (blackboxConditionCache & position) != 0;
 }
 
+// Paused by blackboxDeviceBufferLow(), not by the BLACKBOX mode
+static bool blackboxPausedForDevice;
+static uint32_t blackboxDevicePauses;
+static uint32_t blackboxDevicePausedIterations;
+
+void blackboxGetDevicePauses(uint32_t *pauses, uint32_t *iterations)
+{
+    *pauses = blackboxDevicePauses;
+    *iterations = blackboxDevicePausedIterations;
+}
+
 static void blackboxSetState(BlackboxState newState)
 {
+    if (newState != BLACKBOX_STATE_PAUSED) {
+        blackboxPausedForDevice = false;
+    }
+
     //Perform initial setup required for the new state
     switch (newState) {
     case BLACKBOX_STATE_PREPARE_LOG_FILE:
@@ -2273,7 +2288,7 @@ static void blackboxAdvanceIterationTimers(void)
 }
 
 // Called once every FC loop in order to log the current state
-static void blackboxLogIteration(timeUs_t currentTimeUs)
+static void blackboxLogIterationFrames(timeUs_t currentTimeUs)
 {
     // Write a keyframe every BLACKBOX_I_INTERVAL frames so we can resynchronise upon missing frames
     if (blackboxShouldLogIFrame()) {
@@ -2324,6 +2339,14 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
 
     //Flush every iteration so that our runtime variance is minimized
     blackboxDeviceFlush();
+}
+
+// For the pause threshold in blackboxDeviceBufferLow()
+static void blackboxLogIteration(timeUs_t currentTimeUs)
+{
+    blackboxIterationBegin();
+    blackboxLogIterationFrames(currentTimeUs);
+    blackboxIterationEnd();
 }
 
 /**
@@ -2432,8 +2455,11 @@ void blackboxUpdate(timeUs_t currentTimeUs)
         }
         break;
     case BLACKBOX_STATE_PAUSED:
+        if (blackboxPausedForDevice) {
+            blackboxDevicePausedIterations++;
+        }
         // Only allow resume to occur during an I-frame iteration, so that we have an "I" base to work from
-        if (IS_RC_MODE_ACTIVE(BOXBLACKBOX) && blackboxShouldLogIFrame()) {
+        if ((blackboxPausedForDevice ? blackboxDeviceBufferRecovered() : IS_RC_MODE_ACTIVE(BOXBLACKBOX)) && blackboxShouldLogIFrame()) {
             // Write a log entry so the decoder is aware that our large time/iteration skip is intended
             flightLogEvent_loggingResume_t resume;
 
@@ -2451,6 +2477,11 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     case BLACKBOX_STATE_RUNNING:
         // On entry to this state, blackboxIteration, blackboxPFrameIndex and blackboxIFrameIndex are reset to 0
         if (blackboxModeActivationConditionPresent && !IS_RC_MODE_ACTIVE(BOXBLACKBOX)) {
+            blackboxSetState(BLACKBOX_STATE_PAUSED);
+        } else if (blackboxDeviceBufferLow()) {
+            // Skip frames the device would drop halfway; resume on an I frame with LOGGING_RESUME
+            blackboxPausedForDevice = true;
+            blackboxDevicePauses++;
             blackboxSetState(BLACKBOX_STATE_PAUSED);
         } else {
             blackboxLogIteration(currentTimeUs);
