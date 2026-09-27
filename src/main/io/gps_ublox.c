@@ -87,7 +87,7 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
-// Set from the MON-VER extensions, where a dual band receiver names itself, as in FWVER=SPGL1L5
+// From MON-VER, where a dual band receiver names itself (FWVER=SPGL1L5)
 static bool ubxDualBand = false;
 
 // MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
@@ -358,14 +358,8 @@ static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
-/*
- * The major constellations to ask the receiver for: the ones selected, less any it
- * does not have, cut down to as many as it says it can track at once. A receiver
- * refuses a configuration it cannot run and carries on with the previous one, so a
- * selection that does not fit would be lost whole. When it does not fit, the
- * constellations INAV leaves off by default go first. The settings are left as they
- * are, and apply in full on a receiver that can take them.
- */
+// The selected constellations the receiver has, cut to what it can track at once: it
+// rejects a configuration it cannot run. The ones INAV has off by default go first
 static uint8_t ubloxGnssToEnable(void)
 {
     static const uint8_t leaveOutFirst[] = {
@@ -383,8 +377,7 @@ static uint8_t ubloxGnssToEnable(void)
         gnss |= UBX_MON_GNSS_GLONASS_MASK;
     }
 
-    // Until MON-GNSS answers nothing is known, and the selection goes out as it is. The
-    // count is only trusted next to a fresh mask: it is not cleared between attempts
+    // Until MON-GNSS answers, the selection goes out as it is
     if (!ubx_capabilities.supported) {
         return gnss;
     }
@@ -498,8 +491,7 @@ static void configureGNSS10(void)
         const bool useBeidou = gnss & UBX_MON_GNSS_BEIDOU_MASK;
         const bool useGlonass = gnss & UBX_MON_GNSS_GLONASS_MASK;
 
-        // A dual band receiver has no B1I: its Beidou L1 signal is B1C, and it rejects a
-        // configuration that would leave one of the two bands enabled without the other
+        // A dual band receiver has B1C, not B1I, and rejects one band enabled without the other
         const bool useB1C = ubxDualBand || useGlonass;
 
         ubx_config_data8_payload_t gnssConfigValues[] = {
@@ -527,9 +519,8 @@ static void configureGNSS10(void)
             {UBLOX_CFG_GLO_L1_ENA, useGlonass}
         };
 
-        // A receiver without Glonass has no Glonass keys either, and one unknown key makes it
-        // reject the whole message, taking SBAS, Galileo, BeiDou and QZSS down with it. An
-        // empty mask means MON-GNSS never answered and nothing is known, so send them all.
+        // A receiver without Glonass rejects the whole message over its keys. An empty mask
+        // means MON-GNSS never answered: send them all
         const bool noGlonass = ubx_capabilities.supported && !gpsUbloxHasGlonass();
 
         ubloxSendSetCfgBytes(gnssConfigValues, noGlonass ? 10 : 12);
