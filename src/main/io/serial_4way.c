@@ -145,6 +145,7 @@ uint8_t esc4wayInit(void)
         ioTag_t tag = pwmGetMotorPinTag(idx);
         if (tag != IOTAG_NONE) {
             escHardware[escCount].io = IOGetByTag(tag);
+            escHardware[escCount].motorIndex = idx;
             setEscInput(escCount);
             setEscHi(escCount);
             escCount++;
@@ -158,8 +159,8 @@ void esc4wayRelease(void)
 {
     while (escCount > 0) {
         escCount--;
-        IOConfigGPIO(escHardware[escCount].io, IOCFG_AF_PP);
         setEscLo(escCount);
+        pwmRestoreMotorPin(escHardware[escCount].motorIndex);
     }
     pwmEnableMotors();
 }
