@@ -69,7 +69,12 @@ USBD_HandleTypeDef USBD_Device;
 #ifdef USE_SDCARD_SDIO
 uint8_t MSC_BOT_Data[MSC_MEDIA_PACKET] __attribute__((aligned(4)));
 #else
-FASTRAM uint8_t MSC_BOT_Data[MSC_MEDIA_PACKET];
+FASTRAM_MSC_ONLY uint8_t MSC_BOT_Data[MSC_MEDIA_PACKET];
+#endif
+
+#ifdef FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO
+extern uint8_t __fastram_msc_only_start__[];
+extern uint8_t __fastram_msc_only_end__[];
 #endif
 
 #if defined(MSC_USE_BUTTON)
@@ -78,6 +83,14 @@ static IO_t mscButton;
 
 void mscInit(void)
 {
+#ifdef FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO
+    // See FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO in build/build_config.h: the CCM
+    // zero-fill loop in startup_stm32f40[27]xx.s doesn't cover this sub-section,
+    // so it's zeroed here, once, before anything in it (MSC_BOT_Data, the emfat
+    // directory) is populated.
+    memset(__fastram_msc_only_start__, 0, (size_t)(__fastram_msc_only_end__ - __fastram_msc_only_start__));
+#endif
+
 #if defined(MSC_USE_BUTTON)
     if (usbDevConfig()->mscButtonPin) {
         mscButton = IOGetByTag(usbDevConfig()->mscButtonPin);

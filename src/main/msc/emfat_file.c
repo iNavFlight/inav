@@ -330,9 +330,10 @@ static const emfat_entry_t entriesPredefined[] =
 #define EMFAT_MAX_ENTRY (PREDEFINED_ENTRY_COUNT + EMFAT_MAX_LOG_ENTRY + APPENDED_ENTRY_COUNT)
 
 // Written at every boot with flash blackbox, read only over USB in MSC mode; F4 and AT32 are
-// short of RAM and have room in FASTRAM (CCM / RAM1) for it
+// short of RAM and have room in FASTRAM (CCM / RAM1) for it. See FASTRAM_MSC_ONLY in
+// build/build_config.h for why this is a distinct macro from STATIC_FASTRAM.
 #if defined(STM32F4) || defined(AT32F43x)
-#define EMFAT_DIR_STORAGE STATIC_FASTRAM
+#define EMFAT_DIR_STORAGE STATIC_FASTRAM_MSC_ONLY
 #else
 #define EMFAT_DIR_STORAGE static
 #endif
@@ -491,7 +492,8 @@ static int emfat_find_log(emfat_entry_t *entry, int maxCount, int flashfsUsedSpa
 void emfat_init_files(void)
 {
 #if defined(AT32F43x)
-    // A zero name terminates the entry list, and the AT32 startup does not zero .fastram_bss
+    // A zero name terminates the entry list, and the AT32 startup does not zero
+    // .fastram_bss.msc_only (FASTRAM_MSC_ONLY, build/build_config.h)
     memset(entries, 0, sizeof(entries));
 #endif
 #ifdef USE_FLASHFS
