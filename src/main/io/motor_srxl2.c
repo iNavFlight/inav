@@ -845,6 +845,14 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
 {
     srxl2DrainRx(e);
 
+    // A frame handled in the line above stamps itself with a time taken after the one this
+    // cycle began with. Left alone, the unsigned difference against that older stamp wraps,
+    // the reading it just brought reads as 49 days old, and the telemetry is thrown away
+    // until the next frame arrives. Measured on an Avian: about one frame in a hundred, and
+    // with the ESC answering roughly twice a second, up to a second of telemetry lost each
+    // time. So the time is taken again, now that everything received has been accounted for
+    now = millis();
+
     /* A deferred baud change completes as soon as the broadcast has left. */
     if (e->baudSwitchPending && isSerialTransmitBufferEmpty(e->port)) {
         serialSetBaudRate(e->port, SRXL2_BAUD_HIGH);
