@@ -833,6 +833,9 @@ void FAST_CODE mixTable(float dT)
 #ifdef USE_AUTO_TRANSITION
     const float transitionPusherScale = isMixerTransitionMixing ? mixerATGetPusherScale() : 1.0f;
 #endif
+    // FW emergency landing: no RPY on motors, differential thrust yaw must not lift one motor above the failsafe throttle
+    const bool fwEmergencyLanding = STATE(AIRPLANE) && !isMixerTransitionMixing && navigationIsExecutingAnEmergencyLanding();
+
     for (int i = 0; i < motorCount; i++) {
         float motorThrottle = mixerThrottleCommand * currentMixer[i].throttle;
 #ifdef USE_AUTO_TRANSITION
@@ -865,7 +868,11 @@ void FAST_CODE mixTable(float dT)
         }
 #endif
 
-        motor[i] = rpyMix[i] + constrain(motorThrottle, throttleMin, throttleMax);
+        if (fwEmergencyLanding) {
+            motor[i] = constrain(motorThrottle, throttleRangeMin, throttleRangeMax);
+        } else {
+            motor[i] = rpyMix[i] + constrain(motorThrottle, throttleMin, throttleMax);
+        }
 
         if (failsafeIsActive()) {
             motor[i] = constrain(motor[i], motorConfig()->mincommand, getMaxThrottle());
