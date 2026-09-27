@@ -906,6 +906,13 @@ static bool testBlackboxCondition(FlightLogFieldCondition condition)
     return (blackboxConditionCache & position) != 0;
 }
 
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+// A new file after a split has no serial port to wait for
+static bool blackboxSplitting;
+#else
+#define blackboxSplitting false
+#endif
+
 static void blackboxSetState(BlackboxState newState)
 {
     //Perform initial setup required for the new state
@@ -930,6 +937,9 @@ static void blackboxSetState(BlackboxState newState)
         break;
     case BLACKBOX_STATE_RUNNING:
         blackboxSlowFrameIterationTimer = blackboxSInterval; //Force a slow frame to be written on the first iteration
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+        blackboxSplitting = false;
+#endif
         break;
     case BLACKBOX_STATE_SHUTTING_DOWN:
         xmitState.u.startTime = millis();
@@ -2367,7 +2377,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
          * Once the UART has had time to init, transmit the header in chunks so we don't overflow its transmit
          * buffer, overflow the OpenLog's buffer, or keep the main loop busy for too long.
          */
-        if (millis() > xmitState.u.startTime + 100) {
+        if (blackboxSplitting || millis() > xmitState.u.startTime + 100) {
             if (blackboxDeviceReserveBufferSpace(BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION) == BLACKBOX_RESERVE_SUCCESS) {
                 for (int i = 0; i < BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION && blackboxHeader[xmitState.headerIndex] != '\0'; i++, xmitState.headerIndex++) {
                     blackboxWrite(blackboxHeader[xmitState.headerIndex]);
@@ -2473,6 +2483,14 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     default:
         break;
     }
+
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+    // Can't grow but the card has room: close the log, it goes on in a new file
+    if ((blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_PAUSED) && blackboxDeviceNeedsNewLog()) {
+        blackboxSplitting = true;
+        blackboxSetState(BLACKBOX_STATE_SHUTTING_DOWN);
+    }
+#endif
 
     // Did we run out of room on the device? Stop!
     if (isBlackboxDeviceFull()) {
