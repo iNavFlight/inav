@@ -579,15 +579,10 @@ static void ubloxSendSetCfgU8(ubx_config_data64_payload_t *kvPairs, uint8_t coun
  */
 static void configureSBAS(void)
 {
-    // M10 and later have no UBX-CFG-SBAS, only the configuration interface, so the
-    // message below never took effect there: whatever service was selected, the
-    // receiver kept searching the PRN list it was shipped with.
-    // The protocol version is what says whether the message exists, and it draws the
-    // line in the right place: the M10 platform reports 34 and the F10 40, while the
-    // M9 reports 32 and the F9 27, and both of those still have UBX-CFG-SBAS
+    // No UBX-CFG-SBAS from protocol 34 on (M10 34, F10 40); M9 (32) and F9 (27) still have it
     if (ubloxVersionGTE(34, 0)) {
         ubx_config_data64_payload_t scanValues[] = {
-            // Same layout as scanmode1: PRN120 is bit 0, and zero means all of them
+            // Same layout as scanmode1: PRN120 is bit 0, zero means all
             {UBLOX_CFG_SBAS_PRNSCANMASK, ubloxScanMode1[gpsState.gpsConfig->sbasMode]}
         };
         ubloxSendSetCfgU8(scanValues, 1);

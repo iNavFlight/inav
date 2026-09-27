@@ -331,7 +331,7 @@ typedef struct {
     } data;
 } __attribute__((packed)) ubx_config_data16_t;
 
-// Eight byte items are rare, a scan mask here and there, so this one only has room for a few
+// 64-bit items are rare, so room for a few
 #define MAX_CONFIG_SET_VAL_VALUES_64    4
 
 typedef struct {
