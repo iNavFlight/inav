@@ -45,22 +45,24 @@
 #define FASTRAM                     __attribute__ ((section(".fastram_bss"), aligned(4)))
 #endif
 
-/* Data that's only live during USB MSC boot mode (the MSC data buffer, the emfat
- * log directory). MSC mode replaces the entire boot sequence - mscWaitForButton()
- * (fc/fc_init.c) only ever exits via NVIC_SystemReset() - so nothing tagged with
- * this macro can be live at the same time as normal-mode FASTRAM data (pid.c,
- * gyro.c, imu.c, ...); see the comment at the USE_USB_MSC block in fc/fc_init.c.
+/* FASTRAM that's only live during USB MSC boot mode - a one-way path
+ * (mscWaitForButton(), fc/fc_init.c, only exits via reset), so it never
+ * overlaps normal-mode FASTRAM (pid.c, gyro.c, imu.c, ...) in time. On
+ * F405/F427 (FASTRAM=CCM) and AT32F43x (FASTRAM=RAM1) that's real
+ * zero-wait-state space sitting idle outside MSC mode, so it's kept in its
+ * own linker sub-section (stm32_flash.ld / at32_flash_f4_split.ld) instead of
+ * the general FASTRAM pool - a future OVERLAY can reclaim it for a
+ * normal-mode-only consumer, e.g.:
  *
- * On F405/F427 (FASTRAM = CCM) and AT32F43x (FASTRAM = RAM1), FASTRAM is a
- * physically separate bank from the one .bss/stack live in, so this data is kept
- * in its own linker sub-section there (see FASTRAM_MSC_ONLY budget ASSERT in
- * stm32_flash.ld / at32_flash_f4_split.ld) instead of being anonymously mixed
- * into the general FASTRAM pool. That gives it a well-defined size and address
- * range, which is what a future OVERLAY with a normal-mode-only FASTRAM consumer
- * would need to reclaim the space. No consumer exists yet - this only reserves
- * and documents the opportunity. On chips where FASTRAM isn't a separate bank
- * (F411/F446: FASTRAM aliases plain RAM) this is just FASTRAM, since there's no
- * distinct pool to carve out or reclaim.
+ *   OVERLAY : NOLOAD {
+ *     .fastram_bss_msc_only { *(.fastram_bss.msc_only) }  // existing, MSC-only
+ *     .fastram_bss_my_thing { *(.fastram_bss.my_thing) }  // new, normal-mode-only
+ *   } >FASTRAM
+ *
+ * ld sizes an OVERLAY as max() of its members, not sum() - .fastram_bss_my_thing
+ * only costs space beyond what MSC already uses, not on top of it. No consumer
+ * exists yet, this only reserves the space. F411/F446 (FASTRAM aliases plain
+ * RAM, no separate bank) get plain FASTRAM here - nothing to reclaim.
  */
 #ifdef __APPLE__
 #define FASTRAM_MSC_ONLY             __attribute__ ((section("__DATA,__.fastram_bss_msc"), aligned(8)))
@@ -68,17 +70,11 @@
 #define FASTRAM_MSC_ONLY             __attribute__ ((section(".fastram_bss.msc_only"), aligned(4)))
 #endif
 
-/* True only where FASTRAM_MSC_ONLY actually lands in its own linker section
- * (stm32_flash.ld / at32_flash_f4_split.ld both define __fastram_msc_only_start__/
- * __fastram_msc_only_end__ - see those files). F405/F427's CCM zero-fill loop in
- * startup_stm32f40[27]xx.s only covers __fastram_bss_start__/__end__, which no
- * longer includes this carved-out sub-section, so mscInit() must zero it
- * explicitly (usb_msc_f4xx.c) instead of relying on that loop. AT32F43x never had
- * a zero-fill loop for FASTRAM at all - its existing explicit memsets in
- * usb_msc_at32f43x.c / emfat_file.c already cover this, unaffected by the section
- * rename. F411/F446/F7/H7 don't define this: FASTRAM_MSC_ONLY there either aliases
- * plain RAM (already covered by the ordinary .bss path) or isn't used at all.
- */
+// F405/F427's CCM zero-fill loop (startup_stm32f40[27]xx.s) stops at
+// __fastram_bss_end__, before this carved-out sub-section - mscInit()
+// (usb_msc_f4xx.c) zeroes it explicitly instead. AT32F43x already does its own
+// explicit zeroing (usb_msc_at32f43x.c / emfat_file.c); F411/F446/F7/H7 don't
+// need this at all.
 #if defined(STM32F405xx) || defined(STM32F427_437xx)
 #define FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO
 #endif
