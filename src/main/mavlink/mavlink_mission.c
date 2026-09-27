@@ -1,5 +1,8 @@
 #include "mavlink/mavlink_internal.h"
 
+#include "flight/mixer.h"
+#include "flight/mixer_profile.h"
+
 #include "mavlink/mavlink_guided.h"
 #include "mavlink/mavlink_mission.h"
 #include "mavlink/mavlink_runtime.h"
@@ -769,6 +772,57 @@ static bool mavlinkHandleMissionItemCommon(
             wp.lon = lon;
             wp.alt = mavlinkMissionAltitudeToCentimeters(altMeters);
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+
+            /* A LAND item's altitude is where the aircraft touches down, not an altitude to
+             * hold on the way there. Ground stations send zero for it - QGC forces it to zero
+             * outright - and INAV flies the approach leg with the waypoint altitude as its
+             * target, so taking it literally descends all the way in from the previous
+             * waypoint instead of arriving overhead and then landing. Approach at the
+             * altitude of the preceding waypoint and let the LAND action do the descent.
+             *
+             * Rotary platforms only. A fixed wing cannot stop over the point and descend, so
+             * it keeps the altitude it was given: with an autoland approach configured the
+             * landing altitudes come from that config and the waypoint contributes only its
+             * position, and without one the existing descending approach is left alone. A
+             * VTOL counts as rotary here because it lands on its multirotor profile. */
+            const bool rotaryLanding = isMultirotorTypePlatform(mixerConfig()->platformType) ||
+                                       platformTypeConfigured(PLATFORM_MULTIROTOR) ||
+                                       platformTypeConfigured(PLATFORM_TRICOPTER) ||
+                                       platformTypeConfigured(PLATFORM_HELICOPTER);
+
+            /* Only a relative-frame zero is the ground station's "unspecified" sentinel. An
+             * absolute frame gives zero a real meaning, and a negative relative altitude is a
+             * deliberate touchdown below the reference, so neither is second-guessed here. */
+            const bool unspecifiedLandingAltitude = wp.alt == 0 &&
+                                                    (wp.p3 & NAV_WP_ALTMODE) != NAV_WP_ALTMODE;
+
+            if (rotaryLanding && unspecifiedLandingAltitude) {
+                /* The approach altitude has to come from the last item that actually carries
+                 * one. JUMP, SET_POI and SET_HEAD are appended to the list too, and their alt
+                 * is either unset or unrelated to the flown path, so walk back past them. */
+                for (uint8_t i = mavlinkMissionUploadWaypointCount; i > 0; i--) {
+                    const navWaypoint_t *previous = &mavlinkMissionUploadWaypoints[i - 1];
+
+                    if (!(previous->action == NAV_WP_ACTION_WAYPOINT ||
+                          previous->action == NAV_WP_ACTION_HOLD_TIME ||
+                          previous->action == NAV_WP_ACTION_LAND)) {
+                        continue;
+                    }
+
+                    wp.alt = previous->alt;
+                    wp.p3 = previous->p3;
+                    break;
+                }
+
+                /* Nothing in the mission carried an altitude - a LAND as the first item, or
+                 * preceded only by JUMP/POI/SET_HEAD. Fall back to the configured RTH
+                 * altitude, which is already centimetres above home and so matches the
+                 * relative frame this branch runs in. It is only a default: if it is zero,
+                 * because the RTH alt mode in use ignores it, the approach stays as sent. */
+                if (wp.alt == 0) {
+                    wp.alt = navConfig()->general.rth_altitude;
+                }
+            }
             break;
 
         case MAV_CMD_DO_JUMP:

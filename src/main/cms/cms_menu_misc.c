@@ -74,7 +74,9 @@ static const OSD_Entry menuMiscInFlightEntries[]=
 {
     OSD_LABEL_ENTRY("-- MISC --"),
 
-    OSD_SETTING_ENTRY("THR IDLE", SETTING_THROTTLE_IDLE),
+    // THR IDLE is deliberately not offered here: getThrottleIdleValue() caches the
+    // computed value and nothing invalidates that cache, so changing it while
+    // armed has no effect until the next reboot.
 #ifdef USE_OSD
 #ifdef USE_ADC
     OSD_SETTING_ENTRY("OSD VOLT DECIMALS", SETTING_OSD_MAIN_VOLTAGE_DECIMALS),

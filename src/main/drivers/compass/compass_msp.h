@@ -25,4 +25,4 @@
 #pragma once
 
 bool mspMagDetect(struct magDev_s *mag);
-void mspMagReceiveNewData(uint8_t * bufferPtr);
+void mspMagReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize);

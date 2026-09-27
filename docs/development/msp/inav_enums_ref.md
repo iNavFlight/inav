@@ -4,6 +4,7 @@
 
 ## Table of contents
 
+- [accel_fsr_e](#enum-accel_fsr_e)
 - [accelerationSensor_e](#enum-accelerationsensor_e)
 - [accEvent_t](#enum-accevent_t)
 - [adcChannel_e](#enum-adcchannel_e)
@@ -52,8 +53,11 @@
 - [busIndex_e](#enum-busindex_e)
 - [busSpeed_e](#enum-busspeed_e)
 - [busType_e](#enum-bustype_e)
+- [CanardRequestResponse](#enum-canardrequestresponse)
+- [CanardTransferType](#enum-canardtransfertype)
 - [channelType_t](#enum-channeltype_t)
 - [climbRateToAltitudeControllerMode_e](#enum-climbratetoaltitudecontrollermode_e)
+- [clock_sel_e](#enum-clock_sel_e)
 - [colorComponent_e](#enum-colorcomponent_e)
 - [colorId_e](#enum-colorid_e)
 - [crsfActiveAntenna_e](#enum-crsfactiveantenna_e)
@@ -65,7 +69,7 @@
 - [currentSensor_e](#enum-currentsensor_e)
 - [devHardwareType_e](#enum-devhardwaretype_e)
 - [deviceFlags_e](#enum-deviceflags_e)
-- [disarmReason_t](#enum-disarmreason_t)
+- [disarmReason_e](#enum-disarmreason_e)
 - [displayCanvasBitmapOption_t](#enum-displaycanvasbitmapoption_t)
 - [displayCanvasColor_e](#enum-displaycanvascolor_e)
 - [displayCanvasOutlineType_e](#enum-displaycanvasoutlinetype_e)
@@ -73,6 +77,9 @@
 - [displayTransactionOption_e](#enum-displaytransactionoption_e)
 - [displayWidgetType_e](#enum-displaywidgettype_e)
 - [DjiCraftNameElements_t](#enum-djicraftnameelements_t)
+- [djiOsdProtoWorkarounds_e](#enum-djiosdprotoworkarounds_e)
+- [djiOsdTempSource_e](#enum-djiosdtempsource_e)
+- [djiRssiSource_e](#enum-djirssisource_e)
 - [dronecanAsyncState_e](#enum-dronecanasyncstate_e)
 - [dronecanBitrate_e](#enum-dronecanbitrate_e)
 - [dronecanState_e](#enum-dronecanstate_e)
@@ -82,13 +89,19 @@
 - [emergLandState_e](#enum-emerglandstate_e)
 - [escSensorFrameStatus_t](#enum-escsensorframestatus_t)
 - [escSensorState_t](#enum-escsensorstate_t)
+- [exBusHeader_e](#enum-exbusheader_e)
+- [exDataType_e](#enum-exdatatype_e)
+- [exSensors_e](#enum-exsensors_e)
+- [exTelHeader_e](#enum-extelheader_e)
 - [failsafeChannelBehavior_e](#enum-failsafechannelbehavior_e)
 - [failsafePhase_e](#enum-failsafephase_e)
 - [failsafeProcedure_e](#enum-failsafeprocedure_e)
 - [failsafeRxLinkState_e](#enum-failsaferxlinkstate_e)
 - [failureMode_e](#enum-failuremode_e)
 - [fatFilesystemType_e](#enum-fatfilesystemtype_e)
+- [fchoice_b](#enum-fchoice_b)
 - [features_e](#enum-features_e)
+- [fenceAction_e](#enum-fenceaction_e)
 - [filterType_e](#enum-filtertype_e)
 - [fixedWingLaunchEvent_t](#enum-fixedwinglaunchevent_t)
 - [fixedWingLaunchMessage_t](#enum-fixedwinglaunchmessage_t)
@@ -111,6 +124,7 @@
 - [frskyOSDLineOutlineType_e](#enum-frskyosdlineoutlinetype_e)
 - [frskyOSDRecvState_e](#enum-frskyosdrecvstate_e)
 - [frskyOSDTransactionOptions_e](#enum-frskyosdtransactionoptions_e)
+- [frskyOSDWidgetID_e](#enum-frskyosdwidgetid_e)
 - [fw_autotune_rate_adjustment_e](#enum-fw_autotune_rate_adjustment_e)
 - [fwAutolandApproachDirection_e](#enum-fwautolandapproachdirection_e)
 - [fwAutolandState_t](#enum-fwautolandstate_t)
@@ -136,6 +150,7 @@
 - [gpsFixType_e](#enum-gpsfixtype_e)
 - [gpsProvider_e](#enum-gpsprovider_e)
 - [gpsState_e](#enum-gpsstate_e)
+- [gyro_fsr_e](#enum-gyro_fsr_e)
 - [gyroFilterMode_e](#enum-gyrofiltermode_e)
 - [gyroHardwareLpf_e](#enum-gyrohardwarelpf_e)
 - [gyroSensor_e](#enum-gyrosensor_e)
@@ -146,6 +161,9 @@
 - [hottEamAlarm2Flag_e](#enum-hotteamalarm2flag_e)
 - [hottState_e](#enum-hottstate_e)
 - [hsvColorComponent_e](#enum-hsvcolorcomponent_e)
+- [i2c_mem_address_width_type](#enum-i2c_mem_address_width_type)
+- [i2c_mode_type](#enum-i2c_mode_type)
+- [i2c_status_type](#enum-i2c_status_type)
 - [I2CDevice](#enum-i2cdevice)
 - [I2CSpeed](#enum-i2cspeed)
 - [i2cState_t](#enum-i2cstate_t)
@@ -155,6 +173,7 @@
 - [ibusSensorType_e](#enum-ibussensortype_e)
 - [ibusSensorValue_e](#enum-ibussensorvalue_e)
 - [icm42605Variant_e](#enum-icm42605variant_e)
+- [imu_inertia_comp_method_e](#enum-imu_inertia_comp_method_e)
 - [inputSource_e](#enum-inputsource_e)
 - [itermRelax_e](#enum-itermrelax_e)
 - [ledBaseFunctionId_e](#enum-ledbasefunctionid_e)
@@ -239,6 +258,7 @@
 - [navWaypointFlags_e](#enum-navwaypointflags_e)
 - [navWaypointHeadings_e](#enum-navwaypointheadings_e)
 - [navWaypointP3Flags_e](#enum-navwaypointp3flags_e)
+- [noWayHomeAction](#enum-nowayhomeaction)
 - [oledControllerType_e](#enum-oledcontrollertype_e)
 - [opflowQuality_e](#enum-opflowquality_e)
 - [opticalFlowSensor_e](#enum-opticalflowsensor_e)
@@ -253,6 +273,7 @@
 - [osd_SpeedTypes_e](#enum-osd_speedtypes_e)
 - [osd_stats_energy_unit_e](#enum-osd_stats_energy_unit_e)
 - [osd_unit_e](#enum-osd_unit_e)
+- [osdCommand_e](#enum-osdcommand_e)
 - [osdCustomElementType_e](#enum-osdcustomelementtype_e)
 - [osdCustomElementTypeVisibility_e](#enum-osdcustomelementtypevisibility_e)
 - [osdDrawPointType_e](#enum-osddrawpointtype_e)
@@ -260,6 +281,7 @@
 - [osdSpeedSource_e](#enum-osdspeedsource_e)
 - [outputMode_e](#enum-outputmode_e)
 - [pageId_e](#enum-pageid_e)
+- [parseState_e](#enum-parsestate_e)
 - [persistentObjectId_e](#enum-persistentobjectid_e)
 - [pidAutotuneState_e](#enum-pidautotunestate_e)
 - [pidControllerFlags_e](#enum-pidcontrollerflags_e)
@@ -278,6 +300,7 @@
 - [quadSpiMode_e](#enum-quadspimode_e)
 - [rangefinderType_e](#enum-rangefindertype_e)
 - [rc_alias_e](#enum-rc_alias_e)
+- [rcc_reg](#enum-rcc_reg)
 - [RCDEVICE_5key_connection_event_e](#enum-rcdevice_5key_connection_event_e)
 - [rcdevice_5key_simulation_operation_e](#enum-rcdevice_5key_simulation_operation_e)
 - [rcdevice_camera_control_opeation_e](#enum-rcdevice_camera_control_opeation_e)
@@ -298,8 +321,13 @@
 - [rxReceiverType_e](#enum-rxreceivertype_e)
 - [rxSerialReceiverType_e](#enum-rxserialreceivertype_e)
 - [safehomeUsageMode_e](#enum-safehomeusagemode_e)
+- [saFramerState_e](#enum-saframerstate_e)
 - [sbasMode_e](#enum-sbasmode_e)
 - [sbusDecoderState_e](#enum-sbusdecoderstate_e)
+- [SD_CardState_t](#enum-sd_cardstate_t)
+- [SD_CardType_t](#enum-sd_cardtype_t)
+- [SD_Error_t](#enum-sd_error_t)
+- [SD_Operation_t](#enum-sd_operation_t)
 - [sdcardBlockOperation_e](#enum-sdcardblockoperation_e)
 - [sdcardOperationStatus_e](#enum-sdcardoperationstatus_e)
 - [sdcardReceiveBlockStatus_e](#enum-sdcardreceiveblockstatus_e)
@@ -361,6 +389,7 @@
 - [ubx_nav_status_bits_t](#enum-ubx_nav_status_bits_t)
 - [ubx_protocol_bytes_t](#enum-ubx_protocol_bytes_t)
 - [vcselPeriodType_e](#enum-vcselperiodtype_e)
+- [VIDEO_TYPES](#enum-video_types)
 - [videoSystem_e](#enum-videosystem_e)
 - [voltageSensor_e](#enum-voltagesensor_e)
 - [vs600Band_e](#enum-vs600band_e)
@@ -377,14 +406,28 @@
 - [warningLedState_e](#enum-warningledstate_e)
 - [widgetAHIOptions_t](#enum-widgetahioptions_t)
 - [widgetAHIStyle_e](#enum-widgetahistyle_e)
+- [widgetSidebarOptions_t](#enum-widgetsidebaroptions_t)
 - [wpFwTurnSmoothing_e](#enum-wpfwturnsmoothing_e)
 - [wpMissionPlannerStatus_e](#enum-wpmissionplannerstatus_e)
 - [zeroCalibrationState_e](#enum-zerocalibrationstate_e)
 
 ---
+## <a id="enum-accel_fsr_e"></a>`accel_fsr_e`
+
+> Source: src/main/drivers/accgyro/accgyro_mpu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `INV_FSR_2G` | 0 |  |
+| `INV_FSR_4G` | 1 |  |
+| `INV_FSR_8G` | 2 |  |
+| `INV_FSR_16G` | 3 |  |
+| `NUM_ACCEL_FSR` | 4 |  |
+
+---
 ## <a id="enum-accelerationsensor_e"></a>`accelerationSensor_e`
 
-> Source: ../../../src/main/sensors/acceleration.h
+> Source: src/main/sensors/acceleration.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -407,7 +450,7 @@
 ---
 ## <a id="enum-accevent_t"></a>`accEvent_t`
 
-> Source: ../../../src/main/telemetry/sim.c
+> Source: src/main/telemetry/sim.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -419,7 +462,7 @@
 ---
 ## <a id="enum-adcchannel_e"></a>`adcChannel_e`
 
-> Source: ../../../src/main/drivers/adc.h
+> Source: src/main/drivers/adc.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -436,7 +479,7 @@
 ---
 ## <a id="enum-adcdevice"></a>`ADCDevice`
 
-> Source: ../../../src/main/drivers/adc_impl.h
+> Source: src/main/drivers/adc_impl.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -451,7 +494,7 @@
 ---
 ## <a id="enum-adcfunction_e"></a>`adcFunction_e`
 
-> Source: ../../../src/main/drivers/adc.h
+> Source: src/main/drivers/adc.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -464,7 +507,7 @@
 ---
 ## <a id="enum-adjustmentfunction_e"></a>`adjustmentFunction_e`
 
-> Source: ../../../src/main/fc/rc_adjustments.h
+> Source: src/main/fc/rc_adjustments.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -534,7 +577,7 @@
 ---
 ## <a id="enum-adjustmentmode_e"></a>`adjustmentMode_e`
 
-> Source: ../../../src/main/fc/rc_adjustments.h
+> Source: src/main/fc/rc_adjustments.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -544,7 +587,7 @@
 ---
 ## <a id="enum-afatfsappendfreeclusterphase_e"></a>`afatfsAppendFreeClusterPhase_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -559,7 +602,7 @@
 ---
 ## <a id="enum-afatfsappendsuperclusterphase_e"></a>`afatfsAppendSuperclusterPhase_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -571,7 +614,7 @@
 ---
 ## <a id="enum-afatfscacheblockstate_e"></a>`afatfsCacheBlockState_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -584,7 +627,7 @@
 ---
 ## <a id="enum-afatfsclustersearchcondition_e"></a>`afatfsClusterSearchCondition_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -595,7 +638,7 @@
 ---
 ## <a id="enum-afatfsdeletefilephase_e"></a>`afatfsDeleteFilePhase_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -605,7 +648,7 @@
 ---
 ## <a id="enum-afatfserror_e"></a>`afatfsError_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.h
+> Source: src/main/io/asyncfatfs/asyncfatfs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -617,7 +660,7 @@
 ---
 ## <a id="enum-afatfsextendsubdirectoryphase_e"></a>`afatfsExtendSubdirectoryPhase_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -630,7 +673,7 @@
 ---
 ## <a id="enum-afatfsfatpattern_e"></a>`afatfsFATPattern_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -641,7 +684,7 @@
 ---
 ## <a id="enum-afatfsfileoperation_e"></a>`afatfsFileOperation_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -659,7 +702,7 @@
 ---
 ## <a id="enum-afatfsfilesystemstate_e"></a>`afatfsFilesystemState_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.h
+> Source: src/main/io/asyncfatfs/asyncfatfs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -671,7 +714,7 @@
 ---
 ## <a id="enum-afatfsfiletype_e"></a>`afatfsFileType_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -683,7 +726,7 @@
 ---
 ## <a id="enum-afatfsfindclusterstatus_e"></a>`afatfsFindClusterStatus_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -695,7 +738,7 @@
 ---
 ## <a id="enum-afatfsfreespacesearchphase_e"></a>`afatfsFreeSpaceSearchPhase_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -705,7 +748,7 @@
 ---
 ## <a id="enum-afatfsinitializationphase_e"></a>`afatfsInitializationPhase_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -722,7 +765,7 @@
 ---
 ## <a id="enum-afatfsoperationstatus_e"></a>`afatfsOperationStatus_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.h
+> Source: src/main/io/asyncfatfs/asyncfatfs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -733,7 +776,7 @@
 ---
 ## <a id="enum-afatfssavedirectoryentrymode_e"></a>`afatfsSaveDirectoryEntryMode_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -744,7 +787,7 @@
 ---
 ## <a id="enum-afatfsseek_e"></a>`afatfsSeek_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.h
+> Source: src/main/io/asyncfatfs/asyncfatfs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -755,7 +798,7 @@
 ---
 ## <a id="enum-afatfstruncatefilephase_e"></a>`afatfsTruncateFilePhase_e`
 
-> Source: ../../../src/main/io/asyncfatfs/asyncfatfs.c
+> Source: src/main/io/asyncfatfs/asyncfatfs.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -769,7 +812,7 @@
 ---
 ## <a id="enum-airmodehandlingtype_e"></a>`airmodeHandlingType_e`
 
-> Source: ../../../src/main/fc/rc_controls.h
+> Source: src/main/fc/rc_controls.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -780,7 +823,7 @@
 ---
 ## <a id="enum-angle_index_t"></a>`angle_index_t`
 
-> Source: ../../../src/main/common/axis.h
+> Source: src/main/common/axis.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -790,7 +833,7 @@
 ---
 ## <a id="enum-armingflag_e"></a>`armingFlag_e`
 
-> Source: ../../../src/main/fc/runtime_config.h
+> Source: src/main/fc/runtime_config.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -827,7 +870,7 @@
 ---
 ## <a id="enum-axis_e"></a>`axis_e`
 
-> Source: ../../../src/main/common/axis.h
+> Source: src/main/common/axis.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -838,7 +881,7 @@
 ---
 ## <a id="enum-barometerstate_e"></a>`barometerState_e`
 
-> Source: ../../../src/main/sensors/barometer.c
+> Source: src/main/sensors/barometer.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -848,7 +891,7 @@
 ---
 ## <a id="enum-barosensor_e"></a>`baroSensor_e`
 
-> Source: ../../../src/main/sensors/barometer.h
+> Source: src/main/sensors/barometer.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -871,7 +914,7 @@
 ---
 ## <a id="enum-batcapacityunit_e"></a>`batCapacityUnit_e`
 
-> Source: ../../../src/main/sensors/battery_config_structs.h
+> Source: src/main/sensors/battery_config_structs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -881,7 +924,7 @@
 ---
 ## <a id="enum-batterystate_e"></a>`batteryState_e`
 
-> Source: ../../../src/main/sensors/battery.h
+> Source: src/main/sensors/battery.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -893,7 +936,7 @@
 ---
 ## <a id="enum-batvoltagesource_e"></a>`batVoltageSource_e`
 
-> Source: ../../../src/main/sensors/battery_config_structs.h
+> Source: src/main/sensors/battery_config_structs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -903,7 +946,7 @@
 ---
 ## <a id="enum-baudrate_e"></a>`baudRate_e`
 
-> Source: ../../../src/main/io/serial.h
+> Source: src/main/io/serial.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -930,7 +973,7 @@
 ---
 ## <a id="enum-beepermode_e"></a>`beeperMode_e`
 
-> Source: ../../../src/main/io/beeper.h
+> Source: src/main/io/beeper.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -965,7 +1008,7 @@
 ---
 ## <a id="enum-biquadfiltertype_e"></a>`biquadFilterType_e`
 
-> Source: ../../../src/main/common/filter.h
+> Source: src/main/common/filter.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -975,7 +1018,7 @@
 ---
 ## <a id="enum-blackboxbufferreservestatus_e"></a>`blackboxBufferReserveStatus_e`
 
-> Source: ../../../src/main/blackbox/blackbox_io.h
+> Source: src/main/blackbox/blackbox_io.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -986,7 +1029,7 @@
 ---
 ## <a id="enum-blackboxdevice"></a>`BlackboxDevice`
 
-> Source: ../../../src/main/blackbox/blackbox_io.h
+> Source: src/main/blackbox/blackbox_io.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -999,7 +1042,7 @@
 ---
 ## <a id="enum-blackboxfeaturemask_e"></a>`blackboxFeatureMask_e`
 
-> Source: ../../../src/main/blackbox/blackbox.h
+> Source: src/main/blackbox/blackbox.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1021,7 +1064,7 @@
 ---
 ## <a id="enum-blackboxstate"></a>`BlackboxState`
 
-> Source: ../../../src/main/blackbox/blackbox.h
+> Source: src/main/blackbox/blackbox.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1041,7 +1084,7 @@
 ---
 ## <a id="enum-bmi270register_e"></a>`bmi270Register_e`
 
-> Source: ../../../src/main/drivers/accgyro/accgyro_bmi270.c
+> Source: src/main/drivers/accgyro/accgyro_bmi270.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1090,7 +1133,7 @@
 ---
 ## <a id="enum-bootlogeventcode_e"></a>`bootLogEventCode_e`
 
-> Source: ../../../src/main/drivers/logging_codes.h
+> Source: src/main/drivers/logging_codes.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1124,7 +1167,7 @@
 ---
 ## <a id="enum-bootlogflags_e"></a>`bootLogFlags_e`
 
-> Source: ../../../src/main/drivers/logging_codes.h
+> Source: src/main/drivers/logging_codes.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1137,7 +1180,7 @@
 ---
 ## <a id="enum-boxid_e"></a>`boxId_e`
 
-> Source: ../../../src/main/fc/rc_modes.h
+> Source: src/main/fc/rc_modes.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1208,7 +1251,7 @@
 ---
 ## <a id="enum-busindex_e"></a>`busIndex_e`
 
-> Source: ../../../src/main/drivers/bus.h
+> Source: src/main/drivers/bus.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1220,7 +1263,7 @@
 ---
 ## <a id="enum-busspeed_e"></a>`busSpeed_e`
 
-> Source: ../../../src/main/drivers/bus.h
+> Source: src/main/drivers/bus.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1233,7 +1276,7 @@
 ---
 ## <a id="enum-bustype_e"></a>`busType_e`
 
-> Source: ../../../src/main/drivers/bus.h
+> Source: src/main/drivers/bus.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1244,9 +1287,30 @@
 | `BUSTYPE_SDIO` | 3 |  |
 
 ---
+## <a id="enum-canardrequestresponse"></a>`CanardRequestResponse`
+
+> Source: src/main/drivers/dronecan/libcanard/canard.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `CanardResponse` | 0 |  |
+| `CanardRequest` | 1 |  |
+
+---
+## <a id="enum-canardtransfertype"></a>`CanardTransferType`
+
+> Source: src/main/drivers/dronecan/libcanard/canard.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `CanardTransferTypeResponse` | 0 |  |
+| `CanardTransferTypeRequest` | 1 |  |
+| `CanardTransferTypeBroadcast` | 2 |  |
+
+---
 ## <a id="enum-channeltype_t"></a>`channelType_t`
 
-> Source: ../../../src/main/drivers/timer.h
+> Source: src/main/drivers/timer.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1269,7 +1333,7 @@
 ---
 ## <a id="enum-climbratetoaltitudecontrollermode_e"></a>`climbRateToAltitudeControllerMode_e`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1278,9 +1342,20 @@
 | `ROC_TO_ALT_TARGET` | 2 |  |
 
 ---
+## <a id="enum-clock_sel_e"></a>`clock_sel_e`
+
+> Source: src/main/drivers/accgyro/accgyro_mpu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `INV_CLK_INTERNAL` | 0 |  |
+| `INV_CLK_PLL` | 1 |  |
+| `NUM_CLK` | 2 |  |
+
+---
 ## <a id="enum-colorcomponent_e"></a>`colorComponent_e`
 
-> Source: ../../../src/main/common/color.h
+> Source: src/main/common/color.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1291,7 +1366,7 @@
 ---
 ## <a id="enum-colorid_e"></a>`colorId_e`
 
-> Source: ../../../src/main/io/ledstrip.h
+> Source: src/main/io/ledstrip.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1313,7 +1388,7 @@
 ---
 ## <a id="enum-crsfactiveantenna_e"></a>`crsfActiveAntenna_e`
 
-> Source: ../../../src/main/telemetry/crsf.c
+> Source: src/main/telemetry/crsf.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1323,7 +1398,7 @@
 ---
 ## <a id="enum-crsfaddress_e"></a>`crsfAddress_e`
 
-> Source: ../../../src/main/rx/crsf.h
+> Source: src/main/rx/crsf.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1344,7 +1419,7 @@
 ---
 ## <a id="enum-crsfframetype_e"></a>`crsfFrameType_e`
 
-> Source: ../../../src/main/rx/crsf.h
+> Source: src/main/rx/crsf.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1373,7 +1448,7 @@
 ---
 ## <a id="enum-crsfframetypeindex_e"></a>`crsfFrameTypeIndex_e`
 
-> Source: ../../../src/main/telemetry/crsf.c
+> Source: src/main/telemetry/crsf.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1391,7 +1466,7 @@
 ---
 ## <a id="enum-crsrrfmode_e"></a>`crsrRfMode_e`
 
-> Source: ../../../src/main/telemetry/crsf.c
+> Source: src/main/telemetry/crsf.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1402,7 +1477,7 @@
 ---
 ## <a id="enum-crsrrfpower_e"></a>`crsrRfPower_e`
 
-> Source: ../../../src/main/telemetry/crsf.c
+> Source: src/main/telemetry/crsf.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1418,7 +1493,7 @@
 ---
 ## <a id="enum-currentsensor_e"></a>`currentSensor_e`
 
-> Source: ../../../src/main/sensors/battery_config_structs.h
+> Source: src/main/sensors/battery_config_structs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1436,7 +1511,7 @@
 ---
 ## <a id="enum-devhardwaretype_e"></a>`devHardwareType_e`
 
-> Source: ../../../src/main/drivers/bus.h
+> Source: src/main/drivers/bus.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1506,7 +1581,7 @@
 ---
 ## <a id="enum-deviceflags_e"></a>`deviceFlags_e`
 
-> Source: ../../../src/main/drivers/bus.h
+> Source: src/main/drivers/bus.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1516,9 +1591,9 @@
 | `DEVFLAGS_SPI_MODE_0` | (1 << 2) |  |
 
 ---
-## <a id="enum-disarmreason_t"></a>`disarmReason_t`
+## <a id="enum-disarmreason_e"></a>`disarmReason_e`
 
-> Source: ../../../src/main/fc/fc_core.h
+> Source: src/main/fc/fc_core.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1535,7 +1610,7 @@
 ---
 ## <a id="enum-displaycanvasbitmapoption_t"></a>`displayCanvasBitmapOption_t`
 
-> Source: ../../../src/main/drivers/display_canvas.h
+> Source: src/main/drivers/display_canvas.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1546,7 +1621,7 @@
 ---
 ## <a id="enum-displaycanvascolor_e"></a>`displayCanvasColor_e`
 
-> Source: ../../../src/main/drivers/display_canvas.h
+> Source: src/main/drivers/display_canvas.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1558,7 +1633,7 @@
 ---
 ## <a id="enum-displaycanvasoutlinetype_e"></a>`displayCanvasOutlineType_e`
 
-> Source: ../../../src/main/drivers/display_canvas.h
+> Source: src/main/drivers/display_canvas.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1571,7 +1646,7 @@
 ---
 ## <a id="enum-displayportmspcommand_e"></a>`displayportMspCommand_e`
 
-> Source: ../../../src/main/io/displayport_msp.h
+> Source: src/main/io/displayport_msp.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1587,7 +1662,7 @@
 ---
 ## <a id="enum-displaytransactionoption_e"></a>`displayTransactionOption_e`
 
-> Source: ../../../src/main/drivers/display.h
+> Source: src/main/drivers/display.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1598,7 +1673,7 @@
 ---
 ## <a id="enum-displaywidgettype_e"></a>`displayWidgetType_e`
 
-> Source: ../../../src/main/drivers/display_widgets.h
+> Source: src/main/drivers/display_widgets.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1608,7 +1683,7 @@
 ---
 ## <a id="enum-djicraftnameelements_t"></a>`DjiCraftNameElements_t`
 
-> Source: ../../../src/main/io/osd_dji_hd.c
+> Source: src/main/io/osd_dji_hd.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1622,9 +1697,39 @@
 | `DJI_OSD_CN_MAX_ELEMENTS` | 7 |  |
 
 ---
+## <a id="enum-djiosdprotoworkarounds_e"></a>`djiOsdProtoWorkarounds_e`
+
+> Source: src/main/io/osd_dji_hd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA` | 1 << 0 |  |
+
+---
+## <a id="enum-djiosdtempsource_e"></a>`djiOsdTempSource_e`
+
+> Source: src/main/io/osd_dji_hd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DJI_OSD_TEMP_ESC` | 0 |  |
+| `DJI_OSD_TEMP_CORE` | 1 |  |
+| `DJI_OSD_TEMP_BARO` | 2 |  |
+
+---
+## <a id="enum-djirssisource_e"></a>`djiRssiSource_e`
+
+> Source: src/main/io/osd_dji_hd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DJI_RSSI` | 0 |  |
+| `DJI_CRSF_LQ` | 1 |  |
+
+---
 ## <a id="enum-dronecanasyncstate_e"></a>`dronecanAsyncState_e`
 
-> Source: ../../../src/main/drivers/dronecan/dronecan.h
+> Source: src/main/drivers/dronecan/dronecan.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1636,7 +1741,7 @@
 ---
 ## <a id="enum-dronecanbitrate_e"></a>`dronecanBitrate_e`
 
-> Source: ../../../src/main/drivers/dronecan/dronecan.h
+> Source: src/main/drivers/dronecan/dronecan.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1649,7 +1754,7 @@
 ---
 ## <a id="enum-dronecanstate_e"></a>`dronecanState_e`
 
-> Source: ../../../src/main/drivers/dronecan/dronecan.h
+> Source: src/main/drivers/dronecan/dronecan.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1662,7 +1767,7 @@
 ---
 ## <a id="enum-dshotcommands_e"></a>`dshotCommands_e`
 
-> Source: ../../../src/main/drivers/pwm_output.h
+> Source: src/main/drivers/pwm_output.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1672,7 +1777,7 @@
 ---
 ## <a id="enum-dumpflags_e"></a>`dumpFlags_e`
 
-> Source: ../../../src/main/fc/cli.c
+> Source: src/main/fc/cli.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1688,7 +1793,7 @@
 ---
 ## <a id="enum-dynamicgyronotchmode_e"></a>`dynamicGyroNotchMode_e`
 
-> Source: ../../../src/main/sensors/gyro.h
+> Source: src/main/sensors/gyro.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1698,7 +1803,7 @@
 ---
 ## <a id="enum-emerglandstate_e"></a>`emergLandState_e`
 
-> Source: ../../../src/main/flight/failsafe.h
+> Source: src/main/flight/failsafe.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1709,7 +1814,7 @@
 ---
 ## <a id="enum-escsensorframestatus_t"></a>`escSensorFrameStatus_t`
 
-> Source: ../../../src/main/sensors/esc_sensor.c
+> Source: src/main/sensors/esc_sensor.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1720,7 +1825,7 @@
 ---
 ## <a id="enum-escsensorstate_t"></a>`escSensorState_t`
 
-> Source: ../../../src/main/sensors/esc_sensor.c
+> Source: src/main/sensors/esc_sensor.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1729,9 +1834,94 @@
 | `ESC_SENSOR_WAITING` | 2 |  |
 
 ---
+## <a id="enum-exbusheader_e"></a>`exBusHeader_e`
+
+> Source: src/main/rx/jetiexbus.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `EXBUS_HEADER_SYNC` | 0 |  |
+| `EXBUS_HEADER_REQ` | 1 |  |
+| `EXBUS_HEADER_MSG_LEN` | 2 |  |
+| `EXBUS_HEADER_PACKET_ID` | 3 |  |
+| `EXBUS_HEADER_DATA_ID` | 4 |  |
+| `EXBUS_HEADER_SUBLEN` | 5 |  |
+| `EXBUS_HEADER_DATA` | 6 |  |
+
+---
+## <a id="enum-exdatatype_e"></a>`exDataType_e`
+
+> Source: src/main/telemetry/jetiexbus.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `EX_TYPE_6b` | 0 |  |
+| `EX_TYPE_14b` | 1 |  |
+| `EX_TYPE_22b` | 4 |  |
+| `EX_TYPE_DT` | 5 |  |
+| `EX_TYPE_30b` | 8 |  |
+| `EX_TYPE_GPS` | 9 |  |
+| `EX_TYPE_DES` | 255 |  |
+
+---
+## <a id="enum-exsensors_e"></a>`exSensors_e`
+
+> Source: src/main/telemetry/jetiexbus.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `EX_VOLTAGE` | 1 |  |
+| `EX_CURRENT` | 2 |  |
+| `EX_ALTITUDE` | 3 |  |
+| `EX_CAPACITY` | 4 |  |
+| `EX_POWER` | 5 |  |
+| `EX_ROLL_ANGLE` | 6 |  |
+| `EX_PITCH_ANGLE` | 7 |  |
+| `EX_HEADING` | 8 |  |
+| `EX_VARIO` | 9 |  |
+| `EX_GPS_SATS` | 10 |  |
+| `EX_GPS_LONG` | 11 |  |
+| `EX_GPS_LAT` | 12 |  |
+| `EX_GPS_SPEED` | 13 |  |
+| `EX_GPS_DISTANCE_TO_HOME` | 14 |  |
+| `EX_GPS_DIRECTION_TO_HOME` | 15 |  |
+| `EX_GPS_HEADING` | 17 |  |
+| `EX_GPS_ALTITUDE` | 18 |  |
+| `EX_GFORCE_X` | 19 |  |
+| `EX_GFORCE_Y` | 20 |  |
+| `EX_GFORCE_Z` | 21 |  |
+| `EX_RPM` | 22 |  |
+| `EX_TRIP_DISTANCE` | 23 |  |
+| `EX_DEBUG0` | 24 |  |
+| `EX_DEBUG1` | 25 |  |
+| `EX_DEBUG2` | 26 |  |
+| `EX_DEBUG3` | 27 |  |
+| `EX_DEBUG4` | 28 |  |
+| `EX_DEBUG5` | 29 |  |
+| `EX_DEBUG6` | 30 |  |
+| `EX_DEBUG7` | 31 |  |
+
+---
+## <a id="enum-extelheader_e"></a>`exTelHeader_e`
+
+> Source: src/main/telemetry/jetiexbus.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `EXTEL_HEADER_SYNC` | 0 |  |
+| `EXTEL_HEADER_TYPE_LEN` | 1 |  |
+| `EXTEL_HEADER_USN_LB` | 2 |  |
+| `EXTEL_HEADER_USN_HB` | 3 |  |
+| `EXTEL_HEADER_LSN_LB` | 4 |  |
+| `EXTEL_HEADER_LSN_HB` | 5 |  |
+| `EXTEL_HEADER_RES` | 6 |  |
+| `EXTEL_HEADER_ID` | 7 |  |
+| `EXTEL_HEADER_DATA` | 8 |  |
+
+---
 ## <a id="enum-failsafechannelbehavior_e"></a>`failsafeChannelBehavior_e`
 
-> Source: ../../../src/main/flight/failsafe.c
+> Source: src/main/flight/failsafe.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1741,7 +1931,7 @@
 ---
 ## <a id="enum-failsafephase_e"></a>`failsafePhase_e`
 
-> Source: ../../../src/main/flight/failsafe.h
+> Source: src/main/flight/failsafe.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1757,7 +1947,7 @@
 ---
 ## <a id="enum-failsafeprocedure_e"></a>`failsafeProcedure_e`
 
-> Source: ../../../src/main/flight/failsafe.h
+> Source: src/main/flight/failsafe.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1769,7 +1959,7 @@
 ---
 ## <a id="enum-failsaferxlinkstate_e"></a>`failsafeRxLinkState_e`
 
-> Source: ../../../src/main/flight/failsafe.h
+> Source: src/main/flight/failsafe.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1779,7 +1969,7 @@
 ---
 ## <a id="enum-failuremode_e"></a>`failureMode_e`
 
-> Source: ../../../src/main/drivers/system.h
+> Source: src/main/drivers/system.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1795,7 +1985,7 @@
 ---
 ## <a id="enum-fatfilesystemtype_e"></a>`fatFilesystemType_e`
 
-> Source: ../../../src/main/io/asyncfatfs/fat_standard.h
+> Source: src/main/io/asyncfatfs/fat_standard.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1805,9 +1995,20 @@
 | `FAT_FILESYSTEM_TYPE_FAT32` | 3 |  |
 
 ---
+## <a id="enum-fchoice_b"></a>`fchoice_b`
+
+> Source: src/main/drivers/accgyro/accgyro_mpu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FCB_DISABLED` | 0 |  |
+| `FCB_8800_32` | 1 |  |
+| `FCB_3600_32` | 2 |  |
+
+---
 ## <a id="enum-features_e"></a>`features_e`
 
-> Source: ../../../src/main/fc/config.h
+> Source: src/main/fc/config.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1845,9 +2046,21 @@
 | `FEATURE_FW_AUTOTRIM` | 1U << 31 |  |
 
 ---
+## <a id="enum-fenceaction_e"></a>`fenceAction_e`
+
+> Source: src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `GEOFENCE_ACTION_NONE` | 0 |  |
+| `GEOFENCE_ACTION_AVOID` | 1 |  |
+| `GEOFENCE_ACTION_POS_HOLD` | 2 |  |
+| `GEOFENCE_ACTION_RTH` | 3 |  |
+
+---
 ## <a id="enum-filtertype_e"></a>`filterType_e`
 
-> Source: ../../../src/main/common/filter.h
+> Source: src/main/common/filter.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1860,7 +2073,7 @@
 ---
 ## <a id="enum-fixedwinglaunchevent_t"></a>`fixedWingLaunchEvent_t`
 
-> Source: ../../../src/main/navigation/navigation_fw_launch.c
+> Source: src/main/navigation/navigation_fw_launch.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1874,7 +2087,7 @@
 ---
 ## <a id="enum-fixedwinglaunchmessage_t"></a>`fixedWingLaunchMessage_t`
 
-> Source: ../../../src/main/navigation/navigation_fw_launch.c
+> Source: src/main/navigation/navigation_fw_launch.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1888,7 +2101,7 @@
 ---
 ## <a id="enum-fixedwinglaunchstate_t"></a>`fixedWingLaunchState_t`
 
-> Source: ../../../src/main/navigation/navigation_fw_launch.c
+> Source: src/main/navigation/navigation_fw_launch.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1909,7 +2122,7 @@
 ---
 ## <a id="enum-flashpartitiontype_e"></a>`flashPartitionType_e`
 
-> Source: ../../../src/main/drivers/flash.h
+> Source: src/main/drivers/flash.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1927,7 +2140,7 @@
 ---
 ## <a id="enum-flashtype_e"></a>`flashType_e`
 
-> Source: ../../../src/main/drivers/flash.h
+> Source: src/main/drivers/flash.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1937,7 +2150,7 @@
 ---
 ## <a id="enum-flight_dynamics_index_t"></a>`flight_dynamics_index_t`
 
-> Source: ../../../src/main/common/axis.h
+> Source: src/main/common/axis.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1948,7 +2161,7 @@
 ---
 ## <a id="enum-flightlogevent"></a>`FlightLogEvent`
 
-> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+> Source: src/main/blackbox/blackbox_fielddefs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -1962,7 +2175,7 @@
 ---
 ## <a id="enum-flightlogfieldcondition"></a>`FlightLogFieldCondition`
 
-> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+> Source: src/main/blackbox/blackbox_fielddefs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2035,7 +2248,7 @@
 ---
 ## <a id="enum-flightlogfieldencoding"></a>`FlightLogFieldEncoding`
 
-> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+> Source: src/main/blackbox/blackbox_fielddefs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2050,7 +2263,7 @@
 ---
 ## <a id="enum-flightlogfieldpredictor"></a>`FlightLogFieldPredictor`
 
-> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+> Source: src/main/blackbox/blackbox_fielddefs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2069,7 +2282,7 @@
 ---
 ## <a id="enum-flightlogfieldsign"></a>`FlightLogFieldSign`
 
-> Source: ../../../src/main/blackbox/blackbox_fielddefs.h
+> Source: src/main/blackbox/blackbox_fielddefs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2079,7 +2292,7 @@
 ---
 ## <a id="enum-flightmodeflags_e"></a>`flightModeFlags_e`
 
-> Source: ../../../src/main/fc/runtime_config.h
+> Source: src/main/fc/runtime_config.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2107,7 +2320,7 @@
 ---
 ## <a id="enum-flightmodefortelemetry_e"></a>`flightModeForTelemetry_e`
 
-> Source: ../../../src/main/fc/runtime_config.h
+> Source: src/main/fc/runtime_config.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2130,7 +2343,7 @@
 ---
 ## <a id="enum-flyingplatformtype_e"></a>`flyingPlatformType_e`
 
-> Source: ../../../src/main/flight/mixer.h
+> Source: src/main/flight/mixer.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2144,7 +2357,7 @@
 ---
 ## <a id="enum-fport2_control_frame_type_e"></a>`fport2_control_frame_type_e`
 
-> Source: ../../../src/main/rx/fport2.c
+> Source: src/main/rx/fport2.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2156,7 +2369,7 @@
 ---
 ## <a id="enum-frame_state_e"></a>`frame_state_e`
 
-> Source: ../../../src/main/rx/fport2.c
+> Source: src/main/rx/fport2.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2169,7 +2382,7 @@
 ---
 ## <a id="enum-frame_type_e"></a>`frame_type_e`
 
-> Source: ../../../src/main/rx/fport2.c
+> Source: src/main/rx/fport2.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2179,7 +2392,7 @@
 ---
 ## <a id="enum-frskyosdcolor_e"></a>`frskyOSDColor_e`
 
-> Source: ../../../src/main/io/frsky_osd.h
+> Source: src/main/io/frsky_osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2191,7 +2404,7 @@
 ---
 ## <a id="enum-frskyosdlineoutlinetype_e"></a>`frskyOSDLineOutlineType_e`
 
-> Source: ../../../src/main/io/frsky_osd.h
+> Source: src/main/io/frsky_osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2204,7 +2417,7 @@
 ---
 ## <a id="enum-frskyosdrecvstate_e"></a>`frskyOSDRecvState_e`
 
-> Source: ../../../src/main/io/frsky_osd.c
+> Source: src/main/io/frsky_osd.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2218,7 +2431,7 @@
 ---
 ## <a id="enum-frskyosdtransactionoptions_e"></a>`frskyOSDTransactionOptions_e`
 
-> Source: ../../../src/main/io/frsky_osd.h
+> Source: src/main/io/frsky_osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2226,9 +2439,34 @@
 | `FRSKY_OSD_TRANSACTION_OPT_RESET_DRAWING` | 1 << 1 |  |
 
 ---
+## <a id="enum-frskyosdwidgetid_e"></a>`frskyOSDWidgetID_e`
+
+> Source: src/main/io/frsky_osd.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `FRSKY_OSD_WIDGET_ID_AHI` | 0 |  |
+| `FRSKY_OSD_WIDGET_ID_SIDEBAR_0` | 1 |  |
+| `FRSKY_OSD_WIDGET_ID_SIDEBAR_1` | 2 |  |
+| `FRSKY_OSD_WIDGET_ID_GRAPH_0` | 3 |  |
+| `FRSKY_OSD_WIDGET_ID_GRAPH_1` | 4 |  |
+| `FRSKY_OSD_WIDGET_ID_GRAPH_2` | 5 |  |
+| `FRSKY_OSD_WIDGET_ID_GRAPH_3` | 6 |  |
+| `FRSKY_OSD_WIDGET_ID_CHARGAUGE_0` | 7 |  |
+| `FRSKY_OSD_WIDGET_ID_CHARGAUGE_1` | 8 |  |
+| `FRSKY_OSD_WIDGET_ID_CHARGAUGE_2` | 9 |  |
+| `FRSKY_OSD_WIDGET_ID_CHARGAUGE_3` | 10 |  |
+| `FRSKY_OSD_WIDGET_ID_SIDEBAR_FIRST` | FRSKY_OSD_WIDGET_ID_SIDEBAR_0 |  |
+| `FRSKY_OSD_WIDGET_ID_SIDEBAR_LAST` | FRSKY_OSD_WIDGET_ID_SIDEBAR_1 |  |
+| `FRSKY_OSD_WIDGET_ID_GRAPH_FIRST` | FRSKY_OSD_WIDGET_ID_GRAPH_0 |  |
+| `FRSKY_OSD_WIDGET_ID_GRAPH_LAST` | FRSKY_OSD_WIDGET_ID_GRAPH_3 |  |
+| `FRSKY_OSD_WIDGET_ID_CHARGAUGE_FIRST` | FRSKY_OSD_WIDGET_ID_CHARGAUGE_0 |  |
+| `FRSKY_OSD_WIDGET_ID_CHARGAUGE_LAST` | FRSKY_OSD_WIDGET_ID_CHARGAUGE_3 |  |
+
+---
 ## <a id="enum-fw_autotune_rate_adjustment_e"></a>`fw_autotune_rate_adjustment_e`
 
-> Source: ../../../src/main/flight/pid.h
+> Source: src/main/flight/pid.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2239,7 +2477,7 @@
 ---
 ## <a id="enum-fwautolandapproachdirection_e"></a>`fwAutolandApproachDirection_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2249,7 +2487,7 @@
 ---
 ## <a id="enum-fwautolandstate_t"></a>`fwAutolandState_t`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2264,7 +2502,7 @@
 ---
 ## <a id="enum-fwautolandwaypoint_t"></a>`fwAutolandWaypoint_t`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2276,7 +2514,7 @@
 ---
 ## <a id="enum-fwautospeedspdsource_e"></a>`fwAutoSpeedSpdSource_e`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2287,7 +2525,7 @@
 ---
 ## <a id="enum-geoaltitudeconversionmode_e"></a>`geoAltitudeConversionMode_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2297,7 +2535,7 @@
 ---
 ## <a id="enum-geoaltitudedatumflag_e"></a>`geoAltitudeDatumFlag_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2309,7 +2547,7 @@
 ---
 ## <a id="enum-geooriginresetmode_e"></a>`geoOriginResetMode_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2319,7 +2557,7 @@
 ---
 ## <a id="enum-geozoneactionstate_e"></a>`geozoneActionState_e`
 
-> Source: ../../../src/main/navigation/navigation_geozone.c
+> Source: src/main/navigation/navigation_geozone.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2335,7 +2573,7 @@
 ---
 ## <a id="enum-geozonemessagestate_e"></a>`geozoneMessageState_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2353,7 +2591,7 @@
 ---
 ## <a id="enum-ghstaddr_e"></a>`ghstAddr_e`
 
-> Source: ../../../src/main/rx/ghst_protocol.h
+> Source: src/main/rx/ghst_protocol.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2371,7 +2609,7 @@
 ---
 ## <a id="enum-ghstdl_e"></a>`ghstDl_e`
 
-> Source: ../../../src/main/rx/ghst_protocol.h
+> Source: src/main/rx/ghst_protocol.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2385,7 +2623,7 @@
 ---
 ## <a id="enum-ghstframetypeindex_e"></a>`ghstFrameTypeIndex_e`
 
-> Source: ../../../src/main/telemetry/ghst.c
+> Source: src/main/telemetry/ghst.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2398,7 +2636,7 @@
 ---
 ## <a id="enum-ghstul_e"></a>`ghstUl_e`
 
-> Source: ../../../src/main/rx/ghst_protocol.h
+> Source: src/main/rx/ghst_protocol.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2412,7 +2650,7 @@
 ---
 ## <a id="enum-gimbal_htk_mode_e"></a>`gimbal_htk_mode_e`
 
-> Source: ../../../src/main/drivers/gimbal_common.h
+> Source: src/main/drivers/gimbal_common.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2424,7 +2662,7 @@
 ---
 ## <a id="enum-gimbaldevtype_e"></a>`gimbalDevType_e`
 
-> Source: ../../../src/main/drivers/gimbal_common.h
+> Source: src/main/drivers/gimbal_common.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2435,7 +2673,7 @@
 ---
 ## <a id="enum-gimbalheadtrackerstate_e"></a>`gimbalHeadtrackerState_e`
 
-> Source: ../../../src/main/io/gimbal_serial.h
+> Source: src/main/io/gimbal_serial.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2448,7 +2686,7 @@
 ---
 ## <a id="enum-gpsautobaud_e"></a>`gpsAutoBaud_e`
 
-> Source: ../../../src/main/io/gps.h
+> Source: src/main/io/gps.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2458,7 +2696,7 @@
 ---
 ## <a id="enum-gpsautoconfig_e"></a>`gpsAutoConfig_e`
 
-> Source: ../../../src/main/io/gps.h
+> Source: src/main/io/gps.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2468,7 +2706,7 @@
 ---
 ## <a id="enum-gpsbaudrate_e"></a>`gpsBaudRate_e`
 
-> Source: ../../../src/main/io/gps.h
+> Source: src/main/io/gps.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2485,7 +2723,7 @@
 ---
 ## <a id="enum-gpsdynmodel_e"></a>`gpsDynModel_e`
 
-> Source: ../../../src/main/io/gps.h
+> Source: src/main/io/gps.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2500,7 +2738,7 @@
 ---
 ## <a id="enum-gpsfixchar_e"></a>`gpsFixChar_e`
 
-> Source: ../../../src/main/telemetry/hott.c
+> Source: src/main/telemetry/hott.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2512,7 +2750,7 @@
 ---
 ## <a id="enum-gpsfixtype_e"></a>`gpsFixType_e`
 
-> Source: ../../../src/main/io/gps.h
+> Source: src/main/io/gps.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2523,7 +2761,7 @@
 ---
 ## <a id="enum-gpsprovider_e"></a>`gpsProvider_e`
 
-> Source: ../../../src/main/io/gps.h
+> Source: src/main/io/gps.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2537,7 +2775,7 @@
 ---
 ## <a id="enum-gpsstate_e"></a>`gpsState_e`
 
-> Source: ../../../src/main/io/gps_private.h
+> Source: src/main/io/gps_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2547,9 +2785,22 @@
 | `GPS_LOST_COMMUNICATION` | 3 |  |
 
 ---
+## <a id="enum-gyro_fsr_e"></a>`gyro_fsr_e`
+
+> Source: src/main/drivers/accgyro/accgyro_mpu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `INV_FSR_250DPS` | 0 |  |
+| `INV_FSR_500DPS` | 1 |  |
+| `INV_FSR_1000DPS` | 2 |  |
+| `INV_FSR_2000DPS` | 3 |  |
+| `NUM_GYRO_FSR` | 4 |  |
+
+---
 ## <a id="enum-gyrofiltermode_e"></a>`gyroFilterMode_e`
 
-> Source: ../../../src/main/sensors/gyro.h
+> Source: src/main/sensors/gyro.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2561,7 +2812,7 @@
 ---
 ## <a id="enum-gyrohardwarelpf_e"></a>`gyroHardwareLpf_e`
 
-> Source: ../../../src/main/drivers/accgyro/accgyro_lsm6dxx.h
+> Source: src/main/drivers/accgyro/accgyro_lsm6dxx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2574,7 +2825,7 @@
 ---
 ## <a id="enum-gyrosensor_e"></a>`gyroSensor_e`
 
-> Source: ../../../src/main/sensors/gyro.h
+> Source: src/main/sensors/gyro.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2596,7 +2847,7 @@
 ---
 ## <a id="enum-hardwaremotortypes_e"></a>`HardwareMotorTypes_e`
 
-> Source: ../../../src/main/drivers/pwm_esc_detect.h
+> Source: src/main/drivers/pwm_esc_detect.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2607,7 +2858,7 @@
 ---
 ## <a id="enum-hardwaresensorstatus_e"></a>`hardwareSensorStatus_e`
 
-> Source: ../../../src/main/sensors/diagnostics.h
+> Source: src/main/sensors/diagnostics.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2619,7 +2870,7 @@
 ---
 ## <a id="enum-headtrackerdevtype_e"></a>`headTrackerDevType_e`
 
-> Source: ../../../src/main/drivers/headtracker_common.h
+> Source: src/main/drivers/headtracker_common.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2631,7 +2882,7 @@
 ---
 ## <a id="enum-hotteamalarm1flag_e"></a>`hottEamAlarm1Flag_e`
 
-> Source: ../../../src/main/telemetry/hott.h
+> Source: src/main/telemetry/hott.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2648,7 +2899,7 @@
 ---
 ## <a id="enum-hotteamalarm2flag_e"></a>`hottEamAlarm2Flag_e`
 
-> Source: ../../../src/main/telemetry/hott.h
+> Source: src/main/telemetry/hott.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2665,7 +2916,7 @@
 ---
 ## <a id="enum-hottstate_e"></a>`hottState_e`
 
-> Source: ../../../src/main/telemetry/hott.c
+> Source: src/main/telemetry/hott.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2678,7 +2929,7 @@
 ---
 ## <a id="enum-hsvcolorcomponent_e"></a>`hsvColorComponent_e`
 
-> Source: ../../../src/main/common/color.h
+> Source: src/main/common/color.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2687,9 +2938,63 @@
 | `HSV_VALUE` | 2 |  |
 
 ---
+## <a id="enum-i2c_mem_address_width_type"></a>`i2c_mem_address_width_type`
+
+> Source: src/main/drivers/i2c_application.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `I2C_MEM_ADDR_WIDIH_8` | 1 |  |
+| `I2C_MEM_ADDR_WIDIH_16` | 2 |  |
+
+---
+## <a id="enum-i2c_mode_type"></a>`i2c_mode_type`
+
+> Source: src/main/drivers/i2c_application.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `I2C_INT_MA_TX` | 0 |  |
+| `I2C_INT_MA_RX` | 1 |  |
+| `I2C_INT_SLA_TX` | 2 |  |
+| `I2C_INT_SLA_RX` | 3 |  |
+| `I2C_DMA_MA_TX` | 4 |  |
+| `I2C_DMA_MA_RX` | 5 |  |
+| `I2C_DMA_SLA_TX` | 6 |  |
+| `I2C_DMA_SLA_RX` | 7 |  |
+
+---
+## <a id="enum-i2c_status_type"></a>`i2c_status_type`
+
+> Source: src/main/drivers/i2c_application.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `I2C_OK` | 0 |  |
+| `I2C_ERR_STEP_1` | 1 |  |
+| `I2C_ERR_STEP_2` | 2 |  |
+| `I2C_ERR_STEP_3` | 3 |  |
+| `I2C_ERR_STEP_4` | 4 |  |
+| `I2C_ERR_STEP_5` | 5 |  |
+| `I2C_ERR_STEP_6` | 6 |  |
+| `I2C_ERR_STEP_7` | 7 |  |
+| `I2C_ERR_STEP_8` | 8 |  |
+| `I2C_ERR_STEP_9` | 9 |  |
+| `I2C_ERR_STEP_10` | 10 |  |
+| `I2C_ERR_STEP_11` | 11 |  |
+| `I2C_ERR_STEP_12` | 12 |  |
+| `I2C_ERR_TCRLD` | 13 |  |
+| `I2C_ERR_TDC` | 14 |  |
+| `I2C_ERR_ADDR` | 15 |  |
+| `I2C_ERR_STOP` | 16 |  |
+| `I2C_ERR_ACKFAIL` | 17 |  |
+| `I2C_ERR_TIMEOUT` | 18 |  |
+| `I2C_ERR_INTERRUPT` | 19 |  |
+
+---
 ## <a id="enum-i2cdevice"></a>`I2CDevice`
 
-> Source: ../../../src/main/drivers/bus_i2c.h
+> Source: src/main/drivers/bus_i2c.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2704,7 +3009,7 @@
 ---
 ## <a id="enum-i2cspeed"></a>`I2CSpeed`
 
-> Source: ../../../src/main/drivers/bus_i2c.h
+> Source: src/main/drivers/bus_i2c.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2716,7 +3021,7 @@
 ---
 ## <a id="enum-i2cstate_t"></a>`i2cState_t`
 
-> Source: ../../../src/main/drivers/bus_i2c_stm32f40x.c
+> Source: src/main/drivers/bus_i2c_stm32f40x.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2746,7 +3051,7 @@
 ---
 ## <a id="enum-i2ctransferdirection_t"></a>`i2cTransferDirection_t`
 
-> Source: ../../../src/main/drivers/bus_i2c_stm32f40x.c
+> Source: src/main/drivers/bus_i2c_stm32f40x.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2756,7 +3061,7 @@
 ---
 ## <a id="enum-ibuscommand_e"></a>`ibusCommand_e`
 
-> Source: ../../../src/main/telemetry/ibus_shared.c
+> Source: src/main/telemetry/ibus_shared.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2767,7 +3072,7 @@
 ---
 ## <a id="enum-ibussensortype1_e"></a>`ibusSensorType1_e`
 
-> Source: ../../../src/main/telemetry/ibus_shared.h
+> Source: src/main/telemetry/ibus_shared.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2811,7 +3116,7 @@
 ---
 ## <a id="enum-ibussensortype_e"></a>`ibusSensorType_e`
 
-> Source: ../../../src/main/telemetry/ibus_shared.h
+> Source: src/main/telemetry/ibus_shared.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2849,7 +3154,7 @@
 ---
 ## <a id="enum-ibussensorvalue_e"></a>`ibusSensorValue_e`
 
-> Source: ../../../src/main/telemetry/ibus_shared.h
+> Source: src/main/telemetry/ibus_shared.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2894,7 +3199,7 @@
 ---
 ## <a id="enum-icm42605variant_e"></a>`icm42605Variant_e`
 
-> Source: ../../../src/main/drivers/accgyro/accgyro_icm42605.c
+> Source: src/main/drivers/accgyro/accgyro_icm42605.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2903,9 +3208,20 @@
 | `ICM42605_VARIANT_42688P` | 2 |  |
 
 ---
+## <a id="enum-imu_inertia_comp_method_e"></a>`imu_inertia_comp_method_e`
+
+> Source: src/main/flight/imu.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `COMPMETHOD_VELNED` | 0 |  |
+| `COMPMETHOD_TURNRATE` | 1 |  |
+| `COMPMETHOD_ADAPTIVE` | 2 |  |
+
+---
 ## <a id="enum-inputsource_e"></a>`inputSource_e`
 
-> Source: ../../../src/main/flight/servos.h
+> Source: src/main/flight/servos.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2984,7 +3300,7 @@
 ---
 ## <a id="enum-itermrelax_e"></a>`itermRelax_e`
 
-> Source: ../../../src/main/flight/pid.h
+> Source: src/main/flight/pid.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -2995,7 +3311,7 @@
 ---
 ## <a id="enum-ledbasefunctionid_e"></a>`ledBaseFunctionId_e`
 
-> Source: ../../../src/main/io/ledstrip.h
+> Source: src/main/io/ledstrip.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3011,7 +3327,7 @@
 ---
 ## <a id="enum-leddirectionid_e"></a>`ledDirectionId_e`
 
-> Source: ../../../src/main/io/ledstrip.h
+> Source: src/main/io/ledstrip.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3025,7 +3341,7 @@
 ---
 ## <a id="enum-ledmodeindex_e"></a>`ledModeIndex_e`
 
-> Source: ../../../src/main/io/ledstrip.h
+> Source: src/main/io/ledstrip.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3041,7 +3357,7 @@
 ---
 ## <a id="enum-ledoverlayid_e"></a>`ledOverlayId_e`
 
-> Source: ../../../src/main/io/ledstrip.h
+> Source: src/main/io/ledstrip.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3056,7 +3372,7 @@
 ---
 ## <a id="enum-ledspecialcolorids_e"></a>`ledSpecialColorIds_e`
 
-> Source: ../../../src/main/io/ledstrip.h
+> Source: src/main/io/ledstrip.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3073,7 +3389,7 @@
 ---
 ## <a id="enum-logicconditionflags_e"></a>`logicConditionFlags_e`
 
-> Source: ../../../src/main/programming/logic_condition.h
+> Source: src/main/programming/logic_condition.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3083,7 +3399,7 @@
 ---
 ## <a id="enum-logicconditionsglobalflags_t"></a>`logicConditionsGlobalFlags_t`
 
-> Source: ../../../src/main/programming/logic_condition.h
+> Source: src/main/programming/logic_condition.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3105,7 +3421,7 @@
 ---
 ## <a id="enum-logicflightmodeoperands_e"></a>`logicFlightModeOperands_e`
 
-> Source: ../../../src/main/programming/logic_condition.h
+> Source: src/main/programming/logic_condition.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3130,7 +3446,7 @@
 ---
 ## <a id="enum-logicflightoperands_e"></a>`logicFlightOperands_e`
 
-> Source: ../../../src/main/programming/logic_condition.h
+> Source: src/main/programming/logic_condition.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3191,7 +3507,7 @@
 ---
 ## <a id="enum-logicoperandtype_e"></a>`logicOperandType_e`
 
-> Source: ../../../src/main/programming/logic_condition.h
+> Source: src/main/programming/logic_condition.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3208,7 +3524,7 @@
 ---
 ## <a id="enum-logicoperation_e"></a>`logicOperation_e`
 
-> Source: ../../../src/main/programming/logic_condition.h
+> Source: src/main/programming/logic_condition.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3281,7 +3597,7 @@
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
 
-> Source: ../../../src/main/programming/logic_condition.h
+> Source: src/main/programming/logic_condition.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3303,7 +3619,7 @@
 ---
 ## <a id="enum-logtopic_e"></a>`logTopic_e`
 
-> Source: ../../../src/main/common/log.h
+> Source: src/main/common/log.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3325,7 +3641,7 @@
 ---
 ## <a id="enum-lsm6dxxconfigmasks_e"></a>`lsm6dxxConfigMasks_e`
 
-> Source: ../../../src/main/drivers/accgyro/accgyro_lsm6dxx.h
+> Source: src/main/drivers/accgyro/accgyro_lsm6dxx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3341,7 +3657,7 @@
 ---
 ## <a id="enum-lsm6dxxconfigvalues_e"></a>`lsm6dxxConfigValues_e`
 
-> Source: ../../../src/main/drivers/accgyro/accgyro_lsm6dxx.h
+> Source: src/main/drivers/accgyro/accgyro_lsm6dxx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3395,7 +3711,7 @@
 ---
 ## <a id="enum-lsm6dxxregister_e"></a>`lsm6dxxRegister_e`
 
-> Source: ../../../src/main/drivers/accgyro/accgyro_lsm6dxx.h
+> Source: src/main/drivers/accgyro/accgyro_lsm6dxx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3433,7 +3749,7 @@
 ---
 ## <a id="enum-ltm_frame_e"></a>`ltm_frame_e`
 
-> Source: ../../../src/main/telemetry/ltm.h
+> Source: src/main/telemetry/ltm.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3449,7 +3765,7 @@
 ---
 ## <a id="enum-ltm_modes_e"></a>`ltm_modes_e`
 
-> Source: ../../../src/main/telemetry/ltm.h
+> Source: src/main/telemetry/ltm.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3479,7 +3795,7 @@
 ---
 ## <a id="enum-ltmupdaterate_e"></a>`ltmUpdateRate_e`
 
-> Source: ../../../src/main/telemetry/telemetry.h
+> Source: src/main/telemetry/telemetry.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3490,7 +3806,7 @@
 ---
 ## <a id="enum-magsensor_e"></a>`magSensor_e`
 
-> Source: ../../../src/main/sensors/compass.h
+> Source: src/main/sensors/compass.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3517,7 +3833,7 @@
 ---
 ## <a id="enum-mavlinkautopilottype_e"></a>`mavlinkAutopilotType_e`
 
-> Source: ../../../src/main/telemetry/telemetry.h
+> Source: src/main/telemetry/telemetry.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3528,7 +3844,7 @@
 ---
 ## <a id="enum-mavlinkfcdispatchresult_e"></a>`mavlinkFcDispatchResult_e`
 
-> Source: ../../../src/main/fc/fc_mavlink.h
+> Source: src/main/fc/fc_mavlink.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3539,7 +3855,7 @@
 ---
 ## <a id="enum-mavlinkradio_e"></a>`mavlinkRadio_e`
 
-> Source: ../../../src/main/telemetry/telemetry.h
+> Source: src/main/telemetry/telemetry.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3552,7 +3868,7 @@
 ---
 ## <a id="enum-measurementsteps_e"></a>`measurementSteps_e`
 
-> Source: ../../../src/main/drivers/rangefinder/rangefinder_vl53l0x.c
+> Source: src/main/drivers/rangefinder/rangefinder_vl53l0x.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3563,7 +3879,7 @@
 ---
 ## <a id="enum-mixerprofileatdirection_e"></a>`mixerProfileATDirection_e`
 
-> Source: ../../../src/main/flight/mixer_profile.h
+> Source: src/main/flight/mixer_profile.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3574,7 +3890,7 @@
 ---
 ## <a id="enum-mixerprofileatosdevent_e"></a>`mixerProfileATOsdEvent_e`
 
-> Source: ../../../src/main/flight/mixer_profile.h
+> Source: src/main/flight/mixer_profile.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3588,7 +3904,7 @@
 ---
 ## <a id="enum-mixerprofileatrequest_e"></a>`mixerProfileATRequest_e`
 
-> Source: ../../../src/main/flight/mixer_profile.h
+> Source: src/main/flight/mixer_profile.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3605,7 +3921,7 @@
 ---
 ## <a id="enum-mixerprofileatstate_e"></a>`mixerProfileATState_e`
 
-> Source: ../../../src/main/flight/mixer_profile.h
+> Source: src/main/flight/mixer_profile.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3619,7 +3935,7 @@
 ---
 ## <a id="enum-mixerprofileatwaitreason_e"></a>`mixerProfileATWaitReason_e`
 
-> Source: ../../../src/main/flight/mixer_profile.h
+> Source: src/main/flight/mixer_profile.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3631,7 +3947,7 @@
 ---
 ## <a id="enum-mixertransitionmanualsessionmode_e"></a>`mixerTransitionManualSessionMode_e`
 
-> Source: ../../../src/main/flight/mixer_transition_logic.h
+> Source: src/main/flight/mixer_transition_logic.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3642,7 +3958,7 @@
 ---
 ## <a id="enum-modeactivationoperator_e"></a>`modeActivationOperator_e`
 
-> Source: ../../../src/main/fc/rc_modes.h
+> Source: src/main/fc/rc_modes.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3652,7 +3968,7 @@
 ---
 ## <a id="enum-motorpwmprotocoltypes_e"></a>`motorPwmProtocolTypes_e`
 
-> Source: ../../../src/main/drivers/pwm_mapping.h
+> Source: src/main/drivers/pwm_mapping.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3667,7 +3983,7 @@
 ---
 ## <a id="enum-motorstatus_e"></a>`motorStatus_e`
 
-> Source: ../../../src/main/flight/mixer.h
+> Source: src/main/flight/mixer.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3678,7 +3994,7 @@
 ---
 ## <a id="enum-mpu9250compassreadstate_e"></a>`mpu9250CompassReadState_e`
 
-> Source: ../../../src/main/drivers/compass/compass_mpu9250.c
+> Source: src/main/drivers/compass/compass_mpu9250.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3689,7 +4005,7 @@
 ---
 ## <a id="enum-mspflashfsflags_e"></a>`mspFlashfsFlags_e`
 
-> Source: ../../../src/main/fc/fc_msp.c
+> Source: src/main/fc/fc_msp.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3699,7 +4015,7 @@
 ---
 ## <a id="enum-msppassthroughtype_e"></a>`mspPassthroughType_e`
 
-> Source: ../../../src/main/fc/fc_msp.c
+> Source: src/main/fc/fc_msp.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3710,7 +4026,7 @@
 ---
 ## <a id="enum-mspsdcardflags_e"></a>`mspSDCardFlags_e`
 
-> Source: ../../../src/main/fc/fc_msp.c
+> Source: src/main/fc/fc_msp.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3719,7 +4035,7 @@
 ---
 ## <a id="enum-mspsdcardstate_e"></a>`mspSDCardState_e`
 
-> Source: ../../../src/main/fc/fc_msp.c
+> Source: src/main/fc/fc_msp.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3732,7 +4048,7 @@
 ---
 ## <a id="enum-multi_function_e"></a>`multi_function_e`
 
-> Source: ../../../src/main/fc/multifunction.h
+> Source: src/main/fc/multifunction.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3748,7 +4064,7 @@
 ---
 ## <a id="enum-multifunctionflags_e"></a>`multiFunctionFlags_e`
 
-> Source: ../../../src/main/fc/multifunction.h
+> Source: src/main/fc/multifunction.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3759,7 +4075,7 @@
 ---
 ## <a id="enum-nav_control_type_e"></a>`nav_control_type_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3769,7 +4085,7 @@
 ---
 ## <a id="enum-nav_heading_control_e"></a>`nav_heading_control_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3780,7 +4096,7 @@
 ---
 ## <a id="enum-nav_loiter_type_e"></a>`nav_loiter_type_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3791,7 +4107,7 @@
 ---
 ## <a id="enum-nav_reset_type_e"></a>`nav_reset_type_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3802,7 +4118,7 @@
 ---
 ## <a id="enum-nav_rth_alt_profile_e"></a>`nav_rth_alt_profile_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3816,7 +4132,7 @@
 ---
 ## <a id="enum-nav_rth_climb_profile_e"></a>`nav_rth_climb_profile_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3826,7 +4142,7 @@
 ---
 ## <a id="enum-navaglestimatequality_e"></a>`navAGLEstimateQuality_e`
 
-> Source: ../../../src/main/navigation/navigation_pos_estimator_private.h
+> Source: src/main/navigation/navigation_pos_estimator_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3837,7 +4153,7 @@
 ---
 ## <a id="enum-navarmingblocker_e"></a>`navArmingBlocker_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3850,7 +4166,7 @@
 ---
 ## <a id="enum-navdefaultaltitudesensor_e"></a>`navDefaultAltitudeSensor_e`
 
-> Source: ../../../src/main/navigation/navigation_pos_estimator_private.h
+> Source: src/main/navigation/navigation_pos_estimator_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3862,7 +4178,7 @@
 ---
 ## <a id="enum-navextraarmingsafety_e"></a>`navExtraArmingSafety_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3872,7 +4188,7 @@
 ---
 ## <a id="enum-navfwlaunchstatus_e"></a>`navFwLaunchStatus_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3883,7 +4199,7 @@
 ---
 ## <a id="enum-navigationestimatestatus_e"></a>`navigationEstimateStatus_e`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3894,7 +4210,7 @@
 ---
 ## <a id="enum-navigationfsmevent_t"></a>`navigationFSMEvent_t`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3940,7 +4256,7 @@
 ---
 ## <a id="enum-navigationfsmstate_t"></a>`navigationFSMState_t`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -3998,7 +4314,7 @@
 ---
 ## <a id="enum-navigationfsmstateflags_t"></a>`navigationFSMStateFlags_t`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4025,7 +4341,7 @@
 ---
 ## <a id="enum-navigationhomeflags_t"></a>`navigationHomeFlags_t`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4038,7 +4354,7 @@
 ---
 ## <a id="enum-navigationpersistentid_e"></a>`navigationPersistentId_e`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4099,7 +4415,7 @@
 ---
 ## <a id="enum-navmcaltholdthrottle_e"></a>`navMcAltHoldThrottle_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4110,7 +4426,7 @@
 ---
 ## <a id="enum-navmissionrestart_e"></a>`navMissionRestart_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4121,7 +4437,7 @@
 ---
 ## <a id="enum-navmissionuseraction_e"></a>`navMissionUserAction_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4134,7 +4450,7 @@
 ---
 ## <a id="enum-navmissionvtoltransitiondisposition_e"></a>`navMissionVtolTransitionDisposition_e`
 
-> Source: ../../../src/main/navigation/navigation.c
+> Source: src/main/navigation/navigation.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4148,7 +4464,7 @@
 ---
 ## <a id="enum-navmissionvtoltransitionprecondition_e"></a>`navMissionVtolTransitionPrecondition_e`
 
-> Source: ../../../src/main/navigation/navigation_vtol_mission_logic.h
+> Source: src/main/navigation/navigation_vtol_mission_logic.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4159,7 +4475,7 @@
 ---
 ## <a id="enum-navmissionvtoltransitionstartvalidation_e"></a>`navMissionVtolTransitionStartValidation_e`
 
-> Source: ../../../src/main/navigation/navigation_vtol_mission_logic.h
+> Source: src/main/navigation/navigation_vtol_mission_logic.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4170,7 +4486,7 @@
 ---
 ## <a id="enum-navmixeratretryscanresult_e"></a>`navMixerATRetryScanResult_e`
 
-> Source: ../../../src/main/navigation/navigation.c
+> Source: src/main/navigation/navigation.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4181,7 +4497,7 @@
 ---
 ## <a id="enum-navmixeratretrystage_e"></a>`navMixerATRetryStage_e`
 
-> Source: ../../../src/main/navigation/navigation.c
+> Source: src/main/navigation/navigation.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4192,7 +4508,7 @@
 ---
 ## <a id="enum-navoverridesmotorstop_e"></a>`navOverridesMotorStop_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4204,7 +4520,7 @@
 ---
 ## <a id="enum-navpositionestimationflags_e"></a>`navPositionEstimationFlags_e`
 
-> Source: ../../../src/main/navigation/navigation_pos_estimator_private.h
+> Source: src/main/navigation/navigation_pos_estimator_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4219,7 +4535,7 @@
 ---
 ## <a id="enum-navrthallowlanding_e"></a>`navRTHAllowLanding_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4230,7 +4546,7 @@
 ---
 ## <a id="enum-navrthclimbfirst_e"></a>`navRTHClimbFirst_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4241,7 +4557,7 @@
 ---
 ## <a id="enum-navsetwaypointflags_t"></a>`navSetWaypointFlags_t`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4255,7 +4571,7 @@
 ---
 ## <a id="enum-navsystemstatus_error_e"></a>`navSystemStatus_Error_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4275,7 +4591,7 @@
 ---
 ## <a id="enum-navsystemstatus_flags_e"></a>`navSystemStatus_Flags_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4285,7 +4601,7 @@
 ---
 ## <a id="enum-navsystemstatus_mode_e"></a>`navSystemStatus_Mode_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4298,7 +4614,7 @@
 ---
 ## <a id="enum-navsystemstatus_state_e"></a>`navSystemStatus_State_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4322,7 +4638,7 @@
 ---
 ## <a id="enum-navvtolmixeratmode_e"></a>`navVtolMixerATMode_e`
 
-> Source: ../../../src/main/navigation/navigation_vtol_mission_logic.h
+> Source: src/main/navigation/navigation_vtol_mission_logic.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4336,7 +4652,7 @@
 ---
 ## <a id="enum-navvtoltransitionfailactionfwtomc_e"></a>`navVtolTransitionFailActionFwToMc_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4349,7 +4665,7 @@
 ---
 ## <a id="enum-navvtoltransitionfailactionmctofw_e"></a>`navVtolTransitionFailActionMcToFw_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4361,7 +4677,7 @@
 ---
 ## <a id="enum-navvtoltransitionosdstate_e"></a>`navVtolTransitionOsdState_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4372,7 +4688,7 @@
 ---
 ## <a id="enum-navwaypointactions_e"></a>`navWaypointActions_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4387,7 +4703,7 @@
 ---
 ## <a id="enum-navwaypointflags_e"></a>`navWaypointFlags_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4397,7 +4713,7 @@
 ---
 ## <a id="enum-navwaypointheadings_e"></a>`navWaypointHeadings_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4408,7 +4724,7 @@
 ---
 ## <a id="enum-navwaypointp3flags_e"></a>`navWaypointP3Flags_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4419,9 +4735,19 @@
 | `NAV_WP_USER4` | (1<<4) |  |
 
 ---
+## <a id="enum-nowayhomeaction"></a>`noWayHomeAction`
+
+> Source: src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NO_WAY_HOME_ACTION_RTH` | 0 |  |
+| `NO_WAY_HOME_ACTION_EMRG_LAND` | 1 |  |
+
+---
 ## <a id="enum-oledcontrollertype_e"></a>`oledControllerType_e`
 
-> Source: ../../../src/main/drivers/display_ug2864hsweg01.c
+> Source: src/main/drivers/display_ug2864hsweg01.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4434,7 +4760,7 @@
 ---
 ## <a id="enum-opflowquality_e"></a>`opflowQuality_e`
 
-> Source: ../../../src/main/sensors/opflow.h
+> Source: src/main/sensors/opflow.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4444,7 +4770,7 @@
 ---
 ## <a id="enum-opticalflowsensor_e"></a>`opticalFlowSensor_e`
 
-> Source: ../../../src/main/sensors/opflow.h
+> Source: src/main/sensors/opflow.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4456,7 +4782,7 @@
 ---
 ## <a id="enum-osd_adsb_warning_style_e"></a>`osd_adsb_warning_style_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4466,7 +4792,7 @@
 ---
 ## <a id="enum-osd_ahi_style_e"></a>`osd_ahi_style_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4476,7 +4802,7 @@
 ---
 ## <a id="enum-osd_alignment_e"></a>`osd_alignment_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4486,7 +4812,7 @@
 ---
 ## <a id="enum-osd_crosshairs_style_e"></a>`osd_crosshairs_style_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4501,7 +4827,7 @@
 ---
 ## <a id="enum-osd_crsf_lq_format_e"></a>`osd_crsf_lq_format_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4512,7 +4838,7 @@
 ---
 ## <a id="enum-osd_items_e"></a>`osd_items_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4693,7 +5019,7 @@
 ---
 ## <a id="enum-osd_sidebar_arrow_e"></a>`osd_sidebar_arrow_e`
 
-> Source: ../../../src/main/io/osd_grid.c
+> Source: src/main/io/osd_grid.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4704,7 +5030,7 @@
 ---
 ## <a id="enum-osd_sidebar_scroll_e"></a>`osd_sidebar_scroll_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4717,7 +5043,7 @@
 ---
 ## <a id="enum-osd_speedtypes_e"></a>`osd_SpeedTypes_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4729,7 +5055,7 @@
 ---
 ## <a id="enum-osd_stats_energy_unit_e"></a>`osd_stats_energy_unit_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4739,7 +5065,7 @@
 ---
 ## <a id="enum-osd_unit_e"></a>`osd_unit_e`
 
-> Source: ../../../src/main/io/osd.h
+> Source: src/main/io/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4751,9 +5077,80 @@
 | `OSD_UNIT_MAX` | OSD_UNIT_GA |  |
 
 ---
+## <a id="enum-osdcommand_e"></a>`osdCommand_e`
+
+> Source: src/main/io/frsky_osd.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `OSD_CMD_RESPONSE_ERROR` | 0 |  |
+| `OSD_CMD_INFO` | 1 |  |
+| `OSD_CMD_READ_FONT` | 2 |  |
+| `OSD_CMD_WRITE_FONT` | 3 |  |
+| `OSD_CMD_GET_CAMERA` | 4 |  |
+| `OSD_CMD_SET_CAMERA` | 5 |  |
+| `OSD_CMD_GET_ACTIVE_CAMERA` | 6 |  |
+| `OSD_CMD_GET_OSD_ENABLED` | 7 |  |
+| `OSD_CMD_SET_OSD_ENABLED` | 8 |  |
+| `OSD_CMD_TRANSACTION_BEGIN` | 16 |  |
+| `OSD_CMD_TRANSACTION_COMMIT` | 17 |  |
+| `OSD_CMD_TRANSACTION_BEGIN_PROFILED` | 18 |  |
+| `OSD_CMD_TRANSACTION_BEGIN_RESET_DRAWING` | 19 |  |
+| `OSD_CMD_DRAWING_SET_STROKE_COLOR` | 22 |  |
+| `OSD_CMD_DRAWING_SET_FILL_COLOR` | 23 |  |
+| `OSD_CMD_DRAWING_SET_STROKE_AND_FILL_COLOR` | 24 |  |
+| `OSD_CMD_DRAWING_SET_COLOR_INVERSION` | 25 |  |
+| `OSD_CMD_DRAWING_SET_PIXEL` | 26 |  |
+| `OSD_CMD_DRAWING_SET_PIXEL_TO_STROKE_COLOR` | 27 |  |
+| `OSD_CMD_DRAWING_SET_PIXEL_TO_FILL_COLOR` | 28 |  |
+| `OSD_CMD_DRAWING_SET_STROKE_WIDTH` | 29 |  |
+| `OSD_CMD_DRAWING_SET_LINE_OUTLINE_TYPE` | 30 |  |
+| `OSD_CMD_DRAWING_SET_LINE_OUTLINE_COLOR` | 31 |  |
+| `OSD_CMD_DRAWING_CLIP_TO_RECT` | 40 |  |
+| `OSD_CMD_DRAWING_CLEAR_SCREEN` | 41 |  |
+| `OSD_CMD_DRAWING_CLEAR_RECT` | 42 |  |
+| `OSD_CMD_DRAWING_RESET` | 43 |  |
+| `OSD_CMD_DRAWING_DRAW_BITMAP` | 44 |  |
+| `OSD_CMD_DRAWING_DRAW_BITMAP_MASK` | 45 |  |
+| `OSD_CMD_DRAWING_DRAW_CHAR` | 46 |  |
+| `OSD_CMD_DRAWING_DRAW_CHAR_MASK` | 47 |  |
+| `OSD_CMD_DRAWING_DRAW_STRING` | 48 |  |
+| `OSD_CMD_DRAWING_DRAW_STRING_MASK` | 49 |  |
+| `OSD_CMD_DRAWING_MOVE_TO_POINT` | 50 |  |
+| `OSD_CMD_DRAWING_STROKE_LINE_TO_POINT` | 51 |  |
+| `OSD_CMD_DRAWING_STROKE_TRIANGLE` | 52 |  |
+| `OSD_CMD_DRAWING_FILL_TRIANGLE` | 53 |  |
+| `OSD_CMD_DRAWING_FILL_STROKE_TRIANGLE` | 54 |  |
+| `OSD_CMD_DRAWING_STROKE_RECT` | 55 |  |
+| `OSD_CMD_DRAWING_FILL_RECT` | 56 |  |
+| `OSD_CMD_DRAWING_FILL_STROKE_RECT` | 57 |  |
+| `OSD_CMD_DRAWING_STROKE_ELLIPSE_IN_RECT` | 58 |  |
+| `OSD_CMD_DRAWING_FILL_ELLIPSE_IN_RECT` | 59 |  |
+| `OSD_CMD_DRAWING_FILL_STROKE_ELLIPSE_IN_RECT` | 60 |  |
+| `OSD_CMD_CTM_RESET` | 80 |  |
+| `OSD_CMD_CTM_SET` | 81 |  |
+| `OSD_CMD_CTM_TRANSLATE` | 82 |  |
+| `OSD_CMD_CTM_SCALE` | 83 |  |
+| `OSD_CMD_CTM_ROTATE` | 84 |  |
+| `OSD_CMD_CTM_ROTATE_ABOUT` | 85 |  |
+| `OSD_CMD_CTM_SHEAR` | 86 |  |
+| `OSD_CMD_CTM_SHEAR_ABOUT` | 87 |  |
+| `OSD_CMD_CTM_MULTIPLY` | 88 |  |
+| `OSD_CMD_CONTEXT_PUSH` | 100 |  |
+| `OSD_CMD_CONTEXT_POP` | 101 |  |
+| `OSD_CMD_DRAW_GRID_CHR` | 110 |  |
+| `OSD_CMD_DRAW_GRID_STR` | 111 |  |
+| `OSD_CMD_DRAW_GRID_CHR_2` | 112 |  |
+| `OSD_CMD_DRAW_GRID_STR_2` | 113 |  |
+| `OSD_CMD_WIDGET_SET_CONFIG` | 115 |  |
+| `OSD_CMD_WIDGET_DRAW` | 116 |  |
+| `OSD_CMD_WIDGET_ERASE` | 117 |  |
+| `OSD_CMD_SET_DATA_RATE` | 122 |  |
+
+---
 ## <a id="enum-osdcustomelementtype_e"></a>`osdCustomElementType_e`
 
-> Source: ../../../src/main/io/osd/custom_elements.h
+> Source: src/main/io/osd/custom_elements.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4791,7 +5188,7 @@
 ---
 ## <a id="enum-osdcustomelementtypevisibility_e"></a>`osdCustomElementTypeVisibility_e`
 
-> Source: ../../../src/main/io/osd/custom_elements.h
+> Source: src/main/io/osd/custom_elements.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4802,7 +5199,7 @@
 ---
 ## <a id="enum-osddrawpointtype_e"></a>`osdDrawPointType_e`
 
-> Source: ../../../src/main/io/osd_common.h
+> Source: src/main/io/osd_common.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4812,7 +5209,7 @@
 ---
 ## <a id="enum-osddriver_e"></a>`osdDriver_e`
 
-> Source: ../../../src/main/drivers/osd.h
+> Source: src/main/drivers/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4822,7 +5219,7 @@
 ---
 ## <a id="enum-osdspeedsource_e"></a>`osdSpeedSource_e`
 
-> Source: ../../../src/main/io/osd_common.h
+> Source: src/main/io/osd_common.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4833,7 +5230,7 @@
 ---
 ## <a id="enum-outputmode_e"></a>`outputMode_e`
 
-> Source: ../../../src/main/flight/mixer.h
+> Source: src/main/flight/mixer.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4847,7 +5244,7 @@
 ---
 ## <a id="enum-pageid_e"></a>`pageId_e`
 
-> Source: ../../../src/main/io/dashboard.h
+> Source: src/main/io/dashboard.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4856,9 +5253,23 @@
 | `PAGE_STATUS` | 2 |  |
 
 ---
+## <a id="enum-parsestate_e"></a>`parseState_e`
+
+> Source: src/main/io/ledstrip.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `X_COORDINATE` | 0 |  |
+| `Y_COORDINATE` | 1 |  |
+| `DIRECTIONS` | 2 |  |
+| `FUNCTIONS` | 3 |  |
+| `RING_COLORS` | 4 |  |
+| `PARSE_STATE_COUNT` | 5 |  |
+
+---
 ## <a id="enum-persistentobjectid_e"></a>`persistentObjectId_e`
 
-> Source: ../../../src/main/drivers/persistent.h
+> Source: src/main/drivers/persistent.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4869,7 +5280,7 @@
 ---
 ## <a id="enum-pidautotunestate_e"></a>`pidAutotuneState_e`
 
-> Source: ../../../src/main/flight/pid_autotune.c
+> Source: src/main/flight/pid_autotune.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4881,7 +5292,7 @@
 ---
 ## <a id="enum-pidcontrollerflags_e"></a>`pidControllerFlags_e`
 
-> Source: ../../../src/main/common/fp_pid.h
+> Source: src/main/common/fp_pid.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4895,7 +5306,7 @@
 ---
 ## <a id="enum-pidindex_e"></a>`pidIndex_e`
 
-> Source: ../../../src/main/flight/pid.h
+> Source: src/main/flight/pid.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4916,7 +5327,7 @@
 ---
 ## <a id="enum-pidtype_e"></a>`pidType_e`
 
-> Source: ../../../src/main/flight/pid.h
+> Source: src/main/flight/pid.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4928,7 +5339,7 @@
 ---
 ## <a id="enum-pinlabel_e"></a>`pinLabel_e`
 
-> Source: ../../../src/main/drivers/pwm_mapping.h
+> Source: src/main/drivers/pwm_mapping.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4939,7 +5350,7 @@
 ---
 ## <a id="enum-pitotsensor_e"></a>`pitotSensor_e`
 
-> Source: ../../../src/main/sensors/pitotmeter.h
+> Source: src/main/sensors/pitotmeter.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4956,7 +5367,7 @@
 ---
 ## <a id="enum-polltype_e"></a>`pollType_e`
 
-> Source: ../../../src/main/io/smartport_master.c
+> Source: src/main/io/smartport_master.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4966,7 +5377,7 @@
 ---
 ## <a id="enum-portmode_t"></a>`portMode_t`
 
-> Source: ../../../src/main/drivers/serial.h
+> Source: src/main/drivers/serial.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4977,7 +5388,7 @@
 ---
 ## <a id="enum-portoptions_t"></a>`portOptions_t`
 
-> Source: ../../../src/main/drivers/serial.h
+> Source: src/main/drivers/serial.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -4999,7 +5410,7 @@
 ---
 ## <a id="enum-portsharing_e"></a>`portSharing_e`
 
-> Source: ../../../src/main/io/serial.h
+> Source: src/main/io/serial.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5010,7 +5421,7 @@
 ---
 ## <a id="enum-pwminiterror_e"></a>`pwmInitError_e`
 
-> Source: ../../../src/main/drivers/pwm_mapping.h
+> Source: src/main/drivers/pwm_mapping.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5024,7 +5435,7 @@
 ---
 ## <a id="enum-quadrant_e"></a>`quadrant_e`
 
-> Source: ../../../src/main/io/ledstrip.c
+> Source: src/main/io/ledstrip.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5043,7 +5454,7 @@
 ---
 ## <a id="enum-quadspiclockdivider_e"></a>`QUADSPIClockDivider_e`
 
-> Source: ../../../src/main/drivers/bus_quadspi.h
+> Source: src/main/drivers/bus_quadspi.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5056,7 +5467,7 @@
 ---
 ## <a id="enum-quadspidevice"></a>`QUADSPIDevice`
 
-> Source: ../../../src/main/drivers/bus_quadspi.h
+> Source: src/main/drivers/bus_quadspi.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5066,7 +5477,7 @@
 ---
 ## <a id="enum-quadspimode_e"></a>`quadSpiMode_e`
 
-> Source: ../../../src/main/drivers/bus_quadspi.h
+> Source: src/main/drivers/bus_quadspi.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5077,7 +5488,7 @@
 ---
 ## <a id="enum-rangefindertype_e"></a>`rangefinderType_e`
 
-> Source: ../../../src/main/sensors/rangefinder.h
+> Source: src/main/sensors/rangefinder.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5097,7 +5508,7 @@
 ---
 ## <a id="enum-rc_alias_e"></a>`rc_alias_e`
 
-> Source: ../../../src/main/fc/rc_controls.h
+> Source: src/main/fc/rc_controls.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5137,9 +5548,29 @@
 | `AUX30` | (33) | USE_34CHANNELS |
 
 ---
+## <a id="enum-rcc_reg"></a>`rcc_reg`
+
+> Source: src/main/drivers/rcc.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `RCC_EMPTY` | 0 |  |
+| `RCC_AHB` | 1 |  |
+| `RCC_APB2` | 2 |  |
+| `RCC_APB1` | 3 |  |
+| `RCC_AHB1` | 4 |  |
+| `RCC_AHB2` | 5 |  |
+| `RCC_APB1L` | 6 |  |
+| `RCC_APB1H` | 7 |  |
+| `RCC_AHB3` | 8 |  |
+| `RCC_APB3` | 9 |  |
+| `RCC_AHB4` | 10 |  |
+| `RCC_APB4` | 11 |  |
+
+---
 ## <a id="enum-rcdevice_5key_connection_event_e"></a>`RCDEVICE_5key_connection_event_e`
 
-> Source: ../../../src/main/io/rcdevice.h
+> Source: src/main/io/rcdevice.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5149,7 +5580,7 @@
 ---
 ## <a id="enum-rcdevice_5key_simulation_operation_e"></a>`rcdevice_5key_simulation_operation_e`
 
-> Source: ../../../src/main/io/rcdevice.h
+> Source: src/main/io/rcdevice.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5163,7 +5594,7 @@
 ---
 ## <a id="enum-rcdevice_camera_control_opeation_e"></a>`rcdevice_camera_control_opeation_e`
 
-> Source: ../../../src/main/io/rcdevice.h
+> Source: src/main/io/rcdevice.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5177,7 +5608,7 @@
 ---
 ## <a id="enum-rcdevice_features_e"></a>`rcdevice_features_e`
 
-> Source: ../../../src/main/io/rcdevice.h
+> Source: src/main/io/rcdevice.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5192,7 +5623,7 @@
 ---
 ## <a id="enum-rcdevice_protocol_version_e"></a>`rcdevice_protocol_version_e`
 
-> Source: ../../../src/main/io/rcdevice.h
+> Source: src/main/io/rcdevice.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5203,7 +5634,7 @@
 ---
 ## <a id="enum-rcdevicecamsimulationkeyevent_e"></a>`rcdeviceCamSimulationKeyEvent_e`
 
-> Source: ../../../src/main/io/rcdevice.h
+> Source: src/main/io/rcdevice.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5220,7 +5651,7 @@
 ---
 ## <a id="enum-rcdeviceresponsestatus_e"></a>`rcdeviceResponseStatus_e`
 
-> Source: ../../../src/main/io/rcdevice.h
+> Source: src/main/io/rcdevice.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5231,7 +5662,7 @@
 ---
 ## <a id="enum-resolutiontype_e"></a>`resolutionType_e`
 
-> Source: ../../../src/main/io/displayport_msp_osd.c
+> Source: src/main/io/displayport_msp_osd.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5244,7 +5675,7 @@
 ---
 ## <a id="enum-resourceowner_e"></a>`resourceOwner_e`
 
-> Source: ../../../src/main/drivers/resource.h
+> Source: src/main/drivers/resource.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5289,7 +5720,7 @@
 ---
 ## <a id="enum-resourcetype_e"></a>`resourceType_e`
 
-> Source: ../../../src/main/drivers/resource.h
+> Source: src/main/drivers/resource.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5312,7 +5743,7 @@
 ---
 ## <a id="enum-reversiblemotorsthrottlestate_e"></a>`reversibleMotorsThrottleState_e`
 
-> Source: ../../../src/main/flight/mixer.h
+> Source: src/main/flight/mixer.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5323,7 +5754,7 @@
 ---
 ## <a id="enum-rollpitchstatus_e"></a>`rollPitchStatus_e`
 
-> Source: ../../../src/main/fc/rc_controls.h
+> Source: src/main/fc/rc_controls.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5333,7 +5764,7 @@
 ---
 ## <a id="enum-rssisource_e"></a>`rssiSource_e`
 
-> Source: ../../../src/main/rx/rx.h
+> Source: src/main/rx/rx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5347,7 +5778,7 @@
 ---
 ## <a id="enum-rthstate_e"></a>`rthState_e`
 
-> Source: ../../../src/main/flight/failsafe.h
+> Source: src/main/flight/failsafe.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5358,7 +5789,7 @@
 ---
 ## <a id="enum-rthtargetmode_e"></a>`rthTargetMode_e`
 
-> Source: ../../../src/main/navigation/navigation_private.h
+> Source: src/main/navigation/navigation_private.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5371,7 +5802,7 @@
 ---
 ## <a id="enum-rthtrackbackmode_e"></a>`rthTrackbackMode_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5382,7 +5813,7 @@
 ---
 ## <a id="enum-rxframestate_e"></a>`rxFrameState_e`
 
-> Source: ../../../src/main/rx/rx.h
+> Source: src/main/rx/rx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5395,7 +5826,7 @@
 ---
 ## <a id="enum-rxreceivertype_e"></a>`rxReceiverType_e`
 
-> Source: ../../../src/main/rx/rx.h
+> Source: src/main/rx/rx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5407,7 +5838,7 @@
 ---
 ## <a id="enum-rxserialreceivertype_e"></a>`rxSerialReceiverType_e`
 
-> Source: ../../../src/main/rx/rx.h
+> Source: src/main/rx/rx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5430,7 +5861,7 @@
 ---
 ## <a id="enum-safehomeusagemode_e"></a>`safehomeUsageMode_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5439,9 +5870,23 @@
 | `SAFEHOME_USAGE_RTH_FS` | 2 |  |
 
 ---
+## <a id="enum-saframerstate_e"></a>`saFramerState_e`
+
+> Source: src/main/io/vtx_smartaudio.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `S_WAITPRE1` | 0 |  |
+| `S_WAITPRE2` | 1 |  |
+| `S_WAITRESP` | 2 |  |
+| `S_WAITLEN` | 3 |  |
+| `S_DATA` | 4 |  |
+| `S_WAITCRC` | 5 |  |
+
+---
 ## <a id="enum-sbasmode_e"></a>`sbasMode_e`
 
-> Source: ../../../src/main/io/gps.h
+> Source: src/main/io/gps.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5456,7 +5901,7 @@
 ---
 ## <a id="enum-sbusdecoderstate_e"></a>`sbusDecoderState_e`
 
-> Source: ../../../src/main/rx/sbus.c
+> Source: src/main/rx/sbus.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5466,9 +5911,104 @@
 | `STATE_SBUS_WAIT_SYNC` | 3 |  |
 
 ---
+## <a id="enum-sd_cardstate_t"></a>`SD_CardState_t`
+
+> Source: src/main/drivers/sdcard/sdmmc_sdio_f4xx.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SD_CARD_READY` | ((uint32_t)0x00000001) |  |
+| `SD_CARD_IDENTIFICATION` | ((uint32_t)0x00000002) |  |
+| `SD_CARD_STANDBY` | ((uint32_t)0x00000003) |  |
+| `SD_CARD_TRANSFER` | ((uint32_t)0x00000004) |  |
+| `SD_CARD_SENDING` | ((uint32_t)0x00000005) |  |
+| `SD_CARD_RECEIVING` | ((uint32_t)0x00000006) |  |
+| `SD_CARD_PROGRAMMING` | ((uint32_t)0x00000007) |  |
+| `SD_CARD_DISCONNECTED` | ((uint32_t)0x00000008) |  |
+| `SD_CARD_ERROR` | ((uint32_t)0x000000FF) |  |
+
+---
+## <a id="enum-sd_cardtype_t"></a>`SD_CardType_t`
+
+> Source: src/main/drivers/sdcard/sdmmc_sdio.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SD_STD_CAPACITY_V1_1` | 0 |  |
+| `SD_STD_CAPACITY_V2_0` | 1 |  |
+| `SD_HIGH_CAPACITY` | 2 |  |
+| `SD_MULTIMEDIA` | 3 |  |
+| `SD_SECURE_DIGITAL_IO` | 4 |  |
+| `SD_HIGH_SPEED_MULTIMEDIA` | 5 |  |
+| `SD_SECURE_DIGITAL_IO_COMBO` | 6 |  |
+| `SD_HIGH_CAPACITY_MMC` | 7 |  |
+
+---
+## <a id="enum-sd_error_t"></a>`SD_Error_t`
+
+> Source: src/main/drivers/sdcard/sdmmc_sdio.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SD_CMD_CRC_FAIL` | (1) |  |
+| `SD_DATA_CRC_FAIL` | (2) |  |
+| `SD_CMD_RSP_TIMEOUT` | (3) |  |
+| `SD_DATA_TIMEOUT` | (4) |  |
+| `SD_TX_UNDERRUN` | (5) |  |
+| `SD_RX_OVERRUN` | (6) |  |
+| `SD_START_BIT_ERR` | (7) |  |
+| `SD_CMD_OUT_OF_RANGE` | (8) |  |
+| `SD_ADDR_MISALIGNED` | (9) |  |
+| `SD_BLOCK_LEN_ERR` | (10) |  |
+| `SD_ERASE_SEQ_ERR` | (11) |  |
+| `SD_BAD_ERASE_PARAM` | (12) |  |
+| `SD_WRITE_PROT_VIOLATION` | (13) |  |
+| `SD_LOCK_UNLOCK_FAILED` | (14) |  |
+| `SD_COM_CRC_FAILED` | (15) |  |
+| `SD_ILLEGAL_CMD` | (16) |  |
+| `SD_CARD_ECC_FAILED` | (17) |  |
+| `SD_CC_ERROR` | (18) |  |
+| `SD_GENERAL_UNKNOWN_ERROR` | (19) |  |
+| `SD_STREAM_READ_UNDERRUN` | (20) |  |
+| `SD_STREAM_WRITE_OVERRUN` | (21) |  |
+| `SD_CID_CSD_OVERWRITE` | (22) |  |
+| `SD_WP_ERASE_SKIP` | (23) |  |
+| `SD_CARD_ECC_DISABLED` | (24) |  |
+| `SD_ERASE_RESET` | (25) |  |
+| `SD_AKE_SEQ_ERROR` | (26) |  |
+| `SD_INVALID_VOLTRANGE` | (27) |  |
+| `SD_ADDR_OUT_OF_RANGE` | (28) |  |
+| `SD_SWITCH_ERROR` | (29) |  |
+| `SD_SDMMC_DISABLED` | (30) |  |
+| `SD_SDMMC_FUNCTION_BUSY` | (31) |  |
+| `SD_SDMMC_FUNCTION_FAILED` | (32) |  |
+| `SD_SDMMC_UNKNOWN_FUNCTION` | (33) |  |
+| `SD_OUT_OF_BOUND` | (34) |  |
+| `SD_INTERNAL_ERROR` | (35) |  |
+| `SD_NOT_CONFIGURED` | (36) |  |
+| `SD_REQUEST_PENDING` | (37) |  |
+| `SD_REQUEST_NOT_APPLICABLE` | (38) |  |
+| `SD_INVALID_PARAMETER` | (39) |  |
+| `SD_UNSUPPORTED_FEATURE` | (40) |  |
+| `SD_UNSUPPORTED_HW` | (41) |  |
+| `SD_ERROR` | (42) |  |
+| `SD_BUSY` | (43) |  |
+| `SD_OK` | (0) |  |
+
+---
+## <a id="enum-sd_operation_t"></a>`SD_Operation_t`
+
+> Source: src/main/drivers/sdcard/sdmmc_sdio_f4xx.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SD_SINGLE_BLOCK` | 0 |  |
+| `SD_MULTIPLE_BLOCK` | 1 |  |
+
+---
 ## <a id="enum-sdcardblockoperation_e"></a>`sdcardBlockOperation_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard.h
+> Source: src/main/drivers/sdcard/sdcard.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5479,7 +6019,7 @@
 ---
 ## <a id="enum-sdcardoperationstatus_e"></a>`sdcardOperationStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard.h
+> Source: src/main/drivers/sdcard/sdcard.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5491,7 +6031,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_spi.c
+> Source: src/main/drivers/sdcard/sdcard_sdio.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5502,7 +6042,7 @@
 ---
 ## <a id="enum-sdcardreceiveblockstatus_e"></a>`sdcardReceiveBlockStatus_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_sdio.c
+> Source: src/main/drivers/sdcard/sdcard_spi.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5513,7 +6053,7 @@
 ---
 ## <a id="enum-sdcardstate_e"></a>`sdcardState_e`
 
-> Source: ../../../src/main/drivers/sdcard/sdcard_impl.h
+> Source: src/main/drivers/sdcard/sdcard_impl.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5531,7 +6071,7 @@
 ---
 ## <a id="enum-sdiodevice"></a>`SDIODevice`
 
-> Source: ../../../src/main/drivers/sdio.h
+> Source: src/main/drivers/sdio.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5542,7 +6082,7 @@
 ---
 ## <a id="enum-sensor_align_e"></a>`sensor_align_e`
 
-> Source: ../../../src/main/drivers/sensor.h
+> Source: src/main/drivers/sensor.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5559,7 +6099,7 @@
 ---
 ## <a id="enum-sensorindex_e"></a>`sensorIndex_e`
 
-> Source: ../../../src/main/sensors/sensors.h
+> Source: src/main/sensors/sensors.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5575,7 +6115,7 @@
 ---
 ## <a id="enum-sensors_e"></a>`sensors_e`
 
-> Source: ../../../src/main/sensors/sensors.h
+> Source: src/main/sensors/sensors.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5593,7 +6133,7 @@
 ---
 ## <a id="enum-sensortempcalstate_e"></a>`sensorTempCalState_e`
 
-> Source: ../../../src/main/sensors/sensors.h
+> Source: src/main/sensors/sensors.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5604,7 +6144,7 @@
 ---
 ## <a id="enum-serialportfunction_e"></a>`serialPortFunction_e`
 
-> Source: ../../../src/main/io/serial.h
+> Source: src/main/io/serial.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5641,7 +6181,7 @@
 ---
 ## <a id="enum-serialportidentifier_e"></a>`serialPortIdentifier_e`
 
-> Source: ../../../src/main/io/serial.h
+> Source: src/main/io/serial.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5662,7 +6202,7 @@
 ---
 ## <a id="enum-servoautotrimstate_e"></a>`servoAutotrimState_e`
 
-> Source: ../../../src/main/flight/servos.c
+> Source: src/main/flight/servos.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5674,7 +6214,7 @@
 ---
 ## <a id="enum-servoindex_e"></a>`servoIndex_e`
 
-> Source: ../../../src/main/flight/servos.h
+> Source: src/main/flight/servos.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5696,7 +6236,7 @@
 ---
 ## <a id="enum-servoprotocoltype_e"></a>`servoProtocolType_e`
 
-> Source: ../../../src/main/drivers/pwm_mapping.h
+> Source: src/main/drivers/pwm_mapping.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5707,7 +6247,7 @@
 ---
 ## <a id="enum-setting_mode_e"></a>`setting_mode_e`
 
-> Source: ../../../src/main/fc/settings.h
+> Source: src/main/fc/settings.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5717,7 +6257,7 @@
 ---
 ## <a id="enum-setting_section_e"></a>`setting_section_e`
 
-> Source: ../../../src/main/fc/settings.h
+> Source: src/main/fc/settings.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5731,7 +6271,7 @@
 ---
 ## <a id="enum-setting_type_e"></a>`setting_type_e`
 
-> Source: ../../../src/main/fc/settings.h
+> Source: src/main/fc/settings.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5746,7 +6286,7 @@
 ---
 ## <a id="enum-simatcommandstate_e"></a>`simATCommandState_e`
 
-> Source: ../../../src/main/telemetry/sim.c
+> Source: src/main/telemetry/sim.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5757,7 +6297,7 @@
 ---
 ## <a id="enum-simmodulestate_e"></a>`simModuleState_e`
 
-> Source: ../../../src/main/telemetry/sim.c
+> Source: src/main/telemetry/sim.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5768,7 +6308,7 @@
 ---
 ## <a id="enum-simreadstate_e"></a>`simReadState_e`
 
-> Source: ../../../src/main/telemetry/sim.c
+> Source: src/main/telemetry/sim.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5779,7 +6319,7 @@
 ---
 ## <a id="enum-simtelemetrystate_e"></a>`simTelemetryState_e`
 
-> Source: ../../../src/main/telemetry/sim.c
+> Source: src/main/telemetry/sim.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5793,7 +6333,7 @@
 ---
 ## <a id="enum-simtransmissionstate_e"></a>`simTransmissionState_e`
 
-> Source: ../../../src/main/telemetry/sim.c
+> Source: src/main/telemetry/sim.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5804,7 +6344,7 @@
 ---
 ## <a id="enum-simtxflags_e"></a>`simTxFlags_e`
 
-> Source: ../../../src/main/telemetry/sim.h
+> Source: src/main/telemetry/sim.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5818,7 +6358,7 @@
 ---
 ## <a id="enum-simulatorflags_t"></a>`simulatorFlags_t`
 
-> Source: ../../../src/main/fc/runtime_config.h
+> Source: src/main/fc/runtime_config.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5842,7 +6382,7 @@
 ---
 ## <a id="enum-sitlcanmode_e"></a>`sitlCANMode_e`
 
-> Source: ../../../src/main/drivers/dronecan/libcanard/canard_sitl_driver.c
+> Source: src/main/drivers/dronecan/libcanard/canard_sitl_driver.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5852,7 +6392,7 @@
 ---
 ## <a id="enum-sliceassign_e"></a>`sliceAssign_e`
 
-> Source: ../../../src/main/drivers/pwm_output_rp2350.c
+> Source: src/main/drivers/pwm_output_rp2350.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5863,7 +6403,7 @@
 ---
 ## <a id="enum-smartaudioversion_e"></a>`smartAudioVersion_e`
 
-> Source: ../../../src/main/io/vtx_smartaudio.h
+> Source: src/main/io/vtx_smartaudio.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5875,7 +6415,7 @@
 ---
 ## <a id="enum-smartportfuelunit_e"></a>`smartportFuelUnit_e`
 
-> Source: ../../../src/main/telemetry/telemetry.h
+> Source: src/main/telemetry/telemetry.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5886,7 +6426,7 @@
 ---
 ## <a id="enum-softserialportindex_e"></a>`softSerialPortIndex_e`
 
-> Source: ../../../src/main/drivers/serial_softserial.h
+> Source: src/main/drivers/serial_softserial.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5896,7 +6436,7 @@
 ---
 ## <a id="enum-spiclockspeed_e"></a>`SPIClockSpeed_e`
 
-> Source: ../../../src/main/drivers/bus_spi.h
+> Source: src/main/drivers/bus_spi.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5909,7 +6449,7 @@
 ---
 ## <a id="enum-spidevice"></a>`SPIDevice`
 
-> Source: ../../../src/main/drivers/bus_spi.h
+> Source: src/main/drivers/bus_spi.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5922,7 +6462,7 @@
 ---
 ## <a id="enum-srxl2bindrequest"></a>`Srxl2BindRequest`
 
-> Source: ../../../src/main/rx/srxl2_types.h
+> Source: src/main/rx/srxl2_types.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5934,7 +6474,7 @@
 ---
 ## <a id="enum-srxl2bindtype"></a>`Srxl2BindType`
 
-> Source: ../../../src/main/rx/srxl2_types.h
+> Source: src/main/rx/srxl2_types.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5951,7 +6491,7 @@
 ---
 ## <a id="enum-srxl2controldatacommand"></a>`Srxl2ControlDataCommand`
 
-> Source: ../../../src/main/rx/srxl2_types.h
+> Source: src/main/rx/srxl2_types.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5962,7 +6502,7 @@
 ---
 ## <a id="enum-srxl2deviceid"></a>`Srxl2DeviceId`
 
-> Source: ../../../src/main/rx/srxl2_types.h
+> Source: src/main/rx/srxl2_types.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5973,7 +6513,7 @@
 ---
 ## <a id="enum-srxl2devicetype"></a>`Srxl2DeviceType`
 
-> Source: ../../../src/main/rx/srxl2_types.h
+> Source: src/main/rx/srxl2_types.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -5990,7 +6530,7 @@
 ---
 ## <a id="enum-srxl2packettype"></a>`Srxl2PacketType`
 
-> Source: ../../../src/main/rx/srxl2_types.h
+> Source: src/main/rx/srxl2_types.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6004,7 +6544,7 @@
 ---
 ## <a id="enum-srxl2state"></a>`Srxl2State`
 
-> Source: ../../../src/main/rx/srxl2_types.h
+> Source: src/main/rx/srxl2_types.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6017,7 +6557,7 @@
 ---
 ## <a id="enum-stateflags_t"></a>`stateFlags_t`
 
-> Source: ../../../src/main/fc/runtime_config.h
+> Source: src/main/fc/runtime_config.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6054,7 +6594,7 @@
 ---
 ## <a id="enum-stickpositions_e"></a>`stickPositions_e`
 
-> Source: ../../../src/main/fc/rc_controls.h
+> Source: src/main/fc/rc_controls.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6074,7 +6614,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.h
+> Source: src/main/fc/fc_init.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6088,7 +6628,7 @@
 ---
 ## <a id="enum-systemstate_e"></a>`systemState_e`
 
-> Source: ../../../src/main/fc/fc_init.c
+> Source: src/main/fc/fc_init.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6102,7 +6642,7 @@
 ---
 ## <a id="enum-tchdmastate_e"></a>`tchDmaState_e`
 
-> Source: ../../../src/main/drivers/timer.h
+> Source: src/main/drivers/timer.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6114,7 +6654,7 @@
 ---
 ## <a id="enum-tempsensortype_e"></a>`tempSensorType_e`
 
-> Source: ../../../src/main/sensors/temperature.h
+> Source: src/main/sensors/temperature.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6125,7 +6665,7 @@
 ---
 ## <a id="enum-throttlestatus_e"></a>`throttleStatus_e`
 
-> Source: ../../../src/main/fc/rc_controls.h
+> Source: src/main/fc/rc_controls.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6135,7 +6675,7 @@
 ---
 ## <a id="enum-throttlestatustype_e"></a>`throttleStatusType_e`
 
-> Source: ../../../src/main/fc/rc_controls.h
+> Source: src/main/fc/rc_controls.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6145,7 +6685,7 @@
 ---
 ## <a id="enum-timermode_e"></a>`timerMode_e`
 
-> Source: ../../../src/main/drivers/serial_softserial.c
+> Source: src/main/drivers/serial_softserial.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6155,7 +6695,7 @@
 ---
 ## <a id="enum-timerusageflag_e"></a>`timerUsageFlag_e`
 
-> Source: ../../../src/main/drivers/timer.h
+> Source: src/main/drivers/timer.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6172,7 +6712,7 @@
 ---
 ## <a id="enum-timid_e"></a>`timId_e`
 
-> Source: ../../../src/main/io/ledstrip.c
+> Source: src/main/io/ledstrip.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6190,7 +6730,7 @@
 ---
 ## <a id="enum-tristate_e"></a>`tristate_e`
 
-> Source: ../../../src/main/common/tristate.h
+> Source: src/main/common/tristate.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6201,7 +6741,7 @@
 ---
 ## <a id="enum-tz_automatic_dst_e"></a>`tz_automatic_dst_e`
 
-> Source: ../../../src/main/common/time.h
+> Source: src/main/common/time.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6212,7 +6752,7 @@
 ---
 ## <a id="enum-uartdevice_e"></a>`UARTDevice_e`
 
-> Source: ../../../src/main/drivers/serial_uart.h
+> Source: src/main/drivers/serial_uart.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6229,7 +6769,7 @@
 ---
 ## <a id="enum-uartinverterline_e"></a>`uartInverterLine_e`
 
-> Source: ../../../src/main/drivers/uart_inverter.h
+> Source: src/main/drivers/uart_inverter.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6240,7 +6780,7 @@
 ---
 ## <a id="enum-ublox_nav_sig_health_e"></a>`ublox_nav_sig_health_e`
 
-> Source: ../../../src/main/io/gps_ublox.h
+> Source: src/main/io/gps_ublox.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6251,7 +6791,7 @@
 ---
 ## <a id="enum-ublox_nav_sig_quality"></a>`ublox_nav_sig_quality`
 
-> Source: ../../../src/main/io/gps_ublox.h
+> Source: src/main/io/gps_ublox.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6267,7 +6807,7 @@
 ---
 ## <a id="enum-ubs_nav_fix_type_t"></a>`ubs_nav_fix_type_t`
 
-> Source: ../../../src/main/io/gps_ublox.h
+> Source: src/main/io/gps_ublox.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6281,7 +6821,7 @@
 ---
 ## <a id="enum-ubx_ack_state_t"></a>`ubx_ack_state_t`
 
-> Source: ../../../src/main/io/gps_ublox.h
+> Source: src/main/io/gps_ublox.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6292,7 +6832,7 @@
 ---
 ## <a id="enum-ubx_nav_status_bits_t"></a>`ubx_nav_status_bits_t`
 
-> Source: ../../../src/main/io/gps_ublox.h
+> Source: src/main/io/gps_ublox.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6301,7 +6841,7 @@
 ---
 ## <a id="enum-ubx_protocol_bytes_t"></a>`ubx_protocol_bytes_t`
 
-> Source: ../../../src/main/io/gps_ublox.h
+> Source: src/main/io/gps_ublox.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6343,7 +6883,7 @@
 ---
 ## <a id="enum-vcselperiodtype_e"></a>`vcselPeriodType_e`
 
-> Source: ../../../src/main/drivers/rangefinder/rangefinder_vl53l0x.c
+> Source: src/main/drivers/rangefinder/rangefinder_vl53l0x.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6351,9 +6891,20 @@
 | `VcselPeriodFinalRange` | 1 |  |
 
 ---
+## <a id="enum-video_types"></a>`VIDEO_TYPES`
+
+> Source: src/main/drivers/max7456.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `AUTO` | 0 |  |
+| `PAL` | 1 |  |
+| `NTSC` | 2 |  |
+
+---
 ## <a id="enum-videosystem_e"></a>`videoSystem_e`
 
-> Source: ../../../src/main/drivers/osd.h
+> Source: src/main/drivers/osd.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6370,7 +6921,7 @@
 ---
 ## <a id="enum-voltagesensor_e"></a>`voltageSensor_e`
 
-> Source: ../../../src/main/sensors/battery_config_structs.h
+> Source: src/main/sensors/battery_config_structs.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6387,7 +6938,7 @@
 ---
 ## <a id="enum-vs600band_e"></a>`vs600Band_e`
 
-> Source: ../../../src/main/io/smartport_master.h
+> Source: src/main/io/smartport_master.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6401,7 +6952,7 @@
 ---
 ## <a id="enum-vs600power_e"></a>`vs600Power_e`
 
-> Source: ../../../src/main/io/smartport_master.h
+> Source: src/main/io/smartport_master.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6413,7 +6964,7 @@
 ---
 ## <a id="enum-vtolmcprotectiondebugflags_e"></a>`vtolMcProtectionDebugFlags_e`
 
-> Source: ../../../src/main/navigation/navigation_vtol_mc_protection.c
+> Source: src/main/navigation/navigation_vtol_mc_protection.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6432,7 +6983,7 @@
 ---
 ## <a id="enum-vtolmcprotectionmode_e"></a>`vtolMcProtectionMode_e`
 
-> Source: ../../../src/main/fc/config.h
+> Source: src/main/fc/config.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6443,7 +6994,7 @@
 ---
 ## <a id="enum-vtxdevtype_e"></a>`vtxDevType_e`
 
-> Source: ../../../src/main/drivers/vtx_common.h
+> Source: src/main/drivers/vtx_common.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6458,7 +7009,7 @@
 ---
 ## <a id="enum-vtxfrequencygroups_e"></a>`vtxFrequencyGroups_e`
 
-> Source: ../../../src/main/drivers/vtx_common.h
+> Source: src/main/drivers/vtx_common.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6469,7 +7020,7 @@
 ---
 ## <a id="enum-vtxlowerpowerdisarm_e"></a>`vtxLowerPowerDisarm_e`
 
-> Source: ../../../src/main/io/vtx.h
+> Source: src/main/io/vtx.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6480,7 +7031,7 @@
 ---
 ## <a id="enum-vtxprotoresponsetype_e"></a>`vtxProtoResponseType_e`
 
-> Source: ../../../src/main/io/vtx_tramp.c
+> Source: src/main/io/vtx_tramp.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6491,7 +7042,7 @@
 ---
 ## <a id="enum-vtxprotostate_e"></a>`vtxProtoState_e`
 
-> Source: ../../../src/main/io/vtx_tramp.c
+> Source: src/main/io/vtx_tramp.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6506,7 +7057,7 @@
 ---
 ## <a id="enum-vtxscheduleparams_e"></a>`vtxScheduleParams_e`
 
-> Source: ../../../src/main/io/vtx.c
+> Source: src/main/io/vtx.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6518,7 +7069,7 @@
 ---
 ## <a id="enum-warningflags_e"></a>`warningFlags_e`
 
-> Source: ../../../src/main/io/ledstrip.c
+> Source: src/main/io/ledstrip.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6530,7 +7081,7 @@
 ---
 ## <a id="enum-warningledstate_e"></a>`warningLedState_e`
 
-> Source: ../../../src/main/io/statusindicator.c
+> Source: src/main/io/statusindicator.c
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6541,7 +7092,7 @@
 ---
 ## <a id="enum-widgetahioptions_t"></a>`widgetAHIOptions_t`
 
-> Source: ../../../src/main/drivers/display_widgets.h
+> Source: src/main/drivers/display_widgets.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6550,7 +7101,7 @@
 ---
 ## <a id="enum-widgetahistyle_e"></a>`widgetAHIStyle_e`
 
-> Source: ../../../src/main/drivers/display_widgets.h
+> Source: src/main/drivers/display_widgets.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6558,9 +7109,21 @@
 | `DISPLAY_WIDGET_AHI_STYLE_LINE` | 1 |  |
 
 ---
+## <a id="enum-widgetsidebaroptions_t"></a>`widgetSidebarOptions_t`
+
+> Source: src/main/drivers/display_widgets.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `DISPLAY_WIDGET_SIDEBAR_OPTION_LEFT` | 1 << 0 |  |
+| `DISPLAY_WIDGET_SIDEBAR_OPTION_REVERSE` | 1 << 1 |  |
+| `DISPLAY_WIDGET_SIDEBAR_OPTION_UNLABELED` | 1 << 2 |  |
+| `DISPLAY_WIDGET_SIDEBAR_OPTION_STATIC` | 1 << 3 |  |
+
+---
 ## <a id="enum-wpfwturnsmoothing_e"></a>`wpFwTurnSmoothing_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6571,7 +7134,7 @@
 ---
 ## <a id="enum-wpmissionplannerstatus_e"></a>`wpMissionPlannerStatus_e`
 
-> Source: ../../../src/main/navigation/navigation.h
+> Source: src/main/navigation/navigation.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|
@@ -6583,7 +7146,7 @@
 ---
 ## <a id="enum-zerocalibrationstate_e"></a>`zeroCalibrationState_e`
 
-> Source: ../../../src/main/common/calibration.h
+> Source: src/main/common/calibration.h
 
 | Enumerator | Value | Condition |
 |---|---:|---|

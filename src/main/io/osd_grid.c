@@ -300,10 +300,7 @@ static uint16_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *sid
             break;
     }
     if (offset) {
-        // Higher symbol codes draw the tick marks lower inside the character cell,
-        // so adding the steps scrolls the scale down as the value goes up. This
-        // matches a primary flight display, where climbing or accelerating brings
-        // the higher numbers down towards the center marker.
+        // Higher glyph codes draw the ticks lower, so the scale moves down as the value rises
         decoration += steps % SYM_AH_DECORATION_COUNT;
         if (decoration > SYM_AH_DECORATION_MAX) {
             decoration -= SYM_AH_DECORATION_COUNT;

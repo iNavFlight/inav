@@ -94,6 +94,7 @@ bool mavlinkHandleIncomingSetPositionTargetGlobalInt(void)
     const bool xIgnored = (typeMask & POSITION_TARGET_TYPEMASK_X_IGNORE) != 0;
     const bool yIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Y_IGNORE) != 0;
     const bool zIgnored = (typeMask & POSITION_TARGET_TYPEMASK_Z_IGNORE) != 0;
+    const bool yawIgnored = (typeMask & POSITION_TARGET_TYPEMASK_YAW_IGNORE) != 0;
 
     // Altitude-only SET_POSITION_TARGET_GLOBAL_INT mirrors MAV_CMD_DO_CHANGE_ALTITUDE semantics.
     if (xIgnored && yIgnored && !zIgnored) {
@@ -119,7 +120,18 @@ bool mavlinkHandleIncomingSetPositionTargetGlobalInt(void)
         wp.lat = msg.lat_int;
         wp.lon = msg.lon_int;
         wp.alt = zIgnored ? 0 : (int32_t)lrintf(msg.alt * 100.0f);
+        // Waypoint 255 takes its heading from P1 in whole degrees, honouring 1-359 only,
+        // which is what gives a multirotor nose-first travel to the target. Leaving P1 at
+        // zero means the aircraft translates on its existing heading, flying sideways or
+        // backwards to the point.
         wp.p1 = 0;
+        if (!yawIgnored && isfinite(msg.yaw)) {
+            int16_t headingDeg = (int16_t)lrintf(RADIANS_TO_DEGREES(msg.yaw));
+            headingDeg = (int16_t)((headingDeg % 360 + 360) % 360);
+            if (headingDeg > 0) {
+                wp.p1 = headingDeg;
+            }
+        }
         wp.p2 = 0;
         wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
         wp.flag = 0;

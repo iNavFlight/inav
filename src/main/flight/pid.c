@@ -1277,7 +1277,7 @@ float FAST_CODE pidRcCommandToRate(int16_t stick, uint8_t rate)
 static float calculateFixedWingAirspeedTPAFactor(void){
     const float airspeed = constrainf(getAirspeedEstimate(), 100.0f, 20000.0f); // cm/s, clamped to 3.6-720 km/h
     const float referenceAirspeed = pidProfile()->fixedWingReferenceAirspeed; // in cm/s
-    float tpaFactor= powf(referenceAirspeed/airspeed, currentControlProfile->throttle.apa_pow/100.0f);
+    float tpaFactor= powf_approx(referenceAirspeed/airspeed, currentControlProfile->throttle.apa_pow/100.0f);
     tpaFactor= constrainf(tpaFactor, 0.3f, 2.0f);
     return tpaFactor;
 }
@@ -1292,7 +1292,7 @@ static float calculateFixedWingAirspeedITermFactor(void){
         return 1.0f;
     }
 
-    float iTermFactor = powf(referenceAirspeed/airspeed, (apa_pow/100.0f) - 1.0f);
+    float iTermFactor = powf_approx(referenceAirspeed/airspeed, (apa_pow/100.0f) - 1.0f);
     iTermFactor = constrainf(iTermFactor, 0.3f, 1.5f);
     return iTermFactor;
 }
@@ -1348,7 +1348,7 @@ static float calculateTPAThtrottle(void)
     if (usedPidControllerType == PID_TYPE_PIFF && (currentControlProfile->throttle.fixedWingTauMs > 0)) { //fixed wing TPA with filtering
         fpVector3_t vForward = { .v = { HeadVecEFFiltered.x, -HeadVecEFFiltered.y, -HeadVecEFFiltered.z } };
         float groundCos = vectorDotProduct(&vForward, &vDown);
-        int16_t throttleAdjustment =  currentControlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / 1.57079632679f; //when 1deg pitch up, increase throttle by pitch(deg)_to_throttle. cos(89 deg)*90/(pi/2)=0.99995,cos(80 deg)*90/(pi/2)=9.9493,
+        int16_t throttleAdjustment =  currentControlProfile->throttle.tpa_pitch_compensation * groundCos * 90.0f / 1.57079632679f; //groundCos is positive while diving; this raises the virtual throttle (and so attenuates PID gains) when pitching down, since diving increases airspeed. cos(89 deg)*90/(pi/2)=0.99995,cos(80 deg)*90/(pi/2)=9.9493,
         uint16_t throttleAdjusted = rcCommand[THROTTLE] + constrain(throttleAdjustment, -1000, 1000);
         tpaThrottle = pt1FilterApply(&fixedWingTpaFilter, constrain(throttleAdjusted, 1000, 2000));
     }

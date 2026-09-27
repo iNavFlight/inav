@@ -57,6 +57,7 @@
 
 #include "common/color.h"
 #include "common/colorconversion.h"
+#include "common/maths.h"
 #include "common/utils.h"
 
 #include "drivers/io.h"
@@ -227,12 +228,12 @@ void ws2811LedStripInit(void)
     ledStripInitialised = true;
 
     /* Send an all-zeros frame to reset any previously lit strip */
-    ws2811UpdateStrip();
+    ws2811UpdateStrip(WS2811_LED_STRIP_LENGTH);
 }
 
 /* ─── Strip update ───────────────────────────────────────────────────────── */
 
-void ws2811UpdateStrip(void)
+void ws2811UpdateStrip(uint16_t usedLedCount)
 {
     if (!ledStripInitialised || ledStripDmaCh < 0) {
         return;
@@ -242,10 +243,17 @@ void ws2811UpdateStrip(void)
         return;
     }
 
+    /* Bound the transfer to the configured LED count rather than always
+     * streaming the full 128 slots. */
+    const uint16_t ledCount = MIN(usedLedCount, (uint16_t)WS2811_LED_STRIP_LENGTH);
+    if (ledCount == 0) {
+        return;
+    }
+
     /* Convert HSV → GRB.  WS2812 bit order: G[7:0] R[7:0] B[7:0], MSB first.
      * Pack into bits 31:8 of the 32-bit word; the PIO left-shifts 24 bits out
      * then autopulls the next word (bottom 8 bits are discarded). */
-    for (uint16_t i = 0; i < WS2811_LED_STRIP_LENGTH; i++) {
+    for (uint16_t i = 0; i < ledCount; i++) {
         const rgbColor24bpp_t *rgb = hsvToRgb24(&ledColorBuffer[i]);
         led_data[i] = ((uint32_t)rgb->rgb.g << 24)
                     | ((uint32_t)rgb->rgb.r << 16)
@@ -253,7 +261,7 @@ void ws2811UpdateStrip(void)
     }
 
     dma_channel_set_read_addr((uint)ledStripDmaCh, led_data, false);
-    dma_channel_set_trans_count((uint)ledStripDmaCh, WS2811_LED_STRIP_LENGTH, false);
+    dma_channel_set_trans_count((uint)ledStripDmaCh, ledCount, false);
     dma_channel_start((uint)ledStripDmaCh);
 }
 

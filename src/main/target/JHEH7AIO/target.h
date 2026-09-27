@@ -24,7 +24,7 @@
 
 #define LED0                    PC13
 
-#define BEEPER_PIN              PD15
+#define BEEPER                  PD15
 #define BEEPER_INVERTED
 
 // *************** SPI1 Gyro & ACC *******************

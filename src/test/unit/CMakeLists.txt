@@ -17,12 +17,19 @@ set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 U
 
 set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
+set_property(SOURCE compass_orientation_unittest.cc PROPERTY depends
+    "common/maths.c" "sensors/compass_orientation.c")
+set_property(SOURCE compass_orientation_unittest.cc PROPERTY definitions USE_MAG USE_MAG_CALIBRATION_ORIENTATION)
+
 set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
     "common/maths.c" "common/calibration.c" "common/filter.c"
     "drivers/accgyro/accgyro_fake.c" "flight/imu.c" "sensors/boardalignment.c"
     "sensors/gyro.c")
 
 set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")
+
+set_property(SOURCE navigation_fixedwing_turn_math_unittest.cc PROPERTY depends
+    "navigation/navigation_fixedwing_turn_math.c" "common/maths.c")
 
 set_property(SOURCE olc_unittest.cc PROPERTY depends "common/olc.c")
 
@@ -149,6 +156,10 @@ set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT
 
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY depends
+    "flight/mixer.c" "sensors/battery.c" "common/maths.c" "common/filter.c" "common/lulu.c")
+set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY definitions USE_ADC)
+
 set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
@@ -173,6 +184,9 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY extra_sources
 set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK USE_MAVLINK_MSP_TUNNEL)
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")
+
+set_property(SOURCE servos_swap_roll_yaw_unittest.cc PROPERTY depends
+    "flight/servos.c" "common/maths.c" "common/filter.c" "common/lulu.c" "programming/logic_condition.c")
 
 function(unit_test src)
     get_filename_component(basename ${src} NAME)

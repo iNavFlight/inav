@@ -335,6 +335,7 @@ static float getWindEstimatedVirtualAirspeed(void)
         fpVector3_t windCorrectedVel;
 
         // Correct nav velocities with estimated wind velocities in earth frame
+        // Z: posControl.actualState.abs.vel.z and getEstimatedWindSpeed(Z) are both NEU
         for (uint8_t axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
             windCorrectedVel.v[axis] = posControl.actualState.abs.vel.v[axis] - getEstimatedWindSpeed(axis);
         }

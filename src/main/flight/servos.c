@@ -29,6 +29,7 @@
 #include "common/filter.h"
 #include "common/maths.h"
 #include "programming/global_variables.h"
+#include "programming/logic_condition.h"
 
 #include "config/config_reset.h"
 #include "config/feature.h"
@@ -647,9 +648,9 @@ void servoMixer(float dT)
 #endif
 
     if (FLIGHT_MODE(MANUAL_MODE)) {
-        input[INPUT_STABILIZED_ROLL] = rcCommand[ROLL];
-        input[INPUT_STABILIZED_PITCH] = rcCommand[PITCH];
-        input[INPUT_STABILIZED_YAW] = rcCommand[YAW];
+        input[INPUT_STABILIZED_ROLL] = getRcCommandOverride(rcCommand, FD_ROLL);
+        input[INPUT_STABILIZED_PITCH] = getRcCommandOverride(rcCommand, FD_PITCH);
+        input[INPUT_STABILIZED_YAW] = getRcCommandOverride(rcCommand, FD_YAW);
     } else {
         // Assisted modes (gyro only or gyro+acc according to AUX configuration in Gui
         input[INPUT_STABILIZED_ROLL] = axisPID[ROLL];
@@ -725,9 +726,14 @@ void servoMixer(float dT)
     // 1500 - 1500 = 0
     // 1000 - 1500 = -500
 #define GET_RX_CHANNEL_INPUT(x) (rxGetChannelValue(x) - PWM_RANGE_MIDDLE)
-    input[INPUT_RC_ROLL]     = GET_RX_CHANNEL_INPUT(ROLL);
-    input[INPUT_RC_PITCH]    = GET_RX_CHANNEL_INPUT(PITCH);
-    input[INPUT_RC_YAW]      = GET_RX_CHANNEL_INPUT(YAW);
+    int16_t rcRollPitchYaw[3] = {
+        GET_RX_CHANNEL_INPUT(ROLL),
+        GET_RX_CHANNEL_INPUT(PITCH),
+        GET_RX_CHANNEL_INPUT(YAW),
+    };
+    input[INPUT_RC_ROLL]     = getRcCommandOverride(rcRollPitchYaw, FD_ROLL);
+    input[INPUT_RC_PITCH]    = getRcCommandOverride(rcRollPitchYaw, FD_PITCH);
+    input[INPUT_RC_YAW]      = getRcCommandOverride(rcRollPitchYaw, FD_YAW);
     input[INPUT_RC_THROTTLE] = GET_RX_CHANNEL_INPUT(THROTTLE);
     input[INPUT_RC_CH5]      = GET_RX_CHANNEL_INPUT(AUX1);
     input[INPUT_RC_CH6]      = GET_RX_CHANNEL_INPUT(AUX2);
