@@ -85,9 +85,26 @@ static volatile uint16_t i2cErrorCount = 0;
 #define I2C_DEFAULT_TIMEOUT     (I2C_TIMEOUT*288 / 1000  )
 //#define I2C_DEFAULT_TIMEOUT     (0xD80)
 
+typedef enum {
+    I2C_ASYNC_STEP_NONE = 0,
+    I2C_ASYNC_STEP_REGISTER,        // the address went out: the register goes next
+    I2C_ASYNC_STEP_RESTART,         // the register went out: start again for reading
+    I2C_ASYNC_STEP_RECEIVE,
+    I2C_ASYNC_STEP_STOP,
+} i2cAsyncStep_e;
+
 typedef struct {
     bool initialised;
     i2c_handle_type handle;
+    // A read started by i2cReadAsync(), stepped from the main loop
+    i2cAsyncStep_e asyncStep;
+    uint8_t asyncAddr;
+    uint8_t asyncReg;
+    uint8_t asyncLen;
+    uint8_t *asyncBuf;
+    i2cAsyncState_e asyncState;
+    timeUs_t asyncProgressUs;
+    timeUs_t asyncLookUs;
 } i2cState_t;
 
 static i2cState_t i2cState[I2CDEV_COUNT];
@@ -138,6 +155,16 @@ static bool i2cHandleHardwareFailure(I2CDevice device)
     return false;
 }
 
+static void i2cAsyncUpdate(I2CDevice device);
+
+// Or i2c_memory_read() and the others find the bus busy and reinitialise it mid-transfer
+static void i2cAsyncDrain(I2CDevice device)
+{
+    while (i2cState[device].asyncStep != I2C_ASYNC_STEP_NONE) {
+        i2cAsyncUpdate(device);
+    }
+}
+
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
 {
     if (device == I2CINVALID)
@@ -147,6 +174,8 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
 
     if (!state->initialised)
         return false;
+
+    i2cAsyncDrain(device);
  
     i2c_status_type status;
 
@@ -200,6 +229,8 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
     if (!state->initialised)
         return false;
 
+    i2cAsyncDrain(device);
+
     //HAL_StatusTypeDef status;
     i2c_status_type status;
     if (reg_ == 0xFF && allowRawAccess) { 
@@ -233,6 +264,155 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
 
     return true;
 }
+
+#ifdef USE_I2C_ASYNC
+// The steps of i2c_memory_read(), each taken when its flag is up. SCL is held low while the
+// peripheral waits, so a late step only makes the transfer longer
+
+// A longer gap between looks means the main loop was busy, not the transfer stuck
+#define I2C_ASYNC_LOOK_GAP_US   1000
+
+#define I2C_ASYNC_ERROR_FLAGS   (I2C_ACKFAIL_FLAG | I2C_BUSERR_FLAG | I2C_ARLOST_FLAG)
+
+static void i2cAsyncFinish(I2CDevice device, bool ok)
+{
+    i2cState_t *state = &i2cState[device];
+
+    state->asyncStep = I2C_ASYNC_STEP_NONE;
+    state->asyncState = ok ? I2C_ASYNC_OK : I2C_ASYNC_FAILED;
+    if (!ok) {
+        // As after a blocking transfer that fails, NACK included
+        i2cHandleHardwareFailure(device);
+    }
+}
+
+static void i2cAsyncUpdate(I2CDevice device)
+{
+    i2cState_t *state = &i2cState[device];
+    i2c_type *i2cx = state->handle.i2cx;
+    bool moved = false;
+
+    if (state->asyncStep == I2C_ASYNC_STEP_NONE) {
+        return;
+    }
+
+    if (i2c_flag_get(i2cx, I2C_ASYNC_ERROR_FLAGS) != RESET) {
+        i2cAsyncFinish(device, false);
+        return;
+    }
+
+    switch (state->asyncStep) {
+    case I2C_ASYNC_STEP_REGISTER:
+        if (i2c_flag_get(i2cx, I2C_TDIS_FLAG) != RESET) {
+            i2c_data_send(i2cx, state->asyncReg);
+            state->asyncStep = I2C_ASYNC_STEP_RESTART;
+            moved = true;
+        }
+        break;
+    case I2C_ASYNC_STEP_RESTART:
+        if (i2c_flag_get(i2cx, I2C_TDC_FLAG) != RESET) {
+            i2c_transmit_set(i2cx, state->asyncAddr << 1, state->asyncLen, I2C_AUTO_STOP_MODE, I2C_GEN_START_READ);
+            state->asyncStep = I2C_ASYNC_STEP_RECEIVE;
+            moved = true;
+        }
+        break;
+    case I2C_ASYNC_STEP_RECEIVE:
+        while (state->asyncLen && i2c_flag_get(i2cx, I2C_RDBF_FLAG) != RESET) {
+            *state->asyncBuf++ = i2c_data_receive(i2cx);
+            state->asyncLen--;
+            moved = true;
+        }
+        if (!state->asyncLen) {
+            // The stop counts only after the last byte: it can come up before that byte is read
+            state->asyncStep = I2C_ASYNC_STEP_STOP;
+        }
+        break;
+    case I2C_ASYNC_STEP_STOP:
+        if (i2c_flag_get(i2cx, I2C_STOPF_FLAG) != RESET) {
+            i2c_flag_clear(i2cx, I2C_STOPF_FLAG);
+            i2c_reset_ctrl2_register(&state->handle);
+            i2cAsyncFinish(device, true);
+            return;
+        }
+        break;
+    default:
+        break;
+    }
+
+    const timeUs_t now = micros();
+    if (moved || cmpTimeUs(now, state->asyncLookUs) > I2C_ASYNC_LOOK_GAP_US) {
+        state->asyncProgressUs = now;
+    } else if (cmpTimeUs(now, state->asyncProgressUs) > I2C_TIMEOUT) {
+        i2cAsyncFinish(device, false);
+        return;
+    }
+    state->asyncLookUs = now;
+}
+
+bool i2cReadAsync(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t *buf, bool allowRawAccess)
+{
+    if (device == I2CINVALID || !i2cState[device].initialised || len == 0) {
+        return false;
+    }
+
+    i2cState_t *state = &i2cState[device];
+    i2cAsyncUpdate(device);
+    if (state->asyncStep != I2C_ASYNC_STEP_NONE) {
+        return false;
+    }
+
+    i2c_type *i2cx = state->handle.i2cx;
+    state->asyncAddr = addr_;
+    if (i2c_flag_get(i2cx, I2C_BUSYF_FLAG) != RESET) {
+        // The bus is held, as a blocking transfer would have found after waiting
+        state->asyncState = I2C_ASYNC_FAILED;
+        return i2cHandleHardwareFailure(device);
+    }
+
+    state->asyncReg = reg_;
+    state->asyncLen = len;
+    state->asyncBuf = buf;
+
+    if (reg_ == 0xFF && allowRawAccess) {
+        i2c_transmit_set(i2cx, addr_ << 1, len, I2C_AUTO_STOP_MODE, I2C_GEN_START_READ);
+        state->asyncStep = I2C_ASYNC_STEP_RECEIVE;
+    } else {
+        // The register alone, then a restart for reading
+        i2c_transmit_set(i2cx, addr_ << 1, 1, I2C_SOFT_STOP_MODE, I2C_GEN_START_WRITE);
+        state->asyncStep = I2C_ASYNC_STEP_REGISTER;
+    }
+
+    state->asyncState = I2C_ASYNC_BUSY;
+    state->asyncProgressUs = micros();
+    state->asyncLookUs = state->asyncProgressUs;
+    return true;
+}
+
+i2cAsyncState_e i2cAsyncState(I2CDevice device, uint8_t addr_)
+{
+    if (device == I2CINVALID) {
+        return I2C_ASYNC_FAILED;
+    }
+
+    i2cAsyncUpdate(device);
+    const i2cState_t *state = &i2cState[device];
+    return state->asyncAddr == addr_ ? state->asyncState : I2C_ASYNC_IDLE;
+}
+
+void i2cAsyncPoll(void)
+{
+    for (unsigned i = 0; i < ARRAYLEN(i2cState); i++) {
+        if (i2cState[i].initialised) {
+            i2cAsyncUpdate(i);
+        }
+    }
+}
+#else
+static void i2cAsyncUpdate(I2CDevice device)
+{
+    (void)device;
+}
+#endif
 
 /*
  * Compute SCLDEL, SDADEL, SCLH and SCLL for TIMINGR register according to reference manuals.

@@ -266,21 +266,35 @@ typedef enum {
     BAROMETER_NEEDS_CALCULATION
 } barometerState_e;
 
+#define BARO_ASYNC_POLL_US  500
+
+static bool baroPolling;
+
+// The last baroUpdate() only looked at a read on its way: no new sample
+bool baroIsPolling(void)
+{
+    return baroPolling;
+}
+
 uint32_t baroUpdate(void)
 {
     static barometerState_e state = BAROMETER_NEEDS_SAMPLES;
 
+    baroPolling = false;
+
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-        return 0;
+        // 0 keeps the task's period, which could be a poll's
+        return baro.dev.asyncRead ? baro.dev.up_delay : 0;
     }
 #endif
 
     switch (state) {
         default:
         case BAROMETER_NEEDS_SAMPLES:
-            if (baro.dev.get_ut) {
-                baro.dev.get_ut(&baro.dev);
+            if (baro.dev.get_ut && !baro.dev.get_ut(&baro.dev) && baro.dev.asyncRead) {
+                baroPolling = true;
+                return BARO_ASYNC_POLL_US;
             }
             if (baro.dev.start_up) {
                 baro.dev.start_up(&baro.dev);
@@ -290,8 +304,9 @@ uint32_t baroUpdate(void)
         break;
 
         case BAROMETER_NEEDS_CALCULATION:
-            if (baro.dev.get_up) {
-                baro.dev.get_up(&baro.dev);
+            if (baro.dev.get_up && !baro.dev.get_up(&baro.dev) && baro.dev.asyncRead) {
+                baroPolling = true;
+                return BARO_ASYNC_POLL_US;
             }
             if (baro.dev.start_ut) {
                 baro.dev.start_ut(&baro.dev);
@@ -299,7 +314,8 @@ uint32_t baroUpdate(void)
             //output: baro.baroPressure, baro.baroTemperature
             baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
             state = BAROMETER_NEEDS_SAMPLES;
-            return baro.dev.ut_delay;
+            // 0 would keep the poll's period
+            return (baro.dev.asyncRead && !baro.dev.ut_delay) ? baro.dev.up_delay : baro.dev.ut_delay;
         break;
     }
 }

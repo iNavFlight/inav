@@ -205,7 +205,10 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
         rescheduleTask(TASK_SELF, newDeadline);
     }
 
-    updatePositionEstimator_BaroTopic(currentTimeUs);
+    // A run that only looked at a read on its way brings nothing new
+    if (!baroIsPolling()) {
+        updatePositionEstimator_BaroTopic(currentTimeUs);
+    }
 }
 #endif
 
