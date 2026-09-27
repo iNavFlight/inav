@@ -60,23 +60,28 @@
 #endif
 
 #if defined(AT32F43x)
+    /*
+     * Every SPI here divides the same 144 MHz: system_clock_config() runs the PLL at 288 MHz and
+     * divides both APB1 (SPI2, SPI3) and APB2 (SPI1, SPI4) by 2. So the two tables give the same
+     * rates, except that SPI2-4 stay at 18 MHz for ULTRAFAST.
+     */
     #if defined(USE_SPI_DEVICE_1)
     static const uint32_t spiDivisorMapFast[] = {
-        SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      328.125 KBits/s
-        SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               656.25 KBits/s
-        SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           10.5 MBits/s
-        SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               21.0 MBits/s
-        SPI_MCLK_DIV_4        // SPI_CLOCK_ULTRAFAST          42.0 MBits/s
+        SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      562.5 KBits/s
+        SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               1.125 MBits/s
+        SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           9.0 MBits/s
+        SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               18.0 MBits/s
+        SPI_MCLK_DIV_4        // SPI_CLOCK_ULTRAFAST          36.0 MBits/s
     };
     #endif
 
     #if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3)
     static const uint32_t spiDivisorMapSlow[] = {
-        SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      164.062 KBits/s
-        SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               656.25 KBits/s
-        SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           10.5 MBits/s
-        SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               21.0 MBits/s
-        SPI_MCLK_DIV_8        // SPI_CLOCK_ULTRAFAST          21.0 MBits/s
+        SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      562.5 KBits/s
+        SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               1.125 MBits/s
+        SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           9.0 MBits/s
+        SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               18.0 MBits/s
+        SPI_MCLK_DIV_8        // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
     };
     #endif
 
