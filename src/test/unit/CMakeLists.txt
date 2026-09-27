@@ -156,6 +156,10 @@ set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT
 
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY depends
+    "flight/mixer.c" "sensors/battery.c" "common/maths.c" "common/filter.c" "common/lulu.c")
+set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY definitions USE_ADC)
+
 set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)

@@ -244,10 +244,24 @@ void mixerInit(void)
         motorYawMultiplier = 1;
     }
 
+    mixerUpdateThrottleRateLimit();
+}
+
+void mixerUpdateThrottleRateLimit(void)
+{
     if (currentBatteryProfile->motor.throttleRateLimiter) {
         throttleRateLimit = (PWM_RANGE_MAX - PWM_RANGE_MIN) / MS2S(currentBatteryProfile->motor.throttleRateLimiter);
+    } else {
+        throttleRateLimit = 0.0f;
     }
 }
+
+#ifdef UNIT_TEST
+float mixerGetThrottleRateLimit(void)
+{
+    return throttleRateLimit;
+}
+#endif
 
 void mixerResetDisarmedMotors(void)
 {
