@@ -869,6 +869,13 @@ void updateLandingStatus(timeMs_t currentTimeMs);
 bool isProbablyStillFlying(void);
 void resetLandingDetectorActiveState(void);
 
+/* Fixed-wing flight-state latch: generalized takeoff/landing detectors
+ * driving a FLYING/NOT_FLYING state, independent of GPS heading validity.
+ * See #11644. */
+void updateFwFlightDetector(void);
+bool fwFlightLatchIsFlying(void);
+int8_t fwFlightTally(void);
+
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
 int32_t navigationGetHeadingError(void);

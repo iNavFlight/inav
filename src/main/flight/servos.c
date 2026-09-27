@@ -59,6 +59,8 @@
 
 #include "io/gps.h"
 
+#include "navigation/navigation.h"
+
 #include "rx/rx.h"
 
 #include "sensors/gyro.h"
@@ -1027,7 +1029,10 @@ void processContinuousServoAutotrim(const float dT)
                 planeIsFlyingLevel &&
                 sticksAreCentered &&
                 !FLIGHT_MODE(MANUAL_MODE) &&
-                isGPSHeadingValid() // TODO: proper flying detection
+                // High confidence bar: skipping a trim cycle is cheap, trimming on a
+                // false-positive isn't. Requires the flight-state latch plus a tally
+                // strong enough that no single weak signal alone can satisfy it (#11644).
+                fwFlightLatchIsFlying() && fwFlightTally() >= 5
             ) {
                 // Plane is flying straight and level: trim servos
                 for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {

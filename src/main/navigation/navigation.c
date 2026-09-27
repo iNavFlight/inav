@@ -5081,7 +5081,11 @@ void resetLandingDetectorActiveState(void)
 
 bool isFlightDetected(void)
 {
-    return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();
+    /* FW: reads the raw signal tally rather than isFixedWingFlying(),
+     * to avoid using the landing detector's own output to cancel itself -
+     * isFixedWingFlying() remains unchanged for its other caller
+     * (navigation_fw_launch.c's isProbablyNotFlying()). See #11644. */
+    return STATE(AIRPLANE) ? (fwFlightTally() >= 3) : isMulticopterFlying();
 }
 
 bool isProbablyStillFlying(void)
@@ -5090,7 +5094,12 @@ bool isProbablyStillFlying(void)
     if (STATE(MULTIROTOR)) {
         inFlightSanityCheck = posControl.actualState.velXY > MC_LAND_CHECK_VEL_XY_MOVING || averageAbsGyroRates() > 4.0f;
     } else {
-        inFlightSanityCheck = isGPSHeadingValid() || posControl.actualState.vel3D > 300;
+        /* isGPSHeadingValid()/vel3D alone still both read false throughout
+         * some GPS-loss dead-reckoning cases, blocking IN_FLIGHT_EMERG_REARM
+         * exactly when GPS loss caused the situation needing it (#11644).
+         * Fall back further to the flight-state latch and the signal tally. */
+        inFlightSanityCheck = fwFlightLatchIsFlying() || isGPSHeadingValid() ||
+            posControl.actualState.vel3D > 300 || fwFlightTally() >= 1;
     }
 
     return landingDetectorIsActive && inFlightSanityCheck;
@@ -6072,10 +6081,20 @@ void checkManualEmergencyLandingControl(bool forcedActivation)
     }
 }
 
+/* Live, unrevalidated-cache-free replacement for the removed
+ * `canActivateLaunchMode` static bool (#11644): that cache was computed only
+ * while disarmed and consumed later without revalidation, so a stale
+ * "safe to launch" snapshot from before GPS loss could survive an
+ * IN_FLIGHT_EMERG_REARM mid-flight and force NAV_LAUNCH_MODE entry while
+ * genuinely airborne. Computed fresh every call instead - nothing is cached
+ * across an arm/disarm transition. */
+static bool canActivateLaunchModeNow(void)
+{
+    return isNavLaunchEnabled() && !fwFlightLatchIsFlying() && fwFlightTally() <= 0;
+}
+
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 {
-    static bool canActivateLaunchMode = false;
-
     //We can switch modes only when ARMED
     if (ARMING_FLAG(ARMED)) {
         // Ask failsafe system if we can use navigation system
@@ -6140,8 +6159,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         if (STATE(AIRPLANE)) {
             // LAUNCH mode has priority over any other NAV mode
             if (isNavLaunchEnabled()) {     // FIXME: Only available for fixed wing aircrafts now
-                if (canActivateLaunchMode) {
-                    canActivateLaunchMode = false;
+                if (canActivateLaunchModeNow()) {
                     return NAV_FSM_EVENT_SWITCH_TO_LAUNCH;
                 }
                 else if FLIGHT_MODE(NAV_LAUNCH_MODE) {
@@ -6299,9 +6317,6 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             if ((FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_ALTHOLD;
         }
-    } else {
-        // Launch mode can be activated if feature FW_LAUNCH is enabled or BOX is turned on prior to arming (avoid switching to LAUNCH in flight)
-        canActivateLaunchMode = isNavLaunchEnabled() && (!sensors(SENSOR_GPS) || (sensors(SENSOR_GPS) && !isGPSHeadingValid()));
     }
 
     return NAV_FSM_EVENT_SWITCH_TO_IDLE;
@@ -6548,6 +6563,13 @@ void updateWaypointsAndNavigationMode(void)
 
     // Update flight behaviour modifiers
     updateFlightBehaviorModifiers();
+
+    // Update the FW flight-state latch/tally before anything below consults
+    // it (runs regardless of arm state - selectNavEventFromBoxModeInput()'s
+    // disarmed branch needs a fresh value, not a stale cache, see #11644)
+    if (STATE(AIRPLANE)) {
+        updateFwFlightDetector();
+    }
 
     // Process switch to a different navigation mode (if needed)
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
