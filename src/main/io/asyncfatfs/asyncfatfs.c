@@ -3751,7 +3751,9 @@ uint32_t afatfs_getFreeBufferSpace(void)
 {
     uint32_t result = 0;
     for (int i = 0; i < AFATFS_NUM_CACHE_SECTORS; i++) {
-        if (!afatfs.cacheDescriptor[i].locked && (afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_EMPTY || afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_IN_SYNC)) {
+        // A retained sector is never evicted (see afatfs_allocateCacheSector()): no room to write
+        if (!afatfs.cacheDescriptor[i].locked && afatfs.cacheDescriptor[i].retainCount == 0
+            && (afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_EMPTY || afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_IN_SYNC)) {
             result += AFATFS_SECTOR_SIZE;
         }
     }
