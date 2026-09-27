@@ -940,8 +940,11 @@ static void blackboxSetState(BlackboxState newState)
     blackboxState = newState;
 
 #ifdef USE_DUAL_GYRO
-    // The second gyro is read only for the log, so only while there is one
-    gyroSetSecondaryLogging(newState > BLACKBOX_STATE_STOPPED);
+    // The second gyro is read only for the log, so only while frames are being written.
+    // Every other state above STOPPED, the headers, a log paused from the switch, and
+    // the shutdown, writes no main frame, so a reading taken there goes nowhere and the
+    // transaction on the bus is spent for nothing
+    gyroSetSecondaryLogging(newState == BLACKBOX_STATE_RUNNING);
 #endif
 }
 
