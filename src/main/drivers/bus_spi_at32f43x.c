@@ -63,12 +63,8 @@
 #endif
 
 #if defined(AT32F43x)
-    /*
-     * Every SPI here divides the same 144 MHz: system_clock_config() runs the PLL at 288 MHz and
-     * divides both APB1 (SPI2, SPI3) and APB2 (SPI1, SPI4) by 2. So the two tables give the same
-     * rates, except that SPI2-4 stay at 18 MHz for ULTRAFAST. INITIALIZATION stays under the
-     * 400 kHz an SD card allows until it is identified.
-     */
+    // Both APB1 and APB2 run at 144 MHz (PLL 288 MHz / 2), so both tables divide the same clock.
+    // INITIALIZATION stays under the 400 kHz an SD card allows before identification
     #if defined(USE_SPI_DEVICE_1)
     static const uint32_t spiDivisorMapFast[] = {
         SPI_MCLK_DIV_512,     // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
@@ -309,8 +305,7 @@ void spiSetSpeed(spi_type *instance, SPIClockSpeed_e speed)
     // instance->ctrl1 = tempRegister | (spiHardwareMap[device].divisorMap[speed] << 3);
     // #undef BR_BITS
 
-    // Dividers up to 256 fit in ctrl1's mdiv_l; 512 and 1024 also set ctrl2's mdiv_h, as the
-    // vendor's spi_init() does. No table uses the divide-by-3 mode (mdiv3en)
+    // Dividers above 256 also need ctrl2's mdiv_h, as in the vendor's spi_init()
     const uint32_t divisor = spiHardwareMap[device].divisorMap[speed];
     instance->ctrl2_bit.mdiv3en = FALSE;
     instance->ctrl2_bit.mdiv_h = (divisor > SPI_MCLK_DIV_256);
