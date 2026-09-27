@@ -1741,7 +1741,7 @@ TEST(MavlinkTelemetryTest, MissionClearAllAcksAndResets)
     EXPECT_EQ(ack.mission_type, MAV_MISSION_TYPE_MISSION);
 }
 
-TEST(MavlinkTelemetryTest, MissionClearAllRestoresPreviousMissionOnPersistFailure)
+TEST(MavlinkTelemetryTest, MissionClearAllReportsErrorOnPersistFailure)
 {
     initMavlinkTestState();
 
@@ -1768,12 +1768,12 @@ TEST(MavlinkTelemetryTest, MissionClearAllRestoresPreviousMissionOnPersistFailur
     mavlink_mission_ack_t ack;
     mavlink_msg_mission_ack_decode(&ackMsg, &ack);
 
+    // The mission is cleared in RAM regardless of whether the flash save
+    // succeeded; the ack still reports MAV_MISSION_ERROR so the GCS knows the
+    // clear did not survive a reboot.
     EXPECT_EQ(ack.type, MAV_MISSION_ERROR);
-    EXPECT_EQ(waypointCount, 1);
-    EXPECT_EQ(waypointStore[0].lat, 365304400);
-    EXPECT_EQ(waypointStore[0].lon, -832163830);
-    EXPECT_EQ(waypointStore[0].alt, 1234);
-    EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
+    EXPECT_EQ(resetWaypointCalls, 1);
+    EXPECT_EQ(waypointCount, 0);
 }
 
 TEST(MavlinkTelemetryTest, MissionCountRequestsFirstItem)
@@ -1799,7 +1799,7 @@ TEST(MavlinkTelemetryTest, MissionCountRequestsFirstItem)
     EXPECT_EQ(req.mission_type, MAV_MISSION_TYPE_MISSION);
 }
 
-TEST(MavlinkTelemetryTest, MissionCountZeroRestoresPreviousMissionOnPersistFailure)
+TEST(MavlinkTelemetryTest, MissionCountZeroReportsErrorOnPersistFailure)
 {
     initMavlinkTestState();
 
@@ -1825,11 +1825,118 @@ TEST(MavlinkTelemetryTest, MissionCountZeroRestoresPreviousMissionOnPersistFailu
     mavlink_mission_ack_t ack;
     mavlink_msg_mission_ack_decode(&ackMsg, &ack);
 
+    // Cleared in RAM even though the flash save failed - see
+    // MissionClearAllReportsErrorOnPersistFailure above.
     EXPECT_EQ(ack.type, MAV_MISSION_ERROR);
+    EXPECT_EQ(waypointCount, 0);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadRejectedWhileWpModeStaleAfterDisarm)
+{
+    initMavlinkTestState();
+
+    // Pre-existing mission that must survive an upload landing in the window
+    // after disarm but before the nav task has cleared NAV_WP_MODE: ARMED is
+    // already false (mavlinkHandleIncomingMissionCount's own gate would
+    // otherwise reject this), but the flight-mode flag is stale-true because
+    // disarm() does not clear it synchronously.
+    waypointCount = 1;
+    waypointStore[0].action = NAV_WP_ACTION_WAYPOINT;
+    waypointStore[0].lat = 365304400;
+    waypointStore[0].lon = -832163830;
+    waypointStore[0].alt = 1234;
+    waypointStore[0].flag = NAV_WP_FLAG_LAST;
+    flightModeFlags = NAV_WP_MODE;
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    serialTxLen = 0;
+
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_MISSION_ACK);
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.type, MAV_MISSION_INVALID);
+    // The old mission must never be touched: resetWaypointList() must not
+    // even be called once the FLIGHT_MODE(NAV_WP_MODE) guard rejects the
+    // commit.
+    EXPECT_EQ(resetWaypointCalls, 0);
     EXPECT_EQ(waypointCount, 1);
-    EXPECT_EQ(waypointStore[0].action, NAV_WP_ACTION_LAND);
     EXPECT_EQ(waypointStore[0].lat, 365304400);
     EXPECT_EQ(waypointStore[0].lon, -832163830);
+    EXPECT_EQ(waypointStore[0].alt, 1234);
+    EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadWithNoStoredWaypointsRejectedWhileWpModeStaleAfterDisarm)
+{
+    initMavlinkTestState();
+
+    // An upload whose only item is a DO_CHANGE_SPEED resolves to zero staged
+    // waypoints and would otherwise take the mavlinkClearPersistedMission()
+    // path unconditionally - that path must still be blocked by the
+    // FLIGHT_MODE(NAV_WP_MODE) guard, the same as a normal upload, since the
+    // GCS asked for an upload here, not an explicit MISSION_CLEAR_ALL.
+    waypointCount = 1;
+    waypointStore[0].action = NAV_WP_ACTION_WAYPOINT;
+    waypointStore[0].lat = 365304400;
+    waypointStore[0].lon = -832163830;
+    waypointStore[0].alt = 1234;
+    waypointStore[0].flag = NAV_WP_FLAG_LAST;
+    flightModeFlags = NAV_WP_MODE;
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    serialTxLen = 0;
+
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_MISSION,
+        MAV_CMD_DO_CHANGE_SPEED, 0, 1,
+        0, -1, 0, 0,
+        0, 0, 0,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(popTxMessage(&ackMsg));
+    ASSERT_EQ(ackMsg.msgid, MAVLINK_MSG_ID_MISSION_ACK);
+
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+
+    EXPECT_EQ(ack.type, MAV_MISSION_INVALID);
+    EXPECT_EQ(resetWaypointCalls, 0);
+    EXPECT_EQ(waypointCount, 1);
+    EXPECT_EQ(waypointStore[0].lat, 365304400);
+    EXPECT_EQ(waypointStore[0].lon, -832163830);
+    EXPECT_EQ(waypointStore[0].alt, 1234);
     EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
 }
 
@@ -3304,7 +3411,7 @@ TEST(MavlinkTelemetryTest, MissionUploadCancelAckResetsTransfer)
     EXPECT_EQ(setWaypointCalls, 0);
 }
 
-TEST(MavlinkTelemetryTest, MissionUploadRestoresPreviousMissionOnPersistFailure)
+TEST(MavlinkTelemetryTest, MissionUploadReportsErrorOnPersistFailure)
 {
     initMavlinkTestState();
 
@@ -3341,11 +3448,14 @@ TEST(MavlinkTelemetryTest, MissionUploadRestoresPreviousMissionOnPersistFailure)
 
     mavlink_mission_ack_t ack;
     mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    // The new mission is committed to RAM before the flash save is attempted,
+    // so a persist failure leaves the upload in place rather than restoring
+    // the old waypoint - see MissionClearAllReportsErrorOnPersistFailure above.
     EXPECT_EQ(ack.type, MAV_MISSION_INVALID);
     EXPECT_EQ(waypointCount, 1);
-    EXPECT_EQ(waypointStore[0].lat, 365304400);
-    EXPECT_EQ(waypointStore[0].lon, -832163830);
-    EXPECT_EQ(waypointStore[0].alt, 1234);
+    EXPECT_EQ(waypointStore[0].lat, 375000000);
+    EXPECT_EQ(waypointStore[0].lon, -1222500000);
+    EXPECT_EQ(waypointStore[0].alt, 1230);
     EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
 }
 
