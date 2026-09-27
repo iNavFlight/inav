@@ -66,11 +66,12 @@
     /*
      * Every SPI here divides the same 144 MHz: system_clock_config() runs the PLL at 288 MHz and
      * divides both APB1 (SPI2, SPI3) and APB2 (SPI1, SPI4) by 2. So the two tables give the same
-     * rates, except that SPI2-4 stay at 18 MHz for ULTRAFAST.
+     * rates, except that SPI2-4 stay at 18 MHz for ULTRAFAST. INITIALIZATION stays under the
+     * 400 kHz an SD card allows until it is identified.
      */
     #if defined(USE_SPI_DEVICE_1)
     static const uint32_t spiDivisorMapFast[] = {
-        SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      562.5 KBits/s
+        SPI_MCLK_DIV_512,     // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
         SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               1.125 MBits/s
         SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           9.0 MBits/s
         SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               18.0 MBits/s
@@ -80,7 +81,7 @@
 
     #if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3) || defined(USE_SPI_DEVICE_4)
     static const uint32_t spiDivisorMapSlow[] = {
-        SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      562.5 KBits/s
+        SPI_MCLK_DIV_512,     // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
         SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               1.125 MBits/s
         SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           9.0 MBits/s
         SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               18.0 MBits/s
@@ -308,9 +309,15 @@ void spiSetSpeed(spi_type *instance, SPIClockSpeed_e speed)
     // instance->ctrl1 = tempRegister | (spiHardwareMap[device].divisorMap[speed] << 3);
     // #undef BR_BITS
 
+    // Dividers up to 256 fit in ctrl1's mdiv_l; 512 and 1024 also set ctrl2's mdiv_h, as the
+    // vendor's spi_init() does. No table uses the divide-by-3 mode (mdiv3en)
+    const uint32_t divisor = spiHardwareMap[device].divisorMap[speed];
+    instance->ctrl2_bit.mdiv3en = FALSE;
+    instance->ctrl2_bit.mdiv_h = (divisor > SPI_MCLK_DIV_256);
+
     uint16_t tempRegister = instance->ctrl1;
     tempRegister &= BR_CLEAR_MASK;
-    tempRegister |= (spiHardwareMap[device].divisorMap[speed] << 3);
+    tempRegister |= ((divisor & 0x7) << 3);
     instance->ctrl1 = tempRegister;
     
     spi_enable (instance, TRUE);
