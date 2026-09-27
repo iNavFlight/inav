@@ -1279,6 +1279,8 @@ static afatfsFindClusterStatus_e afatfs_findClusterWithCondition(afatfsClusterSe
 
             // Maintain alignment
             *cluster = roundUpTo(*cluster, jump);
+            // Follow the cluster, or the next read looks at the freefile's own FAT entries
+            afatfs_getFATPositionForCluster(*cluster, &fatSectorIndex, &fatSectorEntryIndex);
             continue; // Go back to check that the new cluster number is within the volume
         }
 #endif
