@@ -66,16 +66,12 @@ __attribute__((weak)) void uartConfigurePinSwap(uartPort_t *uartPort)
     UNUSED(uartPort);
 }
 
-// Everything but the tear-down, so that a baud rate change does not have to go through
-// HAL_UART_DeInit(): that releases the pins as well, and the line noise it leaves behind
-// is read as data by whatever is listening. A u-blox receiver went deaf for about a
-// second after each one, which is why autobaud so often failed to move it
+// Everything but HAL_UART_DeInit(), which also releases the pins: the line noise that leaves is
+// read as data by the device, and a u-blox went deaf for about a second after each baud change
 static void uartConfigure(uartPort_t *uartPort)
 {
-    // A port being reprogrammed in place still has its interrupts enabled, and one
-    // taken while HAL_UART_Init() has the handle marked busy would find the peripheral
-    // half written. They are masked here and enabled again at the end of this function.
-    // A port opened for the first time has no handle yet, and nothing to mask
+    // Reprogrammed in place, the port still has its interrupts on, and one taken while
+    // HAL_UART_Init() holds the handle would find the peripheral half written
     if (uartPort->Handle.gState != HAL_UART_STATE_RESET) {
         CLEAR_BIT(uartPort->USARTx->CR1, USART_CR1_PEIE | USART_CR1_RXNEIE | USART_CR1_TXEIE);
         CLEAR_BIT(uartPort->USARTx->CR3, USART_CR3_EIE);
@@ -206,7 +202,6 @@ void uartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     uartPort_t *uartPort = (uartPort_t *)instance;
     uartPort->port.baudRate = baudRate;
-    // Only the rate changes, so the port is reconfigured in place and the pins are left alone
     uartConfigure(uartPort);
 }
 
