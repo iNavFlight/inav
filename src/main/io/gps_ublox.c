@@ -87,9 +87,8 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
-// Whatever says "a receiver is talking at this rate": a UBX frame that passed its checksum,
-// or the start of an NMEA sentence, which is what an unconfigured module sends. Only read
-// as a difference over a listening window, so it may wrap
+// UBX frames and NMEA sentences heard, to tell a receiver from line noise. Only read as a
+// difference over a listening window, so it may wrap
 static uint32_t ubxTrafficSeen = 0;
 
 // MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
@@ -875,11 +874,8 @@ static bool gpsNewFrameUBLOX(uint8_t data)
                 _skip_packet = false;
                 _step++;
             } else {
-                // A module still in its factory configuration speaks NMEA, which this
-                // parser does not read. The shape of a sentence is followed all the same,
-                // because it is what tells a receiver from the noise that arrives at a
-                // rate which is not its own. Two of them are asked for below, so the
-                // checksum does not have to be worked out here as well
+                // A factory module speaks NMEA: the shape of a sentence tells it from the noise
+                // at a wrong baud rate. Two are required, so the checksum is not verified
                 static uint8_t nmeaStep = 0;    // 0 idle, 1 body, 2 and 3 the checksum digits
 
                 if (data == '$') {
@@ -969,8 +965,7 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             }
 
             gpsStats.packetCount++;
-            // A frame that passed its checksum is proof enough on its own, where a single
-            // NMEA sentence is not: see the listening loop in the state thread
+            // A valid UBX frame counts as two NMEA sentences
             ubxTrafficSeen += 2;
 
             if (_skip_packet) {
@@ -1252,18 +1247,10 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
         /*
-         * Listen before speaking. The baud rate command is an NMEA sentence, so at every
-         * rate that is not the receiver's it arrives as noise, and a u-blox takes no input
-         * for about a second after hearing it. In a blind sweep that silence falls exactly
-         * on the one rate where the command would have been understood, and the receiver
-         * is only reached when it happens to be the first rate tried. Measured on a
-         * NEO-F10N left at 230400: a blind sweep moved it 3 times out of 10, and listening
-         * first moved it 15 out of 15.
-         *
-         * The configured rate is listened to first, since a receiver that INAV has already
-         * set up is the common case. The first pass looks for UBX frames only, which is
-         * what such a receiver sends; the slow second pass also accepts NMEA, which is all
-         * a module still in its factory configuration sends, and at 1 Hz.
+         * Listen before speaking: at every rate but the receiver's the baud rate command
+         * arrives as noise, and a u-blox then ignores input for about a second, so a blind
+         * sweep only reaches it when its rate comes first. The configured rate is heard first;
+         * pass 0 wants UBX, pass 1 also NMEA (factory modules, 1 Hz), pass 2 is the blind sweep.
          */
         static bool baudFound;
         static uint32_t trafficAtStart;
@@ -1271,8 +1258,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
         for (gpsState.autoBaudPass = 0; gpsState.autoBaudPass < 3 && !baudFound; gpsState.autoBaudPass++) {
             for (gpsState.autoBaudrateIndex = 0; gpsState.autoBaudrateIndex < GPS_BAUDRATE_COUNT; gpsState.autoBaudrateIndex++) {
-                // The configured rate is listened to first, the rest keep their order. Held
-                // in the state, not in a local, which would not survive ptDelayMs()
+                // In the state, not a local, which would not survive ptDelayMs()
                 gpsState.autoBaudTry = (gpsState.autoBaudrateIndex == 0)
                                      ? gpsState.baudrateIndex
                                      : ((gpsState.autoBaudrateIndex <= gpsState.baudrateIndex)
@@ -1286,9 +1272,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
                 serialSetBaudRate(gpsState.gpsPort, baudRates[gpsToSerialBaudRate[gpsState.autoBaudTry]]);
 
-                // Nothing was heard at any rate in either pass: a receiver that says nothing
-                // until it is spoken to still has to be offered the command, so the last pass
-                // is the sweep this used to be
+                // Nothing heard: a receiver silent until spoken to still gets the command
                 if (gpsState.autoBaudPass == 2) {
                     // One rate at a time too, or the whole sweep outlasts the timeout
                     gpsSetProtocolTimeout(GPS_BAUD_LISTEN_MS + GPS_BAUD_CHANGE_DELAY);
@@ -1298,11 +1282,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
                     continue;
                 }
 
-                // Listened to in windows shorter than the timeout that declares the receiver
-                // lost, each announced through gpsSetProtocolTimeout(), so that waiting long
-                // enough for a module sending NMEA once per second does not restart the
-                // search before it has been heard. Two sentences, or one UBX frame, so that
-                // noise shaped like a sentence cannot pass for a receiver
+                // Two sentences or one UBX frame, so noise shaped like a sentence is not a receiver
                 trafficAtStart = ubxTrafficSeen;
                 for (gpsState.autoBaudWindow = 0;
                      gpsState.autoBaudWindow < (gpsState.autoBaudPass ? GPS_BAUD_LISTEN_SLOW_WINDOWS : 1)
@@ -1314,7 +1294,6 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
                 if ((ubxTrafficSeen - trafficAtStart) >= 2) {
                     baudFound = true;
-                    // Nothing to ask for when it is already where it belongs
                     if (gpsState.autoBaudTry != gpsState.baudrateIndex) {
                         serialPrint(gpsState.gpsPort, baudInitDataNMEA[gpsState.baudrateIndex]);
                         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));

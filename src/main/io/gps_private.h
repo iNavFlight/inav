@@ -27,10 +27,8 @@
 #define GPS_TIMEOUT             (1000)
 #define GPS_SHORT_TIMEOUT       (500)
 #define GPS_BAUD_CHANGE_DELAY   (100)
-// One window is long enough to hear a receiver INAV has already configured, which sends UBX
-// at 5 Hz or more. The slow pass listens for several of them in a row, which covers a module
-// still in its factory state, sending NMEA once per second. Windows rather than one long
-// wait because the GPS is declared lost after a second without a message
+// A configured receiver sends UBX at 5 Hz or more, a factory one NMEA at 1 Hz, hence several
+// windows in the slow pass; each is shorter than the second after which the GPS counts as lost
 #define GPS_BAUD_LISTEN_MS          (250)
 #define GPS_BAUD_LISTEN_SLOW_WINDOWS (6)
 #define GPS_INIT_DELAY          (500)
