@@ -23,8 +23,7 @@
 // The largest thing that needs to be sent is an MSP response.
 
 // Size must be a power of two due to various optimizations which use 'and' instead of 'mod'.
-// Occupied and free sizes are returned as uint32_t, so a buffer may exceed 256 bytes. The GPS
-// port gets a larger receive buffer of its own, see gps.c.
+// The GPS port gets a larger receive buffer of its own, see gps.c.
 #define UART1_RX_BUFFER_SIZE    256
 #define UART1_TX_BUFFER_SIZE    256
 #define UART2_RX_BUFFER_SIZE    256

@@ -138,7 +138,7 @@ bool serialIsIdle(serialPort_t *instance)
         return false;
 }
 
-// A larger receive buffer, swapped in right after opening: what the old one held is dropped
+// Swaps in a larger receive buffer; what the old one held is dropped
 void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size)
 {
     if (size <= instance->rxBufferSize) {
