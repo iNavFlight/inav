@@ -1398,8 +1398,9 @@ static afatfsOperationStatus_e afatfs_FATFillWithPattern(afatfsFATPattern_e patt
 
     fatPhysicalSector = afatfs_fatSectorToPhysical(0, fatSectorIndex);
 
-    // How many consecutive FAT sectors will we be overwriting?
-    eraseSectorCount = (endCluster - *startCluster + firstEntryIndex + afatfs_fatEntriesPerSector() - 1) / afatfs_fatEntriesPerSector();
+    // How many consecutive FAT sectors will we be overwriting? Not a partial last one: it is read
+    // first, which can end the multiple-block write before it and leave that pre-erased block undefined
+    eraseSectorCount = (endCluster - *startCluster + firstEntryIndex) / afatfs_fatEntriesPerSector();
 
     while (*startCluster < endCluster) {
         // The last entry we will fill inside this sector (exclusive):
