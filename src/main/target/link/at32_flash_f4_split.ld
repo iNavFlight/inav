@@ -238,7 +238,7 @@ SECTIONS
   /* .bss (NOLOAD, placed earlier) and this section share the STACKRAM
      region; nothing else stops .bss growing into the reserved stack/heap
      space it precedes in memory. */
-  ASSERT(_ebss <= _heap_stack_begin, "AT32F43x: .bss overlaps the reserved stack/heap region — reduce .bss or free RAM headroom (see inav#12034)")
+  ASSERT(_ebss <= _heap_stack_begin, "AT32F43x: .bss overlaps the reserved stack/heap region - reduce .bss or free RAM headroom (see inav#12034)")
 
   . = _heap_stack_begin;
   ._user_heap_stack :
