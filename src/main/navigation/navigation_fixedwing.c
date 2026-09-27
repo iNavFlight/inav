@@ -1873,6 +1873,18 @@ static int8_t computeFwFlightTally(void)
     return tally;
 }
 
+/* A stationary accelerometer reads magnitude g regardless of attitude, so a
+ * magnitude excess above g can't be produced by holding the airframe at any
+ * pitch/roll - unlike a single-axis check, which gravity alone can satisfy
+ * when nose-up (see #11911). No direction requirement: throw style varies
+ * (level bungee, swing, steep overhead heave) too much to assume the push
+ * lands on any particular body axis. */
+static bool isRealAcceleration(void)
+{
+    const float accelExcessSq = vectorNormSquared(&imuMeasuredAccelBF) - sq(GRAVITY_CMSS);
+    return accelExcessSq > sq(navConfig()->fw.launch_accel_thresh);
+}
+
 /* Generalized takeoff signature: the same bungee/swing/forward-GPS OR
  * navigation_fw_launch.c uses to detect launch, but free-running (not
  * confined to FW_LAUNCH_STATE_WAIT_DETECTION) and debounced so a single-tick
@@ -1887,16 +1899,15 @@ static bool isFixedWingTakeoffDetected(void)
 
     const float swingVelocity = (fabsf(imuMeasuredRotationBF.z) > swingMinRotationRate)
         ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
-    const bool isForwardAccelerationHigh = (imuMeasuredAccelBF.x > navConfig()->fw.launch_accel_thresh);
     const bool isAircraftAlmostLevel = (calculateCosTiltAngle() >=
         cos_approx(DEGREES_TO_RADIANS(navConfig()->fw.launch_max_angle)));
+    const bool realAccel = isRealAcceleration();
 
-    const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
-    const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh)
-        && (imuMeasuredAccelBF.x > 0);
+    const bool isBungeeLaunched = realAccel && isAircraftAlmostLevel;
+    const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && realAccel;
     const bool isForwardLaunched = isGPSHeadingValid()
         && (gpsSol.groundSpeed > navConfig()->fw.launch_velocity_thresh)
-        && (imuMeasuredAccelBF.x > 0);
+        && realAccel;
 
     if (!(isBungeeLaunched || isSwingLaunched || isForwardLaunched)) {
         signatureSinceMs = 0;
