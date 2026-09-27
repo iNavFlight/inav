@@ -2352,7 +2352,7 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
 /**
  * Call each flight loop iteration to perform blackbox logging.
  */
-void blackboxUpdate(timeUs_t currentTimeUs)
+static void blackboxUpdateState(timeUs_t currentTimeUs)
 {
 #ifdef USE_TERRAIN
     if(blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD){
@@ -2509,6 +2509,18 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     if (isBlackboxDeviceFull()) {
         blackboxSetState(BLACKBOX_STATE_STOPPED);
     }
+}
+
+void blackboxUpdate(timeUs_t currentTimeUs)
+{
+    blackboxUpdateState(currentTimeUs);
+    // Flush this iteration's bytes now, unless the card is lent to terrain: those wait for it
+#ifdef USE_TERRAIN
+    if (blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice) {
+        return;
+    }
+#endif
+    blackboxWriteFlush();
 }
 
 BlackboxState getBlackboxState(void)

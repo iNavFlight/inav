@@ -123,30 +123,53 @@ uint16_t blackboxGetLargestIteration(void)
     return blackboxLargestIteration;
 }
 
-void blackboxWrite(uint8_t value)
+// The encoders write byte by byte; the device gets blocks, one call instead of one per byte.
+// A block goes out when full and at the end of every blackboxUpdate(), so the order is kept
+#define BLACKBOX_WRITE_BLOCK_SIZE 128
+static uint8_t blackboxWriteBlock[BLACKBOX_WRITE_BLOCK_SIZE];
+static uint16_t blackboxWriteBlockCount;
+
+void blackboxWriteFlush(void)
 {
-    blackboxIterationBytes++;
+    const uint16_t count = blackboxWriteBlockCount;
+    if (count == 0) {
+        return;
+    }
+    blackboxWriteBlockCount = 0;
 
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
     case BLACKBOX_DEVICE_FLASH:
-        flashfsWriteByte(value); // Write byte asynchronously
+        flashfsWrite(blackboxWriteBlock, count, false); // Write asynchronously
         break;
 #endif
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-        afatfs_fputc(blackboxSDCard.logFile, value);
+        afatfs_fwrite(blackboxSDCard.logFile, blackboxWriteBlock, count); // Ignore failures due to buffers filling up
         break;
 #endif
 #if defined(SITL_BUILD)
     case BLACKBOX_DEVICE_FILE:
-        fputc(value, blackboxFile.file_handler);
+        fwrite(blackboxWriteBlock, 1, count, blackboxFile.file_handler);
         break;
 #endif
     case BLACKBOX_DEVICE_SERIAL:
     default:
-        serialWrite(blackboxPort, value);
+        // Byte by byte: serialWriteBuf() waits for room on a port without block writes
+        for (int i = 0; i < count; i++) {
+            serialWrite(blackboxPort, blackboxWriteBlock[i]);
+        }
         break;
+    }
+}
+
+void blackboxWrite(uint8_t value)
+{
+    blackboxIterationBytes++;
+
+    blackboxWriteBlock[blackboxWriteBlockCount++] = value;
+    if (blackboxWriteBlockCount == BLACKBOX_WRITE_BLOCK_SIZE) {
+        blackboxWriteFlush();
     }
 }
 
@@ -155,6 +178,8 @@ int blackboxPrint(const char *s)
 {
     int length;
     const uint8_t *pos;
+
+    blackboxWriteFlush();
 
     switch (blackboxConfig()->device) {
 
@@ -246,6 +271,8 @@ bool blackboxDeviceBufferRecovered(void)
  */
 void blackboxDeviceFlush(void)
 {
+    blackboxWriteFlush();
+
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
         /*
@@ -269,6 +296,8 @@ void blackboxDeviceFlush(void)
  */
 bool blackboxDeviceFlushForce(void)
 {
+    blackboxWriteFlush();
+
     switch (blackboxConfig()->device) {
     case BLACKBOX_DEVICE_SERIAL:
         // Nothing to speed up flushing on serial, as serial is continuously being drained out of its buffer
@@ -610,6 +639,8 @@ bool blackboxDeviceBeginLog(void)
  */
 bool blackboxDeviceEndLog(bool retainLog)
 {
+    blackboxWriteFlush();
+
 #ifndef USE_SDCARD
     (void) retainLog;
 #endif
@@ -700,6 +731,8 @@ int32_t blackboxGetLogNumber(void)
  */
 void blackboxReplenishHeaderBudget(void)
 {
+    blackboxWriteFlush();
+
     int32_t freeSpace;
 
     switch (blackboxConfig()->device) {
