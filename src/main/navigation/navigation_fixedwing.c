@@ -1848,6 +1848,10 @@ bool fwFlightLatchIsFlying(void)
     return fwFlightState == FW_FLIGHT_FLYING;
 }
 
+/* Max possible value is 8 (3+3+2). Call sites pick their own bar against
+ * this: >=3 needs one strong signal alone (GPS heading or airspeed); >=5
+ * needs one strong signal plus velocity, or two weaker ones together;
+ * <=0 needs none of them. */
 static int8_t computeFwFlightTally(void)
 {
     int8_t tally = 0;
@@ -1903,6 +1907,10 @@ static bool isFixedWingTakeoffDetected(void)
         signatureSinceMs = currentTimeMs;
     }
 
+    // Deliberately not navConfig()->fw.launch_time_thresh: that setting is
+    // tuned for fast response once the pilot has already committed to a
+    // launch sequence, not for rejecting spurious spikes in a background
+    // latch that runs unconditionally on every tick.
     return currentTimeMs - signatureSinceMs > 300;
 }
 
@@ -1922,6 +1930,17 @@ static bool isFixedWingStationary(void)
     static int16_t pitchDatum = 0;
     const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
     const timeMs_t currentTimeMs = millis();
+
+    /* The position estimator decays velXY/vel.z toward zero (inav_w_xy_res_v)
+     * whenever it can't apply a GPS/flow correction - exactly the sustained
+     * GPS-loss condition this latch exists to survive. A decayed-to-zero
+     * velocity is absence of information, not evidence of being stationary;
+     * without this guard, a long enough GPS outage during stable, level
+     * cruise would eventually read as "stationary" and reopen #11644. */
+    if (posControl.flags.estVelStatus != EST_TRUSTED) {
+        axisCheckArmed = false;
+        return false;
+    }
 
     const bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity) &&
                         (posControl.actualState.velXY < (100.0f * sensitivity));

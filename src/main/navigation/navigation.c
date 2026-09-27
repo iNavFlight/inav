@@ -5081,10 +5081,10 @@ void resetLandingDetectorActiveState(void)
 
 bool isFlightDetected(void)
 {
-    /* FW: reads the raw signal tally rather than isFixedWingFlying(),
-     * to avoid using the landing detector's own output to cancel itself -
-     * isFixedWingFlying() remains unchanged for its other caller
-     * (navigation_fw_launch.c's isProbablyNotFlying()). See #11644. */
+    /* FW: reads the raw signal tally rather than isFixedWingFlying(), to
+     * avoid basing this on the same composite boolean the launch-in-progress
+     * check (navigation_fw_launch.c's isProbablyNotFlying()) depends on -
+     * isFixedWingFlying() remains unchanged for that other caller. #11644. */
     return STATE(AIRPLANE) ? (fwFlightTally() >= 3) : isMulticopterFlying();
 }
 
@@ -5094,12 +5094,13 @@ bool isProbablyStillFlying(void)
     if (STATE(MULTIROTOR)) {
         inFlightSanityCheck = posControl.actualState.velXY > MC_LAND_CHECK_VEL_XY_MOVING || averageAbsGyroRates() > 4.0f;
     } else {
-        /* isGPSHeadingValid()/vel3D alone still both read false throughout
-         * some GPS-loss dead-reckoning cases, blocking IN_FLIGHT_EMERG_REARM
-         * exactly when GPS loss caused the situation needing it (#11644).
-         * Fall back further to the flight-state latch and the signal tally. */
-        inFlightSanityCheck = fwFlightLatchIsFlying() || isGPSHeadingValid() ||
-            posControl.actualState.vel3D > 300 || fwFlightTally() >= 1;
+        /* isGPSHeadingValid() alone reads false throughout GPS-loss dead
+         * reckoning, blocking IN_FLIGHT_EMERG_REARM exactly when GPS loss
+         * caused the situation needing it (#11644). fwFlightTally() already
+         * awards points for both isGPSHeadingValid() and vel3D/velXY, so
+         * checking it alongside the flight-state latch covers those cases
+         * without repeating them. */
+        inFlightSanityCheck = fwFlightLatchIsFlying() || fwFlightTally() >= 1;
     }
 
     return landingDetectorIsActive && inFlightSanityCheck;
@@ -6081,13 +6082,8 @@ void checkManualEmergencyLandingControl(bool forcedActivation)
     }
 }
 
-/* Live, unrevalidated-cache-free replacement for the removed
- * `canActivateLaunchMode` static bool (#11644): that cache was computed only
- * while disarmed and consumed later without revalidation, so a stale
- * "safe to launch" snapshot from before GPS loss could survive an
- * IN_FLIGHT_EMERG_REARM mid-flight and force NAV_LAUNCH_MODE entry while
- * genuinely airborne. Computed fresh every call instead - nothing is cached
- * across an arm/disarm transition. */
+/* Evaluated fresh on every call; nothing is cached across an arm/disarm
+ * transition (see #11644 for why that matters). */
 static bool canActivateLaunchModeNow(void)
 {
     return isNavLaunchEnabled() && !fwFlightLatchIsFlying() && fwFlightTally() <= 0;
