@@ -1082,16 +1082,13 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, gpsSol.eph);
         sbufWriteU16(dst, gpsSol.epv);
         sbufWriteU8(dst, gpsState.hwVersion);
-        // Which constellations the receiver has, and which of them are running, so the
-        // configurator can stop offering the ones that are not there. Zero means unknown
+        // Supported and enabled constellations (MON-GNSS masks), 0 when unknown
         sbufWriteU8(dst, isGpsUblox() ? gpsUbloxSupportedGnss() : 0);
         sbufWriteU8(dst, isGpsUblox() ? gpsUbloxEnabledGnss() : 0);
-        // SBAS, QZSS and NavIC, which MON-GNSS does not report, and how many major
-        // constellations the receiver can run at once
+        // SBAS, QZSS and NavIC from MON-VER, and how many constellations can run at once
         sbufWriteU8(dst, isGpsUblox() ? gpsUbloxExtendedGnss() : 0);
         sbufWriteU8(dst, isGpsUblox() ? gpsUbloxMaxGnss() : 0);
-        // The module's own name, as it reports it, so the configurator can say which
-        // receiver this is instead of guessing from the hardware version
+        // Module name as the receiver reports it
         {
             const char * module = isGpsUblox() ? gpsUbloxModuleName() : "";
             const uint8_t len = strlen(module);

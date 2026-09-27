@@ -87,7 +87,7 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
-// The module name from the MON-VER extensions, as in MOD=NEO-F10N. Empty when not reported
+// From the MON-VER extensions (MOD=NEO-F10N), empty when not reported
 static char ubxModuleName[UBLOX_MODULE_NAME_LEN] = "";
 
 // SBAS, QZSS and NavIC, which the receiver lists in MON-VER but not in MON-GNSS
@@ -472,8 +472,7 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
-// NavIC goes out on its own. Its keys exist only on receivers that have it, and
-// one key a receiver does not know makes it refuse the whole message
+// Sent on its own: a receiver without NavIC rejects any message holding its keys
 static void configureNAVIC(void)
 {
     ubx_config_data8_payload_t navicValues[] = {
@@ -805,8 +804,7 @@ static bool gpsParseFrameUBLOX(void)
                     }
                 }
 
-                // Whole extensions only: a frame whose length is not a round number
-                // of them would have its last line read past the payload
+                // Whole 30-byte extensions only, or the last one is read past the payload
                 for (int j = 40; j + 30 <= _payload_length; j += 30) {
                     const char * line = (const char *)(_buffer.bytes + j);
 
@@ -818,7 +816,6 @@ static bool gpsParseFrameUBLOX(void)
                         ubxModuleName[UBLOX_MODULE_NAME_LEN - 1] = '\0';
                     }
 
-                    // The augmentation and regional systems, which MON-GNSS does not carry
                     if (strnstr(line, "SBAS", 30)) {
                         ubxExtendedGnss |= UBLOX_EXT_GNSS_SBAS;
                     }
@@ -1236,8 +1233,6 @@ STATIC_PROTOTHREAD(gpsConfigure)
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
         }
 
-        // Only a receiver that lists NavIC gets its keys, and only through the
-        // configuration interface, which is where those keys live
         if (ubloxVersionGT(23, 1) && (ubxExtendedGnss & UBLOX_EXT_GNSS_NAVIC)) {
             gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
             configureNAVIC();
@@ -1335,8 +1330,7 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
 
         gpsState.autoConfigStep = 0;
-        // The limit goes with them: left over from a receiver that has been swapped out
-        // it would end the poll below before the new one has answered
+        // Or a count left by a swapped receiver ends the poll below before the new one answers
         ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
         ubx_capabilities.capMaxGnss = 0;
         // M7 and earlier will never get pass this step, so skip it (#9440).

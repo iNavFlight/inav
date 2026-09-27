@@ -542,9 +542,7 @@ typedef enum {
 // Long enough for the names u-blox ships, such as NEO-F10N and ZED-F9P
 #define UBLOX_MODULE_NAME_LEN 16
 
-/* The augmentation and regional systems a receiver lists in its MON-VER extensions.
- * UBX-MON-GNSS only reports the four major constellations, so these come from the
- * version strings instead, where the list reads SBAS;QZSS and NAVIC. */
+// Systems listed in the MON-VER extensions, which MON-GNSS does not report
 #define UBLOX_EXT_GNSS_SBAS     (1 << 0)
 #define UBLOX_EXT_GNSS_QZSS     (1 << 1)
 #define UBLOX_EXT_GNSS_NAVIC    (1 << 2)
