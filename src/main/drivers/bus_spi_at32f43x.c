@@ -58,6 +58,9 @@
 #ifndef SPI3_NSS_PIN
 #define SPI3_NSS_PIN NONE
 #endif
+#ifndef SPI4_NSS_PIN
+#define SPI4_NSS_PIN NONE
+#endif
 
 #if defined(AT32F43x)
     /*
@@ -75,7 +78,7 @@
     };
     #endif
 
-    #if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3)
+    #if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3) || defined(USE_SPI_DEVICE_4)
     static const uint32_t spiDivisorMapSlow[] = {
         SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      562.5 KBits/s
         SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               1.125 MBits/s
@@ -153,6 +156,9 @@ SPIDevice spiDeviceByInstance(spi_type *instance)
 
     if (instance == SPI3)
         return SPIDEV_3;
+
+    if (instance == SPI4)
+        return SPIDEV_4;
 
     return SPIINVALID;
 }
