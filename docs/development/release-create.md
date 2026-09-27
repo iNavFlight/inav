@@ -14,15 +14,16 @@ Order of operations:
 3. **Push to release branch to trigger nightly build** (merge the workflow PR, or push trivial commit)
 4. Wait for nightly build to complete, verify ALL jobs passed
 5. **Download firmware artifacts from inav-nightly** (includes SITL binaries needed for configurator)
-6. Update SITL binaries in configurator repo, wait for CI, merge
-7. Download configurator artifacts after SITL update merged
-8. Verify all artifacts (automated checks)
-9. **Manual testing on Linux and Windows** (required before tagging)
-10. **Only then** create tags pointing to the verified commits
+6. Update SITL binaries in configurator repo (and WASM SITL + PWA support for 10.x+), wait for CI, merge — this triggers the configurator nightly
+7. **Dry-run the configurator signing via the nightly (no tag):** verify its macOS artifact is signed + notarized (`codesign --verify`, `xcrun stapler validate`)
+8. Push the configurator version tag (triggers `release.yml`, signed + notarized macOS) — only after step 7's nightly dry-run passes
+9. Download the signed configurator artifacts and verify (code signature, SITL, PWA/WASM)
+10. **Manual testing on Linux and Windows**
+11. **Only then** create the GitHub releases referencing the verified commits/tags
 
 If CI fails or any verification fails, fix the issue first. Do not tag broken commits.
 
-**Why this matters:** If you tag first and then discover the build is broken, you have a tag pointing to a broken commit. By verifying artifacts first, you only tag commits that are proven to work.
+**Why this matters:** If you tag first and then discover the build is broken, you have a tag pointing to a broken commit. By verifying artifacts first, you only tag commits that are proven to work. The configurator is the one partial exception: its signed macOS build requires a tag push, so its "verify first" step is the **nightly dry-run** (step 7) — confirm the nightly macOS artifact is signed before you push the tag.
 
 ## CRITICAL: CI Runs on PR Creation, Not Merge
 
@@ -118,6 +119,7 @@ The Configurator firmware flasher uses a case-sensitive regex to parse firmware 
 - [ ] No critical open issues blocking release
 - [ ] Version numbers updated in both repositories
 - [ ] SITL binaries updated in configurator
+- [ ] WASM SITL built and added to configurator `js/web/WASM/` (10.x+)
 - [ ] **PG struct validation passed** (see [PG Validation](#pg-parameter-group-validation))
 
 ### Documentation
@@ -142,35 +144,41 @@ The Configurator firmware flasher uses a case-sensitive regex to parse firmware 
    ├── Download firmware hex files from CI
    ├── Download SITL binaries from same CI run
    ├── Build Linux x64 SITL locally if needed (for glibc ≤2.35 compatibility)
-   └── This provides SITL binaries needed for configurator
+   ├── Build the WASM SITL firmware (10.x+)
+   └── This provides SITL binaries + WASM SITL needed for configurator
 
-3. Update SITL in configurator
-   ├── Create PR with SITL binaries from step 2
+3. Update SITL (and WASM SITL) in configurator
+   ├── Create PR with SITL binaries from step 2 (and WASM artifacts + SITL-Webassembly.js import fix for 10.x+)
    ├── Wait for configurator CI to pass
    └── Merge SITL update PR
 
-4. Download and verify configurator artifacts
-   ├── Download from CI run after SITL PR merged
-   ├── Verify macOS DMGs (no cross-platform contamination)
+4. Build the PWA, dry-run signing, then push the tag and download configurator artifacts
+   ├── Build the PWA (yarn web:build) after the WASM SITL is in place (10.x+)
+   ├── Dry-run the signing via the nightly (no tag): codesign --verify + stapler validate on the nightly macOS artifact
+   ├── Push the version tag (v*.*.*) to trigger release.yml AFTER the nightly dry-run passes (signed + notarized macOS)
+   ├── Download from that release.yml run
+   ├── Verify macOS DMGs are signed and have no cross-platform contamination
    ├── Verify Windows SITL (cygwin1.dll present)
    ├── Verify Linux SITL (glibc <= 2.35 for Ubuntu 22.04 compatibility)
    └── Automated SITL verification (glibc check, binary runs)
 
-5. Manual testing (REQUIRED before creating tags)
+5. Manual testing
    ├── Test configurator + SITL on Linux
    ├── Test configurator + SITL on Windows
    ├── Test configurator + SITL on macOS (if available)
    └── Verify basic functionality works on each platform
+   (The configurator tag is already pushed by now — that's what produced the signed build.
+    The firmware tag is still verify-before-tag.)
 
 6. Generate changelog
    ├── List PRs since last tag
    ├── Categorize changes
    └── Format release notes
 
-7. Create tags and draft releases (ONLY after manual testing passed)
-   ├── Create tag + draft release for firmware (targeting verified commit)
-   ├── Create tag + draft release for configurator (targeting verified commit)
-   ├── Upload verified artifacts
+7. Create draft releases (ONLY after manual testing passed)
+   ├── Create tag + draft release for firmware (targeting verified commit) — verify-before-tag
+   ├── Create the configurator release referencing the already-pushed tag
+   ├── Upload verified artifacts (including the PWA output for 10.x+)
    └── Add release notes
 
 8. Review and publish
@@ -288,9 +296,34 @@ If glibc > 2.35, the binary will fail on Ubuntu 22.04 with:
 
 The `extraResource` config in `forge.config.js` copies `resources/public/sitl` to `resources/sitl` in packaged builds.
 
+## macOS Code Signing + PWA (10.x+)
+
+### macOS Signing Sequencing
+
+The release-ready macOS build is **code-signed and notarized** by `.github/workflows/release.yml`, which triggers on a **tag push** (`v*.*.*` or `*.*.*`). PR CI never signs; the nightly build signs+notarizes whenever the full secret set is present. Three rules:
+
+1. **Verify signing via the nightly before you tag.** A pushed tag is effectively immutable, so don't tag blind. After the SITL PR merges, the nightly runs automatically — check its macOS artifact with `codesign --verify` and `xcrun stapler validate`. Only push the tag once both pass (if either fails, the six signing secrets are missing and `release.yml` would fail anyway).
+2. **Push the tag only AFTER the SITL is in place** — the native SITL binaries (and, for 10.x+, the WASM SITL) must already be committed and merged into the configurator repo. Otherwise the signed `.app`/`.dmg` ships stale SITL.
+3. **Never modify the signed macOS artifacts after that run** — no re-zipping, re-bundling, or re-signing. If a fix is needed, commit it and push a new tag.
+
+The code enforces this: SITL pruning runs in the `afterCopyExtraResources` hook (before signing); files must not be deleted from the bundle after signing or notarization fails. See `inav-configurator/CLAUDE.md` ("macOS Code Signing & Notarization").
+
+**If the nightly doesn't fire:** prefer adding `workflow_dispatch:` to `release.yml` and running `gh workflow run release.yml --ref <commit>` (same fail-closed test, no tag). Last resort is a throwaway test tag (`10.0.0-sign-test`, which matches `*.*.*`), verified then deleted before pushing the real `10.0.0-RC1` tag.
+
+### WASM SITL + PWA Build
+
+For 10.x+, the browser-based PWA Configurator build bundles an in-browser WASM build of SITL, in addition to the native per-platform SITL binaries:
+
+1. Build the WASM SITL firmware from `feature/wasm-sitl-firmware` (`cmake .. -DTOOLCHAIN=wasm; make SITL`).
+2. Rename the output to `inav_<ver>_WASM.js`/`.wasm` and copy it into `inav-configurator/js/web/WASM/`, updating the hardcoded import in `js/web/SITL-Webassembly.js`.
+3. Build the PWA: `yarn web:build` → `dist-web/`.
+4. Upload the PWA output as an additional configurator asset (confirm the packaging format with maintainers).
+
+Both the WASM SITL and the native SITL must be in place before the release CI runs.
+
 ## Tagging and Publishing
 
-**IMPORTANT:** Tags should only be created AFTER testing artifacts and confirming the release is ready to publish.
+**IMPORTANT:** Tags should only be created AFTER testing artifacts and confirming the release is ready to publish — **except the configurator**, which is tag-first: its signed macOS build is produced by pushing the tag (which triggers `release.yml`). Before pushing that tag, dry-run the signing via the nightly (no tag) and confirm its macOS artifact is signed + notarized. Firmware stays verify-before-tag.
 
 ### Check Latest Tags
 
@@ -306,21 +339,22 @@ git fetch --tags
 git tag --sort=-v:refname | head -10
 ```
 
-### Create and Push Tags (Final Step Before Publishing)
+### Create and Push Tags
 
-Only create tags after artifacts are tested and draft release is reviewed:
+Firmware: verify first, then tag. Configurator: dry-run signing via the nightly first, then tag (to trigger the signed build), then create the release.
 
 ```bash
-# Firmware
+# Firmware (verify artifacts first)
 cd inav
 git pull
 git tag -a <version> -m "INAV <version>"
 git push origin <version>
 
-# Configurator
+# Configurator — dry-run signing via the nightly FIRST (codesign --verify + stapler validate),
+# then push the tag (this push triggers release.yml → signed + notarized macOS)
 cd inav-configurator
 git pull
-git tag -a <version> -m "INAV Configurator <version>"
+git tag -a <version> -m "INAV Configurator <version>"   # or v<version>
 git push origin <version>
 ```
 
