@@ -2336,10 +2336,34 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
     blackboxDeviceFlush();
 }
 
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+static void blackboxUpdateState(timeUs_t currentTimeUs);
+
+// Time per iteration a new file's header may take on top of the usual step
+#define BLACKBOX_SPLIT_HEADER_US 50
+
 /**
  * Call each flight loop iteration to perform blackbox logging.
  */
 void blackboxUpdate(timeUs_t currentTimeUs)
+{
+    blackboxUpdateState(currentTimeUs);
+
+    // Every iteration spent on the new file's header is a gap in the log, so send it several steps at a time
+    const timeUs_t startUs = micros();
+    while (blackboxSplitting && blackboxState >= BLACKBOX_FIRST_HEADER_SENDING_STATE && blackboxState <= BLACKBOX_LAST_HEADER_SENDING_STATE
+        && cmpTimeUs(micros(), startUs) < BLACKBOX_SPLIT_HEADER_US && blackboxDeviceHasRoomToSpare()) {
+        blackboxUpdateState(currentTimeUs);
+    }
+}
+
+static void blackboxUpdateState(timeUs_t currentTimeUs)
+#else
+/**
+ * Call each flight loop iteration to perform blackbox logging.
+ */
+void blackboxUpdate(timeUs_t currentTimeUs)
+#endif
 {
 #ifdef USE_TERRAIN
     if(blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD){

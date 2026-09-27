@@ -72,6 +72,7 @@ bool blackboxDeviceEndLog(bool retainLog);
 bool isBlackboxDeviceFull(void);
 #if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
 bool blackboxDeviceNeedsNewLog(void);
+bool blackboxDeviceHasRoomToSpare(void);
 #endif
 bool isBlackboxDeviceWorking(void);
 int32_t blackboxGetLogNumber(void);

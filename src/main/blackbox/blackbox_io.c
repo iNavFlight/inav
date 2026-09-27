@@ -608,6 +608,15 @@ bool blackboxDeviceNeedsNewLog(void)
 {
     return blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD && afatfs_isFull() && afatfs_freeFileCanContinue();
 }
+
+// Below this free cache space a new file's header goes back to one step per iteration: afatfs
+// counts the sectors it keeps for open files as free
+#define BLACKBOX_SDCARD_SPARE_BYTES 2048
+
+bool blackboxDeviceHasRoomToSpare(void)
+{
+    return afatfs_getFreeBufferSpace() >= BLACKBOX_SDCARD_SPARE_BYTES;
+}
 #endif
 
 bool isBlackboxDeviceWorking(void)
