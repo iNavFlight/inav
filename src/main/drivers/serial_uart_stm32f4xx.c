@@ -291,7 +291,7 @@ bool uartRxDmaStart(uartPort_t *s)
     init.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
     init.DMA_Mode = DMA_Mode_Circular;
     init.DMA_Priority = DMA_Priority_Medium;
-    // No FIFO, so each byte is in the ring as soon as the transfer count says it is
+    // No FIFO: a byte is in the ring as soon as the count says so
     init.DMA_FIFOMode = DMA_FIFOMode_Disable;
     DMA_Init(dma->ref, &init);
     DMA_Cmd(dma->ref, ENABLE);

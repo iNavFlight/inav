@@ -33,9 +33,8 @@ void uartStartTxDMA(uartPort_t *s);
 #include "drivers/timer.h"
 
 #if defined(STM32F4) || defined(STM32F7)
-// Here each UART's receiver is wired to fixed streams on a fixed channel (the DMA request
-// mapping tables of the F4 and F7 reference manuals), so a target naming any other gets a
-// build error rather than a port that quietly receives nothing
+// Fixed streams and channel per UART receiver (reference manual request tables): a target
+// naming another gets a build error instead of a port that silently receives nothing
 #define UART_RX_DMA_IS(tag, dma, stream, channel) \
     (DMATAG_GET_DMA(tag) == (dma) && DMATAG_GET_STREAM(tag) == (stream) && DMATAG_GET_CHANNEL(tag) == (channel))
 #ifdef UART1_RX_DMA
@@ -64,10 +63,8 @@ STATIC_ASSERT(UART_RX_DMA_IS(UART8_RX_DMA, 1, 6, 5), UART8_RX_DMA_is_DMA1_stream
 #endif
 #endif
 
-// A UART takes a stream only if nothing has it, or it is this UART's own from an earlier
-// open. A stream any of the target's timer outputs is mapped to is left to them even
-// before they claim it, because the serial ports open first: a target naming one by
-// mistake gets a UART on its byte interrupt, not a motor without DSHOT
+// Free, or this UART's own from an earlier open. Streams mapped to timer outputs stay theirs
+// even before they claim them, since serial ports open first
 static inline bool uartRxDmaAvailable(DMA_t dma, UARTDevice_e device)
 {
     for (int i = 0; i < timerHardwareCount; i++) {
@@ -78,9 +75,8 @@ static inline bool uartRxDmaAvailable(DMA_t dma, UARTDevice_e device)
     return dmaGetOwner(dma) == OWNER_FREE || (dmaGetOwner(dma) == OWNER_SERIAL && dma->resourceIndex == RESOURCE_INDEX(device));
 }
 
-// Hands the port's reception to the DMA stream its target names. False leaves it on the
-// byte interrupt: no stream named, the stream taken by something else, a port opened
-// without RX, or one whose owner wants each byte as it lands (rxCallback)
+// False leaves the port on the byte interrupt: no stream named or free, no RX, or an
+// rxCallback that wants each byte as it lands
 bool uartRxDmaStart(uartPort_t *s);
 
 static inline bool uartRxDmaRunning(const uartPort_t *s)
@@ -88,7 +84,7 @@ static inline bool uartRxDmaRunning(const uartPort_t *s)
     return s->rxDma != NULL;
 }
 
-// The stream counts down what is left of its lap round the ring, which says where it has got to
+// NDTR counts down the rest of the lap round the ring
 static inline uint32_t uartRxBufferHead(const uartPort_t *s)
 {
     if (s->rxDma) {

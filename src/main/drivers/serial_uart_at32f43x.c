@@ -453,8 +453,7 @@ bool uartRxDmaStart(uartPort_t *s)
 
 void uartIrqHandler(uartPort_t *s)
 {
-    // This tests the flag alone, and a port receiving through DMA still takes interrupts
-    // for what it sends: a byte the stream has not collected yet is not ours to read
+    // With RX on DMA the interrupt still fires for TX: an RX byte is the stream's to take
     if (usart_flag_get(s->USARTx, USART_RDBF_FLAG) == SET && !uartRxDmaRunning(s)) {
         if (s->port.rxCallback) {
             s->port.rxCallback(s->USARTx->dt, s->port.rxCallbackData);

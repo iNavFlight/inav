@@ -109,7 +109,7 @@ static void uartReconfigure(uartPort_t *uartPort)
     }
 
     if ((uartPort->port.mode & MODE_RX) && uartRxDmaRunning(uartPort)) {
-        /* The DMA stream empties the data register: it needs the request the de-init cleared, and no byte interrupt */
+        /* The de-init cleared the DMA request */
         SET_BIT(uartPort->USARTx->CR3, USART_CR3_DMAR);
     }
     else if (uartPort->port.mode & MODE_RX) {
@@ -183,7 +183,7 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
     s->port.baudRate = baudRate;
     s->port.options = options;
 
-    // Before the UART itself, which then asks the stream for bytes instead of interrupting for each
+    // Before the UART, so it comes up with the stream already running
     uartRxDmaStart(s);
     uartReconfigure(s);
 

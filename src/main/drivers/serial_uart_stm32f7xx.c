@@ -300,8 +300,7 @@ static void uartRxDmaStop(uartPort_t *s)
     }
 }
 
-// The request itself, USART_CR3_DMAR, is set by uartReconfigure(): the HAL clears CR3
-// whenever the port is reprogrammed, and the stream keeps its place in the ring meanwhile
+// USART_CR3_DMAR is set in uartReconfigure(): the HAL clears CR3 whenever it reprograms the port
 bool uartRxDmaStart(uartPort_t *s)
 {
     uartRxDmaStop(s);
@@ -334,7 +333,7 @@ bool uartRxDmaStart(uartPort_t *s)
     init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_BYTE;
     init.NbData = s->port.rxBufferSize;
     init.Priority = LL_DMA_PRIORITY_MEDIUM;
-    // No FIFO, so each byte is in the ring as soon as the transfer count says it is
+    // No FIFO: a byte is in the ring as soon as the count says so
     init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
     LL_DMA_Init(dma->dma, stream, &init);
     LL_DMA_EnableStream(dma->dma, stream);
@@ -349,8 +348,7 @@ void uartIrqHandler(uartPort_t *s)
 {
     UART_HandleTypeDef *huart = &s->Handle;
     /* UART in mode Receiver ---------------------------------------------------*/
-    // This tests the flag alone, and a port receiving through DMA still takes interrupts
-    // for what it sends: a byte the stream has not collected yet is not ours to read
+    // With RX on DMA the interrupt still fires for TX: an RX byte is the stream's to take
     if ((__HAL_UART_GET_IT(huart, UART_IT_RXNE) != RESET) && !uartRxDmaRunning(s)) {
         uint8_t rbyte = (uint8_t)(huart->Instance->RDR & (uint8_t) 0xff);
 

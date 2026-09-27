@@ -150,7 +150,6 @@ serialPort_t *uartOpen(usart_type *USARTx, serialReceiveCallbackPtr rxCallback, 
 
     uartReconfigure(s);
 
-    // A port with a DMA stream is emptied by it, and takes no interrupt per byte
     if ((mode & MODE_RX) && !uartRxDmaStart(s)) {
         usart_flag_clear(s->USARTx, USART_RDBF_FLAG);
         usart_interrupt_enable (s->USARTx, USART_RDBF_INT, TRUE);
