@@ -267,6 +267,7 @@ typedef struct afatfsRefill_t {
     bool extendBlocked; // Nothing free follows the freefile
     bool searched;      // The search for the largest free block has finished
     bool blockFound;
+    bool regularFull;   // A regular cluster allocation found no free cluster
     uint32_t blockStart;
     uint32_t claimStart;  // First cluster to claim
     uint32_t claimCursor;
@@ -1691,6 +1692,10 @@ static afatfsOperationStatus_e afatfs_appendRegularFreeClusterContinue(afatfsFil
             }
 
             afatfs.filesystemFull = true;
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+            // Full for more than the freefile: refilling it doesn't help, and the card stays full
+            afatfs.refill.regularFull = true;
+#endif
             return AFATFS_OPERATION_FAILURE;
         break;
     }
@@ -2549,6 +2554,11 @@ static afatfsOperationStatus_e afatfs_ftruncateContinue(afatfsFilePtr_t file, bo
             status = afatfs_saveDirectoryEntry(file, markDeleted ? AFATFS_SAVE_DIRECTORY_DELETED : AFATFS_SAVE_DIRECTORY_NORMAL);
 
             if (status == AFATFS_OPERATION_SUCCESS) {
+                if (opState->startCluster == 0) {
+                    // No clusters to give back: an erase from cluster 0 would overwrite the start of the FAT
+                    opState->phase = AFATFS_TRUNCATE_FILE_SUCCESS;
+                    goto doMore;
+                }
 #ifdef AFATFS_USE_FREEFILE
                 if (opState->endCluster) {
                     opState->phase = AFATFS_TRUNCATE_FILE_ERASE_FAT_CHAIN_CONTIGUOUS;
@@ -3903,8 +3913,17 @@ bool afatfs_freeFileCanContinue(void)
 {
     const afatfsRefill_t *refill = &afatfs.refill;
 
+    if (refill->regularFull) {
+        return false;
+    }
+
     return afatfs.freeFile.logicalSize >= afatfs_superClusterSize() || refill->phase != AFATFS_REFILL_IDLE
         || !refill->extendBlocked || !refill->searched || refill->blockFound;
+}
+
+bool afatfs_freeFileHasRoom(void)
+{
+    return !afatfs.filesystemFull && afatfs.freeFile.logicalSize >= afatfs_superClusterSize();
 }
 
 static void afatfs_freeFileRefillPoll(void)
@@ -3916,7 +3935,7 @@ static void afatfs_freeFileRefillPoll(void)
     switch (refill->phase) {
         case AFATFS_REFILL_IDLE:
             // A log that could no longer grow has been closed, and there is room for a new one
-            if (afatfs.filesystemFull && afatfs.freeFile.logicalSize >= afatfs_superClusterSize() && !afatfs_contiguousFileOpen()) {
+            if (afatfs.filesystemFull && !refill->regularFull && afatfs.freeFile.logicalSize >= afatfs_superClusterSize() && !afatfs_contiguousFileOpen()) {
                 afatfs.filesystemFull = false;
             }
 
@@ -4049,7 +4068,7 @@ static void afatfs_freeFileRefillPoll(void)
                         refill->blockFound = false;
                         refill->searched = false;
                         refill->extendBlocked = false;
-                    } else if (afatfs.freeFile.logicalSize >= afatfs_superClusterSize()) {
+                    } else if (afatfs.freeFile.logicalSize >= afatfs_superClusterSize() && !refill->regularFull) {
                         // A log that had just run out can go on in the same file
                         afatfs.filesystemFull = false;
                     }

@@ -433,8 +433,9 @@ static bool blackboxSDCardBeginLog(void)
     switch (blackboxSDCard.state) {
     case BLACKBOX_SDCARD_INITIAL:
 #ifdef USE_BLACKBOX_SDCARD_SPLIT
-        // A log going on in a new file waits for afatfs to make room for it
-        if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY && !afatfs_isFull()) {
+        // A new file waits until the freefile has room for its first supercluster, unless no room can
+        // come: then it opens as without the option and the full card stops the log
+        if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY && (afatfs_freeFileHasRoom() || !afatfs_freeFileCanContinue())) {
 #else
         if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY) {
 #endif
