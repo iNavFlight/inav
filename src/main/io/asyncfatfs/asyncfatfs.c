@@ -92,8 +92,8 @@
 // When allocating a freefile, leave this many clusters un-allocated for regular files to use
 #define AFATFS_FREEFILE_LEAVE_CLUSTERS 100
 
-// A freefile below this size is moved at boot to the card's largest free block, when that is
-// larger; larger ones are reused without searching the FAT, so the usual boot stays fast
+// At boot the freefile is extended over the free clusters after it, and if still below this size
+// moved to the largest free block, when larger. Larger ones skip the FAT search: boot stays fast
 #define AFATFS_FREEFILE_REGROW_BELOW (2048U * 1024U * 1024U)
 
 // Filename in 8.3 format:
@@ -418,6 +418,10 @@ typedef enum {
 #ifdef AFATFS_USE_FREEFILE
     AFATFS_INITIALIZATION_FREEFILE_CREATE,
     AFATFS_INITIALIZATION_FREEFILE_CREATING,
+    AFATFS_INITIALIZATION_FREEFILE_EXTEND_SEARCH,
+    AFATFS_INITIALIZATION_FREEFILE_EXTEND_UPDATE_FAT,
+    AFATFS_INITIALIZATION_FREEFILE_EXTEND_LINK,
+    AFATFS_INITIALIZATION_FREEFILE_EXTEND_SAVE_DIR_ENTRY,
     AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH,
     AFATFS_INITIALIZATION_FREEFILE_RELEASE,
     AFATFS_INITIALIZATION_FREEFILE_UPDATE_FAT,
@@ -3505,15 +3509,34 @@ static afatfsOperationStatus_e afatfs_findLargestContiguousFreeBlockContinue(voi
     }
 }
 
+static uint32_t afatfs_freeFileClusters(void)
+{
+    return (afatfs.freeFile.logicalSize + afatfs_clusterSize() - 1) / afatfs_clusterSize();
+}
+
+// Extended as far as it goes: a small freefile moves to the largest free block
+static void afatfs_freeFileExtended(void)
+{
+    if (afatfs.freeFile.logicalSize >= AFATFS_FREEFILE_REGROW_BELOW) {
+        // We've completed freefile init, move on to the next init phase
+        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_LAST + 1;
+    } else {
+        afatfs_findLargestContiguousFreeBlockBegin();
+        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH;
+    }
+}
+
 static void afatfs_freeFileCreated(afatfsFile_t *file)
 {
     if (file) {
-        // Did the freefile already have enough allocated space?
-        if (file->logicalSize >= AFATFS_FREEFILE_REGROW_BELOW) {
-            // We've completed freefile init, move on to the next init phase
-            afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_LAST + 1;
+        // Did the freefile already have allocated space?
+        if (file->logicalSize > 0) {
+            // Extend it over the free clusters that follow it
+            afatfs.initState.freeSpaceFAT.startCluster = afatfs.freeFile.firstCluster + afatfs_freeFileClusters();
+            afatfs.initState.freeSpaceFAT.endCluster = afatfs.initState.freeSpaceFAT.startCluster;
+            afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_EXTEND_SEARCH;
         } else {
-            // Allocate clusters for the freefile, or look for a larger block for a small one
+            // Allocate clusters for the freefile
             afatfs_findLargestContiguousFreeBlockBegin();
             afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH;
         }
@@ -3523,8 +3546,6 @@ static void afatfs_freeFileCreated(afatfsFile_t *file)
         afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
     }
 }
-
-#endif
 
 // The old freefile's clusters are free again: take the larger block the search found
 static void afatfs_freeFileReleased(afatfsFile_t *file)
@@ -3537,6 +3558,8 @@ static void afatfs_freeFileReleased(afatfsFile_t *file)
 
     afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_UPDATE_FAT;
 }
+
+#endif
 
 static void afatfs_initContinue(void)
 {
@@ -3583,6 +3606,86 @@ static void afatfs_initContinue(void)
         break;
         case AFATFS_INITIALIZATION_FREEFILE_CREATING:
             afatfs_fileOperationContinue(&afatfs.freeFile);
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_EXTEND_SEARCH:
+        {
+            const uint32_t largestEnd = afatfs.freeFile.firstCluster + FAT_MAXIMUM_FILESIZE / afatfs_clusterSize();
+            const uint32_t searchLimit = MIN(largestEnd, afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER);
+
+            switch (afatfs_findClusterWithCondition(CLUSTER_SEARCH_OCCUPIED, &afatfs.initState.freeSpaceFAT.endCluster, searchLimit)) {
+                case AFATFS_FIND_CLUSTER_FOUND:
+                case AFATFS_FIND_CLUSTER_NOT_FOUND:
+                {
+                    uint32_t freeClusters = afatfs.initState.freeSpaceFAT.endCluster - afatfs.initState.freeSpaceFAT.startCluster;
+
+                    // Leave some clusters for regular files as a new freefile does, unless capped at the file size limit
+                    if (afatfs.initState.freeSpaceFAT.endCluster < largestEnd) {
+                        freeClusters = freeClusters > AFATFS_FREEFILE_LEAVE_CLUSTERS ? freeClusters - AFATFS_FREEFILE_LEAVE_CLUSTERS : 0;
+                    }
+
+                    // Whole superclusters, so the size stays N superclusters plus one cluster
+                    const uint32_t clusters = ((afatfs_freeFileClusters() + freeClusters - 1) & ~(afatfs_fatEntriesPerSector() - 1)) + 1;
+
+                    if (clusters > afatfs_freeFileClusters()) {
+                        afatfs.initState.freeSpaceFAT.endCluster = afatfs.freeFile.firstCluster + clusters;
+                        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_EXTEND_UPDATE_FAT;
+                    } else {
+                        afatfs_freeFileExtended();
+                    }
+                    goto doMore;
+                }
+                case AFATFS_FIND_CLUSTER_FATAL:
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                break;
+                case AFATFS_FIND_CLUSTER_IN_PROGRESS:
+                break;
+            }
+        }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_EXTEND_UPDATE_FAT:
+            // Chain the new clusters before linking them: a power cut never leaves a chain into free ones
+            status = afatfs_FATFillWithPattern(AFATFS_FAT_PATTERN_TERMINATED_CHAIN, &afatfs.initState.freeSpaceFAT.startCluster, afatfs.initState.freeSpaceFAT.endCluster);
+
+            if (status == AFATFS_OPERATION_SUCCESS) {
+                afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_EXTEND_LINK;
+                goto doMore;
+            } else if (status == AFATFS_OPERATION_FAILURE) {
+                afatfs.lastError = AFATFS_ERROR_GENERIC;
+                afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+            }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_EXTEND_LINK:
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                const uint32_t oldEnd = afatfs.freeFile.firstCluster + afatfs_freeFileClusters();
+
+                status = afatfs_FATSetNextCluster(oldEnd - 1, oldEnd);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    afatfs.freeFile.logicalSize = (afatfs.initState.freeSpaceFAT.endCluster - afatfs.freeFile.firstCluster) * afatfs_clusterSize();
+                    afatfs.freeFile.physicalSize = afatfs.freeFile.logicalSize;
+
+                    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_EXTEND_SAVE_DIR_ENTRY;
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
+            }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_EXTEND_SAVE_DIR_ENTRY:
+            // The new size goes on the card after the chain it describes
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                status = afatfs_saveDirectoryEntry(&afatfs.freeFile, AFATFS_SAVE_DIRECTORY_NORMAL);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    afatfs_freeFileExtended();
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
+            }
         break;
         case AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH:
             if (afatfs_findLargestContiguousFreeBlockContinue() == AFATFS_OPERATION_SUCCESS) {
