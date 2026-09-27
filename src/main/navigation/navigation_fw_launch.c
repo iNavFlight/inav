@@ -53,6 +53,7 @@
 
 #define SWING_LAUNCH_MIN_ROTATION_RATE      DEGREES_TO_RADIANS(100)     // expect minimum 100dps rotation rate
 #define LAUNCH_MOTOR_IDLE_SPINUP_TIME 1500                              // ms
+#define THROW_LAUNCH_ACCEL_HOLD_TIME 1000                               // ms, throw acceleration is remembered this long while waiting for the GPS speed to catch up
 #if !defined(UNUSED)
 #define UNUSED(x) ((void)(x))
 #endif
@@ -123,6 +124,7 @@ typedef struct fixedWingLaunchData_s {
 
 static EXTENDED_FASTRAM fixedWingLaunchData_t fwLaunch;
 static bool idleMotorAboutToStart;
+static timeUs_t forwardAccelHighTimeUs;
 
 static const fixedWingLaunchStateDescriptor_t launchStateMachine[FW_LAUNCH_STATE_COUNT] = {
 
@@ -414,6 +416,7 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_MOTOR_IDLE(timeUs_t 
 static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeUs_t currentTimeUs)
 {
     if (throttleStickIsLow()) {
+        forwardAccelHighTimeUs = 0;
         return FW_LAUNCH_EVENT_THROTTLE_LOW; // go back to FW_LAUNCH_STATE_WAIT_THROTTLE
     }
 
@@ -421,9 +424,20 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeU
     const bool isForwardAccelerationHigh = (imuMeasuredAccelBF.x > navConfig()->fw.launch_accel_thresh);
     const bool isAircraftAlmostLevel = (calculateCosTiltAngle() >= cos_approx(DEGREES_TO_RADIANS(navConfig()->fw.launch_max_angle)));
 
+    if (isForwardAccelerationHigh) {
+        forwardAccelHighTimeUs = currentTimeUs;
+    }
+    // The acceleration peak of a throw is over long before the GPS speed follows, so a peak seen shortly before still counts.
+    // Without this the throw launch would trigger on accelerometer noise alone, or on a GPS speed glitch while the aircraft is held still.
+    const timeDelta_t forwardAccelAgeUs = cmpTimeUs(currentTimeUs, forwardAccelHighTimeUs);
+    if (forwardAccelAgeUs < 0 || forwardAccelAgeUs >= MS2US(THROW_LAUNCH_ACCEL_HOLD_TIME)) {
+        forwardAccelHighTimeUs = 0;
+    }
+    const bool wasForwardAccelerationHigh = forwardAccelHighTimeUs != 0;
+
     const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
     const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
-    const bool isForwardLaunched = isGPSHeadingValid() && (gpsSol.groundSpeed > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
+    const bool isForwardLaunched = isGPSHeadingValid() && (gpsSol.groundSpeed > navConfig()->fw.launch_velocity_thresh) && wasForwardAccelerationHigh;
 
     applyThrottleIdleLogic(false);
 
@@ -591,6 +605,8 @@ void applyFixedWingLaunchController(timeUs_t currentTimeUs)
 
 void resetFixedWingLaunchController(timeUs_t currentTimeUs)
 {
+    forwardAccelHighTimeUs = 0;
+
     if (navConfig()->fw.launch_manual_throttle) {
         // no detection or motor control required with manual launch throttle
         // so start at launch in progress
