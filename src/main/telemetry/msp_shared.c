@@ -57,6 +57,11 @@ enum { // byte position(index) in msp-over-telemetry request payload
 };
 
 static uint8_t lastRequestVersion; // MSP version of last request. Temporary solution. It's better to keep it in requestPacket.
+// Whether the current response's START frame has gone out. Cleared whenever a
+// new response is prepared, not only when one finishes: a request that arrives
+// while a long response is still being sent replaces that response, and the
+// replacement must begin with its own START frame or the receiver discards it.
+static bool headerSent = false;
 STATIC_UNIT_TESTED mspPackage_t mspPackage;
 static mspRxBuffer_t mspRxBuffer;
 static mspTxBuffer_t mspTxBuffer;
@@ -74,6 +79,7 @@ void initSharedMsp(void)
     mspPackage.responsePacket = &mspTxPacket;
     mspPackage.responsePacket->buf.ptr = mspPackage.responseBuffer;
     mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
+    headerSent = false;
 }
 
 static bool processMspPacket(void)
@@ -82,6 +88,7 @@ static bool processMspPacket(void)
     mspPackage.responsePacket->result = 0;
     mspPackage.responsePacket->buf.ptr = mspPackage.responseBuffer;
     mspPackage.responsePacket->buf.end = mspPackage.responseBuffer + sizeof(mspTxBuffer);
+    headerSent = false;
 
     mspPostProcessFnPtr mspPostProcessFn = NULL;
     const mspResult_e status = mspFcProcessCommand(mspPackage.requestPacket, mspPackage.responsePacket, &mspPostProcessFn);
@@ -105,6 +112,7 @@ void sendMspErrorResponse(uint8_t error, int16_t cmd)
     mspPackage.responsePacket->cmd = cmd;
     mspPackage.responsePacket->result = 0;
     mspPackage.responsePacket->buf.end = mspPackage.responseBuffer;
+    headerSent = false;
 
     sbufWriteU8(&mspPackage.responsePacket->buf, error);
     mspPackage.responsePacket->result = TELEMETRY_MSP_RES_ERROR;
@@ -213,7 +221,6 @@ bool handleMspFrame(uint8_t *const frameStart, const int payloadLength)
 bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
 {
     static uint8_t seq = 0;
-    static bool headerSent = false;
 
     uint8_t payloadOut[payloadSize];
     sbuf_t payload;
