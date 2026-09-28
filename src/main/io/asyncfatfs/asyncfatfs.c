@@ -3928,7 +3928,8 @@ bool afatfs_freeFileHasRoom(void)
     return !afatfs.filesystemFull && afatfs.freeFile.logicalSize >= afatfs_superClusterSize();
 }
 
-static void afatfs_freeFileRefillPoll(void)
+// Out of line like afatfs_initContinue(), to stay out of the ITCM
+static NOINLINE void afatfs_freeFileRefillPoll(void)
 {
     afatfsRefill_t *refill = &afatfs.refill;
     const uint32_t fatEntriesPerSector = afatfs_fatEntriesPerSector();
