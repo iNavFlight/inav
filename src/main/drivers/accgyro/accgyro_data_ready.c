@@ -179,12 +179,19 @@ void gyroDataReadySuspend(void)
     }
 }
 
+bool gyroDataReadyWanted(const gyroDev_t *gyro)
+{
+    const gyroDataReadyDriver_t *driver = gyro->dataReadyDriver;
+    const busDevice_t *dev = gyro->busDev;
+    return driver && dev && dev->irqPin && gyro->readOnDataReady != GYRO_DEV_DATA_READY_OFF &&
+        (gyro->readOnDataReady != GYRO_DEV_DATA_READY_WHERE_TESTED || driver->tested);
+}
+
 void gyroDataReadyStart(gyroDev_t *gyro)
 {
     const gyroDataReadyDriver_t *driver = gyro->dataReadyDriver;
     busDevice_t *dev = gyro->busDev;
-    if (!driver || !dev || !dev->irqPin || gyro->readOnDataReady == GYRO_DEV_DATA_READY_OFF ||
-        (gyro->readOnDataReady == GYRO_DEV_DATA_READY_WHERE_TESTED && !driver->tested)) {
+    if (!gyroDataReadyWanted(gyro)) {
         return;
     }
     // A pin already owned stays with its owner; a wrong but free pin only means polling as before

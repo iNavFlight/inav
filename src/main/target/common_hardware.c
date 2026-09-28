@@ -49,7 +49,10 @@
 
     #if defined(USE_IMU_MPU9250)
         #if defined(MPU9250_SPI_BUS)
-        BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
+        #if !defined(MPU9250_EXTI_PIN)
+            #define MPU9250_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     MPU9250_EXTI_PIN,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
         #elif defined(MPU9250_I2C_BUS)
         BUSDEV_REGISTER_I2C(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_I2C_BUS,    MPU_ADDRESS,        NONE,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
         #endif
@@ -94,7 +97,10 @@
     #endif
 
     #if defined(USE_IMU_LSM6DXX)
-        BUSDEV_REGISTER_SPI(busdev_lsm6dxx,      DEVHW_LSM6D,       LSM6DXX_SPI_BUS,     LSM6DXX_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_LSM6DXX_ALIGN);
+        #if !defined(LSM6DXX_EXTI_PIN)
+            #define LSM6DXX_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_lsm6dxx,      DEVHW_LSM6D,       LSM6DXX_SPI_BUS,     LSM6DXX_CS_PIN,      LSM6DXX_EXTI_PIN,  DEVFLAGS_NONE,  IMU_LSM6DXX_ALIGN);
     #endif
 
     #if defined(USE_IMU_ICM45686)
