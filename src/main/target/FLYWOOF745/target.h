@@ -39,6 +39,7 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          SPI4_NSS_PIN
+#define MPU6000_EXTI_PIN       PE1
 #define MPU6000_SPI_BUS         BUS_SPI4
 
 #define USE_IMU_BMI270

@@ -51,6 +51,7 @@
 #define IMU_MPU6500_ALIGN       CW90_DEG
 #define MPU6500_SPI_BUS         BUS_SPI1
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
+#define MPU6500_EXTI_PIN       PC4
 
 // *************** SPI2 OSD  ****************
 #define USE_SPI_DEVICE_2

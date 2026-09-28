@@ -30,12 +30,18 @@
     #endif
 
     #if defined(USE_IMU_MPU6000)
-        BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+        #if !defined(MPU6000_EXTI_PIN)
+            #define MPU6000_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     MPU6000_EXTI_PIN,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
     #endif
 
     #if defined(USE_IMU_MPU6500)
         #if defined(MPU6500_SPI_BUS)
-        BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
+        #if !defined(MPU6500_EXTI_PIN)
+            #define MPU6500_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     MPU6500_EXTI_PIN,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
         #elif defined(MPU6500_I2C_BUS)
         BUSDEV_REGISTER_I2C(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_I2C_BUS,    MPU_ADDRESS,        NONE,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
         #endif
@@ -50,7 +56,10 @@
     #endif
 
     #if defined(USE_IMU_ICM20689)
-        BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
+        #if !defined(ICM20689_EXTI_PIN)
+            #define ICM20689_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    ICM20689_EXTI_PIN,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
     #endif
 
     #if defined(USE_IMU_ICM42605)

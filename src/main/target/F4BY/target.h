@@ -30,6 +30,7 @@
 #define MPU6000_CS_PIN          PA4
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define ICM20689_CS_PIN         PA4
+#define ICM20689_EXTI_PIN       PB0
 #define ICM20689_SPI_BUS        BUS_SPI1
 
 

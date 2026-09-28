@@ -43,6 +43,9 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_CS_PIN          PA15
+#if defined(GEPRC_F722_AIO)
+#define MPU6000_EXTI_PIN       PA8
+#endif
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_BMI270
