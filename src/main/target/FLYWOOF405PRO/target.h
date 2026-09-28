@@ -45,6 +45,7 @@
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN       CW180_DEG_FLIP
 #define BMI270_CS_PIN          PB12
+#define BMI270_EXTI_PIN         GYRO_INT_EXTI
 #define BMI270_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_ICM42605

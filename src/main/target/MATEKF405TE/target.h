@@ -51,6 +51,7 @@
 #define IMU_BMI270_ALIGN        CW270_DEG_FLIP
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PC14
+#define BMI270_EXTI_PIN         PC15
 
 
 

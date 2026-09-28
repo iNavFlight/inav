@@ -42,6 +42,9 @@
 #define USE_IMU_BMI270
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
+#if defined(SKYSTARSF405AIO)
+#define BMI270_EXTI_PIN         PC4
+#endif
 
 #define USE_IMU_ICM42605
 #define ICM42605_SPI_BUS        BUS_SPI1

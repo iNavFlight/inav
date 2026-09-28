@@ -81,6 +81,7 @@
 #define IMU_BMI270_ALIGN                CW90_DEG
 #define BMI270_SPI_BUS                  BUS_SPI4
 #define BMI270_CS_PIN                   PE4
+#define BMI270_EXTI_PIN         PE1
 
 // *************** I2C(Baro & I2C) **************************
 #define USE_I2C

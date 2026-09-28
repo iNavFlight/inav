@@ -74,6 +74,7 @@
 #define IMU_BMI270_ALIGN        CW270_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           SPI1_NSS_PIN
+#define BMI270_EXTI_PIN         PC3
 
 /*** OSD ***/
 #define USE_MAX7456

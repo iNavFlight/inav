@@ -78,7 +78,10 @@
     #endif
 
     #if defined(USE_IMU_BMI270)
-        BUSDEV_REGISTER_SPI(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
+        #if !defined(BMI270_EXTI_PIN)
+            #define BMI270_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      BMI270_EXTI_PIN,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
     #endif
 
     #if defined(USE_IMU_LSM6DXX)
@@ -86,7 +89,10 @@
     #endif
 
     #if defined(USE_IMU_ICM45686)
-        BUSDEV_REGISTER_SPI(busdev_icm45686,    DEVHW_ICM45686,     ICM45686_SPI_BUS,   ICM45686_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM45686_ALIGN);
+        #if !defined(ICM45686_EXTI_PIN)
+            #define ICM45686_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_icm45686,    DEVHW_ICM45686,     ICM45686_SPI_BUS,   ICM45686_CS_PIN,    ICM45686_EXTI_PIN,  DEVFLAGS_NONE,  IMU_ICM45686_ALIGN);
     #endif
 
 #endif

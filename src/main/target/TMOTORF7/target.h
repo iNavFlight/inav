@@ -55,6 +55,9 @@
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW0_DEG
 #define BMI270_CS_PIN           PA4
+#ifdef TMOTORF7
+#define BMI270_EXTI_PIN         PC4
+#endif
 #define BMI270_SPI_BUS          BUS_SPI1
 
 // *************** I2C Mag *********************
