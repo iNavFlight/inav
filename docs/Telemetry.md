@@ -410,3 +410,20 @@ It runs at a fixed baud rate of 100000, so it needs a hardware uart capable of i
 ```
 
 For more information and sensor slot numbering, refer to [SBUS2 Documentation](SBUS2_Telemetry.md)
+
+
+## CRSF telemetry
+
+CRSF telemetry is sent back over the receiver link when `receiver_type = SERIAL`, `serialrx_provider = CRSF` and the `TELEMETRY` feature is enabled. No additional serial port is needed.
+
+### GPS time
+
+When the `GPS` feature is enabled, INAV sends the CRSF GPS Time frame (`0x03`). It carries the UTC date and time of the current GPS solution, including milliseconds. The frame is sent at most once per GPS second, also while armed, and only while the GPS reports a valid UTC time. It takes the place of one GPS position frame, so while a valid time is available, GPS position frames arrive about 9 times per second instead of 10. When the GPS stops delivering time, no more frames are sent. The frame is also not sent while the GPS fix is estimated (`inav_allow_gps_fix_estimation`) or disabled by a logic condition. There is nothing to configure.
+
+Whether the time is available depends on `gps_provider`:
+
+* **UBLOX** : date and time with milliseconds, as soon as the GPS marks date and time as valid.
+* **MSP** : date and time without milliseconds (always `.000`), only with a 3D fix.
+* **CRSF**, **DRONECAN** : no time, the frame is not sent.
+
+EdgeTX 2.12.1 and newer show the frame as the telemetry sensor `Date` (found by sensor discovery), and the option _Adjust RTC_ on the GPS page of Radio Setup sets the radio clock from it; older EdgeTX versions ignore the frame. ExpressLRS forwards it like other telemetry frames, including to the TX Backpack telemetry output.

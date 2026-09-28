@@ -246,6 +246,31 @@ static void crsfFrameGps(sbuf_t *dst)
 }
 
 /*
+0x03 GPS Time
+Payload:
+int16_t     Year
+uint8_t     Month ( 1-12 )
+uint8_t     Day ( 1-31 )
+uint8_t     Hour ( 0-23, UTC )
+uint8_t     Minute ( 0-59 )
+uint8_t     Second ( 0-60 )
+uint16_t    Millisecond ( 0-999 )
+*/
+static void crsfFrameGpsTime(sbuf_t *dst)
+{
+    // use sbufWrite since CRC does not include frame length
+    sbufWriteU8(dst, CRSF_FRAME_GPS_TIME_PAYLOAD_SIZE + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_GPS_TIME);
+    crsfSerialize16(dst, gpsSol.time.year);
+    crsfSerialize8(dst, gpsSol.time.month);
+    crsfSerialize8(dst, gpsSol.time.day);
+    crsfSerialize8(dst, gpsSol.time.hours);
+    crsfSerialize8(dst, gpsSol.time.minutes);
+    crsfSerialize8(dst, gpsSol.time.seconds);
+    crsfSerialize16(dst, gpsSol.time.millis);
+}
+
+/*
 0x07 Vario sensor
 Payload:
 int16      Vertical speed ( cm/s )
@@ -684,8 +709,15 @@ static void processCrsf(void)
 #endif
 #ifdef USE_GPS
     if (currentSchedule & BV(CRSF_FRAME_GPS_INDEX)) {
+        // time shares the GPS slot so the other frames keep their rate
+        static uint8_t lastGpsTimeSecond = UINT8_MAX;
         crsfInitializeFrame(dst);
-        crsfFrameGps(dst);
+        if (gpsSol.flags.validTime && gpsSol.time.year != 0 && gpsSol.time.seconds != lastGpsTimeSecond) {
+            crsfFrameGpsTime(dst);
+            lastGpsTimeSecond = gpsSol.time.seconds;
+        } else {
+            crsfFrameGps(dst);
+        }
         crsfFinalize(dst);
     }
 #endif
