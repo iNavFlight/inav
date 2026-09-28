@@ -34,6 +34,7 @@
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_data_ready.h"
 #include "accgyro_icm45686.h"
 
 #if defined(USE_IMU_ICM45686)
@@ -309,6 +310,17 @@ static void icm45686AccInit(accDev_t *acc)
 
 static bool icm45686AccRead(accDev_t *acc)
 {
+#if defined(USE_SPI_DATA_READY)
+    // The read on data-ready brought the accelerometer too
+    int16_t v[XYZ_AXIS_COUNT];
+    if (gyroDataReadyAcc(acc->busDev, v)) {
+        acc->ADCRaw[X] = v[X];
+        acc->ADCRaw[Y] = v[Y];
+        acc->ADCRaw[Z] = v[Z];
+        return true;
+    }
+#endif
+
     uint8_t data[6];
 
     const bool ack = busReadBuf(acc->busDev, ICM456XX_ACCEL_DATA_X1_UI, data, 6);
@@ -341,6 +353,14 @@ static bool icm45686GyroRead(gyroDev_t *gyro)
 
 static bool icm45686ReadTemperature(gyroDev_t *gyro, int16_t * temp)
 {
+#if defined(USE_SPI_DATA_READY)
+    int16_t raw;
+    if (gyroDataReadyTemperature(gyro->busDev, &raw)) {
+        *temp = (raw / 12.8f) + 250.0f; // as below, degC*10
+        return true;
+    }
+#endif
+
     uint8_t data[2];
 
     const bool ack = busReadBuf(gyro->busDev, ICM456XX_TEMP_DATA1, data, 2);
@@ -352,6 +372,34 @@ static bool icm45686ReadTemperature(gyroDev_t *gyro, int16_t * temp)
 
     return true;
 }
+
+#if defined(USE_SPI_DATA_READY)
+// From ACCEL_DATA_X1_UI: accelerometer X, Y, Z, gyro X, Y, Z and temperature, little-endian
+static void icm45686DataReadyParse(const uint8_t *data, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp)
+{
+    if (withAccAndTemp) {
+        acc[X] = int16_val_little_endian(data, 0);
+        acc[Y] = int16_val_little_endian(data, 1);
+        acc[Z] = int16_val_little_endian(data, 2);
+        data += 6;
+    }
+    gyro[X] = int16_val_little_endian(data, 0);
+    gyro[Y] = int16_val_little_endian(data, 1);
+    gyro[Z] = int16_val_little_endian(data, 2);
+    if (withAccAndTemp) {
+        *temp = int16_val_little_endian(data, 3);
+    }
+}
+
+// Not tested on any board yet: gyro_data_ready AUTO leaves it off
+static const gyroDataReadyDriver_t icm45686DataReady = {
+    .withAccAndTemp = { ICM456XX_ACCEL_DATA_X1_UI | 0x80, 14 },
+    .gyroOnly = { ICM456XX_GYRO_DATA_X1_UI | 0x80, 6 },
+    .hasTemp = true,
+    .parse = icm45686DataReadyParse,
+    .registerRead = icm45686GyroRead,
+};
+#endif
 
 static void icm45686AccAndGyroInit(gyroDev_t *gyro)
 {
@@ -402,6 +450,10 @@ static void icm45686AccAndGyroInit(gyroDev_t *gyro)
 
     delay(ICM456XX_INT_CONFIG_DELAY_MS);
     busSetSpeed(dev, BUS_SPEED_FAST);
+
+#if defined(USE_SPI_DATA_READY)
+    gyro->dataReadyDriver = &icm45686DataReady;
+#endif
 }
 
 static bool icm45686DeviceDetect(busDevice_t * dev)

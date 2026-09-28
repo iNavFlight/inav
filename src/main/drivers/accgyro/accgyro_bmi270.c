@@ -38,6 +38,7 @@
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_data_ready.h"
 #include "drivers/accgyro/accgyro_bmi270.h"
 
 #define BMI270_CONFIG_SIZE 328
@@ -257,6 +258,17 @@ static bool bmi270yroReadScratchpad(gyroDev_t *gyro)
 
 static bool bmi270AccReadScratchpad(accDev_t *acc)
 {
+#if defined(USE_SPI_DATA_READY)
+    // The read on data-ready brought the accelerometer too
+    int16_t v[XYZ_AXIS_COUNT];
+    if (gyroDataReadyAcc(acc->busDev, v)) {
+        acc->ADCRaw[X] = v[X];
+        acc->ADCRaw[Y] = v[Y];
+        acc->ADCRaw[Z] = v[Z];
+        return true;
+    }
+#endif
+
     bmi270ContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
@@ -284,9 +296,38 @@ static bool bmi270TemperatureRead(gyroDev_t *gyro, int16_t * data)
     return false;
 }
 
+#if defined(USE_SPI_DATA_READY)
+// After a dummy byte, from ACC_DATA_X_LSB: accelerometer X, Y, Z and gyro X, Y, Z, little-endian.
+// INT1 flags new data of either sensor, so the gyro-only read takes the accelerometer too
+static void bmi270DataReadyParse(const uint8_t *data, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp)
+{
+    UNUSED(temp);
+    data++;
+    if (withAccAndTemp) {
+        acc[X] = int16_val_little_endian(data, 0);
+        acc[Y] = int16_val_little_endian(data, 1);
+        acc[Z] = int16_val_little_endian(data, 2);
+    }
+    gyro[X] = int16_val_little_endian(data, 3);
+    gyro[Y] = int16_val_little_endian(data, 4);
+    gyro[Z] = int16_val_little_endian(data, 5);
+}
+
+// Not tested on any board yet: gyro_data_ready AUTO leaves it off
+static const gyroDataReadyDriver_t bmi270DataReady = {
+    .withAccAndTemp = { BMI270_REG_ACC_DATA_X_LSB | 0x80, 13 },
+    .gyroOnly = { BMI270_REG_ACC_DATA_X_LSB | 0x80, 13 },
+    .parse = bmi270DataReadyParse,
+    .registerRead = bmi270yroReadScratchpad,
+};
+#endif
+
 static void bmi270GyroInit(gyroDev_t *gyro)
 {
     bmi270AccAndGyroInit(gyro);
+#if defined(USE_SPI_DATA_READY)
+    gyro->dataReadyDriver = &bmi270DataReady;
+#endif
 }
 
 static void bmi270AccInit(accDev_t *acc)
