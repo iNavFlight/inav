@@ -818,5 +818,8 @@ void init(void)
 
     statsInit();
 
+    // Last, once every other user of the DMA streams has its own
+    gyroStartDataReady();
+
     systemState |= SYSTEM_STATE_READY;
 }
