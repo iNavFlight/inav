@@ -494,7 +494,7 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, 
 #if defined(USE_SPI_DATA_READY)
 // Data-ready reads (see bus_spi_data_ready.c). On H7 a read that fits the SPI FIFO (16 bytes on
 // SPI1-3, 8 on SPI4-6) needs no DMA: the end-of-transfer interrupt takes it all back. Longer
-// reads use two DMA streams
+// reads, and all on F7 (4-byte FIFO), use two DMA streams
 
 // Longest read, address included
 #define SPI_DATA_READY_MAX  32
@@ -541,6 +541,7 @@ static bool spiDataReadyDmaSetup(SPIDevice device)
     return true;
 }
 
+#if defined(STM32H7)
 static const IRQn_Type spiIrq[SPIDEV_COUNT] = { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn, SPI4_IRQn };
 
 static uint8_t spiFifoSize(SPI_TypeDef *instance)
@@ -647,6 +648,57 @@ void SPI3_IRQHandler(void) { spiDataReadyIrqHandler(SPIDEV_3); }
 void SPI4_IRQHandler(void) { spiDataReadyIrqHandler(SPIDEV_4); }
 #endif
 
+#else // STM32F7
+
+bool spiDataReadyHwInit(SPIDevice device, uint8_t reg, uint8_t len)
+{
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+    spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    if (!instance || len + 1 > SPI_DATA_READY_MAX) {
+        return false;
+    }
+
+    h->reg = reg;
+    h->len = len;
+    return spiDataReadyDmaSetup(device);
+}
+
+// Setting the DMA requests starts the read: receive first, as the reference manual has it
+void spiDataReadyHwStart(SPIDevice device)
+{
+    const spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+
+    // A byte left in the receive FIFO would be taken for the first one of this read
+    for (int n = 0; n < 8 && LL_SPI_GetRxFIFOLevel(instance) != LL_SPI_RX_FIFO_EMPTY; n++) {
+        (void)LL_SPI_ReceiveData8(instance);
+    }
+    spiDataReadyDmaStart(&h->streams, &instance->DR, &instance->DR, spiDataReadyTx[device], spiDataReadyRx[device], h->len + 1);
+    SET_BIT(instance->CR2, SPI_CR2_RXDMAEN);
+    SET_BIT(instance->CR2, SPI_CR2_TXDMAEN);
+}
+
+void spiDataReadyHwStop(SPIDevice device)
+{
+    const spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+
+    spiDataReadyDmaStop(&h->streams);
+    CLEAR_BIT(instance->CR2, SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
+
+    // A read stopped half way leaves bytes behind: send them and drop what comes back, or the main
+    // loop's next transfer would take it for its own
+    for (int timeout = 1000; timeout && (LL_SPI_GetTxFIFOLevel(instance) != LL_SPI_TX_FIFO_EMPTY || LL_SPI_IsActiveFlag_BSY(instance)); timeout--);
+    for (int n = 0; n < 8 && LL_SPI_GetRxFIFOLevel(instance) != LL_SPI_RX_FIFO_EMPTY; n++) {
+        (void)LL_SPI_ReceiveData8(instance);
+    }
+}
+
+void spiDataReadyHwDisable(SPIDevice device)
+{
+    spiDataReadyDmaDisable(&spiDataReadyHw[device].streams);
+}
+#endif
 #endif
 
 void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed)

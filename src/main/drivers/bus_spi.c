@@ -18,11 +18,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <string.h>
+
 #include <platform.h>
 
 #ifdef USE_SPI
 
 #include "drivers/bus_spi.h"
+#include "drivers/bus_spi_data_ready_impl.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
@@ -247,6 +250,84 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len
 
     return true;
 }
+
+#if defined(USE_SPI_DATA_READY)
+// Data-ready reads (see bus_spi_data_ready.c). The F4 SPI has no FIFO, so every read uses two
+// DMA streams; the buffers stay out of the CCM RAM, which the DMA can not reach
+
+// Longest read, address included
+#define SPI_DATA_READY_MAX  32
+
+typedef struct {
+    uint8_t len;                        // bytes after the address
+    spiDataReadyDma_t streams;
+} spiDataReadyHw_t;
+
+static spiDataReadyHw_t spiDataReadyHw[SPIDEV_COUNT];
+static uint8_t spiDataReadyTx[SPIDEV_COUNT][SPI_DATA_READY_MAX];
+static uint8_t spiDataReadyRx[SPIDEV_COUNT][SPI_DATA_READY_MAX];
+
+static void spiDataReadyDmaDone(DMA_t rx)
+{
+    const SPIDevice device = (SPIDevice)rx->userParam;
+    if (!spiDataReadyDmaEnded(rx)) {
+        // The read never ends: the main loop takes it off the bus when it next needs it
+        return;
+    }
+
+    // A copy: a data-ready that came meanwhile starts the next read into the same buffer
+    uint8_t data[SPI_DATA_READY_MAX];
+    memcpy(data, spiDataReadyRx[device] + 1, spiDataReadyHw[device].len);
+    spiDataReadyDone(device, data);
+}
+
+bool spiDataReadyHwInit(SPIDevice device, uint8_t reg, uint8_t len)
+{
+    spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    if (!spiHardwareMap[device].dev || len + 1 > SPI_DATA_READY_MAX) {
+        return false;
+    }
+    if (!spiDataReadyDmaInit(device, &h->streams, spiDataReadyDmaDone, device)) {
+        return false;
+    }
+
+    h->len = len;
+    memset(spiDataReadyTx[device], 0xFF, SPI_DATA_READY_MAX);
+    spiDataReadyTx[device][0] = reg;
+    return true;
+}
+
+// Setting the DMA requests starts the read: receive first, as the reference manual has it
+void spiDataReadyHwStart(SPIDevice device)
+{
+    const spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+
+    // A byte left in the data register would be taken for the first one of this read
+    (void)instance->DR;
+    spiDataReadyDmaStart(&h->streams, &instance->DR, &instance->DR, spiDataReadyTx[device], spiDataReadyRx[device], h->len + 1);
+    instance->CR2 |= SPI_CR2_RXDMAEN;
+    instance->CR2 |= SPI_CR2_TXDMAEN;
+}
+
+void spiDataReadyHwStop(SPIDevice device)
+{
+    const spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+
+    spiDataReadyDmaStop(&h->streams);
+    instance->CR2 &= ~(SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
+
+    // A read stopped half way may leave a byte going out: let it finish and drop the echo
+    for (int timeout = 1000; timeout && (!(instance->SR & SPI_SR_TXE) || (instance->SR & SPI_SR_BSY)); timeout--);
+    (void)instance->DR;
+}
+
+void spiDataReadyHwDisable(SPIDevice device)
+{
+    spiDataReadyDmaDisable(&spiDataReadyHw[device].streams);
+}
+#endif
 
 void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed)
 {

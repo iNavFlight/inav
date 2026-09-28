@@ -18,7 +18,7 @@
 #pragma once
 
 // SPI reads started by a device's data-ready interrupt (drivers/bus_spi_data_ready.c)
-#if defined(STM32H7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
 #define USE_SPI_DATA_READY
 #endif
 

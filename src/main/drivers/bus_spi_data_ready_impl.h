@@ -40,13 +40,17 @@ void spiTimeoutUserCallback(SPI_TypeDef *instance);
 uint32_t spiTimeoutUserCallback(SPI_TypeDef *instance);
 #endif
 
-#if defined(STM32H7)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7)
 #include "drivers/dma.h"
 
 // Reads longer than the SPI FIFO go through two DMA streams (bus_spi_data_ready_dma.c)
 typedef struct {
     DMA_t rx;
     DMA_t tx;
+#if defined(STM32F4) || defined(STM32F7)
+    uint32_t rxChannel;                 // the stream's channel for this SPI
+    uint32_t txChannel;
+#endif
 } spiDataReadyDma_t;
 
 // Takes a free stream for each direction. done() runs at the end of each read, or when the
