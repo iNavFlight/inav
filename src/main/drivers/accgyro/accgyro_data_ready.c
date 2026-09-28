@@ -202,19 +202,19 @@ static bool gyroDataReadyRead(gyroDev_t *gyro)
     gyroDataReady_t *d = gyro->dataReadyState;
 
     if (d->fifoSamples && (d->paused || d->fifoFlush)) {
-        // What the FIFO holds is old, or out of step with the reads
+        // What the FIFO holds is old, or out of step with the reads, and so is what came from it
         d->driver->fifo->flush(gyro);
         d->fifoFlush = false;
-        if (d->paused) {
-            // No register read: a sample taken during the flush would come again from the FIFO
-            ATOMIC_BLOCK(NVIC_PRIO_GYRO_DATA_READY) {
-                gyro->sampleQueueTail = gyro->sampleQueueHead;
+        ATOMIC_BLOCK(NVIC_PRIO_GYRO_DATA_READY) {
+            gyro->sampleQueueTail = gyro->sampleQueueHead;
+            if (d->paused) {
                 d->paused = false;
                 EXTIEnable(gyro->busDev->irqPin, true);
             }
-            d->resumedUs = micros();
-            return false;
         }
+        d->resumedUs = micros();
+        // No register read: a sample taken during the flush would come again from the FIFO
+        return false;
     }
 
     if (d->paused) {
