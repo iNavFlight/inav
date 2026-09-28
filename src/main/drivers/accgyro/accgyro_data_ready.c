@@ -217,7 +217,11 @@ void gyroDataReadyStart(gyroDev_t *gyro)
 
     IOInit(dev->irqPin, OWNER_MPU, RESOURCE_EXTI, RESOURCE_INDEX(gyro->imuSensorToUse));
     EXTIHandlerInit(&d->exti, gyroDataReadyExti);
-    EXTIConfig(dev->irqPin, &d->exti, NVIC_PRIO_GYRO_DATA_READY, IOCFG_IN_FLOATING);
+#if defined(STM32F7) || defined(STM32H7)
+    EXTIConfig(dev->irqPin, &d->exti, NVIC_PRIO_GYRO_DATA_READY, IOCFG_IN_FLOATING);   // always on the rising edge
+#else
+    EXTIConfig(dev->irqPin, &d->exti, NVIC_PRIO_GYRO_DATA_READY, EXTI_Trigger_Rising);
+#endif
     EXTIEnable(dev->irqPin, true);
 
     gyro->dataReadyState = d;
