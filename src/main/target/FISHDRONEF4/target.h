@@ -36,6 +36,7 @@
 #define MPU6500_CS_PIN          PA4
 #define MPU6500_SPI_BUS         BUS_SPI1
 #define MPU9250_CS_PIN          PA4
+#define MPU9250_EXTI_PIN       PC4
 #define MPU9250_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_MPU6500
