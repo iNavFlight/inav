@@ -497,7 +497,8 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, 
 // reads, and all on F7 (4-byte FIFO), use two DMA streams
 
 // Longest read, address included
-#define SPI_DATA_READY_MAX  32
+// The address and up to four FIFO packets of 16 bytes after the count
+#define SPI_DATA_READY_MAX  72
 
 typedef struct {
     uint8_t reg;                        // the first register, as sent (read bit included)

@@ -132,6 +132,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
 #endif
 #ifdef USE_SPI_DATA_READY
     .gyro_data_ready = SETTING_GYRO_DATA_READY_DEFAULT,
+    .gyro_fifo_samples = SETTING_GYRO_FIFO_SAMPLES_DEFAULT,
 #endif
     .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
     .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
@@ -390,6 +391,7 @@ bool gyroInit(void)
 #ifdef USE_SPI_DATA_READY
     gyroDev[0].readOnDataReady = gyroReadOnDataReady();
     gyroDev[0].readOnDataReadyWithAcc = true;
+    gyroDev[0].dataReadyFifoSamples = gyroConfig()->gyro_fifo_samples;
 #endif
     gyroDevStart(&gyroDev[0]);
 
@@ -412,6 +414,7 @@ bool gyroInit(void)
 #ifdef USE_SPI_DATA_READY
                 // Its interrupt stays off while no log is written
                 gyroDev[GYRO_SECONDARY].readOnDataReady = gyroReadOnDataReady();
+                gyroDev[GYRO_SECONDARY].dataReadyFifoSamples = gyroConfig()->gyro_fifo_samples;
 #endif
                 gyroDevStart(&gyroDev[GYRO_SECONDARY]);
                 gyro.secondaryInitialized = true;

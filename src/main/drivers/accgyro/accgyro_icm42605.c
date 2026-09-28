@@ -162,6 +162,96 @@ static void setUserBank(const busDevice_t *dev, const uint8_t user_bank)
 #if defined(USE_SPI_DATA_READY)
 static bool icm42605GyroRead(gyroDev_t *gyro);
 
+// FIFO, all in User Bank 0
+#define ICM426XX_RA_FIFO_CONFIG                     0x16
+#define ICM426XX_FIFO_MODE_STREAM                   (1 << 6)
+#define ICM426XX_RA_FIFO_COUNTH                     0x2E
+#define ICM426XX_RA_SIGNAL_PATH_RESET               0x4B
+#define ICM426XX_FIFO_FLUSH                         (1 << 1)
+#define ICM426XX_RA_INTF_CONFIG0                    0x4C
+#define ICM426XX_FIFO_COUNT_REC                     (1 << 6)
+#define ICM426XX_RA_FIFO_CONFIG1                    0x5F
+#define ICM426XX_FIFO_WM_GT_TH                      (1 << 5)
+#define ICM426XX_FIFO_TEMP_EN                       (1 << 2)
+#define ICM426XX_FIFO_GYRO_EN                       (1 << 1)
+#define ICM426XX_FIFO_ACCEL_EN                      (1 << 0)
+#define ICM426XX_RA_FIFO_CONFIG2                    0x60
+#define ICM426XX_RA_FIFO_CONFIG3                    0x61
+#define ICM426XX_FIFO_THS_INT1_EN                   (1 << 2)
+#define ICM426XX_FIFO_HEADER_EMPTY                  (1 << 7)
+#define ICM426XX_FIFO_HEADER_ACCEL                  (1 << 6)
+#define ICM426XX_FIFO_HEADER_GYRO                   (1 << 5)
+#define ICM426XX_FIFO_HEADER_20                     (1 << 4)
+// What the FIFO holds for a sample that is not valid, such as one taken before the first ODR
+#define ICM426XX_FIFO_INVALID_SAMPLE                (-32768)
+
+// Packet 3, 16 bytes: header, accelerometer and gyro X, Y, Z big-endian, 8 bit temperature,
+// timestamp. Packet 2, 8 bytes: header, gyro, temperature
+#define ICM426XX_FIFO_PACKET3_SIZE                  16
+#define ICM426XX_FIFO_PACKET2_SIZE                  8
+
+static void icm426xxFifoFlush(gyroDev_t *gyro)
+{
+    busWrite(gyro->busDev, ICM426XX_RA_SIGNAL_PATH_RESET, ICM426XX_FIFO_FLUSH);
+}
+
+static void icm426xxFifoStart(gyroDev_t *gyro, bool withAccAndTemp, uint8_t samples)
+{
+    busDevice_t *dev = gyro->busDev;
+    uint8_t intfConfig0Value;
+
+    // Count in packets; the interrupt again at every sample while `samples` or more are queued,
+    // so a read that fell behind catches up. Stream mode keeps the newest if it fills
+    busRead(dev, ICM426XX_RA_INTF_CONFIG0, &intfConfig0Value);
+    busWrite(dev, ICM426XX_RA_INTF_CONFIG0, intfConfig0Value | ICM426XX_FIFO_COUNT_REC);
+    busWrite(dev, ICM426XX_RA_FIFO_CONFIG1, ICM426XX_FIFO_WM_GT_TH | ICM426XX_FIFO_TEMP_EN | ICM426XX_FIFO_GYRO_EN | (withAccAndTemp ? ICM426XX_FIFO_ACCEL_EN : 0));
+    busWrite(dev, ICM426XX_RA_FIFO_CONFIG2, samples);
+    busWrite(dev, ICM426XX_RA_FIFO_CONFIG3, 0);
+    busWrite(dev, ICM426XX_RA_FIFO_CONFIG, ICM426XX_FIFO_MODE_STREAM);
+    icm426xxFifoFlush(gyro);
+    busWrite(dev, ICM42605_RA_INT_SOURCE0, ICM426XX_FIFO_THS_INT1_EN);
+}
+
+static gyroFifoPacket_e icm426xxFifoParse(const uint8_t *packet, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp)
+{
+    const uint8_t header = packet[0];
+    const uint8_t expected = ICM426XX_FIFO_HEADER_GYRO | (withAccAndTemp ? ICM426XX_FIFO_HEADER_ACCEL : 0);
+
+    if (header & ICM426XX_FIFO_HEADER_EMPTY) {
+        return GYRO_FIFO_PACKET_EMPTY;
+    }
+    if ((header & (ICM426XX_FIFO_HEADER_ACCEL | ICM426XX_FIFO_HEADER_GYRO | ICM426XX_FIFO_HEADER_20)) != expected) {
+        return GYRO_FIFO_PACKET_UNEXPECTED;
+    }
+
+    const uint8_t *axes = &packet[1];
+    if (withAccAndTemp) {
+        acc[X] = int16_val_big_endian(axes, 0);
+        acc[Y] = int16_val_big_endian(axes, 1);
+        acc[Z] = int16_val_big_endian(axes, 2);
+        axes += 6;
+    }
+    gyro[X] = int16_val_big_endian(axes, 0);
+    gyro[Y] = int16_val_big_endian(axes, 1);
+    gyro[Z] = int16_val_big_endian(axes, 2);
+    // 8 bits at 2.07 per degree, where the register has 16 at 132.48: 64 times as much
+    *temp = (int16_t)((int8_t)axes[6] * 64);
+
+    if (gyro[X] == ICM426XX_FIFO_INVALID_SAMPLE || gyro[Y] == ICM426XX_FIFO_INVALID_SAMPLE || gyro[Z] == ICM426XX_FIFO_INVALID_SAMPLE) {
+        return GYRO_FIFO_PACKET_INVALID;
+    }
+    return GYRO_FIFO_PACKET_SAMPLE;
+}
+
+static const gyroDataReadyFifo_t icm426xxFifo = {
+    .countReg = ICM426XX_RA_FIFO_COUNTH | 0x80,
+    .packetLen = ICM426XX_FIFO_PACKET3_SIZE,
+    .gyroOnlyPacketLen = ICM426XX_FIFO_PACKET2_SIZE,
+    .start = icm426xxFifoStart,
+    .flush = icm426xxFifoFlush,
+    .parse = icm426xxFifoParse,
+};
+
 // From TEMP_DATA1: temperature, accelerometer X, Y, Z, gyro X, Y, Z, big-endian
 static void icm426xxDataReadyParse(const uint8_t *data, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp)
 {
@@ -186,6 +276,7 @@ static const gyroDataReadyDriver_t icm426xxDataReady = {
 #if defined(STM32H7)
     .tested = true,
 #endif
+    .fifo = &icm426xxFifo,
 };
 #endif
 

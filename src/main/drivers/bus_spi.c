@@ -256,7 +256,8 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *out, const uint8_t *in, int len
 // DMA streams; the buffers stay out of the CCM RAM, which the DMA can not reach
 
 // Longest read, address included
-#define SPI_DATA_READY_MAX  32
+// The address and up to four FIFO packets of 16 bytes after the count
+#define SPI_DATA_READY_MAX  72
 
 typedef struct {
     uint8_t len;                        // bytes after the address

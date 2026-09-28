@@ -2180,6 +2180,16 @@ Minimum frequency of the gyro Dynamic LPF
 
 ---
 
+### gyro_fifo_samples
+
+With gyro_data_ready, the IMU queues this many samples in its FIFO and signals once for all of them, read in one transfer: fewer interrupts, and a sample read late is kept, but the older samples of a group wait up to that many sample periods. 0 reads each sample from the IMU's registers. ICM-42605 and ICM-42688-P.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 4 |
+
+---
+
 ### gyro_filter_mode
 
 Specifies the type of the software LPF of the gyro signals.

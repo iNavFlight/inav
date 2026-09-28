@@ -33,6 +33,27 @@ typedef struct gyroDataReadyRead_s {
     uint8_t len;                        // bytes after the address, 0 for no such read
 } gyroDataReadyRead_t;
 
+// What one FIFO packet held
+typedef enum {
+    GYRO_FIFO_PACKET_SAMPLE,            // a sample
+    GYRO_FIFO_PACKET_INVALID,           // a packet without a valid sample, such as one before the first ODR
+    GYRO_FIFO_PACKET_EMPTY,             // counted a moment before but not there yet: it comes with the next read
+    GYRO_FIFO_PACKET_UNEXPECTED,        // not a packet the FIFO was set up for: the reads are out of step
+} gyroFifoPacket_e;
+
+// An IMU FIFO signalling once for several samples: one read from the count register brings the
+// count and the packets after it
+typedef struct gyroDataReadyFifo_s {
+    uint8_t countReg;                   // as sent (read bit included), the packets follow it
+    uint8_t packetLen;                  // with the accelerometer and temperature
+    uint8_t gyroOnlyPacketLen;
+    // Puts the samples in the FIFO and the interrupt on `samples` of them
+    void (*start)(gyroDev_t *gyro, bool withAccAndTemp, uint8_t samples);
+    // Empties the FIFO, from the gyro task
+    void (*flush)(gyroDev_t *gyro);
+    gyroFifoPacket_e (*parse)(const uint8_t *packet, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp);
+} gyroDataReadyFifo_t;
+
 typedef struct gyroDataReadyDriver_s {
     gyroDataReadyRead_t withAccAndTemp; // the gyro with the accelerometer (and temperature)
     gyroDataReadyRead_t gyroOnly;
@@ -40,6 +61,7 @@ typedef struct gyroDataReadyDriver_s {
     gyroDataReadyParseFn parse;
     sensorGyroReadFuncPtr registerRead; // the driver's own read, for when samples stop coming
     bool tested;                        // gyro_data_ready AUTO turns it on
+    const gyroDataReadyFifo_t *fifo;    // NULL if the IMU has no FIFO this can use
 } gyroDataReadyDriver_t;
 
 typedef struct gyroDataReady_s gyroDataReady_t;

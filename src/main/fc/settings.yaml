@@ -358,6 +358,13 @@ groups:
         condition: USE_SPI_DATA_READY
         field: gyro_data_ready
         table: gyro_data_ready
+      - name: gyro_fifo_samples
+        description: "With gyro_data_ready, the IMU queues this many samples in its FIFO and signals once for all of them, read in one transfer: fewer interrupts, and a sample read late is kept, but the older samples of a group wait up to that many sample periods. 0 reads each sample from the IMU's registers. ICM-42605 and ICM-42688-P."
+        default_value: 0
+        min: 0
+        max: 4
+        condition: USE_SPI_DATA_READY
+        field: gyro_fifo_samples
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
         default_value: ON
