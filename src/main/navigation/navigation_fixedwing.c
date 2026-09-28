@@ -1981,6 +1981,81 @@ static bool isFixedWingStationary(void)
     return currentTimeMs - stationarySinceMs > 1000;
 }
 
+/* Fallback for when isFixedWingStationary()'s EST_TRUSTED guard can never
+ * pass at all - no GPS fix through landing, or a ground/bench test with
+ * none ever acquired. Without this, isFixedWingStationary() is the latch's
+ * only FLYING->NOT_FLYING path and nothing else clears it (not disarm - a
+ * mid-air disarm is exactly what canActivateLaunchModeNow()'s latch check
+ * must survive), so the latch can stick FLYING permanently and block every
+ * later launch-mode arm attempt.
+ *
+ * Uses estAltStatus/vertical velocity (baro-derived) instead of
+ * estVelStatus/horizontal velocity (GPS-derived) - the latter is what
+ * decays under sustained GPS loss and is exactly what the primary check's
+ * guard exists to distrust; the former doesn't share that failure mode
+ * (gated on baro update timeout, not GPS loss). The estVelStatus ==
+ * EST_TRUSTED early-out makes this mutually exclusive with the primary
+ * check by construction - it only ever runs in exactly the case the
+ * primary can't.
+ *
+ * Held 10x longer (10s vs 1s): low gyro rate and near-zero climb rate
+ * alone can't distinguish "parked" from "flying a long straight
+ * dead-reckoning leg in calm air" - the exact GPS-loss scenario this PR is
+ * about - so airspeed corroborates real forward motion where a pitot is
+ * available. Where it isn't, there is no GPS-independent forward-motion
+ * signal at all, and this fallback cannot tell a long calm-air cruise leg
+ * from sitting on the ground; the 10s hold only rules out transient lulls,
+ * not a sustained steady state. That's a knowingly-accepted, narrower risk
+ * on no-pitot airframes, not a solved gap - see
+ * fix-flight-latch-stuck-and-launch-race.md. */
+static bool isFixedWingStationaryFallback(void)
+{
+    static bool axisCheckArmed = false;
+    static timeMs_t stationarySinceMs = 0;
+    static int16_t rollDatum = 0;
+    static int16_t pitchDatum = 0;
+    const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
+    const timeMs_t currentTimeMs = millis();
+
+    if (posControl.flags.estVelStatus == EST_TRUSTED || posControl.flags.estAltStatus != EST_TRUSTED) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    bool noForwardMotion = true;
+#ifdef USE_PITOT
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        noForwardMotion = getAirspeedEstimate() < (100.0f * sensitivity);
+    }
+#endif
+
+    const bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity);
+    const bool gyroCondition = averageAbsGyroRates() < (2.0f * sensitivity);
+
+    if (!(velCondition && gyroCondition && noForwardMotion)) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    if (!axisCheckArmed) {
+        rollDatum = attitude.values.roll;
+        pitchDatum = attitude.values.pitch;
+        axisCheckArmed = true;
+        stationarySinceMs = currentTimeMs;
+        return false;
+    }
+
+    const uint8_t angleLimit = 5 * sensitivity;
+    const bool isRollAxisStatic = ABS(rollDatum - attitude.values.roll) < angleLimit;
+    const bool isPitchAxisStatic = ABS(pitchDatum - attitude.values.pitch) < angleLimit;
+    if (!isRollAxisStatic || !isPitchAxisStatic) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    return currentTimeMs - stationarySinceMs > 10000;
+}
+
 void updateFwFlightDetector(void)
 {
     fwFlightTallyValue = computeFwFlightTally();
@@ -1989,7 +2064,7 @@ void updateFwFlightDetector(void)
         if (isFixedWingTakeoffDetected()) {
             fwFlightState = FW_FLIGHT_FLYING;
         }
-    } else if (isFixedWingStationary()) {
+    } else if (isFixedWingStationary() || isFixedWingStationaryFallback()) {
         fwFlightState = FW_FLIGHT_NOT_FLYING;
     }
 }
