@@ -126,3 +126,21 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge);
     SPIDevice spiDeviceByInstance(SPI_TypeDef *instance);
     SPI_TypeDef * spiInstanceByDevice(SPIDevice device);
 #endif
+
+#if defined(USE_SPI_DATA_READY)
+    // The callback runs in an interrupt, with the bytes that followed the address
+    struct busDevice_s;
+    typedef void (*spiDataReadyCallback_t)(void *arg, const uint8_t *data);
+    // At each spiDataReadyRequest() the device's reg and the len bytes after it are read. One
+    // device per bus. False if the bus can not do reads of that length
+    bool spiDataReadyInit(const struct busDevice_s *dev, uint8_t reg, uint8_t len, spiDataReadyCallback_t callback, void *arg);
+    // From the device's data-ready interrupt
+    void spiDataReadyRequest(const struct busDevice_s *dev);
+    // The main loop's transfers on a bus take turns with those reads
+    void spiBusAcquire(SPIDevice device);
+    void spiBusRelease(SPIDevice device);
+#else
+    // Nothing to take turns with: the argument is not even evaluated
+    #define spiBusAcquire(device) do { } while (0)
+    #define spiBusRelease(device) do { } while (0)
+#endif

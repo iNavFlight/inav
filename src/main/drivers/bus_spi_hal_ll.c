@@ -18,9 +18,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <string.h>
+
 #include <platform.h>
 
+#include "build/atomic.h"
+
+#include "drivers/bus.h"
 #include "drivers/bus_spi.h"
+#include "drivers/bus_spi_data_ready_impl.h"
+#include "drivers/time.h"
 #include "dma.h"
 #include "drivers/io.h"
 #include "io_impl.h"
@@ -483,6 +490,164 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, 
 {
     return spiTransferBackToBack(instance, NULL, rxData, txData, len);
 }
+
+#if defined(USE_SPI_DATA_READY)
+// Data-ready reads (see bus_spi_data_ready.c). On H7 a read that fits the SPI FIFO (16 bytes on
+// SPI1-3, 8 on SPI4-6) needs no DMA: the end-of-transfer interrupt takes it all back. Longer
+// reads use two DMA streams
+
+// Longest read, address included
+#define SPI_DATA_READY_MAX  32
+
+typedef struct {
+    uint8_t reg;                        // the first register, as sent (read bit included)
+    uint8_t len;                        // bytes after the address
+    bool dma;
+    spiDataReadyDma_t streams;
+} spiDataReadyHw_t;
+
+static spiDataReadyHw_t spiDataReadyHw[SPIDEV_COUNT];
+
+// In memory the DMA can reach
+static DMA_RAM uint8_t spiDataReadyTx[SPIDEV_COUNT][SPI_DATA_READY_MAX] __attribute__((aligned(32)));
+static DMA_RAM uint8_t spiDataReadyRx[SPIDEV_COUNT][SPI_DATA_READY_MAX] __attribute__((aligned(32)));
+
+static void spiDataReadyDmaDone(DMA_t rx)
+{
+    const SPIDevice device = (SPIDevice)rx->userParam;
+    if (!spiDataReadyDmaEnded(rx)) {
+        // The read never ends: the main loop takes it off the bus when it next needs it
+        return;
+    }
+
+    uint8_t *buf = spiDataReadyRx[device];
+    SCB_InvalidateDCache_by_Addr((uint32_t *)buf, SPI_DATA_READY_MAX);
+    // A copy: a data-ready that came meanwhile starts the next read into the same buffer
+    uint8_t data[SPI_DATA_READY_MAX];
+    memcpy(data, buf + 1, spiDataReadyHw[device].len);
+    spiDataReadyDone(device, data);
+}
+
+static bool spiDataReadyDmaSetup(SPIDevice device)
+{
+    spiDataReadyHw_t *h = &spiDataReadyHw[device];
+
+    if (!spiDataReadyDmaInit(device, &h->streams, spiDataReadyDmaDone, device)) {
+        return false;
+    }
+    memset(spiDataReadyTx[device], 0xFF, SPI_DATA_READY_MAX);
+    spiDataReadyTx[device][0] = h->reg;
+    h->dma = true;
+    return true;
+}
+
+static const IRQn_Type spiIrq[SPIDEV_COUNT] = { SPI1_IRQn, SPI2_IRQn, SPI3_IRQn, SPI4_IRQn };
+
+static uint8_t spiFifoSize(SPI_TypeDef *instance)
+{
+    return (instance == SPI1 || instance == SPI2 || instance == SPI3) ? 16 : 8;
+}
+
+bool spiDataReadyHwInit(SPIDevice device, uint8_t reg, uint8_t len)
+{
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+    spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    if (!instance || len + 1 > SPI_DATA_READY_MAX) {
+        return false;
+    }
+
+    h->reg = reg;
+    h->len = len;
+    h->dma = false;
+    if (len + 1 > spiFifoSize(instance)) {
+        return spiDataReadyDmaSetup(device);
+    }
+    HAL_NVIC_SetPriority(spiIrq[device], NVIC_PRIO_GYRO_DATA_READY, 0);
+    HAL_NVIC_EnableIRQ(spiIrq[device]);
+    return true;
+}
+
+void spiDataReadyHwStart(SPIDevice device)
+{
+    const spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+
+    LL_SPI_Disable(instance);
+    LL_SPI_SetTransferSize(instance, h->len + 1);
+    if (h->dma) {
+        spiDataReadyDmaStart(&h->streams, &instance->TXDR, &instance->RXDR, spiDataReadyTx[device], spiDataReadyRx[device], h->len + 1);
+        SET_BIT(instance->CFG1, SPI_CFG1_RXDMAEN | SPI_CFG1_TXDMAEN);
+        LL_SPI_Enable(instance);
+    } else {
+        LL_SPI_Enable(instance);
+        LL_SPI_TransmitData8(instance, h->reg);
+        for (int i = 0; i < h->len; i++) {
+            LL_SPI_TransmitData8(instance, 0xFF);
+        }
+        LL_SPI_EnableIT_EOT(instance);
+    }
+    LL_SPI_StartMasterTransfer(instance);
+}
+
+void spiDataReadyHwStop(SPIDevice device)
+{
+    const spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+
+    if (h->dma) {
+        spiDataReadyDmaStop(&h->streams);
+    } else {
+        LL_SPI_DisableIT_EOT(instance);
+    }
+    LL_SPI_Disable(instance);
+    // CFG1 only takes writes with the SPI disabled
+    CLEAR_BIT(instance->CFG1, SPI_CFG1_RXDMAEN | SPI_CFG1_TXDMAEN);
+    WRITE_REG(instance->IFCR, SPI_IFCR_EOTC | SPI_IFCR_TXTFC | SPI_IFCR_UDRC | SPI_IFCR_OVRC |
+              SPI_IFCR_CRCEC | SPI_IFCR_TIFREC | SPI_IFCR_MODFC | SPI_IFCR_TSERFC | SPI_IFCR_SUSPC);
+}
+
+void spiDataReadyHwDisable(SPIDevice device)
+{
+    const spiDataReadyHw_t *h = &spiDataReadyHw[device];
+    if (h->dma) {
+        spiDataReadyDmaDisable(&h->streams);
+    } else {
+        HAL_NVIC_DisableIRQ(spiIrq[device]);
+    }
+}
+
+static void spiDataReadyIrqHandler(SPIDevice device)
+{
+    SPI_TypeDef *instance = spiHardwareMap[device].dev;
+
+    if (!LL_SPI_IsActiveFlag_EOT(instance)) {
+        LL_SPI_DisableIT_EOT(instance);
+        return;
+    }
+
+    // The whole read is in the receive FIFO: the echo of the address, then the data
+    uint8_t data[16];
+    (void)LL_SPI_ReceiveData8(instance);
+    for (int i = 0; i < spiDataReadyHw[device].len; i++) {
+        data[i] = LL_SPI_ReceiveData8(instance);
+    }
+    spiDataReadyDone(device, data);
+}
+
+#ifdef USE_SPI_DEVICE_1
+void SPI1_IRQHandler(void) { spiDataReadyIrqHandler(SPIDEV_1); }
+#endif
+#ifdef USE_SPI_DEVICE_2
+void SPI2_IRQHandler(void) { spiDataReadyIrqHandler(SPIDEV_2); }
+#endif
+#ifdef USE_SPI_DEVICE_3
+void SPI3_IRQHandler(void) { spiDataReadyIrqHandler(SPIDEV_3); }
+#endif
+#ifdef USE_SPI_DEVICE_4
+void SPI4_IRQHandler(void) { spiDataReadyIrqHandler(SPIDEV_4); }
+#endif
+
+#endif
 
 void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed)
 {
