@@ -381,7 +381,9 @@ static void uartTxDmaHandler(DMA_t dma)
     DMA_CLEAR_FLAG(dma, UART_TX_DMA_FLAGS);
 
     if (ended) {
-        s->port.txBufferTail = (s->port.txBufferTail + s->txDmaCount) % s->port.txBufferSize;
+        // After an error the rest goes again, unless nothing went: that error would only repeat
+        const uint32_t sent = s->txDmaCount - DMA_GetCurrDataCounter(dma->ref);
+        s->port.txBufferTail = (s->port.txBufferTail + (sent ? sent : s->txDmaCount)) % s->port.txBufferSize;
         s->txDmaCount = 0;
         uartStartTxDMA(s);
     }
