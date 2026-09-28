@@ -2140,7 +2140,7 @@ Gyro processing anti-aliasing filter cutoff frequency. In normal operation this 
 
 ### gyro_data_ready
 
-Read the gyro when it signals a new sample, on its data-ready interrupt, instead of polling it: every sample once, and the CPU no longer waits on the bus. Needs a target that declares the IMU's interrupt pin. AUTO does it where it has been tested: the ICM-42605 and ICM-42688-P on H7. Elsewhere, and with the BMI270 and ICM-45686, it is new: set ON to try it, and please report how it works. OFF polls the gyro everywhere.
+Read the gyro when it signals a new sample, on its data-ready interrupt, instead of polling it: every sample once, and the CPU no longer waits on the bus. Needs a supported IMU and a target that declares the interrupt pin; without interrupts the gyro is read as before. AUTO does it with the ICM-42605 and ICM-42688-P; with the BMI270 and ICM-45686 it is new: set ON to try it, and please report how it works. OFF polls the gyro.
 
 | Allowed Values |  |
 | --- | --- |
