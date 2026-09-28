@@ -273,9 +273,7 @@ static const gyroDataReadyDriver_t icm426xxDataReady = {
     .hasTemp = true,
     .parse = icm426xxDataReadyParse,
     .registerRead = icm42605GyroRead,
-#if defined(STM32H7)
     .tested = true,
-#endif
     .fifo = &icm426xxFifo,
 };
 #endif
