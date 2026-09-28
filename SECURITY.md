@@ -10,9 +10,6 @@ GitHub issues, pull requests, or Discord.**
   use **Report a vulnerability** if that button is shown.
 - **Email (always works):** security@inavflight.com
 
-For the full policy — scope, what to include, our disclosure timeline, and safe
-harbour — see the canonical Betaflight security policy:
-
 https://github.com/iNavFlight/inav/.github/blob/main/SECURITY.md
 
 ## Supported Versions
@@ -20,7 +17,7 @@ https://github.com/iNavFlight/inav/.github/blob/main/SECURITY.md
 The firmware uses semantic versioning, `MAJOR.MINOR.PATCH` (for example
 `9.1.0` or `10.0.0-RC1`).
 
-We provide security support for the **2 most recent major releases**. Security fixes
+We provide security support for the **most recent major release**. Security fixes
 are made on `master` and backported to each supported series as point releases.
 
 | Firmware series          | Security support                             |
