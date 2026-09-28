@@ -230,9 +230,13 @@ int blackboxPrint(const char *s)
 // The free cache sectors, and what is left of the sector being written
 static int32_t blackboxSDCardWritableBytes(void)
 {
-    int32_t writable = afatfs_getFreeBufferSpace();
     uint32_t position;
-    if (afatfs_ftell(blackboxSDCard.logFile, &position) && (position % BLACKBOX_SDCARD_SECTOR_SIZE) != 0) {
+    // A busy file (a seek or a new cluster queued) takes nothing, whatever the cache holds
+    if (!afatfs_ftell(blackboxSDCard.logFile, &position)) {
+        return 0;
+    }
+    int32_t writable = afatfs_getFreeBufferSpace();
+    if ((position % BLACKBOX_SDCARD_SECTOR_SIZE) != 0) {
         writable += BLACKBOX_SDCARD_SECTOR_SIZE - position % BLACKBOX_SDCARD_SECTOR_SIZE;
     }
     return writable;

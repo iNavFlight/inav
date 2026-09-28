@@ -2362,7 +2362,7 @@ static void blackboxUpdateState(timeUs_t currentTimeUs)
         }
 
         //incooming request to get access to SD card
-        if(blackboxSDCardAccessStatus.requestToSdCardAccessState && (blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_STOPPED)){
+        if(blackboxSDCardAccessStatus.requestToSdCardAccessState && (blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_PAUSED || blackboxState == BLACKBOX_STATE_STOPPED)){
             //we have to be sure that all writes are already processed and SD card is in idle
             if(afatfs_isIdle()){
                 blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
@@ -2455,6 +2455,10 @@ static void blackboxUpdateState(timeUs_t currentTimeUs)
         }
         break;
     case BLACKBOX_STATE_PAUSED:
+        // Switched off during a pause for the device: from here on the pause is the switch's
+        if (blackboxPausedForDevice && blackboxModeActivationConditionPresent && !IS_RC_MODE_ACTIVE(BOXBLACKBOX)) {
+            blackboxPausedForDevice = false;
+        }
         if (blackboxPausedForDevice) {
             blackboxDevicePausedIterations++;
         }
@@ -2482,6 +2486,7 @@ static void blackboxUpdateState(timeUs_t currentTimeUs)
             // Skip frames the device would drop halfway; resume on an I frame with LOGGING_RESUME
             blackboxPausedForDevice = true;
             blackboxDevicePauses++;
+            blackboxDevicePausedIterations++;
             blackboxSetState(BLACKBOX_STATE_PAUSED);
         } else {
             blackboxLogIteration(currentTimeUs);
