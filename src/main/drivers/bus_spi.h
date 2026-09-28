@@ -139,6 +139,8 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge);
     // The main loop's transfers on a bus take turns with those reads
     void spiBusAcquire(SPIDevice device);
     void spiBusRelease(SPIDevice device);
+    // Between the two: forgets a data-ready that came meanwhile, so the release starts no read
+    void spiDataReadyCancelPending(SPIDevice device);
 #else
     // Nothing to take turns with: the argument is not even evaluated
     #define spiBusAcquire(device) do { } while (0)

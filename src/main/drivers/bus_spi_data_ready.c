@@ -161,6 +161,16 @@ void spiBusAcquire(SPIDevice device)
     }
 }
 
+void spiDataReadyCancelPending(SPIDevice device)
+{
+    if ((unsigned)device >= SPIDEV_COUNT) {
+        return;
+    }
+    ATOMIC_BLOCK(NVIC_PRIO_GYRO_DATA_READY) {
+        spiDataReady[device].pending = false;
+    }
+}
+
 void spiBusRelease(SPIDevice device)
 {
     if ((unsigned)device >= SPIDEV_COUNT || !spiDataReady[device].dev) {
