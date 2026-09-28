@@ -3899,6 +3899,15 @@ static void afatfs_freeFileRefillStop(void)
     afatfs.refill.phase = AFATFS_REFILL_IDLE;
 }
 
+// After a FAT or directory error: no more refills until the card is mounted again
+static void afatfs_freeFileRefillGiveUp(void)
+{
+    afatfs.refill.extendBlocked = true;
+    afatfs.refill.searched = true;
+    afatfs.refill.blockFound = false;
+    afatfs_freeFileRefillStop();
+}
+
 // The old freefile's last cluster is free again: build the new one on the block found
 static void afatfs_freeFileRefillReleased(afatfsFile_t *file)
 {
@@ -4020,10 +4029,7 @@ static NOINLINE void afatfs_freeFileRefillPoll(void)
                 }
                 break;
                 case AFATFS_FIND_CLUSTER_FATAL:
-                    refill->extendBlocked = true;
-                    refill->searched = true;
-                    refill->blockFound = false;
-                    afatfs_freeFileRefillStop();
+                    afatfs_freeFileRefillGiveUp();
                 break;
                 case AFATFS_FIND_CLUSTER_IN_PROGRESS:
                 break;
@@ -4039,10 +4045,7 @@ static NOINLINE void afatfs_freeFileRefillPoll(void)
                 refill->claiming = false;
                 refill->phase = refill->moving ? AFATFS_REFILL_CLAIM_SAVE_DIR_ENTRY : AFATFS_REFILL_CLAIM_LINK;
             } else if (status == AFATFS_OPERATION_FAILURE) {
-                refill->extendBlocked = true;
-                refill->searched = true;
-                refill->blockFound = false;
-                afatfs_freeFileRefillStop();
+                afatfs_freeFileRefillGiveUp();
             }
         break;
         case AFATFS_REFILL_CLAIM_LINK:
@@ -4051,6 +4054,8 @@ static NOINLINE void afatfs_freeFileRefillPoll(void)
 
                 if (status == AFATFS_OPERATION_SUCCESS) {
                     refill->phase = AFATFS_REFILL_CLAIM_SAVE_DIR_ENTRY;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs_freeFileRefillGiveUp();
                 }
             }
         break;
@@ -4076,6 +4081,8 @@ static NOINLINE void afatfs_freeFileRefillPoll(void)
                         afatfs.filesystemFull = false;
                     }
                     afatfs_freeFileRefillStop();
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs_freeFileRefillGiveUp();
                 }
             }
         break;
