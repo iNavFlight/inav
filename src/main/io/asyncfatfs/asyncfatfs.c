@@ -47,12 +47,15 @@
 #elif defined(STM32F7)
 #define AFATFS_NUM_CACHE_SECTORS 24
 #elif defined(STM32F4) && !defined(USE_SDCARD_SDIO)
-// RAM is short on F4, CCM is not, and a card on SPI is written by the CPU, never by DMA
 #define AFATFS_NUM_CACHE_SECTORS 24
-#define AFATFS_CACHE_IN_FASTRAM
 #else
 #define AFATFS_NUM_CACHE_SECTORS 8
 #endif
+#endif
+
+// RAM is short on F4, CCM is not, and a card on SPI is written by the CPU, never by DMA
+#if defined(STM32F4) && !defined(USE_SDCARD_SDIO)
+#define AFATFS_CACHE_IN_FASTRAM
 #endif
 
 // FAT filesystems are allowed to differ from these parameters, but we choose not to support those weird filesystems:
