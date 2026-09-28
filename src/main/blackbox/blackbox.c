@@ -2459,11 +2459,10 @@ static void blackboxUpdateState(timeUs_t currentTimeUs)
         if (blackboxPausedForDevice && blackboxModeActivationConditionPresent && !IS_RC_MODE_ACTIVE(BOXBLACKBOX)) {
             blackboxPausedForDevice = false;
         }
-        if (blackboxPausedForDevice) {
-            blackboxDevicePausedIterations++;
-        }
-        // Only allow resume to occur during an I-frame iteration, so that we have an "I" base to work from
-        if ((blackboxPausedForDevice ? blackboxDeviceBufferRecovered() : IS_RC_MODE_ACTIVE(BOXBLACKBOX)) && blackboxShouldLogIFrame()) {
+        // Only allow resume to occur during an I-frame iteration, so that we have an "I" base to work from.
+        // The switch too waits for a device that fell behind, or the I frame could be cut
+        if ((blackboxPausedForDevice || IS_RC_MODE_ACTIVE(BOXBLACKBOX))
+            && blackboxDeviceBufferRecovered() && blackboxShouldLogIFrame()) {
             // Write a log entry so the decoder is aware that our large time/iteration skip is intended
             flightLogEvent_loggingResume_t resume;
 
@@ -2474,6 +2473,9 @@ static void blackboxUpdateState(timeUs_t currentTimeUs)
             blackboxSetState(BLACKBOX_STATE_RUNNING);
 
             blackboxLogIteration(currentTimeUs);
+        } else if (blackboxPausedForDevice || (IS_RC_MODE_ACTIVE(BOXBLACKBOX) && !blackboxDeviceBufferRecovered())) {
+            // Not logged because of the device, also once the switch is back on
+            blackboxDevicePausedIterations++;
         }
         // Keep the logging timers ticking so our log iteration continues to advance
         blackboxAdvanceIterationTimers();
