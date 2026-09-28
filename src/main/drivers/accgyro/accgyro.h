@@ -42,7 +42,7 @@ typedef struct {
 // Whether a driver that can reads its gyro on the data-ready interrupt (gyro_data_ready)
 typedef enum {
     GYRO_DEV_DATA_READY_OFF = 0,
-    GYRO_DEV_DATA_READY_WHERE_TESTED,   // only where that driver has been tested
+    GYRO_DEV_DATA_READY_WHERE_TESTED,   // where the driver turns it on for AUTO
     GYRO_DEV_DATA_READY_ON,
 } gyroDevDataReady_e;
 
