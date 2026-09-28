@@ -35,9 +35,8 @@
 #include "drivers/nvic.h"
 #include "drivers/time.h"
 
-// Reads started by a data-ready interrupt take turns with the main loop's transfers:
-// spiBusAcquire() waits for one on its way, and one asked for meanwhile starts at the last
-// spiBusRelease(). The two nest: a speed change can come while a device is selected
+// Data-ready reads take turns with the main loop's transfers: acquire waits for one on its way,
+// the last release starts one asked for meanwhile (they nest: speed changes come mid-select)
 
 typedef struct {
     const busDevice_t *dev;             // NULL: no reads started by a data-ready on this bus
