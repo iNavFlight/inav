@@ -319,9 +319,11 @@ void spiDataReadyHwStop(SPIDevice device)
     spiDataReadyDmaStop(&h->streams);
     instance->CR2 &= ~(SPI_CR2_TXDMAEN | SPI_CR2_RXDMAEN);
 
-    // A read stopped half way may leave a byte going out: let it finish and drop the echo
+    // A read stopped half way may leave a byte going out: let it finish and drop the echo.
+    // DR then SR also clears an overrun, which would hand the next transfer a stale byte
     for (int timeout = 1000; timeout && (!(instance->SR & SPI_SR_TXE) || (instance->SR & SPI_SR_BSY)); timeout--);
     (void)instance->DR;
+    (void)instance->SR;
 }
 
 void spiDataReadyHwDisable(SPIDevice device)
