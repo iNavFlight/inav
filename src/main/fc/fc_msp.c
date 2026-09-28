@@ -47,6 +47,7 @@
 #include "drivers/compass/compass.h"
 #include "drivers/compass/compass_msp.h"
 #include "drivers/barometer/barometer_msp.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
 #include "sensors/battery_sensor_fake.h"
 #include "drivers/bus_i2c.h"
@@ -1939,18 +1940,34 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         break;
 #endif
 
-#ifdef USE_ESC_SENSOR
+#if defined(USE_ESC_SENSOR) || defined(USE_DSHOT_BIDIR)
     case MSP2_INAV_ESC_RPM:
         {
             uint8_t motorCount = getMotorCount();
 
+            // Same source selection as rpmFilterUpdateTask(): bidirectional DSHOT keeps its
+            // own per-motor RPM, so it works on targets without USE_ESC_SENSOR too
             for (uint8_t i = 0; i < motorCount; i++){
-                const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
-                sbufWriteU32(dst, escState->rpm);
+                uint32_t rpm;
+#ifdef USE_DSHOT_BIDIR
+                if (isDshotTelemetryActive()) {
+                    rpm = lrintf(getDshotRpm(i));
+                } else
+#endif
+                {
+#ifdef USE_ESC_SENSOR
+                    rpm = getEscTelemetry(i)->rpm;
+#else
+                    rpm = 0;
+#endif
+                }
+                sbufWriteU32(dst, rpm);
             }
         }
         break;
+#endif
 
+#ifdef USE_ESC_SENSOR
     case MSP2_INAV_ESC_TELEM:
         {
             uint8_t motorCount = getMotorCount();

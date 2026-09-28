@@ -204,6 +204,11 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
         }
         const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], motorFrequency);
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
+
+        // Per-motor RPM as the notch sees it (after the LPF); blackbox has no per-motor field
+        if (i < DEBUG32_VALUE_COUNT) {
+            DEBUG_SET(DEBUG_RPM_FILTER, i, lrintf(baseFrequency * 60.0f));
+        }
     }
 }
 
