@@ -32,6 +32,7 @@
 #include "drivers/io.h"
 #include "io_impl.h"
 #include "drivers/nvic.h"
+#include "drivers/time.h"
 #include "rcc.h"
 
 #ifndef SPI1_SCK_PIN
@@ -400,8 +401,12 @@ static void spiTransferAbort(SPI_TypeDef *instance)
     WRITE_REG(instance->IFCR, SPI_IFCR_EOTC | SPI_IFCR_TXTFC | SPI_IFCR_UDRC | SPI_IFCR_OVRC |
               SPI_IFCR_CRCEC | SPI_IFCR_TIFREC | SPI_IFCR_MODFC | SPI_IFCR_TSERFC | SPI_IFCR_SUSPC);
 #else
-    // F7 stays enabled: drain what is left, or the next transfer would take it for its own
-    for (int spiTimeout = 1000; spiTimeout && (LL_SPI_GetTxFIFOLevel(instance) != LL_SPI_TX_FIFO_EMPTY || LL_SPI_IsActiveFlag_BSY(instance)); spiTimeout--);
+    // F7 stays enabled: drain what is left, or the next transfer would take it for its own.
+    // Timed, not counted: the 5 bytes still queued take 0.2 ms at the slowest clock
+    const timeUs_t start = micros();
+    while ((LL_SPI_GetTxFIFOLevel(instance) != LL_SPI_TX_FIFO_EMPTY || LL_SPI_IsActiveFlag_BSY(instance))
+        && cmpTimeUs(micros(), start) < 1000) {
+    }
     for (int n = 0; n < 8 && LL_SPI_GetRxFIFOLevel(instance) != LL_SPI_RX_FIFO_EMPTY; n++) {
         (void)LL_SPI_ReceiveData8(instance);
     }
