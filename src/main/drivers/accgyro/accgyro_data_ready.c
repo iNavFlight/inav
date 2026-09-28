@@ -175,6 +175,7 @@ void gyroDataReadySuspend(void)
         }
         const SPIDevice bus = d->gyro->busDev->busdev.spi.spiBus;
         spiBusAcquire(bus);
+        spiDataReadyCancelPending(bus);
         spiBusRelease(bus);
     }
 }
