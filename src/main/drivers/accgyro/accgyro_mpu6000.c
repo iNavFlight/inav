@@ -111,6 +111,10 @@ static void mpu6000AccAndGyroInit(gyroDev_t *gyro)
     busWrite(busDev, MPU_RA_CONFIG, config->gyroConfigValues[0]);
     delayMicroseconds(1);
 
+#if defined(USE_SPI_DATA_READY)
+    mpuDataReadySetup(gyro);
+#endif
+
     busSetSpeed(busDev, BUS_SPEED_FAST);
 
     mpuGyroRead(gyro);
