@@ -125,6 +125,7 @@
 #define SPI3_MOSI_PIN           PB5
 #define SDCARD_SPI_BUS          BUS_SPI3
 #define SDCARD_CS_PIN           PC3
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 #define GYRO_1_CS_PIN                       SPI1_NSS_PIN
 #define GYRO_1_SPI_INSTANCE                 BUS_SPI1

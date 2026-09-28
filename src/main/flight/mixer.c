@@ -246,10 +246,24 @@ void mixerInit(void)
         motorYawMultiplier = 1;
     }
 
+    mixerUpdateThrottleRateLimit();
+}
+
+void mixerUpdateThrottleRateLimit(void)
+{
     if (currentBatteryProfile->motor.throttleRateLimiter) {
         throttleRateLimit = (PWM_RANGE_MAX - PWM_RANGE_MIN) / MS2S(currentBatteryProfile->motor.throttleRateLimiter);
+    } else {
+        throttleRateLimit = 0.0f;
     }
 }
+
+#ifdef UNIT_TEST
+float mixerGetThrottleRateLimit(void)
+{
+    return throttleRateLimit;
+}
+#endif
 
 void mixerResetDisarmedMotors(void)
 {
@@ -553,9 +567,13 @@ void FAST_CODE writeMotors(void)
                 }
             }
             else {
+                // While disarmed only the mixer stop value means motor off, so the
+                // motor test can drive a motor below the configured idle. Armed
+                // behaviour is unchanged: there the configured idle stays the
+                // threshold, so failsafe and turtle mode are not affected.
                 motorValue = handleOutputScaling(
                     motor[i],
-                    throttleIdleValue,
+                    ARMING_FLAG(ARMED) ? throttleIdleValue : (motorZeroCommand + 1),
                     DSHOT_DISARM_COMMAND,
                     motorConfig()->mincommand,
                     getMaxThrottle(),
@@ -831,6 +849,9 @@ void FAST_CODE mixTable(float dT)
 #ifdef USE_AUTO_TRANSITION
     const float transitionPusherScale = isMixerTransitionMixing ? mixerATGetPusherScale() : 1.0f;
 #endif
+    // FW emergency landing: no RPY on motors, differential thrust yaw must not lift one motor above the failsafe throttle
+    const bool fwEmergencyLanding = STATE(AIRPLANE) && !isMixerTransitionMixing && navigationIsExecutingAnEmergencyLanding();
+
     for (int i = 0; i < motorCount; i++) {
         float motorThrottle = mixerThrottleCommand * currentMixer[i].throttle;
 #ifdef USE_AUTO_TRANSITION
@@ -863,7 +884,11 @@ void FAST_CODE mixTable(float dT)
         }
 #endif
 
-        motor[i] = rpyMix[i] + constrain(motorThrottle, throttleMin, throttleMax);
+        if (fwEmergencyLanding) {
+            motor[i] = constrain(motorThrottle, throttleRangeMin, throttleRangeMax);
+        } else {
+            motor[i] = rpyMix[i] + constrain(motorThrottle, throttleMin, throttleMax);
+        }
 
         if (failsafeIsActive()) {
             motor[i] = constrain(motor[i], motorConfig()->mincommand, getMaxThrottle());

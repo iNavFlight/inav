@@ -73,6 +73,15 @@ function(get_generated_files_dir output target_name)
     set(${output} ${CMAKE_CURRENT_BINARY_DIR}/${target_name} PARENT_SCOPE)
 endfunction()
 
+# Reads an environment variable and escapes it, so that it can be passed as an
+# argument to a custom command. CMake splits unescaped ';' into a list when it
+# generates a command line, which breaks PATH on Windows, where entries are
+# separated by ';'.
+function(escape_env var name)
+    string(REPLACE ";" "\\;" value "$ENV{${name}}")
+    set(${var} "${value}" PARENT_SCOPE)
+endfunction()
+
 function(setup_executable exe name)
     get_generated_files_dir(generated_dir ${name})
     target_compile_options(${exe} PRIVATE ${MAIN_COMPILE_OPTIONS})
