@@ -3564,7 +3564,9 @@ static void afatfs_freeFileReleased(afatfsFile_t *file)
 
 #endif
 
-static void afatfs_initContinue(void)
+// Mount-time only. Kept out of line, or LTO inlines it through afatfs_poll() into scheduler(), which
+// is FAST_CODE and fills the F7's ITCM
+static NOINLINE void afatfs_initContinue(void)
 {
 #ifdef AFATFS_USE_FREEFILE
     afatfsOperationStatus_e status;
