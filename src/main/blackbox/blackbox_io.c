@@ -126,7 +126,8 @@ uint16_t blackboxGetLargestIteration(void)
 // The encoders write byte by byte; the device gets blocks, one call instead of one per byte.
 // A block goes out when full and at the end of every blackboxUpdate(), so the order is kept
 #define BLACKBOX_WRITE_BLOCK_SIZE 128
-static uint8_t blackboxWriteBlock[BLACKBOX_WRITE_BLOCK_SIZE];
+// Only the CPU touches it (afatfs copies it into its cache), so it can live outside main RAM
+static FASTRAM uint8_t blackboxWriteBlock[BLACKBOX_WRITE_BLOCK_SIZE];
 static uint16_t blackboxWriteBlockCount;
 
 void blackboxWriteFlush(void)
