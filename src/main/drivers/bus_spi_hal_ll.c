@@ -574,6 +574,8 @@ void spiDataReadyHwStart(SPIDevice device)
     SPI_TypeDef *instance = spiHardwareMap[device].dev;
 
     LL_SPI_Disable(instance);
+    // A polled transfer leaves EOT set: this read would look over before it began
+    WRITE_REG(instance->IFCR, SPI_IFCR_EOTC | SPI_IFCR_TXTFC);
     LL_SPI_SetTransferSize(instance, h->len + 1);
     if (h->dma) {
         spiDataReadyDmaStart(&h->streams, &instance->TXDR, &instance->RXDR, spiDataReadyTx[device], spiDataReadyRx[device], h->len + 1);
