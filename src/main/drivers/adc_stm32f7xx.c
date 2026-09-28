@@ -84,6 +84,12 @@ static void adcInstanceInit(ADCDevice adcDevice)
     adcDevice_t * adc = &adcHardware[adcDevice];
 
     RCC_ClockCmd(adc->rccDMA, ENABLE);
+
+    // The stream is the ADC's: whatever takes a free stream at run time must not take it
+    DMA_t adcDma = dmaGetByRef(adc->DMAy_Streamx);
+    if (adcDma) {
+        dmaInit(adcDma, OWNER_ADC, adcDevice);
+    }
     RCC_ClockCmd(adc->rccADC, ENABLE);
 
     adc->ADCHandle.Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV8;
