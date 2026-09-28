@@ -38,9 +38,8 @@
     #define ONLY_EXPOSE_FOR_TESTING static
 #endif
 
-// While the card holds one write (tens of ms, up to 250 by the standard) the log fills the
-// others; the one being filled and each open contiguous file's directory entry are never free.
-// 16 cover about 85 kB/s (1 kHz on an H7), 24 twice that
+// Room for the log while the card holds one write (up to 250 ms): 16 sectors cover about
+// 85 kB/s, 24 twice that
 #ifndef AFATFS_NUM_CACHE_SECTORS
 #if defined(STM32H7)
 #define AFATFS_NUM_CACHE_SECTORS 32
