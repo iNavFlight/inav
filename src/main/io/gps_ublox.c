@@ -1246,12 +1246,8 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         //  0. Wait for TX buffer to be empty
         ptWait(isSerialTransmitBufferEmpty(gpsState.gpsPort));
 
-        /*
-         * Listen before speaking: at every rate but the receiver's the baud rate command
-         * arrives as noise, and a u-blox then ignores input for about a second, so a blind
-         * sweep only reaches it when its rate comes first. The configured rate is heard first;
-         * pass 0 wants UBX, pass 1 also NMEA (factory modules, 1 Hz), pass 2 is the blind sweep.
-         */
+        // Listen first: a baud command sent at the wrong rate makes a u-blox ignore input for ~1 s.
+        // Pass 0 wants UBX, pass 1 also NMEA (factory modules), pass 2 is the blind sweep
         static bool baudFound;
         static uint32_t trafficAtStart;
         baudFound = false;
