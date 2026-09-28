@@ -34,6 +34,7 @@
 // *************** ICM20608 *****************************
 #define USE_SPI_DEVICE_1
 #define MPU6500_CS_PIN          PA4
+#define MPU6500_EXTI_PIN       PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 #define MPU9250_CS_PIN          PA4
 #define MPU9250_EXTI_PIN       PC4
