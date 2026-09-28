@@ -159,9 +159,8 @@ static bool gyroDataReadyRead(gyroDev_t *gyro)
     return false;
 }
 
-// Before a flash write, which stalls every interrupt running from flash (over a second on H7):
-// no reads meanwhile. With a DMA read around a flash write and the host closing the USB port,
-// an H7 has stopped entirely
+// No reads during a flash write: with a DMA read in flight and the USB port closing, an H7 has
+// stopped entirely
 void gyroDataReadySuspend(void)
 {
     for (unsigned i = 0; i < ARRAYLEN(gyroDataReady); i++) {
