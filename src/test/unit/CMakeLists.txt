@@ -159,6 +159,8 @@ set_property(SOURCE gps_null_port_unittest.cc PROPERTY depends "io/gps.c")
 set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT_UNIT_TEST USE_GPS_PROTO_UBLOX)
 
 set_property(SOURCE gps_heartbeat_unittest.cc PROPERTY depends "io/gps.c")
+set_property(SOURCE gps_heartbeat_unittest.cc PROPERTY definitions GPS_NULL_PORT_UNIT_TEST USE_GPS_PROTO_UBLOX)
+
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
 set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY depends
