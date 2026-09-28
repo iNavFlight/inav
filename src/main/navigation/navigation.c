@@ -3486,6 +3486,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
     UNUSED(previousState);
 
     if (fixedWingLaunchStatus() >= FW_LAUNCH_ABORTED) {
+        if (fixedWingLaunchStatus() == FW_LAUNCH_FLYING) {
+            /* Fires exactly once: the moment this becomes true we also
+             * return SUCCESS below, which exits NAV_CTL_LAUNCH for good this
+             * flight - this onEntry is not re-invoked afterward, so there is
+             * no "keep re-pushing" case to reason about, only this one. #11644. */
+            fwFlightLatchForceFlying();
+        }
         return NAV_FSM_EVENT_SUCCESS;
     }
 

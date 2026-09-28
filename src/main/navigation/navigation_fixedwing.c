@@ -1848,6 +1848,16 @@ bool fwFlightLatchIsFlying(void)
     return fwFlightState == FW_FLIGHT_FLYING;
 }
 
+/* One-shot push for the launch-controller call site only - not a general
+ * setter. FW_LAUNCH_STATE_FLYING is terminal and never clears on its own,
+ * so the caller must invoke this from the state *transition* into it, never
+ * poll fixedWingLaunchStatus() as a held condition: that reintroduces the
+ * permanent re-latch this design was built to avoid. See #11644. */
+void fwFlightLatchForceFlying(void)
+{
+    fwFlightState = FW_FLIGHT_FLYING;
+}
+
 /* Max possible value is 8 (3+3+2). Call sites pick their own bar against
  * this: >=3 needs one strong signal alone (GPS heading or airspeed); >=5
  * needs one strong signal plus velocity, or two weaker ones together;

@@ -875,6 +875,7 @@ void resetLandingDetectorActiveState(void);
 void updateFwFlightDetector(void);
 bool fwFlightLatchIsFlying(void);
 int8_t fwFlightTally(void);
+void fwFlightLatchForceFlying(void);
 
 const navigationPIDControllers_t* getNavigationPIDControllers(void);
 
