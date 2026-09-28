@@ -391,13 +391,13 @@ static void icm45686DataReadyParse(const uint8_t *data, bool withAccAndTemp, int
     }
 }
 
-// Not tested on any board yet: gyro_data_ready AUTO leaves it off
 static const gyroDataReadyDriver_t icm45686DataReady = {
     .withAccAndTemp = { ICM456XX_ACCEL_DATA_X1_UI | 0x80, 14 },
     .gyroOnly = { ICM456XX_GYRO_DATA_X1_UI | 0x80, 6 },
     .hasTemp = true,
     .parse = icm45686DataReadyParse,
     .registerRead = icm45686GyroRead,
+    .tested = true,
 };
 #endif
 

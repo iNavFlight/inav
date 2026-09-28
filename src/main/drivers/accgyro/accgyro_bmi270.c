@@ -313,12 +313,12 @@ static void bmi270DataReadyParse(const uint8_t *data, bool withAccAndTemp, int16
     gyro[Z] = int16_val_little_endian(data, 5);
 }
 
-// Not tested on any board yet: gyro_data_ready AUTO leaves it off
 static const gyroDataReadyDriver_t bmi270DataReady = {
     .withAccAndTemp = { BMI270_REG_ACC_DATA_X_LSB | 0x80, 13 },
     .gyroOnly = { BMI270_REG_ACC_DATA_X_LSB | 0x80, 13 },
     .parse = bmi270DataReadyParse,
     .registerRead = bmi270yroReadScratchpad,
+    .tested = true,
 };
 #endif
 
