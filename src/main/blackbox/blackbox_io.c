@@ -235,9 +235,8 @@ int blackboxPrint(const char *s)
     return length;
 }
 
-// The SD card drops what does not fit in afatfs's cache, often halfway through a frame, so pause
-// when less room is left than the most one iteration wrote plus a margin (at least 256 bytes),
-// and resume from twice that
+// afatfs drops what does not fit, often halfway through a frame: pause below the largest
+// iteration plus a margin (256 bytes at least), resume from twice that
 #define BLACKBOX_SDCARD_SECTOR_SIZE         512
 #define BLACKBOX_SDCARD_PAUSE_MIN_BYTES     256
 #define BLACKBOX_SDCARD_PAUSE_MARGIN_BYTES  64
