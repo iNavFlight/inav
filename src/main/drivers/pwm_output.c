@@ -1032,12 +1032,9 @@ static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
 
 static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
 {
-#ifdef USE_DSHOT_BIDIR
-    if (useDshotTelemetry) {
-        requestTelemetry = true;
-    }
-#endif
-
+    // The telemetry bit asks for a serial telemetry packet on the ESC's telemetry wire;
+    // the eRPM reply on the motor line is triggered by the inverted checksum alone, so
+    // bidir leaves the bit to the serial ESC sensor's round-robin requests
     uint16_t packet = (value << 1) | (requestTelemetry ? 1 : 0);
 
     // compute checksum
