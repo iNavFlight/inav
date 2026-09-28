@@ -20,6 +20,8 @@
 
 #include <platform.h>
 
+#include "common/maths.h"
+
 #include "drivers/io.h"
 #include "drivers/time.h"
 
@@ -106,7 +108,7 @@ typedef struct {
     uint8_t asyncAddr;
     i2cAsyncState_e asyncState;
     uint16_t asyncXferCount;
-    timeUs_t asyncProgressUs;
+    uint32_t asyncStuckUs;              // looked at with no progress, long gaps counted short
     timeUs_t asyncLookUs;
 } i2cState_t;
 
@@ -240,7 +242,8 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
 #ifdef USE_I2C_ASYNC
 // HAL interrupt driven reads, carried on by the handlers above
 
-// A longer gap between looks means the main loop was busy, not the transfer stuck
+// A longer gap between looks means the main loop was busy, not the transfer stuck: it counts as
+// this much, so a transfer that is stuck still times out when looked at seldom
 #define I2C_ASYNC_LOOK_GAP_US   1000
 
 static void i2cAsyncUpdate(I2CDevice device)
@@ -264,10 +267,10 @@ static void i2cAsyncUpdate(I2CDevice device)
     }
 
     const timeUs_t now = micros();
-    if (state->handle.XferCount != state->asyncXferCount || cmpTimeUs(now, state->asyncLookUs) > I2C_ASYNC_LOOK_GAP_US) {
+    if (state->handle.XferCount != state->asyncXferCount) {
         state->asyncXferCount = state->handle.XferCount;
-        state->asyncProgressUs = now;
-    } else if (cmpTimeUs(now, state->asyncProgressUs) > I2C_TIMEOUT) {
+        state->asyncStuckUs = 0;
+    } else if ((state->asyncStuckUs += MIN(cmpTimeUs(now, state->asyncLookUs), I2C_ASYNC_LOOK_GAP_US)) > I2C_TIMEOUT) {
         // Stuck: i2cInit() rewrites the peripheral with its interrupts off and enables them again
         HAL_NVIC_DisableIRQ(i2cHardwareMap[device].ev_irq);
         HAL_NVIC_DisableIRQ(i2cHardwareMap[device].er_irq);
@@ -293,8 +296,8 @@ static bool i2cAsyncStarted(I2CDevice device, uint8_t addr_, HAL_StatusTypeDef s
     state->asyncBusy = true;
     state->asyncState = I2C_ASYNC_BUSY;
     state->asyncXferCount = state->handle.XferCount;
-    state->asyncProgressUs = micros();
-    state->asyncLookUs = state->asyncProgressUs;
+    state->asyncStuckUs = 0;
+    state->asyncLookUs = micros();
     return true;
 }
 

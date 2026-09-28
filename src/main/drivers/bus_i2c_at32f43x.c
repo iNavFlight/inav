@@ -19,6 +19,8 @@
 #include <stdint.h>
 
 #include <platform.h>
+
+#include "common/maths.h"
 #include "io_impl.h"
 #include "drivers/io.h"
 #include "drivers/time.h"
@@ -103,7 +105,7 @@ typedef struct {
     uint8_t asyncLen;
     uint8_t *asyncBuf;
     i2cAsyncState_e asyncState;
-    timeUs_t asyncProgressUs;
+    uint32_t asyncStuckUs;              // looked at with no progress, long gaps counted short
     timeUs_t asyncLookUs;
 } i2cState_t;
 
@@ -269,7 +271,8 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
 // The steps of i2c_memory_read(), each taken when its flag is up. SCL is held low while the
 // peripheral waits, so a late step only makes the transfer longer
 
-// A longer gap between looks means the main loop was busy, not the transfer stuck
+// A longer gap between looks means the main loop was busy, not the transfer stuck: it counts as
+// this much, so a transfer that is stuck still times out when looked at seldom
 #define I2C_ASYNC_LOOK_GAP_US   1000
 
 #define I2C_ASYNC_ERROR_FLAGS   (I2C_ACKFAIL_FLAG | I2C_BUSERR_FLAG | I2C_ARLOST_FLAG)
@@ -340,9 +343,9 @@ static void i2cAsyncUpdate(I2CDevice device)
     }
 
     const timeUs_t now = micros();
-    if (moved || cmpTimeUs(now, state->asyncLookUs) > I2C_ASYNC_LOOK_GAP_US) {
-        state->asyncProgressUs = now;
-    } else if (cmpTimeUs(now, state->asyncProgressUs) > I2C_TIMEOUT) {
+    if (moved) {
+        state->asyncStuckUs = 0;
+    } else if ((state->asyncStuckUs += MIN(cmpTimeUs(now, state->asyncLookUs), I2C_ASYNC_LOOK_GAP_US)) > I2C_TIMEOUT) {
         i2cAsyncFinish(device, false);
         return;
     }
@@ -383,8 +386,8 @@ bool i2cReadAsync(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, ui
     }
 
     state->asyncState = I2C_ASYNC_BUSY;
-    state->asyncProgressUs = micros();
-    state->asyncLookUs = state->asyncProgressUs;
+    state->asyncStuckUs = 0;
+    state->asyncLookUs = micros();
     return true;
 }
 
