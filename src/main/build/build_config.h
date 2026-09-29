@@ -45,6 +45,40 @@
 #define FASTRAM                     __attribute__ ((section(".fastram_bss"), aligned(4)))
 #endif
 
+/* FASTRAM that's only live during USB MSC boot mode - a one-way path
+ * (mscWaitForButton(), fc/fc_init.c, only exits via reset), so it never
+ * overlaps normal-mode FASTRAM (pid.c, gyro.c, imu.c, ...) in time. On
+ * F405/F427 (FASTRAM=CCM) and AT32F43x (FASTRAM=RAM1) that's real
+ * zero-wait-state space sitting idle outside MSC mode, so it's kept in its
+ * own linker sub-section (stm32_flash.ld / at32_flash_f4_split.ld) instead of
+ * the general FASTRAM pool - a future OVERLAY can reclaim it for a
+ * normal-mode-only consumer, e.g.:
+ *
+ *   OVERLAY : NOLOAD {
+ *     .fastram_bss_msc_only { *(.fastram_bss.msc_only) }  // existing, MSC-only
+ *     .fastram_bss_my_thing { *(.fastram_bss.my_thing) }  // new, normal-mode-only
+ *   } >FASTRAM
+ *
+ * ld sizes an OVERLAY as max() of its members, not sum() - .fastram_bss_my_thing
+ * only costs space beyond what MSC already uses, not on top of it. No consumer
+ * exists yet, this only reserves the space. F411/F446 (FASTRAM aliases plain
+ * RAM, no separate bank) get plain FASTRAM here - nothing to reclaim.
+ */
+#ifdef __APPLE__
+#define FASTRAM_MSC_ONLY             __attribute__ ((section("__DATA,__.fastram_bss_msc"), aligned(8)))
+#else
+#define FASTRAM_MSC_ONLY             __attribute__ ((section(".fastram_bss.msc_only"), aligned(4)))
+#endif
+
+// F405/F427's CCM zero-fill loop (startup_stm32f40[27]xx.s) stops at
+// __fastram_bss_end__, before this carved-out sub-section - mscInit()
+// (usb_msc_f4xx.c) zeroes it explicitly instead. AT32F43x already does its own
+// explicit zeroing (usb_msc_at32f43x.c / emfat_file.c); F411/F446/F7/H7 don't
+// need this at all.
+#if defined(STM32F405xx) || defined(STM32F427_437xx)
+#define FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO
+#endif
+
 #if defined (STM32F4) || defined (STM32F7)
 #define EXTENDED_FASTRAM FASTRAM
 #else
@@ -64,3 +98,4 @@
 
 #define STATIC_FASTRAM              static FASTRAM
 #define STATIC_FASTRAM_UNIT_TESTED  STATIC_UNIT_TESTED FASTRAM
+#define STATIC_FASTRAM_MSC_ONLY     static FASTRAM_MSC_ONLY

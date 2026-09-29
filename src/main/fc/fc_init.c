@@ -433,6 +433,14 @@ void init(void)
 #ifdef USE_USB_MSC
     /* MSC mode will start after init, but will not allow scheduler to run,
      * so there is no bottleneck in reading and writing data
+     *
+     * This exclusivity is more than a scheduling detail: mscWaitForButton()
+     * (drivers/usb_msc_*.c) only ever returns via NVIC_SystemReset(), so there
+     * is no code path from here back into normal-mode init within one power
+     * cycle. That's what makes FASTRAM_MSC_ONLY (build/build_config.h) safe -
+     * data tagged with it can never be live at the same time as normal-mode
+     * FASTRAM data. If this exit path is ever changed to return instead of
+     * reset, that guarantee breaks and FASTRAM_MSC_ONLY must be revisited.
      */
     mscInit();
 #if defined(USE_FLASHFS)

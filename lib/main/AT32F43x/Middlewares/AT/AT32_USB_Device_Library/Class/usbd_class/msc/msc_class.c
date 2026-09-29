@@ -52,7 +52,7 @@ static usb_sts_type class_out_handler(void *udev, uint8_t ept_num);
 static usb_sts_type class_sof_handler(void *udev);
 static usb_sts_type class_event_handler(void *udev, usbd_event_type event);
 
-FASTRAM msc_type msc_struct;
+FASTRAM_MSC_ONLY msc_type msc_struct;
 
 /* usb device class handler */
 usbd_class_handler msc_class_handler =
