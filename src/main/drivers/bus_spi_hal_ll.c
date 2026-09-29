@@ -543,6 +543,8 @@ static bool spiDataReadyDmaSetup(SPIDevice device)
     }
     memset(spiDataReadyTx[device], 0xFF, SPI_DATA_READY_MAX);
     spiDataReadyTx[device][0] = h->reg;
+    // A no-op while DMA_RAM stays uncached, as the invalidate on the reply is
+    SCB_CleanDCache_by_Addr((uint32_t *)spiDataReadyTx[device], SPI_DATA_READY_MAX);
     h->dma = true;
     return true;
 }
