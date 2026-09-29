@@ -25,6 +25,7 @@
 #include "drivers/io.h"
 #include "io_impl.h"
 #include "rcc.h"
+#include "dma.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
@@ -90,6 +91,12 @@ static void adcInstanceInit(ADCDevice adcDevice)
     adcDevice_t * adc = &adcHardware[adcDevice];
 
     RCC_ClockCmd(adc->rccDMA, ENABLE);
+
+    // The stream is the ADC's: whatever takes a free stream at run time must not take it
+    DMA_t adcDma = dmaGetByRef(adc->DMAy_Streamx);
+    if (adcDma) {
+        dmaInit(adcDma, OWNER_ADC, adcDevice);
+    }
     RCC_ClockCmd(adc->rccADC, ENABLE);
 
     DMA_DeInit(adc->DMAy_Streamx);
@@ -144,6 +151,32 @@ static void adcInstanceInit(ADCDevice adcDevice)
     ADC_Cmd(adc->ADCx, ENABLE);
 
     ADC_SoftwareStartConv(adc->ADCx);
+}
+
+bool adcDmaMoveOff(DMA_t stream)
+{
+    adcDevice_t *adc = &adcHardware[ADCDEV_1];
+    if (!adc->enabled || dmaGetByRef(adc->DMAy_Streamx) != stream) {
+        return false;
+    }
+    DMA_Stream_TypeDef *other = adc->DMAy_Streamx == DMA2_Stream0 ? DMA2_Stream4 : DMA2_Stream0;
+    DMA_t otherDma = dmaGetByRef(other);
+    if (!otherDma || dmaGetOwner(otherDma) != OWNER_FREE) {
+        return false;
+    }
+
+    // Stopped first: a conversion the DMA misses would be an overrun, which stops its requests
+    ADC_Cmd(adc->ADCx, DISABLE);
+    ADC_DMACmd(adc->ADCx, DISABLE);
+    DMA_Cmd(adc->DMAy_Streamx, DISABLE);
+    while (DMA_GetCmdStatus(adc->DMAy_Streamx) != DISABLE) {
+    }
+    ADC_ClearFlag(adc->ADCx, ADC_FLAG_OVR);
+    dmaInit(stream, OWNER_FREE, 0);
+
+    adc->DMAy_Streamx = other;
+    adcInstanceInit(ADCDEV_1);
+    return true;
 }
 
 void adcHardwareInit(drv_adc_config_t *init)

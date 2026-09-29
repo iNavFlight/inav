@@ -13,6 +13,8 @@
 #define NVIC_PRIO_TIMER_DMA                 3
 #define NVIC_PRIO_SDIO                      3
 #define NVIC_PRIO_CAN                       4
+// Data-ready and the interrupt ending its read share a priority, so neither preempts the other
+#define NVIC_PRIO_GYRO_DATA_READY           4
 #define NVIC_PRIO_USB                       5
 #define NVIC_PRIO_SERIALUART                5
 #define NVIC_PRIO_VCP                       7
