@@ -916,6 +916,8 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
         DMA_Cmd(port->tch->dma->ref, DISABLE);
 #endif
 
+        // Too few edges is no reply at all; still handed on so the frame counter sees it
+        uint16_t rawValue = DSHOT_TELEMETRY_NOEDGE;
         if (edges > MIN_GCR_EDGES) {
 #if defined(STM32H7)
             // Defensive: DMA_RAM is mapped non-cacheable by the MPU, so this is a no-op as
@@ -923,18 +925,18 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
             uint32_t alignedAddr = (uint32_t)port->dmaBuffer & ~0x1F;
             SCB_InvalidateDCache_by_Addr((uint32_t *)alignedAddr, edges * sizeof(port->dmaBuffer[0]) + ((uint32_t)port->dmaBuffer - alignedAddr));
 #endif
-            const uint16_t rawValue = dshotDecodeTelemetryPacket((const uint32_t *)port->dmaBuffer, edges);
-            const uint16_t processed = dshotProcessPacket(rawValue, motorIndex);
+            rawValue = dshotDecodeTelemetryPacket((const uint32_t *)port->dmaBuffer, edges);
+        }
 
-            if (processed != DSHOT_TELEMETRY_INVALID && processed != DSHOT_TELEMETRY_NOEDGE) {
+        const uint16_t processed = dshotProcessPacket(rawValue, motorIndex);
+        if (processed != DSHOT_TELEMETRY_INVALID && processed != DSHOT_TELEMETRY_NOEDGE) {
 #ifdef USE_ESC_SENSOR
-                // Nothing to publish before the first eRPM value (an EDT frame may come first)
-                escSensorData_t data;
-                if (getDshotEscSensorData(&data, motorIndex)) {
-                    escSensorSetDshotData(motorIndex, data.rpm, data.temperature, data.voltage, data.current);
-                }
-#endif
+            // Nothing to publish before the first eRPM value (an EDT frame may come first)
+            escSensorData_t data;
+            if (getDshotEscSensorData(&data, motorIndex)) {
+                escSensorSetDshotData(motorIndex, data.rpm, data.temperature, data.voltage, data.current);
             }
+#endif
         }
 
         pwmDshotSetDirectionOutput(port);
@@ -1176,6 +1178,12 @@ void pwmCompleteMotorUpdate(void) {
 
     int motorCount = getMotorCount();
     timeUs_t currentTimeUs = micros();
+
+#ifdef USE_DSHOT_BIDIR
+    if (useDshotTelemetry) {
+        dshotFrameWindowUpdate(currentTimeUs);
+    }
+#endif
 
     // Enforce motor update rate
     if ((digitalMotorUpdateIntervalUs == 0) || ((currentTimeUs - digitalMotorLastUpdateUs) <= digitalMotorUpdateIntervalUs)) {

@@ -79,6 +79,8 @@ static int              escSensorMotor;
 static uint8_t          telemetryBuffer[TELEMETRY_FRAME_SIZE];
 static int              bufferPosition = 0;
 static escSensorData_t  escSensorData[MAX_SUPPORTED_MOTORS];
+static escFrameCounter_t escSensorFrames[MAX_SUPPORTED_MOTORS];
+static timeMs_t         escFrameWindowStartMs;
 static escSensorData_t  escSensorDataCombined;
 static bool             escSensorDataNeedsUpdate;
 static bool             escSensorDshotActive;
@@ -132,6 +134,7 @@ static bool escSensorDecodeFrame(void)
     if (bufferPosition >= TELEMETRY_FRAME_SIZE) {
         uint8_t checksum = crc8_update(0, telemetryBuffer, TELEMETRY_FRAME_SIZE - 1);
         if (checksum == telemetryBuffer[TELEMETRY_FRAME_SIZE - 1]) {
+            escSensorFrames[escSensorMotor].valid++;
             escSensorData[escSensorMotor].dataAge       = 0;
             escSensorData[escSensorMotor].temperature   = telemetryBuffer[0];
             escSensorData[escSensorMotor].voltage       = ((uint16_t)telemetryBuffer[1]) << 8 | telemetryBuffer[2];
@@ -157,6 +160,11 @@ uint32_t computeRpm(int16_t erpm) {
 escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
 {
     return &escSensorData[esc];
+}
+
+const escFrameCounter_t * escSensorGetFrameCounter(uint8_t esc)
+{
+    return &escSensorFrames[esc];
 }
 
 void escSensorInitData(void)
@@ -381,6 +389,13 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 
     const timeMs_t currentTimeMs = currentTimeUs / 1000;
 
+    if (currentTimeMs - escFrameWindowStartMs >= ESC_FRAME_WINDOW_MS) {
+        escFrameWindowStartMs = currentTimeMs;
+        for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+            escFrameCounterCloseWindow(&escSensorFrames[i]);
+        }
+    }
+
     switch (escSensorState) {
         case ESC_SENSOR_WAIT_STARTUP:
             if (currentTimeMs > ESC_BOOTTIME_MS) {
@@ -393,6 +408,9 @@ void escSensorUpdate(timeUs_t currentTimeUs)
             if (!escSensorConfig()->listenOnly) {
                 pwmRequestMotorTelemetry(escSensorMotor);
             }
+            // One reply expected per request (per listen window with listenOnly); a timeout
+            // or a CRC error just never makes it to valid
+            escSensorFrames[escSensorMotor].total++;
             bufferPosition = 0;
             escTriggerTimeMs = currentTimeMs;
             escSensorState = ESC_SENSOR_WAITING;

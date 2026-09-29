@@ -52,24 +52,16 @@ typedef enum {
 #define DSHOT_NORMAL_TELEMETRY_MASK     (1 << DSHOT_TELEMETRY_TYPE_ERPM)
 #define DSHOT_EXTENDED_TELEMETRY_MASK   (~DSHOT_NORMAL_TELEMETRY_MASK)
 
-typedef enum {
-    DSHOT_RAW_VALUE_STATE_INVALID = 0,
-    DSHOT_RAW_VALUE_STATE_NOT_PROCESSED,
-    DSHOT_RAW_VALUE_STATE_PROCESSED,
-} dshotRawValueState_e;
-
 typedef struct {
     uint16_t rawValue;
     uint16_t telemetryData[DSHOT_TELEMETRY_TYPE_COUNT];
     uint8_t telemetryTypes;
     uint8_t maxTemp;
+    escFrameCounter_t frames;
 } dshotTelemetryMotorState_t;
 
 typedef struct {
-    uint32_t invalidPacketCount;
-    uint32_t readCount;
     dshotTelemetryMotorState_t motorState[MAX_SUPPORTED_MOTORS];
-    dshotRawValueState_e rawValueState;
 } dshotTelemetryState_t;
 
 #ifdef USE_DSHOT_BIDIR
@@ -81,6 +73,7 @@ void dshotResetTelemetry(void);
 bool isDshotTelemetryConfigured(void);
 bool isDshotTelemetryActive(void);
 uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex);
+void dshotFrameWindowUpdate(timeUs_t currentTimeUs);
 float getDshotRpm(uint8_t motorIndex);
 uint16_t getDshotErpm(uint8_t motorIndex);
 float getDshotRpmAverage(void);

@@ -50,6 +50,7 @@ static float dshotRpm[MAX_SUPPORTED_MOTORS];
 static float dshotRpmAverage;
 static float erpmToHz;
 static bool edtAlwaysDecode;
+static timeUs_t frameWindowStartUs;
 
 static const dshotTelemetryType_e extendedTelemetryLookup[8] = {
     DSHOT_TELEMETRY_TYPE_ERPM,
@@ -137,23 +138,23 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
         return rawValue;
     }
 
+    // Called once per reply window, NOEDGE included, so total covers a silent ESC too
+    dshotTelemetryState.motorState[motorIndex].frames.total++;
+
     if (rawValue == DSHOT_TELEMETRY_INVALID || rawValue == DSHOT_TELEMETRY_NOEDGE) {
-        if (rawValue == DSHOT_TELEMETRY_INVALID) {
-            dshotTelemetryState.invalidPacketCount++;
-        }
         return rawValue;
     }
 
-    dshotTelemetryState.readCount++;
     dshotTelemetryState.motorState[motorIndex].rawValue = rawValue;
 
     dshotTelemetryType_e type;
     uint32_t decoded;
     dshotDecodeTelemetryValue(motorIndex, &decoded, &type);
     if (decoded == DSHOT_TELEMETRY_INVALID) {
-        dshotTelemetryState.invalidPacketCount++;
         return DSHOT_TELEMETRY_INVALID;
     }
+
+    dshotTelemetryState.motorState[motorIndex].frames.valid++;
 
     dshotTelemetryState.motorState[motorIndex].telemetryData[type] = decoded;
     dshotTelemetryState.motorState[motorIndex].telemetryTypes |= (1 << type);
@@ -176,9 +177,20 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
         }
     }
     dshotRpmAverage = rpmCount ? rpmTotal / rpmCount : 0.0f;
-    dshotTelemetryState.rawValueState = DSHOT_RAW_VALUE_STATE_PROCESSED;
 
     return rawValue;
+}
+
+void dshotFrameWindowUpdate(timeUs_t currentTimeUs)
+{
+    if (currentTimeUs - frameWindowStartUs < ESC_FRAME_WINDOW_MS * 1000) {
+        return;
+    }
+
+    frameWindowStartUs = currentTimeUs;
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        escFrameCounterCloseWindow(&dshotTelemetryState.motorState[i].frames);
+    }
 }
 
 uint16_t getDshotErpm(uint8_t motorIndex)
