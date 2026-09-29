@@ -26,6 +26,7 @@
 #include "build/debug.h"
 #include "common/log.h"
 #include "common/memory.h"
+#include "common/utils.h"
 
 #include "config/feature.h"
 
@@ -217,6 +218,17 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
     return false;
 }
 
+// The UART owns the pad: it keeps only its motor slot, which SRXL2 never drives (moved, it would take a servo's timer)
+static bool isEscConnectorInUse(const timerHardware_t *timHw)
+{
+#if defined(USE_MOTOR_SRXL2) && defined(ESC_CONNECTOR_UART)
+    return timHw->tag == IO_TAG(ESC_CONNECTOR_PIN) && srxl2MotorUsesEscConnector();
+#else
+    UNUSED(timHw);
+    return false;
+#endif
+}
+
 static void timerHardwareOverride(timerHardware_t * timer, bool isCanonicalBeeperPad, bool isCanonicalLedPad) {
     switch (timerOverrides(timer2id(timer->tim))->outputMode) {
         case OUTPUT_MODE_MOTORS:
@@ -395,6 +407,7 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
             // Servos: dedicated (OUTPUT_MODE_SERVOS) first, then auto
             if (TIM_IS_SERVO(timHw->usageFlags) && timOutputs->maxTimServoCount < servoCount
                     && !pwmHasMotorOnTimer(timOutputs, timHw->tim)
+                    && !isEscConnectorInUse(timHw)
                     && (isDedicated ? mode == OUTPUT_MODE_SERVOS : mode != OUTPUT_MODE_SERVOS)) {
                 pwmAssignOutput(timOutputs, timHw, MAP_TO_SERVO_OUTPUT);
                 continue;
@@ -406,6 +419,13 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
                     && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
                 pwmAssignOutput(timOutputs, timHw, MAP_TO_LED_OUTPUT);
             }
+        }
+    }
+
+    // The beeper, LED strip and PINIO pick their pads by these flags, and the Outputs tab maps by them
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        if (isEscConnectorInUse(&timerHardware[idx])) {
+            timerHardware[idx].usageFlags &= ~(TIM_USE_SERVO | TIM_USE_LED | TIM_USE_BEEPER | TIM_USE_PINIO);
         }
     }
 }
