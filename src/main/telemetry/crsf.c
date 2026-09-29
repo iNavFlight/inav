@@ -710,11 +710,12 @@ static void processCrsf(void)
 #ifdef USE_GPS
     if (currentSchedule & BV(CRSF_FRAME_GPS_INDEX)) {
         // time shares the GPS slot so the other frames keep their rate
-        static uint8_t lastGpsTimeSecond = UINT8_MAX;
+        static uint32_t lastGpsTimeOfDay = UINT32_MAX;
+        const uint32_t gpsTimeOfDay = (uint32_t)gpsSol.time.hours * 3600 + (uint32_t)gpsSol.time.minutes * 60 + gpsSol.time.seconds;
         crsfInitializeFrame(dst);
-        if (gpsSol.flags.validTime && gpsSol.time.year != 0 && gpsSol.time.seconds != lastGpsTimeSecond) {
+        if (gpsSol.flags.validTime && gpsSol.time.year != 0 && gpsTimeOfDay != lastGpsTimeOfDay) {
             crsfFrameGpsTime(dst);
-            lastGpsTimeSecond = gpsSol.time.seconds;
+            lastGpsTimeOfDay = gpsTimeOfDay;
         } else {
             crsfFrameGps(dst);
         }
@@ -873,6 +874,9 @@ int getCrsfFrame(uint8_t *frame, crsfFrameType_e frameType)
 #if defined(USE_GPS)
     case CRSF_FRAMETYPE_GPS:
         crsfFrameGps(sbuf);
+        break;
+    case CRSF_FRAMETYPE_GPS_TIME:
+        crsfFrameGpsTime(sbuf);
         break;
 #endif
     case CRSF_FRAMETYPE_VARIO_SENSOR:
