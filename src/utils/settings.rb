@@ -867,7 +867,7 @@ class Generator
         true_tags = Set.new
         # The message itself (gcc, clang): past a certain size of this file gcc echoes a neighbouring
         # line under it instead of the pragma
-        stderr.scan(/(?:#pragma message: |warning: )(COND\d+)/).each do |m|
+        stderr.scan(/(?:#pragma message: |warning: |error: )(COND\d+)/).each do |m|
             true_tags << m[0]
         end
         tags.each do |tag, obj|
