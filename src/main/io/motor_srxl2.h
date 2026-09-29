@@ -35,6 +35,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "io/srxl2_smart_battery.h"
+
 /*
  * One ESC per bus, several buses.
  *
@@ -224,6 +226,9 @@ void srxl2MotorProcess(void);
  * some motor has nowhere to send its command, which the caller must treat as a
  * configuration error rather than carrying on. */
 uint8_t srxl2MotorCount(void);
+
+bool srxl2MotorGetSmartBattery(uint8_t motor, uint8_t slot, srxl2SmartBatteryTelemetry_t *out);
+const srxl2SmartBatteryState_t *srxl2MotorGetSmartBatteryRaw(uint8_t motor);
 
 /* True once every opened ESC has answered the handshake and is still
  * responding. One silent ESC on a twin is asymmetric thrust, so this is

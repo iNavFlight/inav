@@ -49,6 +49,9 @@
 #include "flight/mixer.h"
 
 #include "io/gps.h"
+#ifdef USE_MOTOR_SRXL2
+#include "io/motor_srxl2.h"
+#endif
 #include "io/serial.h"
 
 #include "navigation/navigation.h"
@@ -434,6 +437,65 @@ static bool crsfTemperature(sbuf_t *dst)
     return false;
 }
 
+#ifdef USE_MOTOR_SRXL2
+// A pack keeps the same source ID if another pack is absent or stale. These
+// are INAV conventions: cell sources 0..7 and temperature sources 16..23.
+// Voltage Group sources >=128 are general voltages, not battery cells.
+#define CRSF_SMART_BATTERY_TEMP_SOURCE_BASE 16
+#define CRSF_SMART_BATTERY_RADIO_MAX_CELLS 8
+static uint8_t crsfSmartBatteryScheduleIndex;
+
+static bool crsfFrameSmartBattery(sbuf_t *dst, uint8_t source, bool temperature)
+{
+    srxl2SmartBatteryTelemetry_t battery;
+    if (!srxl2MotorGetSmartBattery(source / SRXL2_SMART_BATTERY_SLOTS,
+        source % SRXL2_SMART_BATTERY_SLOTS, &battery)) {
+        return false;
+    }
+
+    if (temperature) {
+        if (!battery.temperatureValid) {
+            return false;
+        }
+        sbufWriteU8(dst, 3 + CRSF_FRAME_LENGTH_TYPE_CRC);
+        crsfSerialize8(dst, CRSF_FRAMETYPE_TEMP);
+        crsfSerialize8(dst, CRSF_SMART_BATTERY_TEMP_SOURCE_BASE + source);
+        crsfSerialize16(dst, (uint16_t)battery.temperatureDeciC);
+        return true;
+    }
+
+    // CRSF has no validity mask or cell offset, and EdgeTX accepts eight cells.
+    // Omit incomplete packs rather than renumbering cells or truncating a pack.
+    const uint8_t count = battery.cellCount;
+    if (!count || count > CRSF_SMART_BATTERY_RADIO_MAX_CELLS
+        || battery.validCells != (1u << count) - 1) {
+        return false;
+    }
+
+    sbufWriteU8(dst, 1 + count * 2 + CRSF_FRAME_LENGTH_TYPE_CRC);
+    crsfSerialize8(dst, CRSF_FRAMETYPE_VOLTAGE);
+    crsfSerialize8(dst, source);
+    for (uint8_t i = 0; i < count; i++) {
+        crsfSerialize16(dst, battery.cellMv[i]);
+    }
+    return true;
+}
+
+static bool crsfFrameNextSmartBattery(sbuf_t *dst)
+{
+    const uint8_t entries = MIN(srxl2MotorCount(), (uint8_t)SRXL2_ESC_MAX_MOTORS)
+        * SRXL2_SMART_BATTERY_SLOTS * 2;
+    for (uint8_t checked = 0; checked < entries; checked++) {
+        const uint8_t entry = crsfSmartBatteryScheduleIndex % entries;
+        crsfSmartBatteryScheduleIndex = (entry + 1) % entries;
+        if (crsfFrameSmartBattery(dst, entry / 2, entry & 1)) {
+            return true;
+        }
+    }
+    return false;
+}
+#endif
+
 typedef enum {
     CRSF_ACTIVE_ANTENNA1 = 0,
     CRSF_ACTIVE_ANTENNA2 = 1
@@ -605,6 +667,9 @@ typedef enum {
     CRSF_FRAME_TEMP_INDEX,
     CRSF_FRAME_RPM_INDEX,
     CRSF_FRAME_AIRSPEED_INDEX,
+#ifdef USE_MOTOR_SRXL2
+    CRSF_FRAME_SMART_BATTERY_INDEX,
+#endif
     CRSF_SCHEDULE_COUNT_MAX
 } crsfFrameTypeIndex_e;
 
@@ -661,6 +726,14 @@ static void processCrsf(void)
         crsfFrameBatterySensor(dst);
         crsfFinalize(dst);
     }
+#ifdef USE_MOTOR_SRXL2
+    if (currentSchedule & BV(CRSF_FRAME_SMART_BATTERY_INDEX)) {
+        crsfInitializeFrame(dst);
+        if (crsfFrameNextSmartBattery(dst)) {
+            crsfFinalize(dst);
+        }
+    }
+#endif
     if (currentSchedule & BV(CRSF_FRAME_FLIGHT_MODE_INDEX)) {
         crsfInitializeFrame(dst);
         crsfFrameFlightMode(dst);
@@ -726,6 +799,12 @@ void initCrsfTelemetry(void)
     crsfSchedule[index++] = BV(CRSF_FRAME_ATTITUDE_INDEX);
     crsfSchedule[index++] = BV(CRSF_FRAME_BATTERY_SENSOR_INDEX);
     crsfSchedule[index++] = BV(CRSF_FRAME_FLIGHT_MODE_INDEX);
+#ifdef USE_MOTOR_SRXL2
+    crsfSmartBatteryScheduleIndex = 0;
+    if (STATE(ESC_SENSOR_ENABLED) && srxl2MotorCount() > 0) {
+        crsfSchedule[index++] = BV(CRSF_FRAME_SMART_BATTERY_INDEX);
+    }
+#endif
 #ifdef USE_GPS
     if (feature(FEATURE_GPS)) {
         crsfSchedule[index++] = BV(CRSF_FRAME_GPS_INDEX);
