@@ -55,6 +55,11 @@ uint8_t mavlinkPortTxBufferFree(uint8_t portIndex)
     return portIndex < mavPortCount ? mavPortStates[portIndex].txbuffFree : 100;
 }
 
+uint16_t mavlinkPortStreamSlowdownMs(uint8_t portIndex)
+{
+    return portIndex < mavPortCount ? mavPortStates[portIndex].streamSlowdownMs : 0;
+}
+
 static void mavlinkApplyActivePortOutputVersion(void)
 {
     mavlink_status_t *chanState = mavlink_get_channel_status(MAVLINK_COMM_0);
@@ -333,11 +338,12 @@ void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
         mavlinkSetActivePortContext(portIndex);
         bool shouldSendTelemetry = false;
 
-        // A radio that stopped reporting must not hold the port forever
+        // A radio that stopped reporting must not hold or slow the streams forever
         if (state->txbuffValid &&
             cmpTimeUs(currentTimeUs, state->lastTxbuffReportUs) > MAVLINK_TXBUFF_REPORT_TIMEOUT_US) {
             state->txbuffValid = false;
             state->txbuffFree = 100;
+            state->streamSlowdownMs = 0;
         }
 
         if (isMAVLinkTelemetryHalfDuplexBackoff(portIndex, currentTimeUs)) {
@@ -353,6 +359,11 @@ void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
         }
 
         if (!shouldSendTelemetry) {
+            // Like ArduPilot, a full radio still gets the heartbeat: the GCS keeps the link and SiK keeps reporting
+            if (state->txbuffValid) {
+                mavSendMask = MAVLINK_PORT_MASK(portIndex);
+                mavlinkSendHeartbeatIfDue(currentTimeUs);
+            }
             continue;
         }
 

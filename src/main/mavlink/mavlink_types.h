@@ -39,6 +39,7 @@
 #define TELEMETRY_MAVLINK_PORT_MODE MODE_RXTX
 #define TELEMETRY_MAVLINK_MAXRATE 50
 #define TELEMETRY_MAVLINK_DELAY ((1000 * 1000) / TELEMETRY_MAVLINK_MAXRATE)
+#define MAVLINK_STREAM_SLOWDOWN_MAX_MS 2000
 #define MAVLINK_TXBUFF_REPORT_TIMEOUT_US (5 * 1000 * 1000)
 #define TELEMETRY_MAVLINK_HIGH_LATENCY_INTERVAL_US (5 * 1000 * 1000)
 #define MAV_DATA_STREAM_EXTENDED_SYS_STATE (MAV_DATA_STREAM_EXTRA3 + 1)
@@ -162,6 +163,7 @@ typedef struct mavlinkPortRuntime_s {
     timeMs_t firstStatusTextMs;
     timeMs_t lastStatusTextMs;
     uint8_t txSeq;
+    uint16_t streamSlowdownMs;
     uint32_t txDroppedFrames;
     mavlink_message_t mavRecvMsg;
     mavlink_status_t mavRecvStatus;
