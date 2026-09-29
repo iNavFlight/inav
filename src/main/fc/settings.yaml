@@ -1503,8 +1503,8 @@ groups:
         min: PWM_RANGE_MIN
         max: PWM_RANGE_MAX
       - name: tpa_pitch_compensation
-        description: "Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active."
-        default_value: 0
+        description: "Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Only used when throttle-based TPA is in effect (`apa_pow` is 0 or no valid airspeed is available). Leave it at 0 if you do not use TPA."
+        default_value: 8
         field: throttle.tpa_pitch_compensation
         min: 0
         max: 20

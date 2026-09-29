@@ -7295,11 +7295,11 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
+Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Only used when throttle-based TPA is in effect (`apa_pow` is 0 or no valid airspeed is available). Leave it at 0 if you do not use TPA.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 20 |
+| 8 | 0 | 20 |
 
 ---
 
