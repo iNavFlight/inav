@@ -1874,6 +1874,11 @@ groups:
         default_value: OFF
         field: ubloxUseGlonass
         type: bool
+      - name: gps_ublox_use_navic
+        description: "Enable use of NavIC satellites, the Indian regional system, on receivers that have it, such as the u-blox F10. They are only visible over India and the region around it. Receivers without NavIC ignore this setting [OFF/ON]."
+        default_value: OFF
+        field: ubloxUseNavic
+        type: bool
       - name: gps_min_sats
         description: "Minimum number of GPS satellites in view to acquire GPS_FIX and consider GPS position valid. Some GPS receivers appeared to be very inaccurate with low satellite count."
         default_value: 6

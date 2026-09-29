@@ -87,6 +87,12 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
+// From the MON-VER extensions (MOD=NEO-F10N), empty when not reported
+static char ubxModuleName[UBLOX_MODULE_NAME_LEN] = "";
+
+// SBAS, QZSS and NavIC, which the receiver lists in MON-VER but not in MON-GNSS
+static uint8_t ubxExtendedGnss = 0;
+
 // MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
 static uint16_t monRfNoisePerMs = 0;
 static uint16_t monAgcCount = 0;
@@ -213,6 +219,27 @@ bool gpsUbloxGlonassEnabled(void)
 uint8_t gpsUbloxMaxGnss(void)
 {
     return ubx_capabilities.capMaxGnss;
+}
+
+// The MON-GNSS masks as the receiver reports them: bit 0 GPS, 1 Glonass, 2 Beidou, 3 Galileo
+uint8_t gpsUbloxSupportedGnss(void)
+{
+    return ubx_capabilities.supported;
+}
+
+uint8_t gpsUbloxEnabledGnss(void)
+{
+    return ubx_capabilities.enabledGnss;
+}
+
+const char * gpsUbloxModuleName(void)
+{
+    return ubxModuleName;
+}
+
+uint8_t gpsUbloxExtendedGnss(void)
+{
+    return ubxExtendedGnss;
 }
 
 timeMs_t gpsUbloxCapLastUpdate(void)
@@ -443,6 +470,17 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
     }
 
     return 1;
+}
+
+// Sent on its own: a receiver without NavIC rejects any message holding its keys
+static void configureNAVIC(void)
+{
+    ubx_config_data8_payload_t navicValues[] = {
+        {UBLOX_CFG_NAVIC_ENA, gpsState.gpsConfig->ubloxUseNavic},
+        {UBLOX_CFG_NAVIC_L5_ENA, gpsState.gpsConfig->ubloxUseNavic}
+    };
+
+    ubloxSendSetCfgBytes(navicValues, 2);
 }
 
 static void configureGNSS10(void)
@@ -763,6 +801,29 @@ static bool gpsParseFrameUBLOX(void)
                     if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
                         gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
                         break;
+                    }
+                }
+
+                // Whole 30-byte extensions only, or the last one is read past the payload
+                for (int j = 40; j + 30 <= _payload_length; j += 30) {
+                    const char * line = (const char *)(_buffer.bytes + j);
+
+                    const char * mod = strnstr(line, "MOD=", 30);
+                    if (mod) {
+                        const char * name = mod + 4;
+                        const size_t room = (size_t)(line + 30 - name);
+                        strncpy(ubxModuleName, name, MIN(room, (size_t)(UBLOX_MODULE_NAME_LEN - 1)));
+                        ubxModuleName[UBLOX_MODULE_NAME_LEN - 1] = '\0';
+                    }
+
+                    if (strnstr(line, "SBAS", 30)) {
+                        ubxExtendedGnss |= UBLOX_EXT_GNSS_SBAS;
+                    }
+                    if (strnstr(line, "QZSS", 30)) {
+                        ubxExtendedGnss |= UBLOX_EXT_GNSS_QZSS;
+                    }
+                    if (strnstr(line, "NAVIC", 30)) {
+                        ubxExtendedGnss |= UBLOX_EXT_GNSS_NAVIC;
                     }
                 }
             }
@@ -1171,6 +1232,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
             gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
             gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
         }
+
+        if (ubloxVersionGT(23, 1) && (ubxExtendedGnss & UBLOX_EXT_GNSS_NAVIC)) {
+            gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+            configureNAVIC();
+            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+        }
     }
 
 	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
@@ -1250,6 +1317,8 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Attempt to detect GPS hw version
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    ubxModuleName[0] = '\0';
+    ubxExtendedGnss = 0;
     gpsState.autoConfigStep = 0;
 
     // Configure GPS module if enabled
@@ -1261,7 +1330,9 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
         } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
 
         gpsState.autoConfigStep = 0;
+        // Or a count left by a swapped receiver ends the poll below before the new one answers
         ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+        ubx_capabilities.capMaxGnss = 0;
         // M7 and earlier will never get pass this step, so skip it (#9440).
         // UBLOX documents that this is M8N and later
         if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
