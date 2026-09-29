@@ -1059,6 +1059,16 @@ Enable when BLHeli32 Auto Telemetry function is used. Disable in every other cas
 
 ---
 
+### esc_srxl2_connector
+
+Only on a board with an ESC connector that can also be a UART's TX (NEXUS, NEXUS X/XR, Vantac RF007), with motor_pwm_protocol set to SRXL2. ON puts a Smart ESC on that connector as motor 1, on the one UART the board can wire to it, which must have no function assigned in the ports tab. ESCs on UARTs assigned in the ports tab follow as motors 2 and on.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### esc_srxl2_reverse_channel
 
 For an SRXL2 Smart ESC, the 1-based auxiliary channel its "Thrust Rev." setting selects to arm reverse. Spektrum allow channels 5 to 9 and ship channel 7 by default. Must match how the ESC was programmed, because nothing on the wire advertises it. 0 disables reverse, and anything between 1 and 4 is treated as 0 at boot - the range cannot express the hole, and a channel the ESC cannot watch would offer a mode that does nothing.

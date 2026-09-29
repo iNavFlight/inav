@@ -12007,10 +12007,25 @@
                         "ctype": "uint8_t",
                         "desc": "Number of motors in the current mixer.",
                         "units": ""
+                    },
+                    {
+                        "name": "connectorCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of ESC connectors on the board that can carry a Smart ESC; 0 on boards without one.",
+                        "units": ""
+                    },
+                    {
+                        "name": "connectorPorts",
+                        "ctype": "uint8_t",
+                        "desc": "Serial port identifier (`serialPortIdentifier_e`) of the UART behind each ESC connector, `connectorCount` entries.",
+                        "array": true,
+                        "array_size": 0,
+                        "units": ""
                     }
                 ]
             },
-            "notes": "Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.",
+            "variable_len": true,
+            "notes": "Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity. `portCount` includes the ESC connector when `esc_srxl2_connector` puts a Smart ESC on it. Older firmware ends after `motorCount`.",
             "description": "Reads SRXL2 ESC calibration and connection status."
         },
         "MSP2_INAV_ESC_SRXL2_CALIBRATE": {

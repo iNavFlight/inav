@@ -1734,6 +1734,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
          * bytes are MAX_SUPPORTED_MOTORS and MAX_SUPPORTED_SERVOS, the ceilings. */
         sbufWriteU8(dst, srxl2MotorCount());
         sbufWriteU8(dst, getMotorCount());
+#ifdef ESC_CONNECTOR_UART
+        sbufWriteU8(dst, 1);
+        sbufWriteU8(dst, ESC_CONNECTOR_UART);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 #endif
 

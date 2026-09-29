@@ -5031,8 +5031,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `lastResult` | `uint8_t` | 1 | Last calibration start result (srxl2CalResult_e). |
 | `portCount` | `uint8_t` | 1 | Number of opened SRXL2 motor ports. |
 | `motorCount` | `uint8_t` | 1 | Number of motors in the current mixer. |
+| `connectorCount` | `uint8_t` | 1 | Number of ESC connectors on the board that can carry a Smart ESC; 0 on boards without one. |
+| `connectorPorts` | `uint8_t[]` | array | Serial port identifier (`serialPortIdentifier_e`) of the UART behind each ESC connector, `connectorCount` entries. |
 
-**Notes:** Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.
+**Notes:** Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity. `portCount` includes the ESC connector when `esc_srxl2_connector` puts a Smart ESC on it. Older firmware ends after `motorCount`.
 
 ## <a id="msp2_inav_esc_srxl2_calibrate"></a>`MSP2_INAV_ESC_SRXL2_CALIBRATE (8756 / 0x2234)`
 **Description:** Controls SRXL2 ESC throttle-range calibration.  

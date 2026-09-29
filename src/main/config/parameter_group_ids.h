@@ -136,6 +136,7 @@
 #define PG_DRONECAN_CONFIG 1045
 #define PG_TERRAIN_NAV_CONFIG 1046
 #define PG_DRONECAN_DNA_SERVER 1047     // Separate PG so we don't wipe user settings if the allocation table changes
+#define PG_ESC_CONNECTOR_CONFIG 1048
 #define PG_BEC_CONFIG 1049
 #define PG_INAV_END PG_BEC_CONFIG
 
