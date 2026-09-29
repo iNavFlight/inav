@@ -48,6 +48,7 @@
 #define IMU_MPU6000_ALIGN CW0_DEG
 #define MPU6000_SPI_BUS BUS_SPI2
 #define MPU6000_CS_PIN PB12
+#define MPU6000_EXTI_PIN       PD0
 
 // *************** SPI3 FLASH ***********************
 #define USE_SPI_DEVICE_3

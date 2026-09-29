@@ -30,12 +30,18 @@
     #endif
 
     #if defined(USE_IMU_MPU6000)
-        BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
+        #if !defined(MPU6000_EXTI_PIN)
+            #define MPU6000_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_mpu6000,     DEVHW_MPU6000,      MPU6000_SPI_BUS,    MPU6000_CS_PIN,     MPU6000_EXTI_PIN,  DEVFLAGS_NONE,  IMU_MPU6000_ALIGN);
     #endif
 
     #if defined(USE_IMU_MPU6500)
         #if defined(MPU6500_SPI_BUS)
-        BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
+        #if !defined(MPU6500_EXTI_PIN)
+            #define MPU6500_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_SPI_BUS,    MPU6500_CS_PIN,     MPU6500_EXTI_PIN,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
         #elif defined(MPU6500_I2C_BUS)
         BUSDEV_REGISTER_I2C(busdev_mpu6500,     DEVHW_MPU6500,      MPU6500_I2C_BUS,    MPU_ADDRESS,        NONE,  DEVFLAGS_NONE,  IMU_MPU6500_ALIGN);
         #endif
@@ -43,18 +49,27 @@
 
     #if defined(USE_IMU_MPU9250)
         #if defined(MPU9250_SPI_BUS)
-        BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     NONE,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
+        #if !defined(MPU9250_EXTI_PIN)
+            #define MPU9250_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_SPI_BUS,    MPU9250_CS_PIN,     MPU9250_EXTI_PIN,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
         #elif defined(MPU9250_I2C_BUS)
         BUSDEV_REGISTER_I2C(busdev_mpu9250,     DEVHW_MPU9250,      MPU9250_I2C_BUS,    MPU_ADDRESS,        NONE,  DEVFLAGS_NONE,  IMU_MPU9250_ALIGN);
         #endif
     #endif
 
     #if defined(USE_IMU_ICM20689)
-        BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
+        #if !defined(ICM20689_EXTI_PIN)
+            #define ICM20689_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_icm20689,    DEVHW_ICM20689,     ICM20689_SPI_BUS,   ICM20689_CS_PIN,    ICM20689_EXTI_PIN,  DEVFLAGS_NONE,  IMU_ICM20689_ALIGN);
     #endif
 
     #if defined(USE_IMU_ICM42605)
-        BUSDEV_REGISTER_SPI(busdev_icm42605,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
+        #if !defined(ICM42605_EXTI_PIN)
+            #define ICM42605_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_icm42605,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    ICM42605_EXTI_PIN,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
     #endif
 
     #if defined(USE_IMU_BMI160)
@@ -75,15 +90,24 @@
     #endif
 
     #if defined(USE_IMU_BMI270)
-        BUSDEV_REGISTER_SPI(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
+        #if !defined(BMI270_EXTI_PIN)
+            #define BMI270_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_bmi270,      DEVHW_BMI270,       BMI270_SPI_BUS,     BMI270_CS_PIN,      BMI270_EXTI_PIN,  DEVFLAGS_NONE,  IMU_BMI270_ALIGN);
     #endif
 
     #if defined(USE_IMU_LSM6DXX)
-        BUSDEV_REGISTER_SPI(busdev_lsm6dxx,      DEVHW_LSM6D,       LSM6DXX_SPI_BUS,     LSM6DXX_CS_PIN,      NONE,  DEVFLAGS_NONE,  IMU_LSM6DXX_ALIGN);
+        #if !defined(LSM6DXX_EXTI_PIN)
+            #define LSM6DXX_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_lsm6dxx,      DEVHW_LSM6D,       LSM6DXX_SPI_BUS,     LSM6DXX_CS_PIN,      LSM6DXX_EXTI_PIN,  DEVFLAGS_NONE,  IMU_LSM6DXX_ALIGN);
     #endif
 
     #if defined(USE_IMU_ICM45686)
-        BUSDEV_REGISTER_SPI(busdev_icm45686,    DEVHW_ICM45686,     ICM45686_SPI_BUS,   ICM45686_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM45686_ALIGN);
+        #if !defined(ICM45686_EXTI_PIN)
+            #define ICM45686_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_icm45686,    DEVHW_ICM45686,     ICM45686_SPI_BUS,   ICM45686_CS_PIN,    ICM45686_EXTI_PIN,  DEVFLAGS_NONE,  IMU_ICM45686_ALIGN);
     #endif
 
 #endif

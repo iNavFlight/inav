@@ -109,6 +109,10 @@ static void icm20689AccAndGyroInit(gyroDev_t *gyro)
     busWrite(busDev, MPU_RA_SMPLRT_DIV, config->gyroConfigValues[1]); // Get Divider Drops
     delay(100);
 
+#if defined(USE_SPI_DATA_READY)
+    mpuDataReadySetup(gyro);
+#endif
+
     // Switch SPI to fast speed
     busSetSpeed(busDev, BUS_SPEED_FAST);
 }
