@@ -1487,7 +1487,7 @@ groups:
         description: "Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. Scales P/D/FF with airspeed (I-term scaled less aggressively). Gains range from 30% (high speed) to 150% (low speed). Set to 0 to disable and use throttle-based attenuation. Falls back to throttle-based attenuation (TPA) when no valid airspeed is available. Set `fw_reference_airspeed` to the aircraft's tuned cruise airspeed."
         type: uint16_t
         field: throttle.apa_pow
-        default_value: 120
+        default_value: 115
         min: 0
         max: 200
       - name: tpa_rate

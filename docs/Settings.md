@@ -472,7 +472,7 @@ Use airspeed instead of throttle position for PID attenuation if airspeed is ava
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 120 | 0 | 200 |
+| 115 | 0 | 200 |
 
 ---
 
