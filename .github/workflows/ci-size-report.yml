@@ -24,7 +24,8 @@ name: CI Size Report
 #    pr-test-builds has for old PR releases).
 #  - pr-comment listens for "Build firmware" (ci.yml) directly — PR builds
 #    genuinely do trigger it via `pull_request`, that part isn't broken.
-#    Resolves the PR's TRUE base commit (merge-base of head and base ref),
+#    Resolves the base commit the PR build was merged onto (recorded by
+#    ci.yml; the merge-base of head and base ref for older builds),
 #    fetches the per-commit baseline for it (falling back to the nearest
 #    ancestor commit that has one), diffs the 4 representative targets,
 #    and posts/updates a PR comment showing which baseline was used.
@@ -224,21 +225,34 @@ jobs:
             exit 1
           fi
 
+          # Line 2: the base commit the build contains, when ci.yml could record it
+          BUILT_BASE=$(sed -n 2p base_ref.txt | tr -d '\r\n')
+          if ! [[ "$BUILT_BASE" =~ ^[0-9a-f]{40}$ ]]; then
+            BUILT_BASE=
+          fi
+
           echo "number=${PR_NUM}" >> "$GITHUB_OUTPUT"
           echo "base_ref=${BASE_REF}" >> "$GITHUB_OUTPUT"
+          echo "built_base=${BUILT_BASE}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${HEAD_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
-      - name: Compute PR base commit (merge-base)
+      - name: Compute PR base commit
         if: steps.check.outputs.proceed == 'true'
         id: mergebase
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_REF: ${{ steps.pr.outputs.base_ref }}
+          BUILT_BASE: ${{ steps.pr.outputs.built_base }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          # The PR's TRUE base commit is the merge-base of the PR head and
-          # base ref — NOT the base branch's latest tip (comparing against
-          # the tip includes unrelated changes merged after the PR forked).
+          # What the build contains: against the merge-base, base changes since the fork count as the PR's
+          if [ -n "$BUILT_BASE" ]; then
+            echo "merge_base=${BUILT_BASE}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Not recorded (an older build, or HEAD was not the merge): the
+          # merge-base of the PR head and base ref, NOT the base branch's
+          # latest tip (that includes changes the build lacks).
           # The compare API resolves fork-PR head SHAs too (verified).
           # base_ref was already regex-validated in the step above; the
           # returned SHA is validated here before any use.
@@ -261,7 +275,7 @@ jobs:
         run: |
           mkdir -p baseline
           if [ -n "${MERGE_BASE}" ]; then
-            # Exact per-commit baseline for the merge-base first, then the
+            # Exact per-commit baseline for the base commit first, then the
             # nearest ancestor commit that has one; the branch-tip baseline
             # is deliberately NOT a fallback (stale-delta bug).
             bash .github/scripts/fetch-size-baseline.sh \
@@ -297,6 +311,7 @@ jobs:
           BASELINE_FOUND: ${{ steps.baseline.outputs.found }}
           BASELINE_COMMIT: ${{ steps.baseline.outputs.baseline_commit_short }}
           BASELINE_EXACT: ${{ steps.baseline.outputs.baseline_exact }}
+          BUILT_COMMIT: ${{ steps.pr.outputs.built_base }}
           DOC_LINK: ${{ steps.doc.outputs.link }}
         with:
           script: |
@@ -321,6 +336,7 @@ jobs:
               shortSha: process.env.SHORT_SHA,
               baselineCommit: process.env.BASELINE_COMMIT || null,
               baselineIsNearest: !!process.env.BASELINE_COMMIT && process.env.BASELINE_EXACT !== 'true',
+              builtCommit: (process.env.BUILT_COMMIT || '').slice(0, 7) || null,
               docLink: process.env.DOC_LINK || null,
               marker,
             });
