@@ -32,6 +32,7 @@
 #include "common/utils.h"
 #include "common/filter.h"
 
+#include "drivers/bus_i2c.h"
 #include "drivers/light_led.h"
 #include "drivers/serial.h"
 #include "drivers/time.h"
@@ -1106,6 +1107,10 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 
 #ifdef USE_DSHOT
     pwmCompleteMotorUpdate();
+#endif
+
+#ifdef USE_I2C_ASYNC
+    i2cAsyncPoll();
 #endif
 
 #ifdef USE_ESC_SENSOR

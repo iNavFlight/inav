@@ -252,25 +252,12 @@ static bool deviceConfigure(busDevice_t * busDev)
     return true;
 }
 
-static bool deviceReadMeasurement(baroDev_t *baro)
+static void deviceCompensate(const uint8_t *buf)
 {
-    // 1. Check if pressure is ready
-    bool pressure_ready = registerRead(baro->busDev, DPS310_REG_MEAS_CFG) & DPS310_MEAS_CFG_PRS_RDY;
-    if (!pressure_ready) {
-        return false;
-    }
-
     // 2. Choose scaling factors kT (for temperature) and kP (for pressure) based on the chosen precision rate.
     // The scaling factors are listed in Table 9.
     static float kT = 253952; // 16 times (Standard)
     static float kP = 253952; // 16 times (Standard)
-
-    // 3. Read the pressure and temperature result from the registers
-    // Read PSR_B2, PSR_B1, PSR_B0, TMP_B2, TMP_B1, TMP_B0
-    uint8_t buf[6];
-    if (!busReadBuf(baro->busDev, DPS310_REG_PSR_B2, buf, 6)) {
-        return false;
-    }
 
     const int32_t Praw = getTwosComplement((buf[0] << 16) + (buf[1] << 8) + buf[2], 24);
     const int32_t Traw = getTwosComplement((buf[3] << 16) + (buf[4] << 8) + buf[5], 24);
@@ -304,6 +291,54 @@ static bool deviceReadMeasurement(baroDev_t *baro)
     
     // See section 4.9.2, How to Calculate Compensated Temperature Values, of datasheet
     baroState.temperature = c0 * 0.5f + c1 * Traw_sc;
+}
+
+static uint8_t measCfg;
+static uint8_t measurement[6];     // PSR_B2, PSR_B1, PSR_B0, TMP_B2, TMP_B1, TMP_B0
+static enum {
+    DPS310_READ_IDLE = 0,
+    DPS310_READ_STATUS,
+    DPS310_READ_MEASUREMENT,
+} readStep;
+
+static bool deviceReadMeasurement(baroDev_t *baro)
+{
+    i2cAsyncState_e state;
+
+    switch (readStep) {
+    case DPS310_READ_IDLE:
+        // 1. Check if pressure is ready
+        if (!busReadBufAsync(baro->busDev, DPS310_REG_MEAS_CFG, &measCfg, 1)) {
+            return true;
+        }
+        readStep = DPS310_READ_STATUS;
+        FALLTHROUGH;
+
+    case DPS310_READ_STATUS:
+        state = busAsyncState(baro->busDev);
+        if (state == I2C_ASYNC_BUSY) {
+            return false;
+        }
+        // 3. Read the pressure and temperature result from the registers
+        if (state != I2C_ASYNC_OK || !(measCfg & DPS310_MEAS_CFG_PRS_RDY) ||
+            !busReadBufAsync(baro->busDev, DPS310_REG_PSR_B2, measurement, sizeof(measurement))) {
+            readStep = DPS310_READ_IDLE;
+            return true;
+        }
+        readStep = DPS310_READ_MEASUREMENT;
+        FALLTHROUGH;
+
+    case DPS310_READ_MEASUREMENT:
+        state = busAsyncState(baro->busDev);
+        if (state == I2C_ASYNC_BUSY) {
+            return false;
+        }
+        readStep = DPS310_READ_IDLE;
+        if (state == I2C_ASYNC_OK) {
+            deviceCompensate(measurement);
+        }
+        return true;
+    }
 
     return true;
 }
@@ -367,6 +402,7 @@ bool baroDPS310Detect(baroDev_t *baro)
     baro->up_delay = baroDelay;
     baro->start_up = NULL;
     baro->get_up = deviceReadMeasurement;
+    baro->asyncRead = true;
 
     baro->calculate = deviceCalculate;
 
