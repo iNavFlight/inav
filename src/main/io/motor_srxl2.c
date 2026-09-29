@@ -103,6 +103,15 @@
 #define SRXL2_LISTEN_WINDOW_MS      250
 #define SRXL2_HANDSHAKE_INTERVAL_MS 50
 
+// Powered with the board, an Avian sends them 43 to about 345 ms after the board's reset, long before
+// init reaches the motors. It links only once they are over, and only if control frames are
+// still coming then: it replied at 349 ms. Unanswered, it never links
+#define SRXL2_BOOT_LINK_MS          700
+// By then a powered ESC has spoken, so one that has not is not waited for
+#define SRXL2_BOOT_SILENT_MS        200
+// The task's 200 Hz. The baud change needs it: the port reads empty with the last byte still going out
+#define SRXL2_BOOT_TICK_MS          5
+
 // Rate at which Control Data goes out once the link is up, which is not the motor update
 // rate: the specification has the master emit one packet per RF frame, tens of hertz. 115200
 // baud would not carry more anyway, an eighteen-byte frame being about 1.6 ms on the wire
@@ -119,10 +128,10 @@
 // cycle. Measured on an Avian 70A against a fixed 1250 us command
 #define SRXL2_TELEM_REQUEST_MIN     2
 
-// Declare the link dead if the ESC stops answering for this long. A running Avian never
-// speaks unprompted, so only a telemetry reply refreshes this timer and a request rate
-// slower than the timeout would disconnect a healthy ESC on schedule. It answers about two
-// requests in three, so the margin also has to cover consecutive misses. This is why the
+// Declare the link dead if the ESC stops answering for this long. For the arming check only a
+// telemetry reply counts, since an Avian that has lost its frames still announces itself, so a
+// request rate slower than the timeout would block a healthy ESC on schedule. It answers about
+// two requests in three, so the margin also has to cover consecutive misses. This is why the
 // telemetry rate table stops at one request every five frames
 #define SRXL2_LINK_TIMEOUT_MS       500
 
@@ -131,6 +140,10 @@
 // over: it ignored a throttle sent from 6.9 s until about 9.2 s after power. Arming waits for this
 // rather than for the handshake alone: nobody arms that soon after connecting the battery
 #define SRXL2_READY_DELAY_MS        10000
+
+// Unfed this long, an Avian drops the link (it announces itself again about 185 ms after its last
+// frame), and one still starting starts over: its readiness counts again from when frames return
+#define SRXL2_STARVED_MS            150
 
 // Telemetry older than this reads as stale. Generous next to the link timeout on purpose:
 // the ESC rotates its reply between three sensors, so its own readings arrive about once a
@@ -201,6 +214,7 @@ typedef struct {
 
     timeMs_t  stateEnteredMs;
     timeMs_t  lastRxMs;
+    timeMs_t  lastReplyMs;              /* last telemetry reply, 0 before the first */
     timeMs_t  lastTxMs;
     timeMs_t  lastControlMs;
 
@@ -448,6 +462,7 @@ static void srxl2HandleTelemetry(srxl2Esc_t *e, const uint8_t *buf, uint8_t len)
     if (len < 3 + 1 + 16 + 2) {
         return;
     }
+    e->lastReplyMs = millis();
     const uint8_t *payload = &buf[4];
     if (payload[0] == SRXL2_TELEM_SENSOR_ESC) {
         srxl2DecodeEscTelemetry(e, payload);
@@ -601,6 +616,13 @@ static void srxl2SendControlData(srxl2Esc_t *e)
 
 bool srxl2MotorInitialize(void)
 {
+    // Opened already by srxl2MotorAwaitLink(), and starting over would drop the link it made
+    static bool initialized;
+    if (initialized) {
+        return escCount > 0;
+    }
+    initialized = true;
+
     memset(esc, 0, sizeof(esc));
     escCount = 0;
 
@@ -877,10 +899,8 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
             // Walk the whole ESC range rather than the default ID alone: an ESC with a
             // non-zero unit ID never announces itself, and polling is the only way to find
             // it. Polling the same ID on every bus is not a collision, each ESC hearing only
-            // its own master. What finds an Avian, though, is its own announcement at
-            // power-up: a running one answered none of 128 handshakes, 128 broadcasts and
-            // 319 telemetry requests, so a board that reboots under a powered ESC never
-            // links, and no amount of asking changes that
+            // its own master. An Avian left unanswered at power-up answers no poll, though:
+            // only its announcement finds it, see srxl2MotorAwaitLink()
             srxl2SendHandshake(e, SRXL2_ESC_ID_FIRST + e->pollId, SRXL2_BAUD_BIT_400K);
             e->pollId++;
             if (SRXL2_ESC_ID_FIRST + e->pollId > SRXL2_ESC_ID_LAST) {
@@ -896,12 +916,17 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
             e->lastRxMs = now;          /* do not time out on the handshake gap */
             e->lastControlMs = now;
             e->runningSinceMs = now;
+            // An Avian answered again during its announcements did not link when they ended
+            e->lastKeepaliveMs = now;
             srxl2SetState(e, SRXL2_RUNNING);
         }
         break;
 
     case SRXL2_RUNNING:
         if (now - e->lastControlMs >= SRXL2_CONTROL_INTERVAL_MS) {
+            if (now - e->lastControlMs >= SRXL2_STARVED_MS) {
+                e->runningSinceMs = now;
+            }
             e->lastControlMs = now;
             srxl2SendControlData(e);
         }
@@ -917,14 +942,14 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
             // throttle indefinitely with no telemetry request sent at all; what stops it is
             // the absence of control frames, and it picks the throttle back up by itself
             // when they return. Tearing the link down here would cause the outage it means
-            // to detect, and permanently, since a running Avian answers no discovery. The
-            // one case that does need it is a slave that reset, which comes back at 115200
-            // and cannot be heard from 400000
+            // to detect. The one case that does need it is a slave that reset, which comes
+            // back at 115200 and cannot be heard from 400000
             if (e->agreedBaudBits != 0) {
                 serialSetBaudRate(e->port, SRXL2_BAUD_LOW);
                 e->baudSwitchPending = false;
                 e->agreedBaudBits = 0;
                 e->deviceId = 0;
+                e->lastReplyMs = 0;
                 srxl2SetState(e, SRXL2_POLLING);
             }
         }
@@ -969,6 +994,54 @@ void srxl2MotorProcess(void)
     DEBUG_SET(DEBUG_ALWAYS, 3, crcErrors);
 }
 
+void srxl2MotorAwaitLink(void)
+{
+    if (!srxl2MotorInitialize()) {
+        return;
+    }
+
+    // Once it has replied the rest of init can go without frames: a linked ESC that loses them
+    // announces itself again, and the task answers it
+    const timeMs_t silentMs = MAX((timeMs_t)SRXL2_BOOT_SILENT_MS, millis() + 2 * SRXL2_HANDSHAKE_INTERVAL_MS);
+    timeMs_t now;
+    bool waiting;
+    do {
+        srxl2MotorProcess();
+        now = millis();
+        waiting = false;
+        for (uint8_t i = 0; i < escCount; i++) {
+            const bool absent = esc[i].deviceId == 0 && now >= silentMs;
+            waiting = waiting || (esc[i].lastReplyMs == 0 && !absent);
+        }
+        if (waiting) {
+            delay(SRXL2_BOOT_TICK_MS);
+        }
+    } while (waiting && now < SRXL2_BOOT_LINK_MS);
+}
+
+void srxl2MotorServiceFor(uint32_t ms)
+{
+    // Only a link begun in this wait extends it, so a stuck ESC cannot stretch every wait of init
+    uint8_t heardBefore = 0;
+    for (uint8_t i = 0; i < escCount; i++) {
+        heardBefore |= (esc[i].deviceId != 0) << i;
+    }
+
+    const timeMs_t start = millis();
+    timeMs_t now;
+    bool linking;
+    do {
+        srxl2MotorProcess();
+        delay(SRXL2_BOOT_TICK_MS);
+        now = millis();
+        // Heard but not yet replied: it links only if frames still come when its announcements end
+        linking = false;
+        for (uint8_t i = 0; i < escCount; i++) {
+            linking = linking || (!(heardBefore & (1 << i)) && esc[i].deviceId != 0 && esc[i].lastReplyMs == 0);
+        }
+    } while (now - start < ms || (linking && now - start < ms + SRXL2_BOOT_LINK_MS));
+}
+
 uint8_t srxl2MotorCount(void)
 {
     return escCount;
@@ -988,7 +1061,7 @@ bool srxl2MotorIsConnected(void)
         if (esc[i].state != SRXL2_RUNNING || esc[i].deviceId == 0) {
             return false;
         }
-        if (now - esc[i].lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
+        if (now - esc[i].lastReplyMs >= SRXL2_LINK_TIMEOUT_MS) {
             return false;
         }
         if (now - esc[i].runningSinceMs < SRXL2_READY_DELAY_MS) {
