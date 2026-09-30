@@ -450,6 +450,8 @@
 #define USE_34CHANNELS
 #define MAX_MIXER_PROFILE_COUNT 2
 #define USE_SMARTPORT_MASTER
+// An SD card log that can't grow any more goes on in a new file, while the card has room
+#define USE_BLACKBOX_SDCARD_SPLIT
 #ifdef USE_GPS
 #define USE_GEOZONE
 #define MAX_GEOZONES_IN_CONFIG 63
