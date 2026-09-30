@@ -60,9 +60,15 @@ extern int32_t blackboxHeaderBudget;
 
 void blackboxOpen(void);
 void blackboxWrite(uint8_t value);
+void blackboxWriteFlush(void);
 
 void blackboxDeviceFlush(void);
 bool blackboxDeviceFlushForce(void);
+bool blackboxDeviceBufferLow(void);
+void blackboxIterationBegin(void);
+void blackboxIterationEnd(void);
+uint16_t blackboxGetLargestIteration(void);
+bool blackboxDeviceBufferRecovered(void);
 bool blackboxDeviceOpen(void);
 void blackboxDeviceClose(void);
 
