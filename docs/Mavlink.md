@@ -56,7 +56,7 @@ MAVLink is built only into targets with more than 512 KB of flash (STM32F405, ST
   - `mavlink_port1_extra3_rate`
 - Port 1 uses configured CLI rates (`mavlink_port1_*_rate`).
 - Ports 2..4 start with heartbeat only (1 Hz), all other streams disabled.
-- `mavlink_port{1-4}_min_txbuffer` - minimum remote TX buffer level before sending when per-port flow-control information is available. Above it the streams slow down and speed up with the reported level; below it only the heartbeat goes out (not in high-latency mode).
+- `mavlink_port{1-4}_min_txbuffer` - minimum remote TX buffer level before sending when per-port flow-control information is available. Above it the streams slow down and speed up with the reported level; below it only the heartbeat goes out (not in high-latency mode). The default, 0, never pauses the streams, as in ArduPilot and PX4.
 - `mavlink_port{1-4}_radio_type` - selects `GENERIC`, `ELRS`, `SIK`, or `MLRS`. `GENERIC` / `ELRS` / `SIK` use `RADIO_STATUS` interpretation; `MLRS` uses native `MLRS_RADIO_LINK_*` traffic on the RX-sharing MAVLink port.
 - `mavlink_port{1-4}_high_latency` - turns on MAVLink `HIGH_LATENCY2` mode on that port.
 

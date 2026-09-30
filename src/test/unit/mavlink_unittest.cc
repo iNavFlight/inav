@@ -1387,6 +1387,28 @@ TEST(MavlinkTelemetryTest, HighLatencySendsNoHeartbeatWhileTheGateIsClosed)
     EXPECT_EQ(heartbeat, 0);
 }
 
+TEST(MavlinkTelemetryTest, DefaultMinTxbufferSlowsButNeverPausesTheStreams)
+{
+    EXPECT_EQ(SETTING_MAVLINK_PORT2_MIN_TXBUFFER_DEFAULT, SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT);
+    EXPECT_EQ(SETTING_MAVLINK_PORT3_MIN_TXBUFFER_DEFAULT, SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT);
+    EXPECT_EQ(SETTING_MAVLINK_PORT4_MIN_TXBUFFER_DEFAULT, SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT);
+
+    initMavlinkTestState();
+    telemetryConfigMutable()->mavlink[0].min_txbuff = SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT;
+    for (int i = 0; i < 10; i++) {
+        pushRadioStatusTxbuf(0);
+    }
+
+    int attitude = 0;
+    int heartbeat = 0;
+    countAttitudeAndHeartbeat(1000000, 5000000, &attitude, &heartbeat);
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 0);
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 600);
+    EXPECT_GT(attitude, 0);
+    EXPECT_LT(attitude, 8);
+    EXPECT_EQ(heartbeat, 4);
+}
+
 TEST(MavlinkTelemetryTest, AttitudeUsesRadiansPerSecond)
 {
     initMavlinkTestState();
