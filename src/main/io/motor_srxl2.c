@@ -127,11 +127,10 @@
 #define SRXL2_LINK_TIMEOUT_MS       500
 
 // How long after the link comes up before the ESC will actually turn the motor. An Avian
-// announces itself within 300 ms of gaining power but then plays its startup tones for about
-// five seconds, and only drives the motor once the last of them has sounded. Timed on the
-// bench against the tones. Arming waits for this rather than for the handshake alone, which
-// costs nothing: nobody arms that soon after connecting the battery
-#define SRXL2_READY_DELAY_MS        6500
+// links within 350 ms of gaining power but obeys the throttle only once its startup tones are
+// over: it ignored a throttle sent from 6.9 s until about 9.2 s after power. Arming waits for this
+// rather than for the handshake alone: nobody arms that soon after connecting the battery
+#define SRXL2_READY_DELAY_MS        10000
 
 // Telemetry older than this reads as stale. Generous next to the link timeout on purpose:
 // the ESC rotates its reply between three sensors, so its own readings arrive about once a
@@ -208,7 +207,7 @@ typedef struct {
     uint8_t   deviceId;                 /* 0 until discovered */
     uint8_t   baudSupported;
     uint8_t   pollId;           /* offset from SRXL2_ESC_ID_FIRST, while polling */
-    timeMs_t  runningSinceMs;   /* when the link came up, for SRXL2_READY_DELAY_MS */
+    timeMs_t  runningSinceMs;   /* link up or last announcement, for SRXL2_READY_DELAY_MS */
     timeMs_t  lastKeepaliveMs;  /* last handshake answered to a running ESC */
     uint8_t   agreedBaudBits;
     bool      baudSwitchPending;        /* waiting for TX to drain */
@@ -410,6 +409,11 @@ static void srxl2HandleHandshake(srxl2Esc_t *e, const uint8_t *buf)
     // never reaches its first control frame. A slave that genuinely reset is not missed,
     // since it comes back at 115200 and the link timeout drops us to POLLING to find it
     if (e->state == SRXL2_FINALISING || e->state == SRXL2_RUNNING) {
+        if (e->state == SRXL2_RUNNING && e->deviceId == src) {
+            // It announces itself only after losing its power or its frames, and one that was
+            // still starting begins again, so its startup is counted from here
+            e->runningSinceMs = millis();
+        }
         /* Still answer a running ESC, so it knows the master is there - but say
          * nothing mid-negotiation, where another broadcast is what causes the
          * loop. */
