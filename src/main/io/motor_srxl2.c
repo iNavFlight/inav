@@ -189,6 +189,10 @@
 // cannot name anything above 9
 #define SRXL2_CHANNEL_COUNT         10
 
+// The longest control frame this driver can build, with every channel, so its echo always fits; the ESC's
+// replies are 22 bytes at most. A longer frame is dropped as corrupt
+#define SRXL2_CONTROL_FRAME_MAX     (12 + 2 * SRXL2_CHANNEL_COUNT + 2)
+
 /*---------------------------------------------------------------------------
  * State
  *-------------------------------------------------------------------------*/
@@ -206,37 +210,38 @@ typedef enum {
 // the buses never hear each other
 typedef struct {
     serialPort_t  *port;
-    srxl2State_e   state;
-
-    uint8_t   rxBuf[SRXL2_MAX_FRAME];
-    uint8_t   rxLen;
-    uint8_t   rxExpected;
 
     timeMs_t  stateEnteredMs;
     timeMs_t  lastRxMs;
     timeMs_t  lastReplyMs;              /* last telemetry reply, 0 before the first */
     timeMs_t  lastTxMs;
     timeMs_t  lastControlMs;
-
-    uint8_t   deviceId;                 /* 0 until discovered */
-    uint8_t   baudSupported;
-    uint8_t   pollId;           /* offset from SRXL2_ESC_ID_FIRST, while polling */
-    timeMs_t  runningSinceMs;   /* link up or last announcement, for SRXL2_READY_DELAY_MS */
-    timeMs_t  lastKeepaliveMs;  /* last handshake answered to a running ESC */
-    uint8_t   agreedBaudBits;
-    bool      baudSwitchPending;        /* waiting for TX to drain */
-
-    uint16_t  channelValue[SRXL2_CHANNEL_COUNT];
+    timeMs_t  runningSinceMs;           /* link up or last announcement, for SRXL2_READY_DELAY_MS */
+    timeMs_t  lastKeepaliveMs;          /* last handshake answered to a running ESC */
     uint32_t  channelMask;
-    uint8_t   telemRequestCounter;
-
-    srxl2EscTelemetry_t telemetry;
 
     uint32_t  statTxFrames, statRxFrames, statCrcErrors, statHandshakes;
     uint32_t  statEchoFrames;           /* our own frames heard back on a single wire */
+
+    srxl2EscTelemetry_t telemetry;
+
+    uint16_t  channelValue[SRXL2_CHANNEL_COUNT];
+
+    srxl2State_e   state;
+    uint8_t   deviceId;                 /* 0 until discovered */
+    uint8_t   baudSupported;
+    uint8_t   pollId;                   /* offset from SRXL2_ESC_ID_FIRST, while polling */
+    uint8_t   agreedBaudBits;
+    bool      baudSwitchPending;        /* waiting for TX to drain */
+    uint8_t   telemRequestCounter;
+    uint8_t   rxLen;
+    uint8_t   rxExpected;
+    uint8_t   rxBuf[SRXL2_CONTROL_FRAME_MAX];
 } srxl2Esc_t;
 
-static srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
+// Out of the main RAM of F405 and AT32, which fills first; only the CPU touches it. AT32 does not zero
+// FASTRAM: srxl2MotorInitialize() clears it, and escCount keeps every reader off it until then
+STATIC_FASTRAM srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
 static uint8_t    escCount;                 /* ports successfully opened */
 
 /* Shared, because these describe the aircraft rather than one bus. */
@@ -530,7 +535,7 @@ static void srxl2DrainRx(srxl2Esc_t *e)
 
         if (e->rxLen == 3) {
             e->rxExpected = e->rxBuf[2];
-            if (e->rxExpected < SRXL2_MIN_FRAME || e->rxExpected > SRXL2_MAX_FRAME) {
+            if (e->rxExpected < SRXL2_MIN_FRAME || e->rxExpected > SRXL2_CONTROL_FRAME_MAX) {
                 e->rxLen = 0;           /* bogus length, drop and resynchronise */
                 continue;
             }
@@ -550,7 +555,7 @@ static void srxl2DrainRx(srxl2Esc_t *e)
 
 static void srxl2SendControlData(srxl2Esc_t *e)
 {
-    uint8_t buf[SRXL2_MAX_FRAME];
+    uint8_t buf[SRXL2_CONTROL_FRAME_MAX];
     uint8_t n = 0;
 
     /* Request telemetry only every so often: the reply shares the wire with the
@@ -972,6 +977,10 @@ void srxl2MotorProcess(void)
 
     for (uint8_t i = 0; i < escCount; i++) {
         srxl2ProcessEsc(&esc[i], now);
+    }
+
+    if (debugMode != DEBUG_ALWAYS) {
+        return;
     }
 
     // The first two words carry a nibble per ESC, so a twin can be diagnosed without a debug

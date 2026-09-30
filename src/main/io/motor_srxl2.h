@@ -69,6 +69,7 @@ typedef enum {
  * clear; `valid` says only that a frame arrived and is recent. */
 typedef struct {
     uint32_t rpm;               /* electrical rpm */
+    uint32_t lastUpdateMs;
     uint16_t voltage;           /* 0.01 V */
     uint16_t current;           /* 0.01 A */
     int16_t  temperatureFet;    /* 0.1 degC */
@@ -77,7 +78,6 @@ typedef struct {
     uint16_t voltageBec;        /* 0.01 V */
     uint8_t  throttlePercent;   /* 0..100 */
     uint8_t  powerPercent;      /* 0..100 */
-    uint32_t lastUpdateMs;
     uint8_t  fields;            /* srxl2TelemetryField_e bits actually reported */
     bool     valid;
 } srxl2EscTelemetry_t;
