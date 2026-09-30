@@ -916,7 +916,7 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
         DMA_Cmd(port->tch->dma->ref, DISABLE);
 #endif
 
-        // Too few edges is no reply at all; still handed on so the frame counter sees it
+        // Too few edges is no reply at all
         uint16_t rawValue = DSHOT_TELEMETRY_NOEDGE;
         if (edges > MIN_GCR_EDGES) {
 #if defined(STM32H7)

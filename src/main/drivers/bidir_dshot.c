@@ -138,10 +138,15 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
         return rawValue;
     }
 
-    // Called once per reply window, NOEDGE included, so total covers a silent ESC too
+    // As in Betaflight, a window without a reply is not counted: an ESC may skip replies
+    // when busy, so only replies that were at least partly captured count
+    if (rawValue == DSHOT_TELEMETRY_NOEDGE) {
+        return rawValue;
+    }
+
     dshotTelemetryState.motorState[motorIndex].frames.total++;
 
-    if (rawValue == DSHOT_TELEMETRY_INVALID || rawValue == DSHOT_TELEMETRY_NOEDGE) {
+    if (rawValue == DSHOT_TELEMETRY_INVALID) {
         return rawValue;
     }
 

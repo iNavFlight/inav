@@ -35,7 +35,8 @@ typedef struct {
 #define ESC_FRAME_WINDOW_MS 1000
 
 // Telemetry link quality of one ESC over fixed back-to-back windows. total counts every reply
-// expected, a missing one too, valid those that decoded. The last closed window is kept, so
+// expected (serial: a missing one too; bidir DSHOT: only replies with edges, as in Betaflight),
+// valid those that decoded. The last closed window is kept, so
 // the reported value moves once per window; lastWindowTotal == 0 means nothing was expected
 // (boot, other telemetry source) and lastWindowSuccess is meaningless then
 typedef struct {
