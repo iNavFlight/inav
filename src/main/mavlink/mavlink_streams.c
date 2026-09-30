@@ -270,7 +270,12 @@ int mavlinkMessageTrigger(mavlinkPeriodicMessage_e periodicMessage, timeUs_t cur
     }
 
     if ((mavActivePort->mavMessageNextDue[periodicMessage] == 0) || (cmpTimeUs(currentTimeUs, mavActivePort->mavMessageNextDue[periodicMessage]) >= 0)) {
-        mavActivePort->mavMessageNextDue[periodicMessage] = currentTimeUs + intervalUs;
+        // The heartbeat keeps the GCS link alive, so like ArduPilot it is never slowed down
+        const bool isHeartbeat = periodicMessage == MAVLINK_PERIODIC_MESSAGE_HEARTBEAT;
+        const timeUs_t slowdownUs = isHeartbeat ? 0 : (timeUs_t)mavActivePort->streamSlowdownMs * 1000;
+        // Capped: a long SET_MESSAGE_INTERVAL plus the slowdown must not wrap the signed time compare
+        const timeUs_t delayUs = MIN((timeUs_t)intervalUs + slowdownUs, (timeUs_t)INT32_MAX);
+        mavActivePort->mavMessageNextDue[periodicMessage] = currentTimeUs + delayUs;
         return 1;
     }
 
@@ -1489,6 +1494,17 @@ bool mavlinkHandleIncomingRequestDataStream(void)
 
     mavlinkSetStreamRate(msg.req_stream_id, rate);
     return true;
+}
+
+void mavlinkSendHeartbeatIfDue(timeUs_t currentTimeUs)
+{
+    if (mavActivePort->highLatencyEnabled && mavlinkGetProtocolVersion() != 1) {
+        return;
+    }
+
+    if (mavlinkMessageTrigger(MAVLINK_PERIODIC_MESSAGE_HEARTBEAT, currentTimeUs)) {
+        mavlinkSendHeartbeat();
+    }
 }
 
 void processMAVLinkTelemetry(timeUs_t currentTimeUs)
