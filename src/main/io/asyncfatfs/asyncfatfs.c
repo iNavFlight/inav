@@ -38,7 +38,24 @@
     #define ONLY_EXPOSE_FOR_TESTING static
 #endif
 
+// Room for the log while the card holds one write (up to 250 ms): 16 sectors cover about
+// 85 kB/s, 24 twice that
+#ifndef AFATFS_NUM_CACHE_SECTORS
+#if defined(STM32H7)
+#define AFATFS_NUM_CACHE_SECTORS 32
+#elif defined(STM32F7)
+#define AFATFS_NUM_CACHE_SECTORS 24
+#elif defined(STM32F4) && !defined(USE_SDCARD_SDIO)
+#define AFATFS_NUM_CACHE_SECTORS 24
+#else
 #define AFATFS_NUM_CACHE_SECTORS 8
+#endif
+#endif
+
+// RAM is short on F4, CCM is not, and a card on SPI is written by the CPU, never by DMA
+#if defined(STM32F4) && !defined(USE_SDCARD_SDIO)
+#define AFATFS_CACHE_IN_FASTRAM
+#endif
 
 // FAT filesystems are allowed to differ from these parameters, but we choose not to support those weird filesystems:
 #define AFATFS_SECTOR_SIZE  512
@@ -437,11 +454,7 @@ typedef struct afatfs_t {
     } initState;
 #endif
 
-#ifdef STM32H7
     uint8_t *cache;
-#else
-    uint8_t cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS];
-#endif
     afatfsCacheBlockDescriptor_t cacheDescriptor[AFATFS_NUM_CACHE_SECTORS];
     uint32_t cacheTimer;
 
@@ -487,7 +500,9 @@ typedef struct afatfs_t {
     uint32_t rootDirectorySectors; // Zero on FAT32, for FAT16 the number of sectors that the root directory occupies
 } afatfs_t;
 
-#ifdef STM32H7
+#ifdef AFATFS_CACHE_IN_FASTRAM
+static FASTRAM uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
+#else
 static uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
 #endif
 
@@ -3675,9 +3690,7 @@ bool afatfs_isCurrentDirRoot(void)
 
 void afatfs_init(void)
 {
-#ifdef STM32H7
     afatfs.cache = afatfs_cache;
-#endif
     afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_INITIALIZATION;
     afatfs.initPhase = AFATFS_INITIALIZATION_READ_MBR;
     afatfs.lastClusterAllocated = FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;
@@ -3751,7 +3764,9 @@ uint32_t afatfs_getFreeBufferSpace(void)
 {
     uint32_t result = 0;
     for (int i = 0; i < AFATFS_NUM_CACHE_SECTORS; i++) {
-        if (!afatfs.cacheDescriptor[i].locked && (afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_EMPTY || afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_IN_SYNC)) {
+        // A retained sector is never evicted (see afatfs_allocateCacheSector()): no room to write
+        if (!afatfs.cacheDescriptor[i].locked && afatfs.cacheDescriptor[i].retainCount == 0
+            && (afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_EMPTY || afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_IN_SYNC)) {
             result += AFATFS_SECTOR_SIZE;
         }
     }
