@@ -35,6 +35,10 @@
 
 #include "io/osd.h"
 
+#ifdef USE_VTX_CONTROL
+#include "drivers/vtx_common.h"
+#endif
+
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 
@@ -120,6 +124,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXTERRAINAGLHOLD,   .boxName = "TERRAIN AGL HOLD",  .permanentId = 70 },
     { .boxId = BOXINFLIGHTMENU,     .boxName = "IN FLIGHT MENU",    .permanentId = 71 },
     { .boxId = BOXTHRUSTREVERSE,    .boxName = "THRUST REVERSE",    .permanentId = 72 },
+    { .boxId = BOXVTXPITMODE,       .boxName = "VTX PIT MODE",      .permanentId = 73 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -418,6 +423,15 @@ void initActiveBoxIds(void)
         ADD_ACTIVE_BOX(BOXTHRUSTREVERSE);
     }
 #endif
+
+    // Keep new boxes last. Configurators that do not know a box drop it from
+    // their list and map the activity bits of the remaining boxes by position.
+#ifdef USE_VTX_CONTROL
+    const vtxDevice_t *vtxDevice = vtxCommonDevice();
+    if (vtxDevice && vtxDevice->capability.supportsPitMode) {
+        ADD_ACTIVE_BOX(BOXVTXPITMODE);
+    }
+#endif
 }
 
 #define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
@@ -473,6 +487,7 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER2)),           BOXUSER2);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER3)),           BOXUSER3);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXUSER4)),           BOXUSER4);
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXVTXPITMODE)),       BOXVTXPITMODE);
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXLOITERDIRCHN)),    BOXLOITERDIRCHN);
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXMSPRCOVERRIDE)),   BOXMSPRCOVERRIDE);
