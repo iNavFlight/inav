@@ -182,14 +182,40 @@ bool ubloxParseProtocolVersion(const char *field, size_t len, uint8_t *major, ui
     return true;
 }
 
+// "MOD=" names the module and wins over the F9's "EXT CORE 1." base
+static bool ubloxIsF9(const char *swVersion, size_t swLen, const char *module, size_t moduleLen)
+{
+    if (module && moduleLen >= 4 && strncmp(module, "MOD=", 4) == 0) {
+        for (size_t i = 4; i + 1 < moduleLen && module[i] != '\0'; i++) {
+            if (module[i] == 'F' && module[i + 1] == '9') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    return swVersion && swLen >= 11 && strncmp(swVersion, "EXT CORE 1.", 11) == 0;
+}
+
+// The F9 reports the M9's hardware ID
+uint8_t ubloxRefineHardwareVersion(uint8_t hwVersion, const char *swVersion, size_t swLen, const char *module, size_t moduleLen)
+{
+    if (hwVersion == UBX_HW_VERSION_UBLOX9 && ubloxIsF9(swVersion, swLen, module, moduleLen)) {
+        return UBX_HW_VERSION_UBLOX_F9;
+    }
+    return hwVersion;
+}
+
 bool ubloxCanConfigureNavRate(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor)
 {
-    return hwVersion >= UBX_HW_VERSION_UBLOX7 || UBLOX_PROTVER(protMajor, protMinor) >= UBLOX_PROTVER_NAV_RATE;
+    return UBX_HW_GENERATION(hwVersion) >= UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX7) ||
+        UBLOX_PROTVER(protMajor, protMinor) >= UBLOX_PROTVER_NAV_RATE;
 }
 
 bool ubloxCanConfigureGnss(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor)
 {
-    return hwVersion >= UBX_HW_VERSION_UBLOX8 || UBLOX_PROTVER(protMajor, protMinor) >= UBLOX_PROTVER_GNSS_CONFIG;
+    return UBX_HW_GENERATION(hwVersion) >= UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX8) ||
+        UBLOX_PROTVER(protMajor, protMinor) >= UBLOX_PROTVER_GNSS_CONFIG;
 }
 
 bool ubloxUseM10GnssKeys(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor)
@@ -197,7 +223,41 @@ bool ubloxUseM10GnssKeys(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor
     const uint16_t protocol = UBLOX_PROTVER(protMajor, protMinor);
     // Unknown hardware stays on CFG-GNSS wherever its firmware still accepts it
     return protocol > UBLOX_PROTVER_LAST_BEFORE_VALSET &&
-        (hwVersion >= UBX_HW_VERSION_UBLOX10 || (hwVersion == UBX_HW_VERSION_UNKNOWN && protocol >= UBLOX_PROTVER_VALSET_ONLY));
+        (UBX_HW_GENERATION(hwVersion) >= UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX10) ||
+         (hwVersion == UBX_HW_VERSION_UNKNOWN && protocol >= UBLOX_PROTVER_VALSET_ONLY));
+}
+
+// F9 NAKs single-band signal masks and the X20 plan lacks BDS B1I, so these only switch whole constellations
+bool ubloxUseGnssEnableKeys(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor)
+{
+    return UBLOX_PROTVER(protMajor, protMinor) > UBLOX_PROTVER_LAST_BEFORE_VALSET &&
+        (hwVersion == UBX_HW_VERSION_UBLOX_F9 || UBX_HW_GENERATION(hwVersion) >= UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX20));
+}
+
+static uint8_t ubloxAddKey(ubx_config_data8_payload_t *out, uint8_t count, uint32_t key, bool value)
+{
+    out[count].key = key;
+    out[count].value = value ? 1 : 0;
+    return count + 1;
+}
+
+uint8_t ubloxGnssEnableKeys(ubx_config_data8_payload_t *out, bool sbas, bool galileo, bool beidou, bool glonass, uint8_t supportedMask)
+{
+    uint8_t count = ubloxAddKey(out, 0, UBLOX_CFG_SIGNAL_SBAS_ENA, sbas);
+
+    if (supportedMask & UBX_MON_GNSS_GALILEO_MASK) {
+        count = ubloxAddKey(out, count, UBLOX_CFG_SIGNAL_GAL_ENA, galileo);
+    }
+    if (supportedMask & UBX_MON_GNSS_BEIDOU_MASK) {
+        count = ubloxAddKey(out, count, UBLOX_CFG_SIGNAL_BDS_ENA, beidou);
+    }
+    // Should be enabled with GPS
+    count = ubloxAddKey(out, count, UBLOX_CFG_QZSS_ENA, true);
+    if (supportedMask & UBX_MON_GNSS_GLONASS_MASK) {
+        count = ubloxAddKey(out, count, UBLOX_CFG_GLO_ENA, glonass);
+    }
+
+    return count;
 }
 
 uint8_t ubloxNavHzFor(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor, uint8_t configuredHz)

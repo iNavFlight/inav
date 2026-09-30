@@ -193,6 +193,8 @@ const char *getGpsHwVersion(void)
             return "UBLOX8";
         case UBX_HW_VERSION_UBLOX9:
             return "UBLOX9";
+        case UBX_HW_VERSION_UBLOX_F9:
+            return "UBLOXF9";
         case UBX_HW_VERSION_UBLOX10:
             return "UBLOX10";
         case UBX_HW_VERSION_UBLOX20:
