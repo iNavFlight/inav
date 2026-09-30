@@ -39,6 +39,7 @@
 #define TELEMETRY_MAVLINK_PORT_MODE MODE_RXTX
 #define TELEMETRY_MAVLINK_MAXRATE 50
 #define TELEMETRY_MAVLINK_DELAY ((1000 * 1000) / TELEMETRY_MAVLINK_MAXRATE)
+#define MAVLINK_TXBUFF_REPORT_TIMEOUT_US (5 * 1000 * 1000)
 #define TELEMETRY_MAVLINK_HIGH_LATENCY_INTERVAL_US (5 * 1000 * 1000)
 #define MAV_DATA_STREAM_EXTENDED_SYS_STATE (MAV_DATA_STREAM_EXTRA3 + 1)
 #define MAV_DATA_STREAM_HEARTBEAT (MAV_DATA_STREAM_EXTENDED_SYS_STATE + 1)
@@ -145,6 +146,8 @@ typedef struct mavlinkPortRuntime_s {
     bool telemetryEnabled;
     bool txbuffValid;
     uint8_t txbuffFree;
+    // Low 32 bits: cmpTimeUs() compares only those, and a timeUs_t would add 8 B per port
+    uint32_t lastTxbuffReportUs;
     timeUs_t lastMavlinkMessageUs;
     timeUs_t lastRxFrameUs;
     timeUs_t lastHighLatencyMessageUs;

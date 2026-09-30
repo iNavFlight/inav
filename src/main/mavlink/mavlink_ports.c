@@ -22,6 +22,7 @@ static void resetMAVLinkPortRuntimeState(uint8_t portIndex)
 
     state->txbuffValid = false;
     state->txbuffFree = 100;
+    state->lastTxbuffReportUs = 0;
     state->lastMavlinkMessageUs = 0;
     state->lastRxFrameUs = 0;
     state->lastHighLatencyMessageUs = 0;
