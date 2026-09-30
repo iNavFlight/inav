@@ -98,6 +98,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
+#include "navigation/navigation_vtol_mc_protection.h"
 
 #ifdef USE_TERRAIN
 #include "terrain/terrain_nav_hold.h"
@@ -6171,6 +6172,9 @@ textAttributes_t osdGetSystemMessage(char *buff, size_t buff_size, bool isCenter
             vtolTransitionMessage = osdVtolTransitionMessage();
             if (vtolTransitionMessage) {
                 ADD_MSG(vtolTransitionMessage);
+            }
+            if (navigationVtolMcProtectionRthYawBlocked()) {
+                ADD_MSG(OSD_MESSAGE_STR("RTH YAW BLOCKED"));
             }
 
             if (FLIGHT_MODE(FAILSAFE_MODE) || FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {

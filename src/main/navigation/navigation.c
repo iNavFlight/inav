@@ -1990,7 +1990,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING(navigationFSMState_t previousState)
 {
-    UNUSED(previousState);
+    if (previousState != NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING) {
+        navigationVtolMcProtectionResetRthYawState();
+    }
 
     //On ROVER and BOAT we immediately switch to the next event
     if (!STATE(ALTITUDE_CONTROL)) {
@@ -2059,6 +2061,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LOITER_PRIOR_TO_LAN
         vtolLandingSettleConditionsMet,
         headingReached,
         STATE(FIXED_WING_LEGACY));
+
+    navigationVtolMcProtectionUpdateRthYaw(
+        !pauseLanding && landingAllowed && vtolMcProtectionActive && !STATE(FIXED_WING_LEGACY) && !headingReached,
+        vtolYawSettleAssistActive,
+        landingHeadingCd,
+        ABS(wrap_18000(landingHeadingCd - posControl.actualState.yaw)));
 
     if (!pauseLanding && vtolYawSettleAssistActive) {
         // VTOL MC has already settled over the landing point, but yaw has not
@@ -2249,11 +2257,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_LANDING(navigationF
     float markerGuidanceDescentScale = 1.0f;
 #ifdef USE_MARKER_GUIDANCE
     markerGuidanceLandControl_t markerGuidanceControl = { 0 };
-    markerGuidanceGetLandControl(&markerGuidanceControl);
+    markerGuidanceGetLandControl(&markerGuidanceControl, descentVelLimited);
     markerGuidanceDescentScale = markerGuidanceControl.descentScale;
 
     if (markerGuidanceControl.mode == MARKER_GUIDANCE_LAND_CTRL_HOLD) {
-        updateClimbRateToAltitudeController(0.0f, 0.0f, ROC_TO_ALT_CONSTANT);
+        if (markerGuidanceControl.holdAltitudeValid) {
+            // Keep one Z target through the pause, using the normal altitude
+            // controller and acceleration limits, not a direct throttle step.
+            updateClimbRateToAltitudeController(navConfig()->general.land_minalt_vspd,
+                markerGuidanceControl.holdAltitudeCm, ROC_TO_ALT_TARGET);
+        } else {
+            updateClimbRateToAltitudeController(0.0f, 0.0f, ROC_TO_ALT_CONSTANT);
+        }
         markerGuidanceVerticalOverride = true;
     } else if (markerGuidanceControl.mode == MARKER_GUIDANCE_LAND_CTRL_CLIMB) {
         updateClimbRateToAltitudeController(markerGuidanceControl.rateCmS, 0.0f, ROC_TO_ALT_CONSTANT);

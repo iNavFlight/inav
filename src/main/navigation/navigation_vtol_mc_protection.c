@@ -35,6 +35,7 @@
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
+#include "sensors/battery.h"
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
@@ -55,6 +56,7 @@ typedef enum {
     VTOL_MC_PROTECT_FLAG_COMMAND_SHAPED     = 1 << 9,
     VTOL_MC_PROTECT_FLAG_VELOCITY_FALLBACK  = 1 << 10,
     VTOL_MC_PROTECT_FLAG_GUIDANCE_RECOVERY  = 1 << 11,
+    VTOL_MC_PROTECT_FLAG_RTH_YAW_BLOCKED     = 1 << 12,
 } vtolMcProtectionDebugFlags_e;
 
 typedef struct vtolMcProtectionRuntimeState_s {
@@ -73,6 +75,8 @@ typedef struct vtolMcProtectionRuntimeState_s {
     timeMs_t bailoutStartMs;
     int16_t bailoutStartThrottle;
     uint16_t commandScalePermille;
+    vtolMcProtectionYawResponseState_t rthYawResponse;
+    bool rthYawAssistActive;
     int16_t safeThrottleMin;
     int16_t safeThrottleMax;
     int16_t protectedThrottle;
@@ -222,6 +226,9 @@ static void navigationVtolMcProtectionPublishDebug(void)
     if (navProtectionActive && navigationVtolMcProtectionGuidanceRecoveryActive()) {
         flags |= VTOL_MC_PROTECT_FLAG_GUIDANCE_RECOVERY;
     }
+    if (navProtectionActive && navigationVtolMcProtectionRthYawBlocked()) {
+        flags |= VTOL_MC_PROTECT_FLAG_RTH_YAW_BLOCKED;
+    }
 
     uint16_t debugProgress = 1000;
     if (vtolMcProtectionDebugNavStateActive(navProtectionActive, vtolMcProtection.captureActive)) {
@@ -246,6 +253,7 @@ static void navigationVtolMcProtectionPublishDebug(void)
 
 void navigationVtolMcProtectionResetTransientStates(void)
 {
+    navigationVtolMcProtectionResetRthYawState();
     vtolMcProtection.captureSettle.stableSinceMs = 0;
     vtolMcProtection.captureSettle.elapsedMs = 0;
     vtolMcProtection.landingSettle.stableSinceMs = 0;
@@ -263,6 +271,33 @@ void navigationVtolMcProtectionResetTransientStates(void)
     vtolMcProtection.velocityFallbackActive = false;
     vtolMcProtection.commandScalePermille = 1000;
     vtolMcProtection.protectedThrottle = 0;
+}
+
+void navigationVtolMcProtectionResetRthYawState(void)
+{
+    vtolMcProtection.rthYawResponse.observing = false;
+    vtolMcProtection.rthYawResponse.blocked = false;
+    vtolMcProtection.rthYawAssistActive = false;
+}
+
+void navigationVtolMcProtectionUpdateRthYaw(bool active, bool assistActive, int32_t targetHeadingCd, uint16_t headingErrorCd)
+{
+    vtolMcProtection.rthYawAssistActive = active && assistActive;
+    vtolMcProtectionUpdateYawResponse(
+        &vtolMcProtection.rthYawResponse, active, targetHeadingCd, headingErrorCd, millis());
+    navigationVtolMcProtectionPublishDebug();
+}
+
+bool navigationVtolMcProtectionRthYawAssistActive(void)
+{
+    return posControl.navState == NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING &&
+        navigationVtolMcProtectionIsNavActive() && vtolMcProtection.rthYawAssistActive;
+}
+
+bool navigationVtolMcProtectionRthYawBlocked(void)
+{
+    return posControl.navState == NAV_STATE_RTH_LOITER_PRIOR_TO_LANDING &&
+        navigationVtolMcProtectionIsNavActive() && vtolMcProtection.rthYawResponse.blocked;
 }
 
 void navigationVtolMcProtectionResetLandingSettle(void)
@@ -304,6 +339,22 @@ vtolMcProtectionThrottleBounds_t navigationVtolMcProtectionGetThrottleBounds(con
 
     navigationVtolMcProtectionPublishDebug();
     return bounds;
+}
+
+int16_t navigationVtolMcProtectionLimitCompensatedThrottle(const int16_t throttle)
+{
+    if (!navigationVtolMcProtectionIsNavActive() || !navigationRequiresAutoThrottleMode()) {
+        return throttle;
+    }
+
+    const vtolMcProtectionThrottleBounds_t bounds = vtolMcProtectionComputeThrottleBounds(
+        true, getThrottleIdleValue(), currentBatteryProfile->nav.mc.hover_throttle,
+        getMaxThrottle(), systemConfig()->vtolMcThrReservePercent);
+    const int16_t protectedThrottle = vtolMcProtectionLimitCompensatedThrottle(true, throttle, &bounds);
+    if (debugMode == DEBUG_VTOL_MC_PROTECT) {
+        navigationVtolMcProtectionPublishThrottleDebug(&bounds, protectedThrottle);
+    }
+    return protectedThrottle;
 }
 
 static bool navigationVtolMcProtectionBailoutEntryCondition(void)

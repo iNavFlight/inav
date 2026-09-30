@@ -1077,6 +1077,10 @@ This is intended to reduce wing-driven surprises during fast MC-mode flight, not
 - The reserve is applied before altitude controller anti-windup bounds, not only as a final output clamp.
 - Hover throttle is kept inside the safe range. If the configured reserve would exclude hover throttle, INAV shrinks the reserve and sets a debug flag.
 
+The safe range describes collective throttle **after** compensation for aircraft tilt, before individual motor attitude corrections. The altitude PID uses the corresponding limits before compensation, so its anti-windup does not request unavailable headroom. A final upper limit also covers attitude changes between navigation updates. Recovery aims toward the protected hover throttle without multiplying that hover target by the tilt compensation again. This does not guarantee recovery from an inverted attitude or a failed motor.
+
+The final guard does not raise low throttle: the landing confirmation probe can still reduce lift below the normal reserve floor. These changes apply only while enabled VTOL MC protection and automatic altitude control own throttle, not to manual throttle, fixed-wing flight or protection OFF. `VTOL_MC_PROTECT` debug channel 3 reports the protected collective command after tilt compensation; later power limiting and per-motor mixing can still change the motor outputs.
+
 Example:
 
 - `nav_mc_hover_thr = 1500`
@@ -1274,7 +1278,7 @@ Decode `debug[6]` or `debug[7]` in idle state as:
 
 `VTOL_MC_PROTECT` debug channels:
 
-- `debug[0]`: flags bitmask. Bits show protection configured, VTOL MC detected, NAV protection active, ANGLE/HORIZON protection active, NAV capture active, landing settle active, bailout active, throttle reserve shrunk, soft altitude capture active, roll/pitch/yaw command shaped, velocity fallback used, and marker guidance paused for attitude recovery.
+- `debug[0]`: flags bitmask. Bits show protection configured, VTOL MC detected, NAV protection active, ANGLE/HORIZON protection active, NAV capture active, landing settle active, bailout active, throttle reserve shrunk, soft altitude capture active, roll/pitch/yaw command shaped, velocity fallback used, marker guidance paused for attitude recovery, and RTH yaw blocked (bit 12).
 - `debug[1]`: safe throttle minimum.
 - `debug[2]`: safe throttle maximum.
 - `debug[3]`: protected throttle.
@@ -1282,6 +1286,8 @@ Decode `debug[6]` or `debug[7]` in idle state as:
 - `debug[5]`: vertical speed [cm/s].
 - `debug[6]`: max absolute roll/pitch attitude [deci-degrees].
 - `debug[7]`: capture/landing/bailout settle elapsed time [ms], or command scale x1000 when command shaping is active, otherwise `1000`.
+
+During VTOL MC RTH before landing, INAV reports `RTH YAW BLOCKED` if the aircraft makes less than 5 degrees of progress toward a stable requested landing heading over 2 seconds while the heading error remains at least 15 degrees. A changed heading target restarts the observation. This does not force a landing or a mode change: the existing heading and landing-settle checks continue to prevent descent. Only when the aircraft is already settled over the landing point and yaw remains blocked does the horizontal velocity controller stop growing its stored correction; it can still reduce that correction naturally, and normal wind compensation resumes when yaw starts responding or the aircraft drifts outside the landing capture area. This warning is available on INAV OSD and in `VTOL_MC_PROTECT` bit 12; it is not yet a separate polled MSP status for a Remote application.
 
 OSD system messages:
 

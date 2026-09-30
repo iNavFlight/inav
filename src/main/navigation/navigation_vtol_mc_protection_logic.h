@@ -19,6 +19,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "common/time.h"
 
@@ -47,6 +48,53 @@
 #define VTOL_MC_LANDING_PROBE_VEL_DELTA_CM_S       20.0f
 #define VTOL_MC_LANDING_PROBE_VEL_ABS_CM_S         80.0f
 #define VTOL_MC_LANDING_PROBE_LOW_G_THRESHOLD      0.85f
+#define VTOL_MC_RTH_YAW_RESPONSE_WINDOW_MS         2000U
+#define VTOL_MC_RTH_YAW_MIN_PROGRESS_CD            500U
+#define VTOL_MC_RTH_YAW_TARGET_CHANGE_CD           500U
+#define VTOL_MC_RTH_YAW_GATE_CD                    1500U
+
+typedef struct vtolMcProtectionYawResponseState_s {
+    timeMs_t startMs;
+    int32_t targetHeadingCd;
+    uint16_t initialErrorCd;
+    bool observing;
+    bool blocked;
+} vtolMcProtectionYawResponseState_t;
+
+static inline bool vtolMcProtectionUpdateYawResponse(
+    vtolMcProtectionYawResponseState_t *state,
+    bool active,
+    int32_t targetHeadingCd,
+    uint16_t headingErrorCd,
+    timeMs_t nowMs)
+{
+    if (!active || headingErrorCd < VTOL_MC_RTH_YAW_GATE_CD) {
+        state->observing = false;
+        state->blocked = false;
+        return false;
+    }
+
+    int32_t targetChangeCd = targetHeadingCd - state->targetHeadingCd;
+    if (targetChangeCd > 18000) {
+        targetChangeCd -= 36000;
+    } else if (targetChangeCd < -18000) {
+        targetChangeCd += 36000;
+    }
+
+    if (!state->observing || targetChangeCd > (int32_t)VTOL_MC_RTH_YAW_TARGET_CHANGE_CD ||
+        targetChangeCd < -(int32_t)VTOL_MC_RTH_YAW_TARGET_CHANGE_CD ||
+        state->initialErrorCd >= headingErrorCd + VTOL_MC_RTH_YAW_MIN_PROGRESS_CD) {
+        state->startMs = nowMs;
+        state->targetHeadingCd = targetHeadingCd;
+        state->initialErrorCd = headingErrorCd;
+        state->observing = true;
+        state->blocked = false;
+    } else if ((timeMs_t)(nowMs - state->startMs) >= VTOL_MC_RTH_YAW_RESPONSE_WINDOW_MS) {
+        state->blocked = true;
+    }
+
+    return state->blocked;
+}
 
 typedef struct vtolMcProtectionThrottleBounds_s {
     int16_t min;
@@ -263,6 +311,40 @@ static inline vtolMcProtectionThrottleBounds_t vtolMcProtectionComputeThrottleBo
     bounds.reserveShrunk = lowReserve != requestedReserve || highReserve != requestedReserve;
 
     return bounds;
+}
+
+static inline int16_t vtolMcProtectionThrottleBeforeTilt(
+    const int16_t throttle, const int16_t idleThrottle, const float tiltFactor)
+{
+    if (!(tiltFactor > 1.0f) || !isfinite(tiltFactor)) {
+        return throttle;
+    }
+    return idleThrottle + (int16_t)floorf((throttle - idleThrottle) / tiltFactor);
+}
+
+static inline vtolMcProtectionThrottleBounds_t vtolMcProtectionBoundsBeforeTilt(
+    vtolMcProtectionThrottleBounds_t bounds, const int16_t idleThrottle, const float tiltFactor)
+{
+    if (!(tiltFactor > 1.0f) || !isfinite(tiltFactor)) {
+        return bounds;
+    }
+
+    // PID output is before tilt compensation, whereas reserve is defined in
+    // final throttle units. Round inward so compensation cannot exceed max.
+    bounds.max = vtolMcProtectionThrottleBeforeTilt(bounds.max, idleThrottle, tiltFactor);
+    bounds.min = idleThrottle + (int16_t)ceilf((bounds.min - idleThrottle) / tiltFactor);
+    if (bounds.min > bounds.max) {
+        bounds.min = bounds.max;
+    }
+    return bounds;
+}
+
+static inline int16_t vtolMcProtectionLimitCompensatedThrottle(
+    const bool active, const int16_t throttle, const vtolMcProtectionThrottleBounds_t *bounds)
+{
+    // Do not impose the lower reserve here: landing probe intentionally goes
+    // below it to confirm touchdown, and power reduction must remain possible.
+    return active && throttle > bounds->max ? bounds->max : throttle;
 }
 
 static inline bool vtolMcProtectionSettleConditionsMet(

@@ -53,6 +53,8 @@ typedef struct {
     markerGuidanceLandControlMode_e mode;
     float rateCmS;
     float descentScale;
+    float holdAltitudeCm;
+    bool holdAltitudeValid;
 } markerGuidanceLandControl_t;
 
 void markerGuidanceReset(void);
@@ -61,11 +63,12 @@ void markerGuidanceUpdateDebug(void);
 bool markerGuidanceApplyHeadingOverride(int32_t *desiredYawCd);
 bool markerGuidanceOwnsHeading(void);
 bool markerGuidanceOwnsPositionTarget(void);
-bool markerGuidanceConsumePositionControllerRetarget(void);
+float markerGuidanceGetPositionResponseScale(void);
+uint8_t markerGuidanceConsumePositionControllerRetargetAxes(void);
 bool markerGuidanceGetActiveLandingHeading(int32_t *headingCdOut);
 bool markerGuidanceRthPrelandingReady(void);
 bool markerGuidanceGetActiveLandingPositionTarget(fpVector3_t *targetOut);
-void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut);
+void markerGuidanceGetLandControl(markerGuidanceLandControl_t *controlOut, float nominalDescentCmS);
 navSystemStatus_State_e markerGuidanceOverrideNavStatusState(navSystemStatus_State_e defaultState);
 bool markerGuidanceHandleMspTargetUpdate(const markerGuidanceTargetUpdate_t *update, markerGuidanceMspResponse_t *responseOut);
 

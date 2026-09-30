@@ -4267,7 +4267,7 @@ Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing 
 
 ### nav_land_minalt_vspd
 
-Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s]
+Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. Also caps vertical correction speed while marker guidance holds an altitude target during a landing pause; the normal automatic vertical-speed limit still applies. [cm/s]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4347,7 +4347,7 @@ Minimum hold duration after target loss before a LAND retry can start or normal 
 
 ### nav_marker_guidance_low_alt_lock_xy
 
-Lock current XY position when marker target is lost at or below nav_marker_guidance_retry_min_alt_cm in PL mode LAND context. OFF keeps normal LAND XY target.
+Keep a confirmed PL landing marker XY target through target loss, including RTH before descent, instead of returning to GPS Home or the normal LAND target. The lost-hold time delays descent; it does not expire the held XY target. POSH uses marker hold only when loss occurs at or below nav_marker_guidance_retry_min_alt_cm. OFF keeps normal target-loss behavior.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4367,7 +4367,7 @@ Maximum allowed horizontal target offset magnitude. Larger offsets are rejected 
 
 ### nav_marker_guidance_max_target_age_ms
 
-Maximum age of cached marker data [ms]. If no fresh packet arrives inside this window, target becomes stale/lost and marker guidance stops affecting navigation.
+Maximum age of a confirmed marker sample [ms]. Without a fresh confirmed sample inside this window, marker-loss handling starts. Guidance may still hold the current position or a retained marker XY target according to mode and nav_marker_guidance_low_alt_lock_xy; this timeout does not immediately release all navigation control.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4419,7 +4419,7 @@ Maximum number of climb-and-retry attempts after target loss in PL mode LAND con
 
 ### nav_marker_guidance_retry_min_alt_cm
 
-Minimum AGL altitude for climb-and-retry after target loss in PL mode LAND context [cm]. At or below this altitude, retry is skipped and normal LAND continues. Set 0 to disable.
+Minimum AGL altitude for climb-and-retry after target loss in PL mode LAND context [cm]. At or below this altitude, trusted INAV AGL or the last fresh marker height skips retry and selects landing fallback. An untrusted AGL estimate derived from global altitude does not trigger this shortcut. The normal lost-target hold still applies above the threshold even with retry count zero. Set 0 to disable altitude-based retry suppression.
 
 | Default | Min | Max |
 | --- | --- | --- |

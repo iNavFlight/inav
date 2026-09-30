@@ -44,12 +44,49 @@ typedef struct {
 } markerGuidanceRetrySettleState_t;
 
 typedef struct {
+    float altitudeCm;
+    bool active;
+} markerGuidanceAltitudeHoldState_t;
+
+static inline bool markerGuidanceUpdateAltitudeHold(
+    markerGuidanceAltitudeHoldState_t *state, bool holdRequested, bool altitudeUsable, float altitudeCm)
+{
+    if (!holdRequested || !altitudeUsable || !isfinite(altitudeCm)) {
+        state->active = false;
+        return false;
+    }
+    if (!state->active) {
+        state->altitudeCm = altitudeCm;
+        state->active = true;
+    }
+    return true;
+}
+
+typedef struct {
     float candidateNorthCm;
     float candidateEastCm;
     uint32_t lastSampleMs;
     uint8_t sampleCount;
     bool active;
 } markerGuidanceTargetConfirmationState_t;
+
+typedef enum {
+    MARKER_GUIDANCE_AXIS_NONE = 0,
+    MARKER_GUIDANCE_AXIS_NORTH = 1 << 0,
+    MARKER_GUIDANCE_AXIS_EAST = 1 << 1,
+    MARKER_GUIDANCE_AXIS_BOTH = MARKER_GUIDANCE_AXIS_NORTH | MARKER_GUIDANCE_AXIS_EAST,
+} markerGuidanceAxisMask_e;
+
+typedef struct {
+    float referenceCm;
+    bool deadbandEntered;
+    bool valid;
+} markerGuidanceCorrectionAxisState_t;
+
+typedef struct {
+    markerGuidanceCorrectionAxisState_t north;
+    markerGuidanceCorrectionAxisState_t east;
+} markerGuidanceCorrectionDirectionState_t;
 
 static inline bool markerGuidanceMspPayloadSizeIsValid(size_t dataSize)
 {
@@ -110,6 +147,43 @@ static inline bool markerGuidancePoseIsValid(const markerGuidancePoseUpdate_t *u
 static inline bool markerGuidanceSampleIsFresh(bool valid, uint32_t nowMs, uint32_t lastUpdateMs, uint16_t maxAgeMs)
 {
     return valid && (maxAgeMs == 0 || (nowMs - lastUpdateMs) <= maxAgeMs);
+}
+
+static inline void markerGuidanceSelectLowAltitudeHoldPosition(
+    bool markerTargetOwned,
+    float markerTargetNorthCm,
+    float markerTargetEastCm,
+    float currentNorthCm,
+    float currentEastCm,
+    float *holdNorthOut,
+    float *holdEastOut)
+{
+    if (!holdNorthOut || !holdEastOut) {
+        return;
+    }
+
+    *holdNorthOut = markerTargetOwned ? markerTargetNorthCm : currentNorthCm;
+    *holdEastOut = markerTargetOwned ? markerTargetEastCm : currentEastCm;
+}
+
+static inline bool markerGuidanceShouldKeepLowAltitudeMarkerTarget(
+    bool lowAltitudeLockEnabled,
+    bool markerTargetOwned,
+    uint16_t retryMinAltitudeCm,
+    uint16_t lastMarkerAglCm)
+{
+    return lowAltitudeLockEnabled &&
+           markerTargetOwned &&
+           retryMinAltitudeCm > 0 &&
+           lastMarkerAglCm > 0 &&
+           lastMarkerAglCm <= retryMinAltitudeCm;
+}
+
+static inline bool markerGuidanceShouldKeepConfirmedLandTarget(
+    bool markerTargetLockEnabled,
+    bool markerTargetOwned)
+{
+    return markerTargetLockEnabled && markerTargetOwned;
 }
 
 static inline uint16_t markerGuidanceRetrySettleSpeedLimit(uint16_t brakingDisengageSpeedCmS)
@@ -221,6 +295,133 @@ static inline bool markerGuidanceTargetPositionIsConsistent(
     return (deltaNorthCm * deltaNorthCm) + (deltaEastCm * deltaEastCm) <= toleranceCm * toleranceCm;
 }
 
+static inline bool markerGuidanceTargetReplacementNeedsControllerReconcile(
+    bool targetReferenceChanged,
+    bool positionTargetOwned)
+{
+    return targetReferenceChanged && positionTargetOwned;
+}
+
+static inline bool markerGuidanceTargetOwnershipIsContinuous(
+    bool targetAcquired,
+    bool positionTargetOwned,
+    bool correctionStateActive,
+    bool insideRadiusStandby)
+{
+    return targetAcquired && positionTargetOwned &&
+        (correctionStateActive || insideRadiusStandby);
+}
+
+static inline uint8_t markerGuidanceCorrectionDirectionValidAxes(
+    const markerGuidanceCorrectionDirectionState_t *state)
+{
+    if (!state) {
+        return MARKER_GUIDANCE_AXIS_NONE;
+    }
+
+    uint8_t validAxes = MARKER_GUIDANCE_AXIS_NONE;
+    if (state->north.valid) {
+        validAxes |= MARKER_GUIDANCE_AXIS_NORTH;
+    }
+    if (state->east.valid) {
+        validAxes |= MARKER_GUIDANCE_AXIS_EAST;
+    }
+    return validAxes;
+}
+
+static inline uint8_t markerGuidancePositionControllerReconcileAxes(
+    bool correctionRequired,
+    bool targetOwnershipContinuous,
+    uint8_t previouslyValidAxes,
+    uint8_t currentlyValidAxes,
+    uint8_t crossedAxes)
+{
+    (void)crossedAxes;
+    if (!correctionRequired) {
+        return MARKER_GUIDANCE_AXIS_NONE;
+    }
+
+    if (!targetOwnershipContinuous) {
+        return MARKER_GUIDANCE_AXIS_BOTH;
+    }
+
+    // A crossing does not invalidate wind compensation. Preserve acquisition
+    // and first-axis initialization, but let the PID handle later crossings.
+    return currentlyValidAxes & ~previouslyValidAxes;
+}
+
+static inline void markerGuidanceResetCorrectionDirection(
+    markerGuidanceCorrectionDirectionState_t *state)
+{
+    if (!state) {
+        return;
+    }
+
+    state->north.referenceCm = 0.0f;
+    state->north.deadbandEntered = false;
+    state->north.valid = false;
+    state->east.referenceCm = 0.0f;
+    state->east.deadbandEntered = false;
+    state->east.valid = false;
+}
+
+static inline bool markerGuidanceCorrectionAxisCrossedTarget(
+    markerGuidanceCorrectionAxisState_t *state,
+    uint16_t deadbandCm,
+    float correctionCm)
+{
+    if (!state) {
+        return false;
+    }
+
+    if (deadbandCm > 0 && fabsf(correctionCm) <= deadbandCm) {
+        state->deadbandEntered = state->valid;
+        return false;
+    }
+
+    if (correctionCm == 0.0f) {
+        return false;
+    }
+
+    if (!state->valid) {
+        state->referenceCm = correctionCm;
+        state->deadbandEntered = false;
+        state->valid = true;
+        return false;
+    }
+
+    if (deadbandCm > 0 && !state->deadbandEntered) {
+        return false;
+    }
+    state->deadbandEntered = false;
+    if (correctionCm * state->referenceCm >= 0.0f) {
+        return false;
+    }
+
+    state->referenceCm = correctionCm;
+    return true;
+}
+
+static inline uint8_t markerGuidanceCorrectionCrossedTargetAxes(
+    markerGuidanceCorrectionDirectionState_t *state,
+    uint16_t deadbandCm,
+    float correctionNorthCm,
+    float correctionEastCm)
+{
+    if (!state) {
+        return MARKER_GUIDANCE_AXIS_NONE;
+    }
+
+    uint8_t crossedAxes = MARKER_GUIDANCE_AXIS_NONE;
+    if (markerGuidanceCorrectionAxisCrossedTarget(&state->north, deadbandCm, correctionNorthCm)) {
+        crossedAxes |= MARKER_GUIDANCE_AXIS_NORTH;
+    }
+    if (markerGuidanceCorrectionAxisCrossedTarget(&state->east, deadbandCm, correctionEastCm)) {
+        crossedAxes |= MARKER_GUIDANCE_AXIS_EAST;
+    }
+    return crossedAxes;
+}
+
 static inline bool markerGuidanceUpdateTargetConfirmation(
     markerGuidanceTargetConfirmationState_t *state,
     float sampleNorthCm,
@@ -270,6 +471,15 @@ static inline bool markerGuidanceUpdateTargetConfirmation(
     return true;
 }
 
+static inline float markerGuidanceFullDescentOffsetCm(
+    uint16_t markerAglCm,
+    uint16_t alignmentRadiusCm)
+{
+    return fmaxf(
+        alignmentRadiusCm,
+        markerAglCm * MARKER_GUIDANCE_LAND_FULL_DESCENT_OFFSET_AGL_RATIO);
+}
+
 static inline bool markerGuidancePrelandingXyReady(
     bool targetFresh,
     bool targetAcquired,
@@ -279,13 +489,43 @@ static inline bool markerGuidancePrelandingXyReady(
     float horizontalSpeedCmS,
     uint16_t speedLimitCmS,
     uint32_t horizontalOffsetSquaredCm,
+    uint16_t markerAglCm,
     uint16_t alignmentRadiusCm)
 {
-    const uint16_t effectiveRadiusCm = alignmentRadiusCm > MARKER_GUIDANCE_PRELANDING_MIN_ALIGNMENT_RADIUS_CM ?
-        alignmentRadiusCm : MARKER_GUIDANCE_PRELANDING_MIN_ALIGNMENT_RADIUS_CM;
+    const float effectiveRadiusCm = fmaxf(
+        MARKER_GUIDANCE_PRELANDING_MIN_ALIGNMENT_RADIUS_CM,
+        markerGuidanceFullDescentOffsetCm(markerAglCm, alignmentRadiusCm));
     return targetFresh && targetAcquired && positionTargetOwned && !confirmationPending &&
            horizontalVelocityTrusted && horizontalSpeedCmS <= speedLimitCmS &&
-           horizontalOffsetSquaredCm <= (uint32_t)effectiveRadiusCm * effectiveRadiusCm;
+           horizontalOffsetSquaredCm <= effectiveRadiusCm * effectiveRadiusCm;
+}
+
+static inline bool markerGuidancePrelandingHeldTargetReady(
+    bool lossHoldElapsed,
+    bool confirmationPending,
+    bool positionUsable,
+    bool horizontalVelocityTrusted,
+    float horizontalSpeedCmS,
+    uint16_t speedLimitCmS,
+    float horizontalOffsetSquaredCm,
+    uint16_t markerAglCm,
+    uint16_t alignmentRadiusCm)
+{
+    const float effectiveRadiusCm = fmaxf(
+        MARKER_GUIDANCE_PRELANDING_MIN_ALIGNMENT_RADIUS_CM,
+        markerGuidanceFullDescentOffsetCm(markerAglCm, alignmentRadiusCm));
+    return lossHoldElapsed && !confirmationPending && positionUsable && horizontalVelocityTrusted &&
+           horizontalSpeedCmS <= speedLimitCmS &&
+           horizontalOffsetSquaredCm <= effectiveRadiusCm * effectiveRadiusCm;
+}
+
+static inline bool markerGuidanceShouldHoldPrelandingTarget(
+    bool precisionLandingMode,
+    bool holdEnabled,
+    bool confirmedTargetAcquired,
+    bool markerOwnsPosition)
+{
+    return precisionLandingMode && holdEnabled && confirmedTargetAcquired && markerOwnsPosition;
 }
 
 static inline bool markerGuidanceComputeHorizontalPositionTarget(
@@ -327,9 +567,12 @@ static inline bool markerGuidanceComputeHorizontalPositionTarget(
     return true;
 }
 
-static inline bool markerGuidanceRemoveOpposingIntegratorComponent(
+static inline bool markerGuidanceReconcileIntegratorForTargetHandoff(
+    uint8_t axes,
     float velocityErrorNorthCmS,
     float velocityErrorEastCmS,
+    float controllerOutputNorth,
+    float controllerOutputEast,
     float *integratorNorth,
     float *integratorEast)
 {
@@ -337,25 +580,24 @@ static inline bool markerGuidanceRemoveOpposingIntegratorComponent(
         return false;
     }
 
-    const float correctionMagnitudeSquared =
-        (velocityErrorNorthCmS * velocityErrorNorthCmS) + (velocityErrorEastCmS * velocityErrorEastCmS);
-    if (correctionMagnitudeSquared <=
-        (MARKER_GUIDANCE_RETARGET_MIN_VELOCITY_ERROR_CM_S * MARKER_GUIDANCE_RETARGET_MIN_VELOCITY_ERROR_CM_S)) {
-        return false;
+    bool changed = false;
+    if ((axes & MARKER_GUIDANCE_AXIS_NORTH) &&
+        fabsf(velocityErrorNorthCmS) > MARKER_GUIDANCE_RETARGET_MIN_VELOCITY_ERROR_CM_S &&
+        *integratorNorth * velocityErrorNorthCmS < 0.0f &&
+        controllerOutputNorth * velocityErrorNorthCmS < 0.0f) {
+        const float removed = fminf(fabsf(controllerOutputNorth), fabsf(*integratorNorth));
+        *integratorNorth -= copysignf(removed, controllerOutputNorth);
+        changed = true;
     }
-
-    const float opposingProjection =
-        ((*integratorNorth * velocityErrorNorthCmS) + (*integratorEast * velocityErrorEastCmS)) /
-        correctionMagnitudeSquared;
-    if (opposingProjection >= 0.0f) {
-        return false;
+    if ((axes & MARKER_GUIDANCE_AXIS_EAST) &&
+        fabsf(velocityErrorEastCmS) > MARKER_GUIDANCE_RETARGET_MIN_VELOCITY_ERROR_CM_S &&
+        *integratorEast * velocityErrorEastCmS < 0.0f &&
+        controllerOutputEast * velocityErrorEastCmS < 0.0f) {
+        const float removed = fminf(fabsf(controllerOutputEast), fabsf(*integratorEast));
+        *integratorEast -= copysignf(removed, controllerOutputEast);
+        changed = true;
     }
-
-    // Preserve cross-wind compensation and remove only the component that
-    // would initially drive the aircraft away from the newly acquired target.
-    *integratorNorth -= opposingProjection * velocityErrorNorthCmS;
-    *integratorEast -= opposingProjection * velocityErrorEastCmS;
-    return true;
+    return changed;
 }
 
 static inline float markerGuidanceLandingDescentScale(
@@ -367,9 +609,9 @@ static inline float markerGuidanceLandingDescentScale(
         return 1.0f;
     }
 
-    const float fullDescentOffsetCm = fmaxf(
-        alignmentRadiusCm,
-        markerAglCm * MARKER_GUIDANCE_LAND_FULL_DESCENT_OFFSET_AGL_RATIO);
+    const float fullDescentOffsetCm = markerGuidanceFullDescentOffsetCm(
+        markerAglCm,
+        alignmentRadiusCm);
     const float holdDescentOffsetCm = fmaxf(
         alignmentRadiusCm * 3.0f,
         markerAglCm * MARKER_GUIDANCE_LAND_HOLD_DESCENT_OFFSET_AGL_RATIO);
@@ -383,6 +625,75 @@ static inline float markerGuidanceLandingDescentScale(
 
     return (holdDescentOffsetCm - horizontalOffsetCm) /
         (holdDescentOffsetCm - fullDescentOffsetCm);
+}
+
+static inline float markerGuidanceLandingMotionDescentScale(
+    float offsetNorthCm,
+    float offsetEastCm,
+    float velocityNorthCmS,
+    float velocityEastCmS,
+    bool velocityTrusted,
+    uint16_t markerAglCm,
+    uint16_t alignmentRadiusCm,
+    float nominalDescentCmS)
+{
+    const float currentOffsetCm = sqrtf(offsetNorthCm * offsetNorthCm + offsetEastCm * offsetEastCm);
+    const float currentScale = markerGuidanceLandingDescentScale(
+        currentOffsetCm, markerAglCm, alignmentRadiusCm);
+    if (!velocityTrusted || markerAglCm == 0 ||
+        !isfinite(nominalDescentCmS) || nominalDescentCmS <= 0.0f ||
+        !isfinite(velocityNorthCmS) || !isfinite(velocityEastCmS)) {
+        return currentScale;
+    }
+
+    // Crossing the image centre is not the same as stopping there. Check the
+    // remaining nominal descent time at constant XY velocity, without assuming
+    // a particular airframe braking capability. Never relax the current gate.
+    const float descentTimeS = markerAglCm / nominalDescentCmS;
+    const float predictedNorthCm = offsetNorthCm - velocityNorthCmS * descentTimeS;
+    const float predictedEastCm = offsetEastCm - velocityEastCmS * descentTimeS;
+    const float predictedOffsetCm = sqrtf(predictedNorthCm * predictedNorthCm + predictedEastCm * predictedEastCm);
+    return fminf(currentScale, markerGuidanceLandingDescentScale(
+        predictedOffsetCm, markerAglCm, alignmentRadiusCm));
+}
+
+static inline float markerGuidanceLandingPositionResponseScale(
+    float horizontalOffsetCm,
+    uint16_t markerAglCm,
+    uint16_t alignmentRadiusCm)
+{
+    // Use the same continuous geometry as descent control: retain normal NAV
+    // response near image centre and add urgency only as descent is withheld.
+    return 1.0f + (1.0f - markerGuidanceLandingDescentScale(
+        horizontalOffsetCm,
+        markerAglCm,
+        alignmentRadiusCm));
+}
+
+static inline float markerGuidanceLostTargetDescentScale(
+    bool correctionWindowActive,
+    bool markerTargetHeld,
+    bool positionEstimateUsable,
+    float currentNorthCm,
+    float currentEastCm,
+    float targetNorthCm,
+    float targetEastCm,
+    uint16_t lastMarkerAglCm,
+    uint16_t alignmentRadiusCm)
+{
+    if (!correctionWindowActive || !markerTargetHeld || !positionEstimateUsable) {
+        return 1.0f;
+    }
+
+    const float northErrorCm = targetNorthCm - currentNorthCm;
+    const float eastErrorCm = targetEastCm - currentEastCm;
+    const float horizontalOffsetCm = sqrtf(
+        (northErrorCm * northErrorCm) + (eastErrorCm * eastErrorCm));
+
+    return markerGuidanceLandingDescentScale(
+        horizontalOffsetCm,
+        lastMarkerAglCm,
+        alignmentRadiusCm);
 }
 
 static inline bool markerGuidanceSelectHeadingOverride(
@@ -458,7 +769,7 @@ static inline bool markerGuidanceVtolRecoveryShouldPause(
 
 static inline bool markerGuidanceRetryIsSuppressedByAltitude(
     uint16_t retryMinAltitudeCm,
-    bool inavAglUsable,
+    bool inavAglTrusted,
     float inavAglCm,
     bool lastFreshMarkerWasLow)
 {
@@ -466,7 +777,7 @@ static inline bool markerGuidanceRetryIsSuppressedByAltitude(
         return false;
     }
 
-    const bool inavAglIsLow = inavAglUsable && inavAglCm >= 0.0f && inavAglCm <= retryMinAltitudeCm;
+    const bool inavAglIsLow = inavAglTrusted && inavAglCm >= 0.0f && inavAglCm <= retryMinAltitudeCm;
     return inavAglIsLow || lastFreshMarkerWasLow;
 }
 

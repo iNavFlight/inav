@@ -200,8 +200,12 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     const int16_t hoverThrottle = currentBatteryProfile->nav.mc.hover_throttle;
     const int16_t maxThrottle = getMaxThrottle();
     const vtolMcProtectionThrottleBounds_t vtolMcThrottleBounds = navigationVtolMcProtectionGetThrottleBounds(idleThrottle, hoverThrottle, maxThrottle);
-    const int16_t thrCorrectionMin = vtolMcThrottleBounds.min - hoverThrottle;
-    const int16_t thrCorrectionMax = vtolMcThrottleBounds.max - hoverThrottle;
+    const bool protectionActive = navigationVtolMcProtectionIsNavActive() && navigationRequiresAutoThrottleMode();
+    const float tiltFactor = protectionActive ? getThrottleTiltCompensationFactor() : 1.0f;
+    const vtolMcProtectionThrottleBounds_t pidThrottleBounds = vtolMcProtectionBoundsBeforeTilt(
+        vtolMcThrottleBounds, idleThrottle, tiltFactor);
+    const int16_t thrCorrectionMin = pidThrottleBounds.min - hoverThrottle;
+    const int16_t thrCorrectionMax = pidThrottleBounds.max - hoverThrottle;
     const pidControllerFlags_e pidFlags = (navigationVtolMcProtectionShouldFreezeAltitudeIntegrator() || mcLandingProbe.active) ? PID_FREEZE_INTEGRATOR : 0;
 
     float velocity_controller = navPidApply2(&posControl.pids.vel[Z], posControl.desiredState.vel.z, navGetCurrentActualPositionAndVelocity()->vel.z, US2S(deltaMicros), thrCorrectionMin, thrCorrectionMax, pidFlags);
@@ -210,7 +214,10 @@ static void updateAltitudeThrottleController_MC(timeDelta_t deltaMicros)
     rcThrottleCorrection = constrain(rcThrottleCorrection, thrCorrectionMin, thrCorrectionMax);
 
     int16_t protectedThrottle = hoverThrottle + rcThrottleCorrection;
-    protectedThrottle = navigationVtolMcProtectionApplyBailoutThrottle(protectedThrottle, &vtolMcThrottleBounds, hoverThrottle);
+    // Recovery's hover target is a final collective throttle, not a request to
+    // multiply hover by tilt compensation once more at a dangerous attitude.
+    const int16_t bailoutHoverThrottle = vtolMcProtectionThrottleBeforeTilt(hoverThrottle, idleThrottle, tiltFactor);
+    protectedThrottle = navigationVtolMcProtectionApplyBailoutThrottle(protectedThrottle, &pidThrottleBounds, bailoutHoverThrottle);
     protectedThrottle = applyMulticopterLandingProbeThrottle(protectedThrottle, idleThrottle, hoverThrottle);
     posControl.rcAdjustment[THROTTLE] = setDesiredThrottle(protectedThrottle, false);
     navigationVtolMcProtectionPublishThrottleDebug(&vtolMcThrottleBounds, posControl.rcAdjustment[THROTTLE]);
@@ -640,6 +647,12 @@ static void updatePositionVelocityController_MC(const float maxSpeed)
     float neuVelX = posErrorX * posControl.pids.pos[X].param.kP;
     float neuVelY = posErrorY * posControl.pids.pos[Y].param.kP;
 
+#ifdef USE_MARKER_GUIDANCE
+    const float markerPositionResponseScale = markerGuidanceGetPositionResponseScale();
+    neuVelX *= markerPositionResponseScale;
+    neuVelY *= markerPositionResponseScale;
+#endif
+
     // Scale velocity to respect max_speed
     float neuVelTotal = calc_length_pythagorean_2D(neuVelX, neuVelY);
 
@@ -703,22 +716,6 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     const float velErrorX = setpointX - measurementX;
     const float velErrorY = setpointY - measurementY;
 
-#ifdef USE_MARKER_GUIDANCE
-    if (markerGuidanceConsumePositionControllerRetarget()) {
-        float integratorX = posControl.pids.vel[X].integrator;
-        float integratorY = posControl.pids.vel[Y].integrator;
-
-        if (markerGuidanceRemoveOpposingIntegratorComponent(
-                velErrorX,
-                velErrorY,
-                &integratorX,
-                &integratorY)) {
-            posControl.pids.vel[X].integrator = integratorX;
-            posControl.pids.vel[Y].integrator = integratorY;
-        }
-    }
-#endif
-
     // Calculate XY-acceleration limit according to velocity error limit
     float accelLimitX, accelLimitY;
     const float velErrorMagnitude = calc_length_pythagorean_2D(velErrorX, velErrorY);
@@ -777,6 +774,11 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
     // Apply PID with output limiting and I-term anti-windup
     // Pre-calculated accelLimit and the logic of navPidApply2 function guarantee that our newAccel won't exceed maxAccelLimit
     // Thus we don't need to do anything else with calculated acceleration
+    // During a confirmed RTH yaw stall, retain wind compensation but do not
+    // let the XY integrator grow further while yaw and position compete.
+    const pidControllerFlags_e xyPidFlags =
+        (navigationVtolMcProtectionRthYawAssistActive() && navigationVtolMcProtectionRthYawBlocked()) ?
+        PID_SHRINK_INTEGRATOR : 0;
     float newAccelX = navPidApply3(
         &posControl.pids.vel[X],
         setpointX,
@@ -784,7 +786,7 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         US2S(deltaMicros),
         accelLimitXMin,
         accelLimitXMax,
-        0,      // Flags
+        xyPidFlags,
         1.0f,   // Total gain scale
         dtermScale    // Additional dTerm scale
     );
@@ -795,10 +797,44 @@ static void updatePositionAccelController_MC(timeDelta_t deltaMicros, float maxA
         US2S(deltaMicros),
         accelLimitYMin,
         accelLimitYMax,
-        0,      // Flags
+        xyPidFlags,
         1.0f,   // Total gain scale
         dtermScale    // Additional dTerm scale
     );
+
+#ifdef USE_MARKER_GUIDANCE
+    if (posControl.flags.estVelStatus == EST_TRUSTED) {
+        const uint8_t markerRetargetAxes = markerGuidanceConsumePositionControllerRetargetAxes();
+        if (markerRetargetAxes != MARKER_GUIDANCE_AXIS_NONE) {
+            float integratorX = posControl.pids.vel[X].integrator;
+            float integratorY = posControl.pids.vel[Y].integrator;
+            const float controllerOutputX =
+                posControl.pids.vel[X].proportional +
+                posControl.pids.vel[X].integral +
+                posControl.pids.vel[X].derivative +
+                posControl.pids.vel[X].feedForward;
+            const float controllerOutputY =
+                posControl.pids.vel[Y].proportional +
+                posControl.pids.vel[Y].integral +
+                posControl.pids.vel[Y].derivative +
+                posControl.pids.vel[Y].feedForward;
+
+            if (markerGuidanceReconcileIntegratorForTargetHandoff(
+                    markerRetargetAxes,
+                    velErrorX,
+                    velErrorY,
+                    controllerOutputX,
+                    controllerOutputY,
+                    &integratorX,
+                    &integratorY)) {
+                // Keep this cycle's jerk-limited command unchanged. The reconciled
+                // state takes effect on the next controller update without a step.
+                posControl.pids.vel[X].integrator = integratorX;
+                posControl.pids.vel[Y].integrator = integratorY;
+            }
+        }
+    }
+#endif
 
     int32_t maxBankAngle = DEGREES_TO_DECIDEGREES(navConfig()->mc.max_bank_angle);
 

@@ -2793,7 +2793,7 @@ groups:
         min: 10
         max: 2000
       - name: nav_land_minalt_vspd
-        description: "Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s]"
+        description: "Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. Also caps vertical correction speed while marker guidance holds an altitude target during a landing pause; the normal automatic vertical-speed limit still applies. [cm/s]"
         default_value: 50
         field: general.land_minalt_vspd
         min: 50
@@ -2893,7 +2893,7 @@ groups:
         table: nav_marker_guidance_mode
         condition: USE_MARKER_GUIDANCE
       - name: nav_marker_guidance_max_target_age_ms
-        description: "Maximum age of cached marker data [ms]. If no fresh packet arrives inside this window, target becomes stale/lost and marker guidance stops affecting navigation."
+        description: "Maximum age of a confirmed marker sample [ms]. Without a fresh confirmed sample inside this window, marker-loss handling starts. Guidance may still hold the current position or a retained marker XY target according to mode and nav_marker_guidance_low_alt_lock_xy; this timeout does not immediately release all navigation control."
         default_value: 500
         field: general.marker_guidance_max_target_age_ms
         condition: USE_MARKER_GUIDANCE
@@ -2942,14 +2942,14 @@ groups:
         min: 0
         max: 10
       - name: nav_marker_guidance_retry_min_alt_cm
-        description: "Minimum AGL altitude for climb-and-retry after target loss in PL mode LAND context [cm]. At or below this altitude, retry is skipped and normal LAND continues. Set 0 to disable."
+        description: "Minimum AGL altitude for climb-and-retry after target loss in PL mode LAND context [cm]. At or below this altitude, trusted INAV AGL or the last fresh marker height skips retry and selects landing fallback. An untrusted AGL estimate derived from global altitude does not trigger this shortcut. The normal lost-target hold still applies above the threshold even with retry count zero. Set 0 to disable altitude-based retry suppression."
         default_value: 100
         field: general.marker_guidance_retry_min_alt_cm
         condition: USE_MARKER_GUIDANCE
         min: 0
         max: 2000
       - name: nav_marker_guidance_low_alt_lock_xy
-        description: "Lock current XY position when marker target is lost at or below nav_marker_guidance_retry_min_alt_cm in PL mode LAND context. OFF keeps normal LAND XY target."
+        description: "Keep a confirmed PL landing marker XY target through target loss, including RTH before descent, instead of returning to GPS Home or the normal LAND target. The lost-hold time delays descent; it does not expire the held XY target. POSH uses marker hold only when loss occurs at or below nav_marker_guidance_retry_min_alt_cm. OFF keeps normal target-loss behavior."
         default_value: OFF
         field: general.marker_guidance_low_alt_lock_xy
         condition: USE_MARKER_GUIDANCE

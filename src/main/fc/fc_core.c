@@ -877,26 +877,40 @@ void FAST_CODE taskGyro(timeUs_t currentTimeUs) {
 #endif
 }
 
-static void applyThrottleTiltCompensation(void)
+static int16_t getThrottleTiltCompensationStrength(void)
 {
     if (STATE(MULTIROTOR)) {
-        int16_t thrTiltCompStrength = 0;
-
         if (navigationRequiresThrottleTiltCompensation()) {
-            thrTiltCompStrength = 100;
+            return 100;
         }
-        else if (systemConfig()->throttle_tilt_compensation_strength && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
-            thrTiltCompStrength = systemConfig()->throttle_tilt_compensation_strength;
-        }
-
-        if (thrTiltCompStrength) {
-            const int throttleIdleValue = getThrottleIdleValue();
-            float tiltCompFactor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f);  // max tilt about 50 deg
-            tiltCompFactor = 1.0f + (tiltCompFactor - 1.0f) * (thrTiltCompStrength / 100.f);
-
-            rcCommand[THROTTLE] = setDesiredThrottle(throttleIdleValue + (rcCommand[THROTTLE] - throttleIdleValue) * tiltCompFactor, false);
+        if (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE)) {
+            return systemConfig()->throttle_tilt_compensation_strength;
         }
     }
+    return 0;
+}
+
+float getThrottleTiltCompensationFactor(void)
+{
+    const int16_t strength = getThrottleTiltCompensationStrength();
+    if (strength) {
+        const float factor = 1.0f / constrainf(calculateCosTiltAngle(), 0.6f, 1.0f); // max tilt about 50 deg
+        return 1.0f + (factor - 1.0f) * (strength / 100.f);
+    }
+    return 1.0f;
+}
+
+static void applyThrottleTiltCompensation(void)
+{
+    if (getThrottleTiltCompensationStrength()) {
+        const float tiltCompFactor = getThrottleTiltCompensationFactor();
+        const int throttleIdleValue = getThrottleIdleValue();
+        rcCommand[THROTTLE] = setDesiredThrottle(throttleIdleValue + (rcCommand[THROTTLE] - throttleIdleValue) * tiltCompFactor, false);
+    }
+
+    // Attitude can change between NAV updates. Do not let compensation consume
+    // the reserve already accounted for by the altitude controller.
+    rcCommand[THROTTLE] = navigationVtolMcProtectionLimitCompensatedThrottle(rcCommand[THROTTLE]);
 }
 
 bool isMspConfigActive(bool isActive)

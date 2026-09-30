@@ -519,6 +519,40 @@ TEST(VtolMcProtectionLogicTest, RthLandingYawSettleAssistRequiresSettledVtolMcLa
         true));
 }
 
+TEST(VtolMcProtectionLogicTest, RthYawBlockedRequiresSustainedMissingHeadingProgress)
+{
+    vtolMcProtectionYawResponseState_t state = {};
+
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 4500, 1000));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 4500, 2999));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 4500, 3000));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 3900, 3500));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 3900, 5400));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 3900, 5500));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 1400, 5600));
+}
+
+TEST(VtolMcProtectionLogicTest, RthYawResponseResetsOnNewTargetOrInactiveMode)
+{
+    vtolMcProtectionYawResponseState_t state = {};
+
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 35000, 4500, 1000));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 35000, 4500, 3000));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 100, 4500, 3100));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, false, 100, 4500, 5100));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 100, 4500, 5200));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 100, 4500, 7200));
+}
+
+TEST(VtolMcProtectionLogicTest, RthYawResponseHandlesMillisWrap)
+{
+    vtolMcProtectionYawResponseState_t state = {};
+
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 9000, 3000, UINT32_MAX - 999U));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 9000, 3000, 999U));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 9000, 3000, 1000U));
+}
+
 TEST(VtolMcProtectionLogicTest, CommandShapingIsContinuousAndPreservesSign)
 {
     EXPECT_FLOAT_EQ(1.0f, vtolMcProtectionCommandScaleForSpeed(250.0f));
