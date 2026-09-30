@@ -43,6 +43,7 @@
 #include "fc/config.h"
 #include "fc/rc_controls.h"
 #include "fc/rc_modes.h"
+#include "fc/runtime_config.h"
 #include "fc/settings.h"
 
 #include "flight/failsafe.h"
@@ -790,6 +791,13 @@ bool rxRequestLinkHandover(rxLink_e link, rxLinkSwitchReason_e reason)
     return true;
 }
 
+static bool rxSwitchReasonIsHandover(rxLinkSwitchReason_e reason)
+{
+    return reason == RX_LINK_SWITCH_HANDOVER_LOGIC ||
+           reason == RX_LINK_SWITCH_HANDOVER_MSP ||
+           reason == RX_LINK_SWITCH_HANDOVER_API;
+}
+
 static bool rxSelectActiveLink(bool copyActiveChannels)
 {
     const rxLink_e previousLink = activeLink;
@@ -812,6 +820,17 @@ static bool rxSelectActiveLink(bool copyActiveChannels)
             rxSwitchActiveLink(requestedLink, requestedReason);
             return previousLink != activeLink;
         }
+    }
+
+    // Until the first arming RX1 is preferred: whichever receiver comes up
+    // first after power-on may take control, but RX1 appearing takes it back
+    // unless RX2 was explicitly selected. From the first arming until reboot
+    // the active link is latched.
+    if (activeLink == RX_LINK_SECONDARY && !ARMING_FLAG(WAS_EVER_ARMED) &&
+        !rxSwitchReasonIsHandover(lastSwitchReason) &&
+        rxLinkHasValidSignal(&rxLinks[RX_LINK_PRIMARY])) {
+        rxSwitchActiveLink(RX_LINK_PRIMARY, RX_LINK_SWITCH_RX1_PREARM);
+        return true;
     }
 
     // The active link is latched. Recovery of the inactive link is not a

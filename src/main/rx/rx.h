@@ -170,6 +170,7 @@ typedef enum {
     RX_LINK_SWITCH_HANDOVER_LOGIC,
     RX_LINK_SWITCH_HANDOVER_MSP,
     RX_LINK_SWITCH_HANDOVER_API,
+    RX_LINK_SWITCH_RX1_PREARM,
 } rxLinkSwitchReason_e;
 
 typedef enum {

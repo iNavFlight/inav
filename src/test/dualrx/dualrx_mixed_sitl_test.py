@@ -22,6 +22,9 @@ from dualrx_sitl_test import (
     RX1,
     RX2,
     RX_DUAL_STATUS_OK,
+    RX_LINK_SWITCH_HANDOVER_MSP,
+    RX_LINK_SWITCH_LINK_LOSS,
+    RX_LINK_SWITCH_RX1_PREARM,
     SitlProcess,
     TestFailure,
     UART_MSP,
@@ -248,15 +251,33 @@ def exercise_selector(msp: MspClient, rx1, rx2, name: str) -> None:
     assert_ingress_signature(msp, rx2, f"{name} RX2 source")
     wait_mode(msp, BOX_BEEPER, True, f"{name} RX2 AUX after failover", receivers)
 
+    # Never armed: RX1 is preferred, so a returning RX1 takes control back.
     rx1.set_mode("full")
-    wait_status(msp, lambda s: s.valid_mask == 0x03 and s.active == RX2, f"{name} RX1 recovery", receivers)
-    assert_ingress_signature(msp, rx2, f"{name} no failback")
+    wait_status(
+        msp,
+        lambda s: s.valid_mask == 0x03 and s.active == RX1 and s.switch_reason == RX_LINK_SWITCH_RX1_PREARM,
+        f"{name} pre-arm RX1 return",
+        receivers,
+    )
+    assert_ingress_signature(msp, rx1, f"{name} pre-arm RX1 preference")
+    wait_mode(msp, BOX_BEEPER, False, f"{name} RX1 AUX after RX1 return", receivers)
 
+    # Reverse direction: RX2 active by explicit selection, then lost.
+    msp.handover(RX2)
+    wait_status(msp, lambda s: s.active == RX2 and s.switch_reason == RX_LINK_SWITCH_HANDOVER_MSP,
+                f"{name} handover to RX2", receivers)
+    assert_ingress_signature(msp, rx2, f"{name} RX2 source after handover")
+    wait_mode(msp, BOX_BEEPER, True, f"{name} RX2 AUX after handover", receivers)
     rx2.set_mode("off")
-    wait_status(msp, lambda s: s.valid_mask == 0x01 and s.active == RX1, f"{name} reverse failover", receivers)
+    wait_status(
+        msp,
+        lambda s: s.valid_mask == 0x01 and s.active == RX1 and s.switch_reason == RX_LINK_SWITCH_LINK_LOSS,
+        f"{name} reverse failover",
+        receivers,
+    )
     assert_ingress_signature(msp, rx1, f"{name} reverse source")
     wait_mode(msp, BOX_BEEPER, False, f"{name} RX1 AUX after reverse failover", receivers)
-    print(f"[PASS] {name} preserves selector, publication, recovery, and AUX authority semantics")
+    print(f"[PASS] {name} preserves selector, publication, pre-arm RX1 preference, and AUX authority semantics")
 
 
 def exercise_partial_liveness(msp: MspClient, active, tested, name: str) -> None:

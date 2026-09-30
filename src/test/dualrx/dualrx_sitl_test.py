@@ -53,10 +53,19 @@ MSP_RC = 105
 MSP_ACTIVEBOXES = 113
 MSP_BOXIDS = 119
 MSP_SET_RAW_RC = 200
+MSP2_INAV_STATUS = 0x2000
 MSP2_INAV_GET_LINK_STATS = 0x2103
 MSP2_INAV_SET_RX_LINK = 0x2232
+MSP_SIMULATOR = 0x201F
+
+# Plain SITL never finishes accelerometer calibration; HITL mode marks it calibrated
+# so the suite can arm once.
+SIMULATOR_MSP_VERSION_2 = 2
+HITL_ENABLE = 1
+ARMING_BLOCKER_MASK = 0xFFFFFFFF & ~((1 << 6) - 1)  # ARMING_DISABLED_* start at bit 6
 
 # Permanent mode IDs returned through MSP_BOXIDS.
+BOX_ARM = 0
 BOX_BEEPER = 13
 BOX_FAILSAFE = 27
 
@@ -67,6 +76,10 @@ RX_DUAL_STATUS_OK = 1
 RX_LINK_SWITCH_BOOT = 0
 RX_LINK_SWITCH_LINK_LOSS = 1
 RX_LINK_SWITCH_HANDOVER_MSP = 3
+RX_LINK_SWITCH_RX1_PREARM = 5
+
+# CH16 carries ARM. Both receivers hold it low; only arm_once() raises it.
+ARM_CHANNEL = 15
 
 # CRSF framing.
 CRSF_ADDRESS_FLIGHT_CONTROLLER = 0xC8
@@ -614,6 +627,7 @@ def configure_dual_crsf(host: str, msp_port: int) -> None:
         "set receiver_type_rx2 = SERIAL",
         "set serialrx_provider_rx2 = CRSF",
         "aux 0 13 0 1700 2100",
+        f"aux 1 0 {ARM_CHANNEL - 4} 1700 2100",
         f"serial 2 {FUNCTION_RX_SERIAL}",
         f"serial 3 {FUNCTION_RX_SERIAL_SECONDARY}",
     ])
@@ -699,6 +713,45 @@ def print_pass(message: str) -> None:
     print(f"[PASS] {message}")
 
 
+def arming_flags(msp: MspClient) -> int:
+    return struct.unpack_from("<I", msp.request(MSP2_INAV_STATUS), 9)[0]
+
+
+def arm_once(msp: MspClient, rx1: VirtualCrsfReceiver, receivers: tuple[VirtualCrsfReceiver, VirtualCrsfReceiver]) -> None:
+    """Arm and disarm once on RX1. WAS_EVER_ARMED then holds until reboot, which ends
+    the pre-arm RX1 preference and latches the active link."""
+    saved = rx1.channels_us[:4]
+    for index, value in enumerate((1500, 1500, 1000, 1500)):
+        rx1.set_channel(index, value)
+    msp.request(MSP_SIMULATOR, bytes([SIMULATOR_MSP_VERSION_2, HITL_ENABLE]))
+    # Raising the switch while anything still blocks arming latches ARM_SWITCH
+    # until the switch is cycled, so wait for the blockers to clear first.
+    deadline = time.monotonic() + 5.0
+    while arming_flags(msp) & ARMING_BLOCKER_MASK:
+        if time.monotonic() > deadline:
+            raise TestFailure(f"arming still blocked after HITL enable: flags 0x{arming_flags(msp):08x}")
+        for receiver in receivers:
+            receiver.check()
+        time.sleep(0.05)
+    rx1.set_channel(ARM_CHANNEL, 1900)
+    try:
+        wait_mode(msp, BOX_ARM, True, "arm on RX1", receivers, timeout_s=5.0)
+    except TestFailure as exc:
+        raise TestFailure(f"{exc}; arming flags 0x{arming_flags(msp):08x}") from exc
+    rx1.set_channel(ARM_CHANNEL, 1100)
+    wait_mode(msp, BOX_ARM, False, "disarm on RX1", receivers)
+    for index, value in enumerate(saved):
+        rx1.set_channel(index, value)
+    # the restored values reach MSP_RC with RX1's next frame
+    deadline = time.monotonic() + 1.0
+    while abs(msp.rc_channels()[0] - expected_inav_us(saved[0])) > 4:
+        if time.monotonic() > deadline:
+            raise TestFailure(f"RX1 channel values not restored after arm/disarm: {msp.rc_channels()[:4]}")
+        for receiver in receivers:
+            receiver.check()
+        time.sleep(0.02)
+
+
 def deterministic_suite(msp: MspClient, rx1: VirtualCrsfReceiver, rx2: VirtualCrsfReceiver) -> None:
     receivers = (rx1, rx2)
     rx1_sig = rx1.channels_us[0]
@@ -748,6 +801,41 @@ def deterministic_suite(msp: MspClient, rx1: VirtualCrsfReceiver, rx2: VirtualCr
     # FC failsafe state machine rather than only the selector's valid mask.
     time.sleep(5.1)
     wait_mode(msp, BOX_FAILSAFE, False, "no failsafe with both links valid", receivers)
+
+    # Before the first arming RX1 is preferred: RX1 reappearing takes control
+    # back from RX2, unless RX2 was explicitly selected.
+    rx1.set_rc(False)
+    wait_status(msp, lambda s: s.valid_mask == 0x02 and s.active == RX2, "pre-arm RX1 loss -> RX2", receivers)
+    rx1.set_rc(True)
+    wait_status(
+        msp,
+        lambda s: s.valid_mask == 0x03 and s.active == RX1 and s.switch_reason == RX_LINK_SWITCH_RX1_PREARM,
+        "pre-arm RX1 return -> RX1",
+        receivers,
+    )
+    assert_rc_signature(msp, 0, rx1_sig, "pre-arm RX1 preference")
+    print_pass("Before first arming, RX1 reappearing takes control back from RX2")
+
+    msp.handover(RX2)
+    wait_status(msp, lambda s: s.active == RX2 and s.switch_reason == RX_LINK_SWITCH_HANDOVER_MSP,
+                "pre-arm handover -> RX2", receivers)
+    rx1.set_rc(False)
+    wait_status(msp, lambda s: s.valid_mask == 0x02, "pre-arm RX1 loss under explicit RX2", receivers)
+    rx1.set_rc(True)
+    wait_status(msp, lambda s: s.valid_mask == 0x03, "pre-arm RX1 return under explicit RX2", receivers)
+    time.sleep(0.3)
+    status = msp.link_status()
+    if status.active != RX2 or status.switch_reason != RX_LINK_SWITCH_HANDOVER_MSP:
+        raise TestFailure(f"explicitly selected RX2 lost control to returning RX1 before arming: {status}")
+    assert_rc_signature(msp, 0, rx2_sig, "pre-arm explicit RX2")
+    print_pass("Before first arming, an explicitly selected RX2 keeps control when RX1 reappears")
+
+    msp.handover(RX1)
+    wait_status(msp, lambda s: s.active == RX1, "pre-arm handover back to RX1", receivers)
+    arm_once(msp, rx1, receivers)
+    wait_status(msp, lambda s: s.valid_mask == 0x03 and s.active == RX1, "RX1 active after arm/disarm", receivers)
+    assert_rc_signature(msp, 0, rx1_sig, "RX1 after arm/disarm")
+    print_pass("Armed and disarmed once on RX1: the active link is latched from here until reboot")
 
     rx1.set_rc(False)
     status = wait_status(
@@ -941,7 +1029,7 @@ def boot_order_probe(
         wait_tcp("127.0.0.1", tcp_port(tcp_base, UART_RX2), 8.0, sitl)
 
         rx1_channels = [1300, 1400, 1200, 1500] + [1100] * 12
-        rx2_channels = [1800, 1600, 1700, 1500] + [1900] * 12
+        rx2_channels = [1800, 1600, 1700, 1500] + [1900] * 11 + [1100]
         rx1 = VirtualCrsfReceiver("RX1", "127.0.0.1", tcp_port(tcp_base, UART_RX1), rx1_channels)
         rx2 = VirtualCrsfReceiver("RX2", "127.0.0.1", tcp_port(tcp_base, UART_RX2), rx2_channels)
         rx1.connect()
@@ -961,25 +1049,31 @@ def boot_order_probe(
         if order == "rx2-first":
             rx2.set_rc(True)
             wait_status(msp, lambda s: s.valid_mask == 0x02 and s.active == RX2, "boot RX2-first", receivers)
-            rx1.set_rc(True)
-            wait_status(msp, lambda s: s.valid_mask == 0x03 and s.active == RX2, "boot RX2-first both-valid", receivers)
             assert_rc_signature(msp, 0, rx2.channels_us[0], "boot RX2-first source")
-            print_pass("Fresh boot with RX2 first selects RX2 and RX1 recovery does not preempt it")
+            rx1.set_rc(True)
+            wait_status(
+                msp,
+                lambda s: s.valid_mask == 0x03 and s.active == RX1 and s.switch_reason == RX_LINK_SWITCH_RX1_PREARM,
+                "boot RX2-first, RX1 appears before arming",
+                receivers,
+            )
+            assert_rc_signature(msp, 0, rx1.channels_us[0], "boot RX2-first, RX1 preferred")
+            print_pass("Fresh boot with RX2 first selects RX2, then RX1 appearing before arming takes control")
             return
 
         if order != "together":
             raise ValueError(f"unknown boot probe order {order}")
 
+        # Whichever link is valid first may take control, but before arming RX1
+        # is preferred, so a near-simultaneous boot must settle on RX1.
         rx1.set_rc(True)
         rx2.set_rc(True)
-        status = wait_status(msp, lambda s: s.valid_mask == 0x03, "near-simultaneous boot", receivers)
-        selected = status.active
-        selected_receiver = rx1 if selected == RX1 else rx2
-        assert_rc_signature(msp, 0, selected_receiver.channels_us[0], "near-simultaneous boot source")
+        wait_status(msp, lambda s: s.valid_mask == 0x03 and s.active == RX1, "near-simultaneous boot", receivers)
+        assert_rc_signature(msp, 0, rx1.channels_us[0], "near-simultaneous boot source")
         time.sleep(0.25)
         status = msp.link_status()
-        if status.active != selected or status.valid_mask != 0x03:
-            raise TestFailure(f"near-simultaneous boot source was not stable: {status}")
+        if status.active != RX1 or status.valid_mask != 0x03:
+            raise TestFailure(f"near-simultaneous boot source was not stable on RX1: {status}")
 
         rx1.set_rc(False)
         rx2.set_rc(False)
@@ -990,18 +1084,13 @@ def boot_order_probe(
             raise TestFailure(f"near-simultaneous total loss did not settle: {status}")
         rx1.set_rc(True)
         rx2.set_rc(True)
-        status = wait_status(msp, lambda s: s.valid_mask == 0x03, "near-simultaneous recovery", receivers)
-        recovered = status.active
-        recovered_receiver = rx1 if recovered == RX1 else rx2
-        assert_rc_signature(msp, 0, recovered_receiver.channels_us[0], "near-simultaneous recovery source")
+        wait_status(msp, lambda s: s.valid_mask == 0x03 and s.active == RX1, "near-simultaneous recovery", receivers)
+        assert_rc_signature(msp, 0, rx1.channels_us[0], "near-simultaneous recovery source")
         time.sleep(0.25)
         status = msp.link_status()
-        if status.valid_mask != 0x03 or status.active != recovered:
-            raise TestFailure(f"near-simultaneous recovery source was not stable: {status}")
-        print_pass(
-            f"Near-simultaneous boot is stable on RX{selected + 1}; "
-            f"loss/recovery settles without oscillation on RX{recovered + 1}"
-        )
+        if status.valid_mask != 0x03 or status.active != RX1:
+            raise TestFailure(f"near-simultaneous recovery source was not stable on RX1: {status}")
+        print_pass("Near-simultaneous boot and total-loss recovery before arming both settle on RX1")
     finally:
         if msp is not None:
             msp.close()
@@ -1104,7 +1193,7 @@ def main() -> int:
         time.sleep(0.15)
 
         rx1_channels = [1300, 1400, 1200, 1500] + [1100] * 12
-        rx2_channels = [1800, 1600, 1700, 1500] + [1900] * 12
+        rx2_channels = [1800, 1600, 1700, 1500] + [1900] * 11 + [1100]
         rx1 = VirtualCrsfReceiver("RX1", "127.0.0.1", tcp_port(args.tcp_base, UART_RX1), rx1_channels)
         rx2 = VirtualCrsfReceiver("RX2", "127.0.0.1", tcp_port(args.tcp_base, UART_RX2), rx2_channels)
         rx1.set_stats_values(rssi_dbm=-70, lq=91, snr_db=10)
