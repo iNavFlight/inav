@@ -306,24 +306,39 @@ them can call for reverse thrust. An automatic landing will not use it.
 
 ## If the motor does not come back after a reboot
 
-An Avian announces itself for about a third of a second after it powers up - six
-handshakes in 300 milliseconds, measured on a 70 A - and then never speaks again
-unless it is asked something it recognises. A flight controller that starts while
-the ESC is already running has missed that window, and the ESC will not answer it
-afterwards: polled by name, broadcast to, addressed on every ID from 0x40 to
-0x4F, or spoken to as though the link already existed, it stayed silent through
-every one.
+An Avian announces itself only as it powers up - five or six handshakes 50 to 60 ms apart,
+43 to about 345 ms after the board's reset when both share the battery, measured on a 70 A
+with a Lucid H7 - and one left unanswered never speaks again. Polled by name,
+broadcast to, addressed on every ID from 0x40 to 0x4F, from other source IDs, at
+400000 baud, or spoken to as though the link already existed, it stayed silent
+through every one. It also takes an answer only once those handshakes are over, and
+only if control frames are still coming then: answered and left without frames, it
+goes silent the same way.
 
-So the link is made at power-up or not at all. Connecting the battery powers both
-together and the announcement lands while the flight controller is listening,
-which is the normal case and needs nothing. The cases that bite are the other
-ones:
+So the link is made at power-up or not at all, and the flight controller makes it
+before anything else that takes time: a board set to SRXL2 opens its ports ahead of
+the USB start-up, answers the handshake and sends control frames until the ESC
+replies, which the Avian did 349 ms after reset. A board whose ESC has not spoken 200 ms
+after reset, or 100 ms after its ports opened if that is later, stops waiting, and this
+first wait ends by 700 ms. The fixed waits later in the start-up keep answering too: on
+a Lucid H7 an ESC powered up to about 1.3 s after a restart still linked. One powered
+while the USB starts up, 0.2 to 0.3 s after reset on that board, or from about 1.5 s
+until the board is up, can still be missed.
 
-* the flight controller reboots - a firmware update, a brownout, the Configurator
-  asking for a restart - while the battery stays connected. **Unplug the battery
-  and plug it in again**, or the motor will not respond.
-* bench work on USB with the ESC powered from a separate supply. Power the ESC
-  after the board has booted, not before.
+The rest of the start-up then leaves the ESC without frames for about four seconds. It
+announces itself again through them and the board links it once running, but an Avian
+still starting when that happens starts over: it obeyed the throttle about 7 seconds
+after the frames returned, and not at all if the throttle had risen right away.
+The arming block counts its 10 seconds again from when the frames return, so with one
+battery powering both, arming is allowed 10 seconds after the board has started, about
+16 seconds after the battery is connected on a Lucid H7.
+
+A linked ESC that loses its frames announces itself again, so a board that restarts
+with the battery connected gets it back; measured over a restart of about six seconds
+and over a firmware update. What still bites is an ESC powered while the board is
+starting up rather than together with it, as on the bench with the board on USB and
+the ESC on its own supply: power the ESC after the board has booted. If the motor ever
+does not respond, **unplug the battery and plug it in again**.
 
 Nothing in the firmware can work around this, so it refuses to hide it instead:
 arming is blocked while an SRXL2 link is missing, and the OSD says the hardware
@@ -336,9 +351,12 @@ seconds with no telemetry requested at all. What stops the motor is the absence
 of control frames - the current falls to the ESC's own 58 mA within about half a
 second - and it takes the throttle back up by itself when frames return, with no
 re-arm and no power cycle. So a silent ESC keeps being commanded, and only the
-telemetry goes stale. Where ESC and board come up together the block clears in about a
-second and is never seen; where it does not clear, the throttle would have done
-nothing anyway.
+telemetry goes stale. Once the ESC links, the block stays for 10 more seconds, and the
+OSD's hardware warning with it: an Avian obeys the throttle only about 9 seconds after it
+powers up, when its startup tones are over. An ESC that announces itself again while the
+board was feeding it, as one powered again does, is counted from there; after a pause in the
+board's own frames, only one still starting is. Where the block does not clear, the throttle
+would have done nothing anyway.
 
 ## Settings
 
