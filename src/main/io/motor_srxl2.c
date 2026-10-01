@@ -234,6 +234,7 @@ typedef struct {
 
 static srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
 static uint8_t    escCount;                 /* ports successfully opened */
+static bool       escPortLeftOver;          /* an assigned port past the last ESC driven */
 
 /* Shared, because these describe the aircraft rather than one bus. */
 static uint8_t   reverseChannel1Based = 7;  /* Spektrum ship "Thrust Rev." on CH7 */
@@ -673,6 +674,7 @@ bool srxl2MotorInitialize(void)
         srxl2AddEsc(portConfig->identifier);
         portConfig = findNextSerialPortConfig(FUNCTION_ESC_SRXL2);
     }
+    escPortLeftOver = portConfig != NULL;
 
     return escCount > 0;
 }
@@ -1017,7 +1019,8 @@ uint8_t srxl2MotorCount(void)
 // already flying, wrong for one about to arm, so the arming check asks this instead
 bool srxl2MotorIsConnected(void)
 {
-    if (escCount == 0) {
+    // The ESC on a port past the limit is never fed, however well the others answer
+    if (escCount == 0 || escPortLeftOver) {
         return false;
     }
     const timeMs_t now = millis();

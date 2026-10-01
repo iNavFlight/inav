@@ -109,7 +109,9 @@ over SRXL2 "is not implemented", because it expects physical switches or jumpers
 Avian ESCs do not have. So it is one ESC per bus, and a model with several motors
 needs a port for each.
 
-Up to four are supported. **Motors are matched to ports in order:** motor 1 is the
+Up to four are supported, the connector counting as one. With more ports assigned the
+board **refuses to arm**, with the OSD's hardware warning: the ESC past the fourth would
+never be fed. **Motors are matched to ports in order:** motor 1 is the
 lowest-numbered assigned UART, motor 2 the next, and so on. Nothing on the wire
 says which motor an ESC drives, so the wiring order is what carries that.
 
