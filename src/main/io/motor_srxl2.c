@@ -934,7 +934,10 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
     case SRXL2_RUNNING:
         if (now - e->lastControlMs >= SRXL2_CONTROL_INTERVAL_MS) {
             if (now - e->lastControlMs >= SRXL2_STARVED_MS) {
-                e->runningSinceMs = now;
+                // Judged when the frames stopped: still starting then, it starts over however long the gap
+                if ((timeDelta_t)(e->lastControlMs - e->runningSinceMs) < SRXL2_READY_DELAY_MS) {
+                    e->runningSinceMs = now;
+                }
                 e->gapStartMs = e->lastControlMs;
                 e->gapEndMs = now;
             }
