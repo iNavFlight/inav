@@ -200,6 +200,10 @@ static bool pwmDshotDecodeTelemetry(void);
 static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port);
 static void pwmDshotSetDirectionInput(pwmOutputPort_t *port);
 static void pwmDshotDmaIrqHandler(DMA_t descriptor);
+// Set while bidir pins are plain GPIO, disconnected from their timer: parked low until
+// the first frame, or held by the pull only during a flash write. The next frame
+// reconnects them (dshotConnectOutputs()).
+static bool dshotPinsDisconnected = false;
 #endif
 #endif
 
@@ -334,17 +338,25 @@ void pwmSetMotorDMACircular(bool circular)
 
 #ifdef USE_DSHOT_BIDIR
     // No keep-alive frames for bidir: the ESC sees a frame gap for the flash write, as in
-    // Betaflight. Between frames a bidir port waits in input capture with the line held
-    // high only by its pull-up, so on entry complete the turnaround the normal way (frame
-    // in flight, its reply, every port back to output): in output CCR is 0, which with
-    // the bidir polarity drives the line at its idle-high level for the whole write.
-    // Nothing to undo on exit, the next frame starts from that same output state.
+    // Betaflight, with the line held at its idle level only by the pull.
     if (useDshotTelemetry) {
-        if (circular) {
-            // Let a frame in flight finish, with the deadtime as margin for its completion
-            // IRQ, then wait out the reply and turn the ports round as before any frame
+        if (circular && !dshotPinsDisconnected) {
+            // Complete the DSHOT exchange before the write: let a frame in flight finish,
+            // with the deadtime as margin for its completion IRQ, then wait out and decode
+            // the reply, which turns every port back to output
             delayMicroseconds(frameUs + DSHOT_TELEMETRY_DEADTIME_US);
             while (!pwmDshotDecodeTelemetry()) { }
+
+            // Disconnect the pins from the timers so nothing drives the line during the
+            // write; the next frame after it reconnects them
+            for (int i = 0; i < motorCount; i++) {
+                const pwmOutputPort_t *port = motors[i].pwmPort;
+                if (port && port->configured) {
+                    const bool baseInverted = port->tch->timHw->output & TIMER_OUTPUT_INVERTED;
+                    IOConfigGPIO(IOGetByTag(port->tch->timHw->tag), baseInverted ? IOCFG_IPD : IOCFG_IPU);
+                }
+            }
+            dshotPinsDisconnected = true;
         }
         return;
     }
@@ -810,9 +822,6 @@ static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
     port->telemetryInputActive = true;
 }
 
-// Set when bidir pins are held low as plain GPIO until the first frame
-static bool dshotPinsParkedLow = false;
-
 // Connect bidir DSHOT pins to their timer AF (idle-high). Called on the first
 // real motor update so the line only goes high microseconds before frames start,
 // keeping it low through the ESC's boot-time bootloader-entry window.
@@ -970,7 +979,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
         const IO_t io = IOGetByTag(timerHardware->tag);
         IOConfigGPIO(io, IOCFG_OUT_PP);
         (timerHardware->output & TIMER_OUTPUT_INVERTED) ? IOHi(io) : IOLo(io);
-        dshotPinsParkedLow = true;
+        dshotPinsDisconnected = true;
     }
 #endif
 
@@ -1196,9 +1205,9 @@ void pwmCompleteMotorUpdate(void) {
     if (isMotorProtocolDshot()) {
 
 #ifdef USE_DSHOT_BIDIR
-        if (dshotPinsParkedLow) {
+        if (dshotPinsDisconnected) {
             dshotConnectOutputs();
-            dshotPinsParkedLow = false;
+            dshotPinsDisconnected = false;
         }
 #endif
 
