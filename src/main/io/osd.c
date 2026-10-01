@@ -1864,7 +1864,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #ifdef USE_BEC_VOLTAGE
     case OSD_BEC_VOLTAGE:
         strcpy(buff, "BEC");
-        if (!becIsConfigured()) {
+        if (becGetSource() == BEC_SOURCE_NONE) {
             strcpy(buff + 3, " ---");
         } else {
             osdFormatCentiNumber(buff + 3, becGetVoltage(), 0, 2, 0, 4, false);

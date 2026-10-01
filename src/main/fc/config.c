@@ -147,7 +147,7 @@ PG_RESET_TEMPLATE(beeperConfig_t, beeperConfig,
                   .pwmMode = SETTING_BEEPER_PWM_MODE_DEFAULT,
 );
 
-#ifdef USE_BEC_VOLTAGE
+#ifdef USE_BEC_VOLTAGE_ADC
 // The BEC input grows the group: a board gaining it starts again from the target's channels
 PG_REGISTER_WITH_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig, PG_ADC_CHANNEL_CONFIG, 1);
 #else
@@ -160,7 +160,7 @@ PG_RESET_TEMPLATE(adcChannelConfig_t, adcChannelConfig,
         [ADC_RSSI]      = RSSI_ADC_CHANNEL,
         [ADC_CURRENT]   = CURRENT_METER_ADC_CHANNEL,
         [ADC_AIRSPEED]  = AIRSPEED_ADC_CHANNEL,
-#ifdef USE_BEC_VOLTAGE
+#ifdef USE_BEC_VOLTAGE_ADC
         [ADC_BEC]       = BEC_ADC_CHANNEL,
 #endif
     }

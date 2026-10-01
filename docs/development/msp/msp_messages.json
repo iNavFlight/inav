@@ -6999,7 +6999,7 @@
                     {
                         "name": "becVoltage",
                         "ctype": "uint16_t",
-                        "desc": "BEC voltage (`becGetVoltage()`) on boards with a BEC input; 0xFFFF on the others, and with `bec_adc_channel` = 0",
+                        "desc": "BEC voltage (`becGetVoltage()`), measured by the board or reported by a Smart ESC; 0xFFFF when there is none",
                         "units": "0.01V"
                     }
                 ]

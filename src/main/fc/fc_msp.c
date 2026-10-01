@@ -814,7 +814,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, calculateBatteryPercentage());
         sbufWriteU16(dst, getRSSI());
 #ifdef USE_BEC_VOLTAGE
-        sbufWriteU16(dst, becIsConfigured() ? becGetVoltage() : 0xFFFF);
+        sbufWriteU16(dst, becGetSource() != BEC_SOURCE_NONE ? becGetVoltage() : 0xFFFF);
 #else
         sbufWriteU16(dst, 0xFFFF);
 #endif

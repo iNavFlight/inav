@@ -593,7 +593,7 @@ If the remaining battery capacity goes below this threshold the beeper will emit
 
 ### bec_adc_channel
 
-ADC channel measuring the BEC voltage, on the servo rail the BEC supplies. Defaults to the board's input for it. 0 = none
+ADC channel measuring the BEC voltage, on the servo rail the BEC supplies. Defaults to the board's input for it. 0 = none: the BEC voltage then comes from a Smart ESC that reports it
 
 | Default | Min | Max |
 | --- | --- | --- |

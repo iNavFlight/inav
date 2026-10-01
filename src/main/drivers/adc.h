@@ -17,7 +17,7 @@
 
 #pragma once
 
-// ADC_FUNCTION_COUNT depends on the target's USE_BEC_VOLTAGE
+// ADC_FUNCTION_COUNT depends on the target's USE_BEC_VOLTAGE_ADC
 #include "platform.h"
 
 #include "drivers/io_types.h"
@@ -27,7 +27,7 @@ typedef enum {
     ADC_RSSI = 1,
     ADC_CURRENT = 2,
     ADC_AIRSPEED = 3,
-#ifdef USE_BEC_VOLTAGE
+#ifdef USE_BEC_VOLTAGE_ADC
     ADC_BEC = 4,
 #endif
     ADC_FUNCTION_COUNT

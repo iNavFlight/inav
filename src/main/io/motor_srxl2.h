@@ -67,6 +67,7 @@ typedef enum {
     SRXL2_TELEM_FIELD_CURRENT  = (1 << 2),
     SRXL2_TELEM_FIELD_TEMP_FET = (1 << 3),
     SRXL2_TELEM_FIELD_TEMP_BEC = (1 << 4),
+    SRXL2_TELEM_FIELD_VOLTAGE_BEC = (1 << 5),
 } srxl2TelemetryField_e;
 
 /* Decoded ESC telemetry, from STRU_TELE_ESC (X-Bus sensor ID 0x20).
@@ -88,6 +89,12 @@ typedef struct {
     uint8_t  fields;            /* srxl2TelemetryField_e bits actually reported */
     bool     valid;
 } srxl2EscTelemetry_t;
+
+// Telemetry older than this reads as stale. Generous next to the link timeout on purpose:
+// the ESC rotates its reply between three sensors, so its own readings arrive about once a
+// second and a tighter window made a healthy sensor flicker. An ESC that has actually
+// stopped is caught by SRXL2_LINK_TIMEOUT_MS, which invalidates the reading anyway
+#define SRXL2_TELEM_STALE_MS        3000
 
 /*
  * ESC throttle-range calibration.

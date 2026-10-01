@@ -142,12 +142,6 @@
 // costs nothing: nobody arms that soon after connecting the battery
 #define SRXL2_READY_DELAY_MS        6500
 
-// Telemetry older than this reads as stale. Generous next to the link timeout on purpose:
-// the ESC rotates its reply between three sensors, so its own readings arrive about once a
-// second and a tighter window made a healthy sensor flicker. An ESC that has actually
-// stopped is caught by SRXL2_LINK_TIMEOUT_MS, which invalidates the reading anyway
-#define SRXL2_TELEM_STALE_MS        3000
-
 // Calibration phases end themselves: the high one has to outlast a person reaching for a
 // battery lead, the low one only the ESC's tones. Neither may persist, one is full throttle
 #define SRXL2_CAL_WAIT_TIMEOUT_MS   60000   /* time to walk over and plug the battery in */
@@ -391,7 +385,10 @@ static void srxl2DecodeEscTelemetry(srxl2Esc_t *e, const uint8_t *payload)
     if (tempFet != 0xFFFF)    { t->temperatureFet = (int16_t)tempFet; t->fields |= SRXL2_TELEM_FIELD_TEMP_FET; }
     if (tempBec != 0xFFFF)    { t->temperatureBec = (int16_t)tempBec; t->fields |= SRXL2_TELEM_FIELD_TEMP_BEC; }
     if (currentBec != 0xFF)   { t->currentBec = (uint16_t)currentBec * 10; } /* 100 mA -> 0.01 A */
-    if (voltsBec != 0xFF)     { t->voltageBec = (uint16_t)voltsBec * 5; }    /* 0.05 V -> 0.01 V */
+    if (voltsBec != 0xFF) {
+        t->voltageBec = (uint16_t)voltsBec * 5;    /* 0.05 V -> 0.01 V */
+        t->fields |= SRXL2_TELEM_FIELD_VOLTAGE_BEC;
+    }
     if (throttle != 0xFF)     { t->throttlePercent = MIN((uint8_t)(throttle / 2), 100); }
     if (powerOut != 0xFF)     { t->powerPercent = MIN((uint8_t)(powerOut / 2), 100); }
 

@@ -471,10 +471,10 @@ groups:
         min: ADC_CHN_NONE
         max: ADC_CHN_MAX
       - name: bec_adc_channel
-        description: "ADC channel measuring the BEC voltage, on the servo rail the BEC supplies. Defaults to the board's input for it. 0 = none"
+        description: "ADC channel measuring the BEC voltage, on the servo rail the BEC supplies. Defaults to the board's input for it. 0 = none: the BEC voltage then comes from a Smart ESC that reports it"
         default_value: :target
         field: adcFunctionChannel[ADC_BEC]
-        condition: USE_BEC_VOLTAGE
+        condition: USE_BEC_VOLTAGE_ADC
         min: ADC_CHN_NONE
         max: ADC_CHN_MAX
 
@@ -487,6 +487,7 @@ groups:
         description: "BEC voltage calibration value, as vbat_scale: 1100 = 11:1 voltage divider (10k:1k) x 100. Adjust it if the BEC voltage shown by \"status\" in the CLI differs from a multimeter's reading"
         default_value: :target
         field: scale
+        condition: USE_BEC_VOLTAGE_ADC
         min: 0
         max: 5000
       - name: vbec_warning_voltage

@@ -38,7 +38,14 @@ typedef struct becConfig_s {
 
 PG_DECLARE(becConfig_t, becConfig);
 
+typedef enum {
+    BEC_SOURCE_NONE,
+    BEC_SOURCE_ADC,
+    BEC_SOURCE_ESC,
+} becSource_e;
+
 bool becIsConfigured(void);
 void becUpdate(timeDelta_t timeDelta);
-uint16_t becGetVoltage(void);   // 0.01 V
+becSource_e becGetSource(void);
+uint16_t becGetVoltage(void);   // 0.01 V, while becGetSource() is not BEC_SOURCE_NONE
 bool becIsVoltageLow(void);

@@ -26,8 +26,11 @@
 #define USE_MAVLINK_MSP_TUNNEL
 #endif
 
-// The BEC voltage, on boards whose target names a BEC input
+// The BEC voltage: measured where the target names a BEC input, otherwise from a Smart ESC's telemetry
 #if defined(USE_ADC) && defined(BEC_ADC_CHANNEL)
+#define USE_BEC_VOLTAGE_ADC
+#endif
+#if defined(USE_BEC_VOLTAGE_ADC) || defined(USE_MOTOR_SRXL2)
 #define USE_BEC_VOLTAGE
 #endif
 
