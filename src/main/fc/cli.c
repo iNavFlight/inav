@@ -116,6 +116,7 @@ bool cliMode = false;
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
+#include "sensors/bec.h"
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 #include "sensors/diagnostics.h"
@@ -4145,6 +4146,25 @@ static void cliStatus(char *cmdline)
     dateTimeFormatLocal(buf, &dt);
     cliPrintLinef("Current Time: %s", buf);
     cliPrintLinef("Voltage: %d.%02dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
+#ifdef USE_BEC_VOLTAGE
+    if (becGetSource() != BEC_SOURCE_NONE) {
+        cliPrintLinef("BEC: %d.%02dV (%s)", becGetVoltage() / 100, becGetVoltage() % 100,
+            becGetSource() == BEC_SOURCE_ADC ? "board" : "ESC");
+    }
+#endif
+#ifdef USE_MOTOR_SRXL2
+    // For the test of this draft: what each Smart ESC itself reports about its BEC
+    for (uint8_t i = 0; i < srxl2MotorCount(); i++) {
+        srxl2EscTelemetry_t t;
+        if (!srxl2MotorGetTelemetry(i, &t)) {
+            cliPrintLinef("ESC %d BEC: no telemetry", i + 1);
+        } else if (t.fields & SRXL2_TELEM_FIELD_VOLTAGE_BEC) {
+            cliPrintLinef("ESC %d BEC: %d.%02dV", i + 1, t.voltageBec / 100, t.voltageBec % 100);
+        } else {
+            cliPrintLinef("ESC %d BEC: not reported", i + 1);
+        }
+    }
+#endif
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
     const uint32_t detectedSensorsMask = sensorsMask();
@@ -4241,7 +4261,13 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("I2C Errors: %d, config size: %d, max available config: %d", i2cErrorCounter, getEEPROMConfigSize(), &__config_end - &__config_start);
 #endif
 #if defined(USE_ADC) && !defined(SITL_BUILD)
-    static char * adcFunctions[] = { "BATTERY", "RSSI", "CURRENT", "AIRSPEED" };
+    static char * adcFunctions[] = {
+        "BATTERY", "RSSI", "CURRENT", "AIRSPEED",
+#ifdef USE_BEC_VOLTAGE_ADC
+        "BEC",
+#endif
+    };
+    STATIC_ASSERT(ARRAYLEN(adcFunctions) == ADC_FUNCTION_COUNT, adc_function_names);
     cliPrintLine("ADC channel usage:");
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
         cliPrintf("  %8s :", adcFunctions[i]);

@@ -35,6 +35,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#if defined(ESC_CONNECTOR_UART) && !defined(USE_MOTOR_SRXL2)
+#error "ESC_CONNECTOR_UART needs USE_MOTOR_SRXL2"
+#endif
+#if defined(ESC_CONNECTOR_UART) && !defined(STM32F7) && !defined(STM32H7)
+#error "ESC_CONNECTOR_UART needs uartSetTxPin(), which only STM32F7 and H7 have"
+#endif
+
 /*
  * One ESC per bus, several buses.
  *
@@ -60,6 +67,7 @@ typedef enum {
     SRXL2_TELEM_FIELD_CURRENT  = (1 << 2),
     SRXL2_TELEM_FIELD_TEMP_FET = (1 << 3),
     SRXL2_TELEM_FIELD_TEMP_BEC = (1 << 4),
+    SRXL2_TELEM_FIELD_VOLTAGE_BEC = (1 << 5),
 } srxl2TelemetryField_e;
 
 /* Decoded ESC telemetry, from STRU_TELE_ESC (X-Bus sensor ID 0x20).
@@ -81,6 +89,12 @@ typedef struct {
     uint8_t  fields;            /* srxl2TelemetryField_e bits actually reported */
     bool     valid;
 } srxl2EscTelemetry_t;
+
+// Telemetry older than this reads as stale. Generous next to the link timeout on purpose:
+// the ESC rotates its reply between three sensors, so its own readings arrive about once a
+// second and a tighter window made a healthy sensor flicker. An ESC that has actually
+// stopped is caught by SRXL2_LINK_TIMEOUT_MS, which invalidates the reading anyway
+#define SRXL2_TELEM_STALE_MS        3000
 
 /*
  * ESC throttle-range calibration.
@@ -144,6 +158,23 @@ srxl2CalResult_e srxl2MotorCalibrationLastResult(void);
  * no silent degradation to PWM, because the pin is not a timer output.
  */
 bool srxl2MotorInitialize(void);
+
+#ifdef ESC_CONNECTOR_UART
+#include "config/parameter_group.h"
+
+typedef struct escConnectorConfig_s {
+    uint8_t srxl2;      /* a Smart ESC on the board's ESC connector */
+} escConnectorConfig_t;
+
+PG_DECLARE(escConnectorConfig_t, escConnectorConfig);
+
+/*
+ * Whether the board's ESC connector carries a Smart ESC: chosen with esc_srxl2_connector,
+ * protocol SRXL2, and the UART behind the connector free. The motor output there then stays
+ * unused.
+ */
+bool srxl2MotorUsesEscConnector(void);
+#endif
 
 /*
  * Stage one motor value. Takes microseconds on INAV's usual 1000..2000 scale

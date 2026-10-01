@@ -40,10 +40,19 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "drivers/io.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/serial.h"
+#include "drivers/serial_uart.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
+
+#include "flight/mixer.h"
 
 #include "sensors/battery.h"
 
@@ -132,12 +141,6 @@
 // bench against the tones. Arming waits for this rather than for the handshake alone, which
 // costs nothing: nobody arms that soon after connecting the battery
 #define SRXL2_READY_DELAY_MS        6500
-
-// Telemetry older than this reads as stale. Generous next to the link timeout on purpose:
-// the ESC rotates its reply between three sensors, so its own readings arrive about once a
-// second and a tighter window made a healthy sensor flicker. An ESC that has actually
-// stopped is caught by SRXL2_LINK_TIMEOUT_MS, which invalidates the reading anyway
-#define SRXL2_TELEM_STALE_MS        3000
 
 // Calibration phases end themselves: the high one has to outlast a person reaching for a
 // battery lead, the low one only the ESC's tones. Neither may persist, one is full throttle
@@ -382,7 +385,10 @@ static void srxl2DecodeEscTelemetry(srxl2Esc_t *e, const uint8_t *payload)
     if (tempFet != 0xFFFF)    { t->temperatureFet = (int16_t)tempFet; t->fields |= SRXL2_TELEM_FIELD_TEMP_FET; }
     if (tempBec != 0xFFFF)    { t->temperatureBec = (int16_t)tempBec; t->fields |= SRXL2_TELEM_FIELD_TEMP_BEC; }
     if (currentBec != 0xFF)   { t->currentBec = (uint16_t)currentBec * 10; } /* 100 mA -> 0.01 A */
-    if (voltsBec != 0xFF)     { t->voltageBec = (uint16_t)voltsBec * 5; }    /* 0.05 V -> 0.01 V */
+    if (voltsBec != 0xFF) {
+        t->voltageBec = (uint16_t)voltsBec * 5;    /* 0.05 V -> 0.01 V */
+        t->fields |= SRXL2_TELEM_FIELD_VOLTAGE_BEC;
+    }
     if (throttle != 0xFF)     { t->throttlePercent = MIN((uint8_t)(throttle / 2), 100); }
     if (powerOut != 0xFF)     { t->powerPercent = MIN((uint8_t)(powerOut / 2), 100); }
 
@@ -595,41 +601,73 @@ static void srxl2SendControlData(srxl2Esc_t *e)
  * Public API
  *-------------------------------------------------------------------------*/
 
+#ifdef ESC_CONNECTOR_UART
+// PA11/PA12 are USB D-/D+: a connector there would take the USB down
+STATIC_ASSERT(DEFIO_TAG_E(ESC_CONNECTOR_PIN) != DEFIO_TAG_E(PA11)
+              && DEFIO_TAG_E(ESC_CONNECTOR_PIN) != DEFIO_TAG_E(PA12), esc_connector_on_usb_pins);
+
+PG_REGISTER_WITH_RESET_TEMPLATE(escConnectorConfig_t, escConnectorConfig, PG_ESC_CONNECTOR_CONFIG, 0);
+
+PG_RESET_TEMPLATE(escConnectorConfig_t, escConnectorConfig,
+    .srxl2 = SETTING_ESC_SRXL2_CONNECTOR_DEFAULT,
+);
+
+bool srxl2MotorUsesEscConnector(void)
+{
+    const serialPortConfig_t *connector = serialFindPortConfiguration(ESC_CONNECTOR_UART);
+    return escConnectorConfig()->srxl2
+        && motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2
+        && connector && connector->functionMask == FUNCTION_NONE;
+}
+#endif
+
+static void srxl2AddEsc(serialPortIdentifier_e identifier)
+{
+    serialPort_t *port = openSerialPort(identifier, FUNCTION_ESC_SRXL2,
+                                        NULL, NULL, SRXL2_BAUD_LOW, MODE_RXTX,
+                                        SRXL2_PORT_OPTIONS);
+    if (!port) {
+        return;
+    }
+    srxl2Esc_t *e = &esc[escCount++];
+
+    e->port = port;
+
+    /* Every channel starts at its lowest value rather than zero, so the
+     * first frame after a handshake cannot be read as something
+     * unexpected whichever index the ESC happens to care about. */
+    for (uint8_t ch = 0; ch < SRXL2_CHANNEL_COUNT; ch++) {
+        e->channelValue[ch] = srxl2UsToValue(1000);
+    }
+    srxl2BuildChannelMask(e);
+
+    const timeMs_t now = millis();
+    e->lastRxMs = now;
+    e->lastTxMs = now;
+    e->lastControlMs = now;
+
+    srxl2SetState(e, SRXL2_LISTENING);
+}
+
 bool srxl2MotorInitialize(void)
 {
     memset(esc, 0, sizeof(esc));
     escCount = 0;
 
+#ifdef ESC_CONNECTOR_UART
+    if (srxl2MotorUsesEscConnector()) {
+        uartSetTxPin((UARTDevice_e)(ESC_CONNECTOR_UART - SERIAL_PORT_USART1), IO_TAG(ESC_CONNECTOR_PIN));
+        srxl2AddEsc(ESC_CONNECTOR_UART);
+    }
+#endif
+
     // One ESC per port, so open every port assigned the function. The enumeration follows
-    // UART order, so motor 1 is the lowest-numbered assigned UART: nothing on an SRXL2 bus
-    // says which motor an ESC drives, so the wiring order has to carry it
+    // UART order, so the lowest-numbered assigned UART is the first motor after the connector:
+    // nothing on an SRXL2 bus says which motor an ESC drives, so the wiring order has to carry it
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_ESC_SRXL2);
 
     while (portConfig && escCount < SRXL2_ESC_MAX_MOTORS) {
-        serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_ESC_SRXL2,
-                                            NULL, NULL, SRXL2_BAUD_LOW, MODE_RXTX,
-                                            SRXL2_PORT_OPTIONS);
-        if (port) {
-            srxl2Esc_t *e = &esc[escCount++];
-
-            e->port = port;
-
-            /* Every channel starts at its lowest value rather than zero, so the
-             * first frame after a handshake cannot be read as something
-             * unexpected whichever index the ESC happens to care about. */
-            for (uint8_t ch = 0; ch < SRXL2_CHANNEL_COUNT; ch++) {
-                e->channelValue[ch] = srxl2UsToValue(1000);
-            }
-            srxl2BuildChannelMask(e);
-
-            const timeMs_t now = millis();
-            e->lastRxMs = now;
-            e->lastTxMs = now;
-            e->lastControlMs = now;
-
-            srxl2SetState(e, SRXL2_LISTENING);
-        }
-
+        srxl2AddEsc(portConfig->identifier);
         portConfig = findNextSerialPortConfig(FUNCTION_ESC_SRXL2);
     }
 
