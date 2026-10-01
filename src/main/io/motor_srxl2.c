@@ -217,6 +217,8 @@ typedef struct {
     timeMs_t  lastTxMs;
     timeMs_t  lastControlMs;
     timeMs_t  runningSinceMs;           /* link up or last announcement, for SRXL2_READY_DELAY_MS */
+    timeMs_t  gapStartMs;               /* our last frame before a gap of ours, and the first after it, */
+    timeMs_t  gapEndMs;                 /* to tell why the ESC announced itself */
     timeMs_t  lastKeepaliveMs;          /* last handshake answered to a running ESC */
     uint32_t  channelMask;
 
@@ -429,9 +431,16 @@ static void srxl2HandleHandshake(srxl2Esc_t *e, const uint8_t *buf)
     // since it comes back at 115200 and the link timeout drops us to POLLING to find it
     if (e->state == SRXL2_FINALISING || e->state == SRXL2_RUNNING) {
         if (e->state == SRXL2_RUNNING && e->deviceId == src) {
-            // It announces itself only after losing its power or its frames, and one that was
-            // still starting begins again, so its startup is counted from here
-            e->runningSinceMs = millis();
+            // It announces itself only after losing its power or its frames. Fed all along, it lost its
+            // power and starts over; answering a gap of ours, which it can do after our frames are
+            // back, it starts over only if it was still starting when the gap began
+            const timeMs_t now = millis();
+            const bool inGap = now - e->lastControlMs >= SRXL2_STARVED_MS;
+            const bool fed = !inGap && now - e->gapEndMs >= SRXL2_LINK_TIMEOUT_MS;
+            const timeMs_t gapStartMs = inGap ? e->lastControlMs : e->gapStartMs;
+            if (fed || (timeDelta_t)(gapStartMs - e->runningSinceMs) < SRXL2_READY_DELAY_MS) {
+                e->runningSinceMs = now;
+            }
         }
         /* Still answer a running ESC, so it knows the master is there - but say
          * nothing mid-negotiation, where another broadcast is what causes the
@@ -930,7 +939,12 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
     case SRXL2_RUNNING:
         if (now - e->lastControlMs >= SRXL2_CONTROL_INTERVAL_MS) {
             if (now - e->lastControlMs >= SRXL2_STARVED_MS) {
-                e->runningSinceMs = now;
+                // Judged when the frames stopped: still starting then, it starts over however long the gap
+                if ((timeDelta_t)(e->lastControlMs - e->runningSinceMs) < SRXL2_READY_DELAY_MS) {
+                    e->runningSinceMs = now;
+                }
+                e->gapStartMs = e->lastControlMs;
+                e->gapEndMs = now;
             }
             e->lastControlMs = now;
             srxl2SendControlData(e);
