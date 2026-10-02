@@ -160,9 +160,7 @@ static void w25n_performOneByteCommand(uint8_t command)
 
 static void w25n_performCommandWithPageAddress(uint8_t command, uint32_t pageAddress)
 {
-    // The 2Gbit devices have 2048 blocks of 64 pages, so their page address needs 17 bits.
-    // Its most significant bit is the lowest bit of the first address byte, which is a don't
-    // care on the 1Gbit W25N01GV where the page address never exceeds 16 bits.
+    // 2Gbit parts take a 17-bit page address; on the W25N01GV this byte is a dummy and stays zero
     uint8_t cmd[4] = { command, (pageAddress >> 16) & 0xff, (pageAddress >> 8) & 0xff, (pageAddress >> 0) & 0xff};
     busTransfer(busDev, NULL, cmd, sizeof(cmd));
 }
