@@ -52,6 +52,29 @@
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
+static escFrameCounter_t escSensorFrames[MAX_SUPPORTED_MOTORS];
+static timeMs_t         escFrameWindowStartMs;
+
+escFrameCounter_t * escSensorFrameCounter(uint8_t esc)
+{
+    return &escSensorFrames[esc];
+}
+
+void escSensorFrameWindowUpdate(timeMs_t currentTimeMs)
+{
+    if (currentTimeMs - escFrameWindowStartMs < ESC_FRAME_WINDOW_MS) {
+        return;
+    }
+
+    escFrameWindowStartMs = currentTimeMs;
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        escFrameCounter_t *counter = &escSensorFrames[i];
+        counter->lastWindowTotal = counter->total;
+        counter->lastWindowSuccess = counter->total ? (uint32_t)counter->valid * 100 / counter->total : 0;
+        counter->total = 0;
+        counter->valid = 0;
+    }
+}
 
 #if defined(USE_ESC_SENSOR)
 
@@ -79,11 +102,8 @@ static int              escSensorMotor;
 static uint8_t          telemetryBuffer[TELEMETRY_FRAME_SIZE];
 static int              bufferPosition = 0;
 static escSensorData_t  escSensorData[MAX_SUPPORTED_MOTORS];
-static escFrameCounter_t escSensorFrames[MAX_SUPPORTED_MOTORS];
-static timeMs_t         escFrameWindowStartMs;
 static escSensorData_t  escSensorDataCombined;
 static bool             escSensorDataNeedsUpdate;
-static bool             escSensorDshotActive;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 1);
 PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
@@ -160,11 +180,6 @@ uint32_t computeRpm(int16_t erpm) {
 escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
 {
     return &escSensorData[esc];
-}
-
-const escFrameCounter_t * escSensorGetFrameCounter(uint8_t esc)
-{
-    return &escSensorFrames[esc];
 }
 
 void escSensorInitData(void)
@@ -255,7 +270,6 @@ bool escSensorInitialize(void)
 {
     escSensorDataNeedsUpdate = true;
     escSensorPort = NULL;
-    escSensorDshotActive = false;
 
     // Fail immediately if motor output are disabled or motor outputs are not configured
     if (!feature(FEATURE_PWM_OUTPUT_ENABLE) || getMotorCount() == 0) {
@@ -291,7 +305,6 @@ bool escSensorInitialize(void)
 #ifdef USE_DSHOT_BIDIR
     // Telemetry on the motor line: fed by the motor driver, no port to open
     if (isDshotTelemetryActive()) {
-        escSensorDshotActive = true;
         ENABLE_STATE(ESC_SENSOR_ENABLED);
         return true;
     }
@@ -317,7 +330,7 @@ bool escSensorInitialize(void)
 void escSensorUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_DSHOT_BIDIR
-    if (escSensorDshotActive) {
+    if (isDshotTelemetryActive()) {
         // The motor driver refreshes the data with every decoded frame. Age it at the serial
         // poll rate, so a silent ESC drops out of the combined values the same way (the serial
         // poll timer doubles as the aging clock, nothing polls here)
@@ -389,12 +402,7 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 
     const timeMs_t currentTimeMs = currentTimeUs / 1000;
 
-    if (currentTimeMs - escFrameWindowStartMs >= ESC_FRAME_WINDOW_MS) {
-        escFrameWindowStartMs = currentTimeMs;
-        for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-            escFrameCounterCloseWindow(&escSensorFrames[i]);
-        }
-    }
+    escSensorFrameWindowUpdate(currentTimeMs);
 
     switch (escSensorState) {
         case ESC_SENSOR_WAIT_STARTUP:

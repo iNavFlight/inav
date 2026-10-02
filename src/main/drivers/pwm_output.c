@@ -487,24 +487,23 @@ static uint8_t getBurstDmaTimerIndex(TIM_TypeDef *timer)
 #endif
 
 #ifdef USE_DSHOT_BIDIR
+// The CC1..CC4 DMA request bits sit next to each other in DIER on every supported MCU
 static uint32_t dshotDmaSource(const pwmOutputPort_t *port)
 {
 #if defined(USE_HAL_DRIVER) || !defined(AT32F43x)
-    static const uint32_t sources[] = { TIM_DMA_CC1, TIM_DMA_CC2, TIM_DMA_CC3, TIM_DMA_CC4 };
+    STATIC_ASSERT(TIM_DMA_CC2 == TIM_DMA_CC1 << 1 && TIM_DMA_CC4 == TIM_DMA_CC1 << 3, tim_dma_cc_bits_adjacent);
+    return TIM_DMA_CC1 << port->tch->timHw->channelIndex;
 #else
-    static const uint32_t sources[] = { TMR_C1_DMA_REQUEST, TMR_C2_DMA_REQUEST, TMR_C3_DMA_REQUEST, TMR_C4_DMA_REQUEST };
+    STATIC_ASSERT(TMR_C2_DMA_REQUEST == TMR_C1_DMA_REQUEST << 1 && TMR_C4_DMA_REQUEST == TMR_C1_DMA_REQUEST << 3, tmr_dma_request_bits_adjacent);
+    return TMR_C1_DMA_REQUEST << port->tch->timHw->channelIndex;
 #endif
-    return sources[port->tch->timHw->channelIndex];
 }
 
 #if defined(USE_HAL_DRIVER)
 static uint32_t dshotDmaStream(const pwmOutputPort_t *port)
 {
-    static const uint32_t streams[] = {
-        LL_DMA_STREAM_0, LL_DMA_STREAM_1, LL_DMA_STREAM_2, LL_DMA_STREAM_3,
-        LL_DMA_STREAM_4, LL_DMA_STREAM_5, LL_DMA_STREAM_6, LL_DMA_STREAM_7
-    };
-    return streams[DMATAG_GET_STREAM(port->tch->timHw->dmaTag)];
+    STATIC_ASSERT(LL_DMA_STREAM_0 == 0 && LL_DMA_STREAM_7 == 7, ll_dma_stream_is_index);
+    return DMATAG_GET_STREAM(port->tch->timHw->dmaTag);
 }
 
 // The LL driver only exposes per-channel LL_TIM_{En,Dis}ableDMAReq_CC1..CC4;
@@ -520,16 +519,19 @@ static inline void LL_TIM_DisableDMAReq_CCx(TIM_TypeDef *TIMx, uint16_t dmaSourc
 }
 #endif
 
+// The channel identifiers are evenly spaced, so channelIndex maps onto them linearly
 static uint32_t dshotTimChannel(const pwmOutputPort_t *port)
 {
 #if defined(USE_HAL_DRIVER)
-    static const uint32_t channels[] = { TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4 };
+    STATIC_ASSERT(TIM_CHANNEL_4 == TIM_CHANNEL_1 + 3 * (TIM_CHANNEL_2 - TIM_CHANNEL_1), tim_channel_ids_linear);
+    return TIM_CHANNEL_1 + port->tch->timHw->channelIndex * (TIM_CHANNEL_2 - TIM_CHANNEL_1);
 #elif defined(AT32F43x)
-    static const uint32_t channels[] = { TMR_SELECT_CHANNEL_1, TMR_SELECT_CHANNEL_2, TMR_SELECT_CHANNEL_3, TMR_SELECT_CHANNEL_4 };
+    STATIC_ASSERT(TMR_SELECT_CHANNEL_4 == TMR_SELECT_CHANNEL_1 + 3 * (TMR_SELECT_CHANNEL_2 - TMR_SELECT_CHANNEL_1), tmr_channel_ids_linear);
+    return TMR_SELECT_CHANNEL_1 + port->tch->timHw->channelIndex * (TMR_SELECT_CHANNEL_2 - TMR_SELECT_CHANNEL_1);
 #else
-    static const uint32_t channels[] = { TIM_Channel_1, TIM_Channel_2, TIM_Channel_3, TIM_Channel_4 };
+    STATIC_ASSERT(TIM_Channel_4 == TIM_Channel_1 + 3 * (TIM_Channel_2 - TIM_Channel_1), tim_channel_ids_linear);
+    return TIM_Channel_1 + port->tch->timHw->channelIndex * (TIM_Channel_2 - TIM_Channel_1);
 #endif
-    return channels[port->tch->timHw->channelIndex];
 }
 
 static uint16_t dshotDecodeTelemetryPacket(const uint32_t buffer[], uint32_t count)
@@ -928,12 +930,7 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
         // Too few edges is no reply at all
         uint16_t rawValue = DSHOT_TELEMETRY_NOEDGE;
         if (edges > MIN_GCR_EDGES) {
-#if defined(STM32H7)
-            // Defensive: DMA_RAM is mapped non-cacheable by the MPU, so this is a no-op as
-            // long as the port buffers stay there
-            uint32_t alignedAddr = (uint32_t)port->dmaBuffer & ~0x1F;
-            SCB_InvalidateDCache_by_Addr((uint32_t *)alignedAddr, edges * sizeof(port->dmaBuffer[0]) + ((uint32_t)port->dmaBuffer - alignedAddr));
-#endif
+            // No cache maintenance: pwmOutputPorts is DMA_RAM, which the H7 MPU maps non-cacheable
             rawValue = dshotDecodeTelemetryPacket((const uint32_t *)port->dmaBuffer, edges);
         }
 
@@ -1190,7 +1187,7 @@ void pwmCompleteMotorUpdate(void) {
 
 #ifdef USE_DSHOT_BIDIR
     if (useDshotTelemetry) {
-        dshotFrameWindowUpdate(currentTimeUs);
+        escSensorFrameWindowUpdate(currentTimeUs / 1000);
     }
 #endif
 

@@ -34,25 +34,18 @@ typedef struct {
 
 #define ESC_FRAME_WINDOW_MS 1000
 
-// Telemetry link quality of one ESC over fixed back-to-back windows. total counts every reply
-// expected (serial: a missing one too; bidir DSHOT: only replies with edges, as in Betaflight),
-// valid those that decoded. The last closed window is kept, so
-// the reported value moves once per window; lastWindowTotal == 0 means nothing was expected
-// (boot, other telemetry source) and lastWindowSuccess is meaningless then
+// Telemetry link quality of one ESC over fixed back-to-back windows, shared by the serial
+// ESC sensor and bidirectional DSHOT (only one source is ever active). total counts every
+// reply expected (serial: a missing one too; bidir DSHOT: only replies with edges, as in
+// Betaflight), valid those that decoded. The last closed window is kept, so the reported
+// value moves once per window; lastWindowTotal == 0 means nothing was expected (boot, a
+// source without frame counting such as SRXL2) and lastWindowSuccess is meaningless then
 typedef struct {
     uint16_t total;
     uint16_t valid;
     uint16_t lastWindowTotal;
     uint8_t  lastWindowSuccess;     // percent
 } escFrameCounter_t;
-
-static inline void escFrameCounterCloseWindow(escFrameCounter_t *counter)
-{
-    counter->lastWindowTotal = counter->total;
-    counter->lastWindowSuccess = counter->total ? (uint32_t)counter->valid * 100 / counter->total : 0;
-    counter->total = 0;
-    counter->valid = 0;
-}
 
 typedef struct escSensorConfig_s {
     uint16_t currentOffset;             // offset consumed by the flight controller / VTX / cam / ... in mA
@@ -69,7 +62,10 @@ bool escSensorInitialize(void);
 void escSensorUpdate(timeUs_t currentTimeUs);
 escSensorData_t * escSensorGetData(void);
 escSensorData_t * getEscTelemetry(uint8_t esc);
-const escFrameCounter_t * escSensorGetFrameCounter(uint8_t esc);
+escFrameCounter_t * escSensorFrameCounter(uint8_t esc);
+// Closes the counting window of every ESC once ESC_FRAME_WINDOW_MS have passed; the active
+// source calls it from wherever it runs regularly
+void escSensorFrameWindowUpdate(timeMs_t currentTimeMs);
 uint32_t computeRpm(int16_t erpm);
 void escSensorInitData(void);
 void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16_t voltage, int32_t current);

@@ -52,31 +52,13 @@ typedef enum {
 #define DSHOT_NORMAL_TELEMETRY_MASK     (1 << DSHOT_TELEMETRY_TYPE_ERPM)
 #define DSHOT_EXTENDED_TELEMETRY_MASK   (~DSHOT_NORMAL_TELEMETRY_MASK)
 
-typedef struct {
-    uint16_t rawValue;
-    uint16_t telemetryData[DSHOT_TELEMETRY_TYPE_COUNT];
-    uint8_t telemetryTypes;
-    uint8_t maxTemp;
-    escFrameCounter_t frames;
-} dshotTelemetryMotorState_t;
-
-typedef struct {
-    dshotTelemetryMotorState_t motorState[MAX_SUPPORTED_MOTORS];
-} dshotTelemetryState_t;
-
 #ifdef USE_DSHOT_BIDIR
 extern bool useDshotTelemetry;
-extern dshotTelemetryState_t dshotTelemetryState;
 
 void initDshotTelemetry(void);
-void dshotResetTelemetry(void);
-bool isDshotTelemetryConfigured(void);
 bool isDshotTelemetryActive(void);
 uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex);
-void dshotFrameWindowUpdate(timeUs_t currentTimeUs);
 float getDshotRpm(uint8_t motorIndex);
-uint16_t getDshotErpm(uint8_t motorIndex);
-float getDshotRpmAverage(void);
 // Mechanical frequency from the last decoded eRPM frame, unfiltered (see bidir_dshot.c)
 float getMotorFrequencyHz(uint8_t motorIndex);
 bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex);

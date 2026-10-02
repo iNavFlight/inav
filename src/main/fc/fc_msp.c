@@ -1967,17 +1967,14 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
             // own per-motor RPM, so it works on targets without USE_ESC_SENSOR too
             for (uint8_t i = 0; i < motorCount; i++){
                 uint32_t rpm;
-                const escFrameCounter_t *frames = NULL;
 #ifdef USE_DSHOT_BIDIR
                 if (isDshotTelemetryActive()) {
                     rpm = lrintf(getDshotRpm(i));
-                    frames = &dshotTelemetryState.motorState[i].frames;
                 } else
 #endif
                 {
 #ifdef USE_ESC_SENSOR
                     rpm = getEscTelemetry(i)->rpm;
-                    frames = escSensorGetFrameCounter(i);
 #else
                     rpm = 0;
 #endif
@@ -1985,7 +1982,8 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU32(dst, rpm);
                 // Link quality of the last closed window; 255 when no reply was expected in it
                 // (boot, no telemetry source, a source without frame counting such as SRXL2)
-                const bool framesKnown = frames && frames->lastWindowTotal > 0;
+                const escFrameCounter_t *frames = escSensorFrameCounter(i);
+                const bool framesKnown = frames->lastWindowTotal > 0;
                 sbufWriteU8(dst, framesKnown ? frames->lastWindowSuccess : 255);
                 sbufWriteU16(dst, framesKnown ? frames->lastWindowTotal : 0);
             }

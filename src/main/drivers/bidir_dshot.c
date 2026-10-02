@@ -19,12 +19,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <float.h>
 #include <math.h>
-#include <string.h>
 
 #include "platform.h"
-#include "common/utils.h"
 #include "drivers/bidir_dshot.h"
 
 // Bidirectional DSHOT telemetry only: eRPM / EDT decoding, RPM state for the RPM filter and
@@ -37,36 +34,21 @@
 
 #ifdef USE_DSHOT_BIDIR
 
-#include "common/maths.h"
-
 #include "flight/mixer.h"
-#include "drivers/pwm_mapping.h"
+
+// Only eRPM, temperature, voltage and current are kept; the EDT debug and status frames
+// have no consumer and just mark their type as seen
+#define DSHOT_TELEMETRY_STORED_TYPE_COUNT (DSHOT_TELEMETRY_TYPE_CURRENT + 1)
+
+typedef struct {
+    uint16_t telemetryData[DSHOT_TELEMETRY_STORED_TYPE_COUNT];
+    uint8_t telemetryTypes;     // bit per dshotTelemetryType_e seen since boot
+} dshotTelemetryMotorState_t;
 
 bool useDshotTelemetry = false;
-dshotTelemetryState_t dshotTelemetryState;
 
-static float motorFrequencyHz[MAX_SUPPORTED_MOTORS];
-static float dshotRpm[MAX_SUPPORTED_MOTORS];
-static float dshotRpmAverage;
+static dshotTelemetryMotorState_t motorTelemetry[MAX_SUPPORTED_MOTORS];
 static float erpmToHz;
-static bool edtAlwaysDecode;
-static timeUs_t frameWindowStartUs;
-
-static const dshotTelemetryType_e extendedTelemetryLookup[8] = {
-    DSHOT_TELEMETRY_TYPE_ERPM,
-    DSHOT_TELEMETRY_TYPE_TEMPERATURE,
-    DSHOT_TELEMETRY_TYPE_VOLTAGE,
-    DSHOT_TELEMETRY_TYPE_CURRENT,
-    DSHOT_TELEMETRY_TYPE_DEBUG1,
-    DSHOT_TELEMETRY_TYPE_DEBUG2,
-    DSHOT_TELEMETRY_TYPE_DEBUG3,
-    DSHOT_TELEMETRY_TYPE_STATE_EVENTS,
-};
-
-static float erpmToRpm(uint32_t erpm)
-{
-    return erpm * erpmToHz * 60.0f;
-}
 
 static uint32_t dshotDecodeErpmTelemetryValue(uint16_t value)
 {
@@ -82,10 +64,9 @@ static uint32_t dshotDecodeErpmTelemetryValue(uint16_t value)
     return (1000000 * 60 / 100 + value / 2) / value;
 }
 
-static void dshotDecodeTelemetryValue(uint8_t motorIndex, uint32_t *decoded, dshotTelemetryType_e *type)
+static void dshotDecodeTelemetryValue(uint16_t value, uint8_t motorIndex, uint32_t *decoded, dshotTelemetryType_e *type)
 {
-    const uint16_t value = dshotTelemetryState.motorState[motorIndex].rawValue;
-    const bool edtEnabled = edtAlwaysDecode || (dshotTelemetryState.motorState[motorIndex].telemetryTypes & DSHOT_EXTENDED_TELEMETRY_MASK) != 0;
+    const bool edtEnabled = motorConfig()->useDshotEdt || (motorTelemetry[motorIndex].telemetryTypes & DSHOT_EXTENDED_TELEMETRY_MASK) != 0;
     const unsigned telemetryType = (value & 0x0f00) >> 8;
     const bool isErpm = !edtEnabled || (telemetryType & 0x01) || (telemetryType == 0);
 
@@ -93,23 +74,10 @@ static void dshotDecodeTelemetryValue(uint8_t motorIndex, uint32_t *decoded, dsh
         *decoded = dshotDecodeErpmTelemetryValue(value);
         *type = DSHOT_TELEMETRY_TYPE_ERPM;
     } else {
-        const unsigned typeIndex = telemetryType >> 1;
-        *type = typeIndex < ARRAYLEN(extendedTelemetryLookup) ? extendedTelemetryLookup[typeIndex] : DSHOT_TELEMETRY_TYPE_STATE_EVENTS;
+        // EDT frame types 2, 4, ... 14 are the enum values 1..7 in order
+        *type = telemetryType >> 1;
         *decoded = value & 0x00ff;
     }
-}
-
-void dshotResetTelemetry(void)
-{
-    memset(&dshotTelemetryState, 0, sizeof(dshotTelemetryState));
-    memset(dshotRpm, 0, sizeof(dshotRpm));
-    memset(motorFrequencyHz, 0, sizeof(motorFrequencyHz));
-    dshotRpmAverage = 0.0f;
-}
-
-bool isDshotTelemetryConfigured(void)
-{
-    return useDshotTelemetry;
 }
 
 bool isDshotTelemetryActive(void)
@@ -121,10 +89,6 @@ bool isDshotTelemetryActive(void)
 // knows whether the outputs were configured for DSHOT at all
 void initDshotTelemetry(void)
 {
-    edtAlwaysDecode = motorConfig()->useDshotEdt != 0;
-
-    dshotResetTelemetry();
-
     if (!useDshotTelemetry) {
         return;
     }
@@ -144,78 +108,38 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
         return rawValue;
     }
 
-    dshotTelemetryState.motorState[motorIndex].frames.total++;
+    escFrameCounter_t *frames = escSensorFrameCounter(motorIndex);
+    frames->total++;
 
     if (rawValue == DSHOT_TELEMETRY_INVALID) {
         return rawValue;
     }
 
-    dshotTelemetryState.motorState[motorIndex].rawValue = rawValue;
-
     dshotTelemetryType_e type;
     uint32_t decoded;
-    dshotDecodeTelemetryValue(motorIndex, &decoded, &type);
+    dshotDecodeTelemetryValue(rawValue, motorIndex, &decoded, &type);
     if (decoded == DSHOT_TELEMETRY_INVALID) {
         return DSHOT_TELEMETRY_INVALID;
     }
 
-    dshotTelemetryState.motorState[motorIndex].frames.valid++;
+    frames->valid++;
 
-    dshotTelemetryState.motorState[motorIndex].telemetryData[type] = decoded;
-    dshotTelemetryState.motorState[motorIndex].telemetryTypes |= (1 << type);
-
-    if (type == DSHOT_TELEMETRY_TYPE_TEMPERATURE && decoded > dshotTelemetryState.motorState[motorIndex].maxTemp) {
-        dshotTelemetryState.motorState[motorIndex].maxTemp = decoded;
+    motorTelemetry[motorIndex].telemetryTypes |= (1 << type);
+    if (type < DSHOT_TELEMETRY_STORED_TYPE_COUNT) {
+        motorTelemetry[motorIndex].telemetryData[type] = decoded;
     }
-
-    if (type == DSHOT_TELEMETRY_TYPE_ERPM) {
-        dshotRpm[motorIndex] = erpmToRpm(decoded);
-        motorFrequencyHz[motorIndex] = erpmToHz * decoded;
-    }
-
-    float rpmTotal = 0.0f;
-    int rpmCount = 0;
-    for (unsigned i = 0; i < getMotorCount(); i++) {
-        if (dshotTelemetryState.motorState[i].telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_ERPM)) {
-            rpmTotal += dshotRpm[i];
-            rpmCount++;
-        }
-    }
-    dshotRpmAverage = rpmCount ? rpmTotal / rpmCount : 0.0f;
 
     return rawValue;
 }
 
-void dshotFrameWindowUpdate(timeUs_t currentTimeUs)
+float getMotorFrequencyHz(uint8_t motorIndex)
 {
-    if (currentTimeUs - frameWindowStartUs < ESC_FRAME_WINDOW_MS * 1000) {
-        return;
-    }
-
-    frameWindowStartUs = currentTimeUs;
-    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        escFrameCounterCloseWindow(&dshotTelemetryState.motorState[i].frames);
-    }
-}
-
-uint16_t getDshotErpm(uint8_t motorIndex)
-{
-    return dshotTelemetryState.motorState[motorIndex].telemetryData[DSHOT_TELEMETRY_TYPE_ERPM];
+    return motorTelemetry[motorIndex].telemetryData[DSHOT_TELEMETRY_TYPE_ERPM] * erpmToHz;
 }
 
 float getDshotRpm(uint8_t motorIndex)
 {
-    return dshotRpm[motorIndex];
-}
-
-float getDshotRpmAverage(void)
-{
-    return dshotRpmAverage;
-}
-
-float getMotorFrequencyHz(uint8_t motorIndex)
-{
-    return motorFrequencyHz[motorIndex];
+    return getMotorFrequencyHz(motorIndex) * 60.0f;
 }
 
 bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex)
@@ -224,14 +148,14 @@ bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex)
         return false;
     }
 
-    const dshotTelemetryMotorState_t *state = &dshotTelemetryState.motorState[motorIndex];
+    const dshotTelemetryMotorState_t *state = &motorTelemetry[motorIndex];
     if ((state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_ERPM)) == 0) {
         return false;
     }
 
     // escSensorData_t units: rpm (mechanical), degrees C, 0.01 V, 0.01 A. EDT reports
     // the temperature in degrees C, the voltage in 0.25 V and the current in 1 A steps.
-    data->rpm = lrintf(dshotRpm[motorIndex]);
+    data->rpm = lrintf(getDshotRpm(motorIndex));
     data->temperature = (state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_TEMPERATURE)) ? state->telemetryData[DSHOT_TELEMETRY_TYPE_TEMPERATURE] : 0;
     data->voltage = (state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_VOLTAGE)) ? state->telemetryData[DSHOT_TELEMETRY_TYPE_VOLTAGE] * 25 : 0;
     data->current = (state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_CURRENT)) ? state->telemetryData[DSHOT_TELEMETRY_TYPE_CURRENT] * 100 : 0;
