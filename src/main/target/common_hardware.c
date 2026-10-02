@@ -183,8 +183,7 @@
     #if defined(DPS310_I2C_ADDR)
     BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310_0,     DPS310_I2C_BUS,     DPS310_I2C_ADDR,    NONE,           DEVFLAGS_NONE, 0);
     #else
-    // The DPS310 answers on 0x77 when SDO is pulled high and on 0x76 when it is pulled low.
-    // Both wirings are in use, so register both and let the driver probe them
+    // SDO low selects 0x76, SDO high 0x77; boards ship with both, so the driver probes both
     BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310_0,     DPS310_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
     BUSDEV_REGISTER_I2C(busdev_dps310_1,    DEVHW_DPS310_1,     DPS310_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE, 0);
     #endif
