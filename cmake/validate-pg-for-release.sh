@@ -20,6 +20,8 @@
 #   0 - Validation passed
 #   1 - Validation failed (size changed without version increment)
 #   2 - Build or setup error
+#   3 - Validation passed, but the reference database differs from the one
+#       committed at HEAD: commit it before the freeze/tag (re-run to confirm)
 #
 
 set -euo pipefail
@@ -47,7 +49,8 @@ echo ""
 # Current struct sizes: from a prebuilt list, or built from the reference target
 TEMP_CURRENT=$(mktemp)
 BASELINE_DB=$(mktemp)
-trap 'rm -f "$TEMP_CURRENT" "$BASELINE_DB"' EXIT
+NEW_DB=$(mktemp)
+trap 'rm -f "$TEMP_CURRENT" "$BASELINE_DB" "$NEW_DB"' EXIT
 if [ -n "$CURRENT_FILE" ]; then
     cp "$CURRENT_FILE" "$TEMP_CURRENT"
 else
@@ -226,17 +229,29 @@ if [ $FAILED -eq 1 ]; then
     exit 1
 fi
 
-# Record the validated sizes so the next release tag carries them as its baseline.
-# Structs no longer in the build are dropped; structs without a known version are not recorded.
-# A --current-file run is a test and leaves the database alone.
-if [ -z "$CURRENT_FILE" ]; then
-    sort -u "$TEMP_CURRENT" | while read -r struct_type size version; do
-        [[ "$version" =~ ^[0-9]+$ ]] || continue
-        printf "%-30s %3s %s\n" "$struct_type" "$size" "$version"
-    done > "$DB_FILE"
-    echo "📝 Updated $DB_PATH_IN_REPO with the validated sizes"
+# The release tag must carry the validated sizes, because the next release
+# validates against this database as committed at that tag. Structs no longer in
+# the build are dropped; structs without a known version are not recorded.
+sort -u "$TEMP_CURRENT" | while read -r struct_type size version; do
+    [[ "$version" =~ ^[0-9]+$ ]] || continue
+    printf "%-30s %3s %s\n" "$struct_type" "$size" "$version"
+done > "$NEW_DB"
+
+# Line order is not significant, so compare sorted.
+if ! git show "HEAD:$DB_PATH_IN_REPO" 2>/dev/null | sort | cmp -s - "$NEW_DB"; then
+    # A --current-file run is a test and leaves the working copy alone.
+    [ -z "$CURRENT_FILE" ] && cp "$NEW_DB" "$DB_FILE"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
+    echo "⚠️  PG sizes validated, but $DB_PATH_IN_REPO differs from the committed copy"
+    echo ""
+    echo "Commit the updated database BEFORE the freeze/tag, then re-run this script."
+    echo "Otherwise the next release will validate against a stale baseline."
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 3
 fi
+echo "✓ $DB_PATH_IN_REPO is up to date"
 echo ""
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
