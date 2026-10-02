@@ -313,12 +313,10 @@ bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
     return true;
 }
 
-// Functions that are resolved with findSerialPortConfig() and therefore only ever use the
-// first port they are assigned to. Assigning one of them to a second port has no effect at
-// all, so the configuration layer refuses it instead of ignoring it silently.
+// Only the first port carrying one of these is ever opened (findSerialPortConfig)
 #define SERIAL_SINGLE_PORT_FUNCTIONS (FUNCTION_SERVO_SERIAL)
 
-uint32_t serialDuplicatedSinglePortFunctions(const serialPortConfig_t *portConfigToCheck)
+uint32_t serialGetDuplicatedSinglePortFunctions(const serialPortConfig_t *portConfigToCheck)
 {
     uint32_t functionMaskOfOtherPorts = 0;
 
