@@ -201,6 +201,9 @@ Here are the OSD Elements provided by INAV.
 | 166 | OSD_NAV_FW_ALT_CONTROL_RESPONSE                  | 8.0.0  |       |
 | 167 | OSD_NAV_MIN_GROUND_SPEED                         | 9.0.0  |       |
 | 168 | OSD_THROTTLE_GAUGE                               | 9.0.0  |       |
+| 172 | OSD_CONTROL_PROFILE_NAME                         | 10.0.0 |       |
+| 173 | OSD_BATTERY_PROFILE_NAME                         | 10.0.0 |       |
+| 174 | OSD_MIXER_PROFILE_NAME                           | 10.0.0 |       |
 
 # Pilot Logos
 
@@ -265,3 +268,19 @@ There are a couple of settings that allow you to adjust parts of the post flight
 - `osd_stats_page_auto_swap_time` allows you to specify how long each stats page is displayed [seconds]. Reverts to manual control when Roll stick used to change pages. Disabled when set to 0.
 - `osd_stats_energy_unit` allows you to choose the unit used for the drawn energy in the OSD stats [MAH/WH] (milliAmpere hour/ Watt hour). Default is MAH.
 - `osd_stats_show_metric_efficiency` if you use non-metric units on your OSD. Enabling this option will also show the efficiency in metric.
+
+When upgrading from the immediately preceding unnamed control, battery and mixer
+profile layouts on the same target, existing fields in every profile slot are
+migrated and the appended names start empty. Other storage versions or record
+sizes retain the normal reset behavior. This does not migrate OSD layout matrices;
+the OSD layout version change still resets those layouts.
+
+Profile-name elements occupy 12 characters, padded with spaces so a shorter name
+or an unnamed slot clears the previous text. They are rendered by the INAV OSD
+(including MSP DisplayPort).
+The legacy native DJI MSP telemetry OSD does not expose these elements: its
+Betaflight rate/PID/profile-name slots do not represent INAV control, battery and
+mixer profiles, and this feature does not add a native DJI name payload. Use
+MSP DisplayPort where supported to display the INAV profile-name elements.
+CLI dumps quote and escape profile names so spaces, `#`, quotes and backslashes
+are preserved when restoring them.

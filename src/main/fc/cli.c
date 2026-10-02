@@ -73,6 +73,7 @@ bool cliMode = false;
 #include "drivers/vtx_common.h"
 #include "fc/fc_core.h"
 #include "fc/cli.h"
+#include "fc/cli_string.h"
 #include "fc/config.h"
 #include "fc/control_profile.h"
 #include "fc/rc_adjustments.h"
@@ -565,16 +566,20 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
         settingGetName(value, name);
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
-            // if the craftname has a leading space, then enclose the name in quotes
-            if (strcmp(name, "name") == 0 && ((const char *)defaultValuePointer)[0] == ' ') {
-                cliPrintf("\"%s\"", (const char *)defaultValuePointer);
+            // Quoted string dumps preserve leading and trailing spaces on restore.
+            if (SETTING_TYPE(value) == VAR_STRING) {
+                cliWriteQuotedString(defaultValuePointer, cliWrite);
             } else {
                 printValuePointer(value, defaultValuePointer, 0);
             }
             cliPrintLinefeed();
         }
         cliPrintf(format, name);
-        printValuePointer(value, valuePointer, 0);
+        if (SETTING_TYPE(value) == VAR_STRING) {
+            cliWriteQuotedString(valuePointer, cliWrite);
+        } else {
+            printValuePointer(value, valuePointer, 0);
+        }
         cliPrintLinefeed();
     }
 }
@@ -4037,12 +4042,9 @@ static void cliSet(char *cmdline)
                 if (type == VAR_STRING) {
                     // Convert strings to uppercase. Lower case is not supported by the OSD.
                     sl_toupperptr(eqptr);
-                    // if setting the craftname, remove any quotes around the name.  This allows leading spaces in the name
-                    if ((strcmp(name, "name") == 0 || strcmp(name, "pilot_name") == 0) && (eqptr[0] == '"' && eqptr[strlen(eqptr)-1] == '"')) {
-                        settingSetString(val, eqptr + 1, strlen(eqptr)-2);
-                    } else {
-                        settingSetString(val, eqptr, strlen(eqptr));
-                    }
+                    // All string settings accept the quoting emitted by dump/diff.
+                    cliUnquoteString(eqptr);
+                    settingSetString(val, eqptr, strlen(eqptr));
                     return;
                 }
                 const setting_mode_e mode = SETTING_MODE(val);
@@ -5247,12 +5249,8 @@ void cliProcess(void)
             // enter pressed
             cliPrintLinefeed();
 
-            // Strip comment starting with # from line
-            char *p = cliBuffer;
-            p = strchr(p, '#');
-            if (NULL != p) {
-                bufferIndex = (uint32_t)(p - cliBuffer);
-            }
+            // A # inside a quoted string belongs to the setting value.
+            bufferIndex = cliUncommentedLength(cliBuffer, bufferIndex);
 
             // Strip trailing whitespace
             while (bufferIndex > 0 && cliBuffer[bufferIndex - 1] == ' ') {

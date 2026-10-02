@@ -17,12 +17,35 @@
 
 #include "io/osd_utils.h"
 
+#include <string.h>
+
+#include "common/string_light.h"
+#include "config/profile_name.h"
+
 #include "common/maths.h"
 #include "common/typeconversion.h"
 #include "drivers/osd_symbols.h"
 #include "io/displayport_msp_dji_compat.h"
 
 #if defined(USE_OSD) || defined(OSD_UNIT_TEST)
+
+// Rewrite the complete field so a shorter name cannot leave the old suffix.
+void osdFormatProfileName(char *buff, const char *name, char symbol, uint8_t slot)
+{
+    unsigned length = 0;
+    if (name[0] == '\0') {
+        buff[0] = symbol;
+        ui2a(slot, 10, 0, buff + 1);
+        length = strlen(buff);
+    } else {
+        while (length < MAX_PROFILE_NAME_LENGTH && name[length]) {
+            buff[length] = sl_toupper((unsigned char)name[length]);
+            length++;
+        }
+    }
+    memset(buff + length, ' ', MAX_PROFILE_NAME_LENGTH - length);
+    buff[MAX_PROFILE_NAME_LENGTH] = '\0';
+}
 
 int digitCount(int32_t value)
 {
