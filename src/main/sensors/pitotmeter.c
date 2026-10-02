@@ -463,9 +463,9 @@ static bool isPitotAirspeedValid(void)
     bool ret = false;
     ret = pitotIsHealthy() && pitotIsCalibrationComplete();
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
-    // For virtual pitot, we need GPS fix and valid wind estimate
+    // For virtual pitot, we need GPS fix, current GPS velocity and a valid wind estimate
     if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
-        return ret && STATE(GPS_FIX) && isEstimatedWindSpeedValid();
+        return ret && STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD && isEstimatedWindSpeedValid();
     }
 #endif
     // For hardware pitot sensors, validate readings against GPS when armed
