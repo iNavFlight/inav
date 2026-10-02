@@ -85,6 +85,15 @@
 // rather than overflows, but sbufWrite*() is not bounds-checked in general, so
 // re-audit the handlers in fc_msp.c before shrinking this.
 #define MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE 768
+
+typedef struct mavlinkTunnelPendingReply_s {
+    mspEncodedFrame_t frame; // payload points into the shared tunnelReplyPayloadBuf, so one reply at a time
+    uint16_t offset;
+    uint8_t portIndex;
+    uint8_t targetSystem;
+    uint8_t targetComponent;
+    timeMs_t lastProgressMs;
+} mavlinkTunnelPendingReply_t;
 #endif
 #define MAVLINK_MISSION_UPLOAD_RETRY_MS 1500
 #define MAVLINK_MISSION_UPLOAD_MAX_RETRIES 5
@@ -102,6 +111,7 @@ typedef struct mavlinkContext_s {
     uint8_t tunnelRemoteSystemIds[MAX_MAVLINK_PORTS];
     uint8_t tunnelRemoteComponentIds[MAX_MAVLINK_PORTS];
     uint8_t tunnelReplyPayloadBuf[MAVLINK_TUNNEL_MSP_REPLY_BUF_SIZE];
+    mavlinkTunnelPendingReply_t tunnelPendingReply;
 #endif
     uint8_t sendMask;
     mavlinkPortRuntime_t *activePort;
@@ -133,6 +143,7 @@ extern mavlinkContext_t mavlinkContext;
 #define mavTunnelRemoteSystemIds (mavlinkContext.tunnelRemoteSystemIds)
 #define mavTunnelRemoteComponentIds (mavlinkContext.tunnelRemoteComponentIds)
 #define mavTunnelReplyPayloadBuf (mavlinkContext.tunnelReplyPayloadBuf)
+#define mavTunnelPendingReply (mavlinkContext.tunnelPendingReply)
 #endif
 #define mavSendMask (mavlinkContext.sendMask)
 #define mavActivePort (mavlinkContext.activePort)

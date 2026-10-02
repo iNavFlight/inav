@@ -68,8 +68,14 @@
 
 /*
  *      X-axis = North/Forward
- *      Y-axis = East/Right
+ *      Y-axis = West        (note: not East -- see the -y flips in
+ *                            imuTransformVectorBodyToEarth(), wind_estimator.c,
+ *                            gps.c and pid.c that convert this to NEU/NED)
  *      Z-axis = Up
+ *
+ *      So the raw earth frame produced by rMat is (North, West, Up) and is
+ *      left-handed. Negating Y gives NEU; negating Y and Z gives NED. Consumers
+ *      differ, so check the convention at each boundary rather than assuming.
  */
 
 // the limit (in degrees/second) beyond which we stop integrating
@@ -729,13 +735,13 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     if (isGPSTrustworthy()) {
         // second choice is gps
         static bool lastGPSHeartbeat;
-        static float GPS3DspeedFiltered = 0.0f;
+        static float GPS3Dspeed = 0.0f;
         if (gpsSol.flags.gpsHeartbeat != lastGPSHeartbeat) {
             lastGPSHeartbeat = gpsSol.flags.gpsHeartbeat;
-            float GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
-            GPS3DspeedFiltered = pt1FilterApply3(&GPS3DspeedFilter, GPS3Dspeed, dT);
+            GPS3Dspeed = calc_length_pythagorean_3D(gpsSol.velNED[X], gpsSol.velNED[Y], gpsSol.velNED[Z]);
         }
-        currentspeed = GPS3DspeedFiltered;
+        // Filter every loop: dT is the IMU loop time, not the GPS interval
+        currentspeed = pt1FilterApply3(&GPS3DspeedFilter, GPS3Dspeed, dT);
         *acc_ignore_slope_multipiler = 4.0f;
     }
     else
@@ -781,7 +787,11 @@ void imuUpdateTailSitter(void)
 static RP2350_FAST_CODE void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(USE_MAG)
-    const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy();
+    // Raw mag samples are not offset/gain corrected while a calibration spin is in
+    // progress (see compass.c) - fusing them would let mag hard-iron bias leak into
+    // the yaw estimate, which is also the attitude reference the calibration spin's
+    // own orientation-detection step depends on being bias-free.
+    const bool canUseMAG = sensors(SENSOR_MAG) && compassIsHealthy() && !compassIsCalibrating();
 #else
     const bool canUseMAG = false;
 #endif

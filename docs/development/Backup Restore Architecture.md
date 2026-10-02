@@ -32,6 +32,7 @@ User → Firmware Flasher Tab → STM32.connect(onCliReady) → CLI mode
 | `js/migration/migration_handler.js` | Version migration engine — profile chaining, line transformation |
 | `js/migration/7_to_8.json` | Migration profile: INAV 7.x → 8.0 |
 | `js/migration/8_to_9.json` | Migration profile: INAV 8.0 → 9.0 |
+| `js/migration/9_to_10.json` | Migration profile: INAV 9.x → 10.0 |
 | `tabs/firmware_flasher.js` | Flash integration — auto-backup trigger, restore UI, version gating |
 | `tabs/firmware_flasher.html` | Overlays and buttons for backup/restore/migration UI |
 | `src/css/tabs/firmware_flasher.css` | Overlay styles |
@@ -42,17 +43,17 @@ User → Firmware Flasher Tab → STM32.connect(onCliReady) → CLI mode
 
 ## Adding a New Migration Profile
 
-When a new major INAV version is released (e.g. 9.x → 10.x), create a migration profile:
+When a new major INAV version is released (e.g. 10.x → 11.x), create a migration profile:
 
 ### Step 1: Create the JSON profile
 
-Create `js/migration/9_to_10.json`:
+Create `js/migration/10_to_11.json`:
 
 ```json
 {
-    "fromVersion": "9",
-    "toVersion": "10",
-    "description": "INAV 9.x → 10.0 migration profile",
+    "fromVersion": "10",
+    "toVersion": "11",
+    "description": "INAV 10.x → 11.0 migration profile",
 
     "commandRenames": {
         "old_command_name": "new_command_name"
@@ -92,16 +93,19 @@ Create `js/migration/9_to_10.json`:
 In `js/migration/migration_handler.js`, add the import and append to the array:
 
 ```javascript
-import profile_9_to_10 from './9_to_10.json';
+import profile_10_to_11 from './10_to_11.json';
 
 const MIGRATION_PROFILES = [
     profile_7_to_8,
     profile_8_to_9,
-    profile_9_to_10,   // ← add here
+    profile_9_to_10,
+    profile_10_to_11,   // ← add here
 ];
 ```
 
-The migration engine automatically chains profiles. A 7.x → 10.x upgrade will apply all three profiles in sequence (7→8, 8→9, 9→10).
+The migration engine automatically chains profiles. A 7.x → 11.x upgrade will apply all four profiles in sequence (7→8, 8→9, 9→10, 10→11).
+
+A profile is selected by major version only, so it must cover every minor release of the source major (a `9_to_10` profile handles backups from 9.0 and 9.1). Compare against the first release of the old major, not the last.
 
 ### How to determine what goes into a migration profile
 
@@ -155,6 +159,17 @@ Key INAV source files to check:
 | **Removed settings** | None |
 | **Pattern mappings** | None |
 | **Warnings** | Position estimator defaults changed (`w_z_baro_v`, `inav_w_z_gps_p`, `inav_w_z_gps_v`). `ahrs_acc_ignore_rate` default changed 20→15 |
+
+### 9_to_10.json (INAV 9.x → 10.0)
+
+| Category | Changes |
+|----------|---------|
+| **Command renames** | None (`ledpinpwm` → `piniopwm` is a runtime command, never dumped) |
+| **Setting renames** | `mavlink_ext_status_rate`, `mavlink_extra1_rate`, `mavlink_extra2_rate`, `mavlink_extra3_rate`, `mavlink_min_txbuffer`, `mavlink_pos_rate`, `mavlink_rc_chan_rate`, `mavlink_radio_type` → `mavlink_port1_*`; `nav_fw_wp_turn_smoothing` → `nav_fw_wp_turn_mode` |
+| **Value replacements** | `nav_fw_wp_turn_smoothing`: `OFF` → `DIRECT`, `ON` → `COORD_FLYBY`, `ON-CUT` → `COORD_FLYBY` |
+| **Removed settings** | `led_pin_pwm_mode`, `frsky_use_legacy_gps_mode_sensor_ids`, `servo_autotrim_iterm_rate_limit` |
+| **Pattern mappings** | None — all enum/ID tables behind dumped lines only gained appended entries |
+| **Warnings** | GPS defaults changed (`gps_ublox_nav_hz` 10→8, Galileo/BeiDou ON). `pinio_box1..4` defaults NONE → USER1..4. LED pin PWM replaced by PINIO PWM (logic operation 52 now takes the channel from operand B). Backups taken on 9.0.0: special LED colours (`mode_color 6 …`) shifted to index 7 in 9.1.0 |
 
 ## Migration Engine Internals
 

@@ -49,6 +49,7 @@
 #define WINDESTIMATOR_SPIKE_FILTER_ADJ_FACTOR   50       // good for wind speeds up to 30 m/s
 
 static bool hasValidWindEstimate = false;
+// Z axis: NEU
 static float estimatedWind[XYZ_AXIS_COUNT] = {0, 0, 0};    // wind velocity vectors in cm / sec in earth frame
 static float lastGroundVelocity[XYZ_AXIS_COUNT];
 static float lastFuselageDirection[XYZ_AXIS_COUNT];
@@ -133,11 +134,13 @@ void updateWindEstimator(timeMs_t currentTimeMs)
     // Get current 3D velocity from GPS in cm/s relative to earth frame
     groundVelocity[X] = posEstimator.gps.vel.x;
     groundVelocity[Y] = posEstimator.gps.vel.y;
+    // Z axis: NEU
     groundVelocity[Z] = posEstimator.gps.vel.z;
 
     // Fuselage direction in earth frame (radians)
     fuselageDirection[X] = HeadVecEFFiltered.x;
     fuselageDirection[Y] = -HeadVecEFFiltered.y;
+    // Z axis: NEU (HeadVecEFFiltered.z is up-positive, matching groundVelocity[Z])
     fuselageDirection[Z] = HeadVecEFFiltered.z;
 
     // scrap our data and start over if we're taking too long (> 10s) to get a direction change
@@ -188,6 +191,7 @@ void updateWindEstimator(timeMs_t currentTimeMs)
         float wind[XYZ_AXIS_COUNT];
         wind[X] = (groundVelocitySum[X] - V * (costheta * fuselageDirectionSum[X] - sintheta * fuselageDirectionSum[Y])) * 0.5f;    // equation 10
         wind[Y] = (groundVelocitySum[Y] - V * (sintheta * fuselageDirectionSum[X] + costheta * fuselageDirectionSum[Y])) * 0.5f;    // equation 11
+        // Z axis: NEU
         wind[Z] = (groundVelocitySum[Z] - V * fuselageDirectionSum[Z]) * 0.5f;  // equation 12
 
         /* Spike filter used to filter out large spikes that can occur in the raw wind calcs.

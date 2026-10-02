@@ -468,9 +468,6 @@ def writeTargetH(folder, map):
             # TODO: add more drivers
             suppored_flash_chips = [
                 'M25P16',
-                'W25M',
-                'W25M02G',
-                'W25M512',
                 'W25N01G',
                 'W25N02K',
             ]
