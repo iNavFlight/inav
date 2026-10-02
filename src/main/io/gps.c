@@ -133,7 +133,7 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 6);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 7);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = SETTING_GPS_PROVIDER_DEFAULT,
@@ -145,6 +145,7 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT,
     .ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT,
     .ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT,
+    .ubloxAssistNowAutonomous = SETTING_GPS_UBLOX_ASSISTNOW_AUTONOMOUS_DEFAULT,
     .ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT,
     .autoBaudMax = SETTING_GPS_AUTO_BAUD_MAX_SUPPORTED_DEFAULT
 );
