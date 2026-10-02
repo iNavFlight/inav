@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 1
+        "patch": 2
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -9847,13 +9847,25 @@
                         "ctype": "uint32_t",
                         "desc": "RPM reported by the ESC",
                         "units": "RPM"
+                    },
+                    {
+                        "name": "frameSuccess",
+                        "ctype": "uint8_t",
+                        "desc": "Share of telemetry replies decoded in the last closed window. 255 when no reply was expected in that window",
+                        "units": "%"
+                    },
+                    {
+                        "name": "frameTotal",
+                        "ctype": "uint16_t",
+                        "desc": "Telemetry replies expected in the last closed window, missing ones included",
+                        "units": "frames"
                     }
                 ],
                 "repeating": "getMotorCount()"
             },
             "variable_len": "getMotorCount()",
-            "notes": "Requires `USE_ESC_SENSOR`. Payload size depends on the number of detected motors with telemetry.",
-            "description": "Retrieves the RPM reported by each ESC via telemetry."
+            "notes": "Requires `USE_ESC_SENSOR` or `USE_DSHOT_BIDIR`. 7 bytes per motor, `getMotorCount()` entries. Source follows the RPM filter: bidirectional DSHOT when `isDshotTelemetryActive()`, serial ESC telemetry otherwise. The frame statistics come from fixed back-to-back windows of `ESC_FRAME_WINDOW_MS` (1 s), so they change once per window. A reply counts as missing when the ESC stays silent, fails CRC/GCR decoding or (serial) times out. Sources without frame counting (SRXL2) always report 255 / 0.",
+            "description": "Retrieves the RPM and telemetry link quality reported by each ESC."
         },
         "MSP2_INAV_ESC_TELEM": {
             "code": 8257,

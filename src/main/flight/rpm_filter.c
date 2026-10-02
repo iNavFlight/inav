@@ -22,6 +22,8 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include <math.h>
+
 #include "platform.h"
 
 #include "flight/rpm_filter.h"
@@ -36,13 +38,13 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "flight/mixer.h"
+#include "drivers/bidir_dshot.h"
 #include "sensors/esc_sensor.h"
 #include "fc/config.h"
 #include "fc/settings.h"
 
 #ifdef USE_RPM_FILTER
 
-#define HZ_TO_RPM 1/60.0f
 #define RPM_FILTER_RPM_LPF_HZ 150
 #define RPM_FILTER_HARMONICS 3
 
@@ -159,8 +161,7 @@ void rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequ
 
 void rpmFiltersInit(void)
 {
-    for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++)
-    {
+    for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, US2S(RPM_FILTER_UPDATE_RATE_US));
     }
 
@@ -184,14 +185,32 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
 
     uint8_t motorCount = getMotorCount();
     /*
-     * For each motor, read ERPM, filter it and update motor frequency
+     * For each motor, read its frequency, filter it and update the notches. Both sources
+     * hand over their latest raw value; the LPF runs here, at this task's fixed rate, so its
+     * cutoff does not depend on how often new frames happened to arrive
      */
     for (uint8_t i = 0; i < motorCount; i++)
     {
-        const escSensorData_t *escState = getEscTelemetry(i); //Get ESC telemetry
-        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], escState->rpm * HZ_TO_RPM); //Filter motor frequency
-
+        float motorFrequency;
+#ifdef USE_DSHOT_BIDIR
+        if (isDshotTelemetryActive()) {
+            motorFrequency = getMotorFrequencyHz(i);
+        } else
+#endif
+        {
+#ifdef USE_ESC_SENSOR
+            motorFrequency = (float)getEscTelemetry(i)->rpm / 60.0f;
+#else
+            motorFrequency = 0.0f;
+#endif
+        }
+        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], motorFrequency);
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
+
+        // Per-motor RPM as the notch sees it (after the LPF); blackbox has no per-motor field
+        if (i < DEBUG32_VALUE_COUNT) {
+            DEBUG_SET(DEBUG_RPM_FILTER, i, lrintf(baseFrequency * 60.0f));
+        }
     }
 }
 
