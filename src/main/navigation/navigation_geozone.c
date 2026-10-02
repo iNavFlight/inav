@@ -1608,14 +1608,14 @@ static void geoZoneInit(void)
 {
     activeGeoZonesCount = 0;
     configIsInvalid = false;
-    uint8_t expectedVertices = 0, configuredVertices = 0;
+    uint16_t expectedVertices = 0;
     for (uint8_t i = 0; i < MAX_GEOZONES_IN_CONFIG; i++)
     {
         if (geoZonesConfig(i)->vertexCount > 0) {
-            // activeGeoZones is packed, zones without vertices are skipped, so the config index i is not the runtime index
+            // Zones without vertices are skipped, so the packed index differs from the config index
             geoZoneRuntimeConfig_t *zone = &activeGeoZones[activeGeoZonesCount];
 
-            memcpy(&zone->config, geoZonesConfig(i), sizeof(geoZoneConfig_t));
+            zone->config = *geoZonesConfig(i);
             zone->radius = 0;
             zone->verticesLocal = NULL;
 
@@ -1646,7 +1646,12 @@ static void geoZoneInit(void)
         expectedVertices += geoZonesConfig(i)->vertexCount;
     }
     
-    if (activeGeoZonesCount > 0) {
+    // A record count can't tell a duplicate plus a missing vertex from a complete set, so track every slot
+    uint32_t slotSeen[(MAX_VERTICES_IN_CONFIG + 31) / 32] = { 0 };
+    // More declared vertices than storage slots can't be complete, and their offsets would run past verticesLocal
+    bool verticesAreComplete = expectedVertices <= MAX_VERTICES_IN_CONFIG;
+
+    if (activeGeoZonesCount > 0 && verticesAreComplete) {
         // Covert geozone vertices to local
         for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++)  {
             gpsLocation_t vertexLoc;
@@ -1654,9 +1659,6 @@ static void geoZoneInit(void)
 
             const int8_t zoneId = geoZoneVertices(i)->zoneId;
             if (zoneId >= 0 && zoneId < MAX_GEOZONES_IN_CONFIG && geoZoneVertices(i)->idx < geoZonesConfig(zoneId)->vertexCount) {
-                configuredVertices++;
-
-                // Map the config zone id onto the packed runtime index and onto the start of the zones vertices
                 uint8_t zoneIdx = 0, vertexIdx = 0;
                 for (uint8_t j = 0; j < zoneId; j++) {
                     if (geoZonesConfig(j)->vertexCount > 0) {
@@ -1664,6 +1666,12 @@ static void geoZoneInit(void)
                         zoneIdx++;
                     }
                 }
+                vertexIdx += geoZoneVertices(i)->idx;
+
+                if (slotSeen[vertexIdx / 32] & (1U << (vertexIdx % 32))) {
+                    verticesAreComplete = false;
+                }
+                slotSeen[vertexIdx / 32] |= 1U << (vertexIdx % 32);
 
                 if (geoZonesConfig(zoneId)->shape == GEOZONE_SHAPE_CIRCULAR && geoZoneVertices(i)->idx == 1) {
                     activeGeoZones[zoneIdx].radius = geoZoneVertices(i)->lat;
@@ -1675,8 +1683,6 @@ static void geoZoneInit(void)
                 vertexLoc.lon = geoZoneVertices(i)->lon;
                 geoConvertGeodeticToLocal(&posLocal3, &posControl.gpsOrigin, &vertexLoc, GEO_ALT_ABSOLUTE);
 
-                vertexIdx += geoZoneVertices(i)->idx;
-
                 verticesLocal[vertexIdx].x = posLocal3.x;
                 verticesLocal[vertexIdx].y = posLocal3.y;
 
@@ -1685,6 +1691,20 @@ static void geoZoneInit(void)
                 }
             }
         }
+    }
+
+    for (uint8_t i = 0; i < expectedVertices && verticesAreComplete; i++) {
+        verticesAreComplete = (slotSeen[i / 32] & (1U << (i % 32))) != 0;
+    }
+
+    // Fences with missing or duplicate vertices can't be enforced, block arming instead of silently flying without them
+    if (!verticesAreComplete) {
+        configIsInvalid = true;
+        // Zones without vertices must not reach isInGeozone(), e.g. from geozoneUpdateMaxHomeAltitude()
+        activeGeoZonesCount = 0;
+        setTaskEnabled(TASK_GEOZONE, false);
+        geozoneIsEnabled = false;
+        return;
     }
 
     if (geoZoneConfig()->nearestSafeHomeAsInclusivZone && posControl.safehomeState.index >= 0)
@@ -1700,22 +1720,6 @@ static void geoZoneInit(void)
         activeGeoZones[activeGeoZonesCount].verticesLocal = (fpVector2_t*)&posControl.safehomeState.nearestSafeHome;
         activeGeoZones[activeGeoZonesCount].radius = navConfig()->general.safehome_max_distance;
         activeGeoZonesCount++;
-        expectedVertices++;
-        configuredVertices++;
-    }
-
-    // Vertices are missing or do not belong to any zone, the fences can not be reconstructed.
-    // Report this instead of taking off with an incomplete set of zones.
-    bool verticesAreComplete = expectedVertices == configuredVertices;
-    for (uint8_t i = 0; i < activeGeoZonesCount && verticesAreComplete; i++) {
-        verticesAreComplete = activeGeoZones[i].verticesLocal != NULL;
-    }
-
-    if (!verticesAreComplete) {
-        configIsInvalid = true;
-        setTaskEnabled(TASK_GEOZONE, false);
-        geozoneIsEnabled = false;
-        return;
     }
 
     updateCurrentZones();
