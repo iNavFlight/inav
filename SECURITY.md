@@ -1,32 +1,16 @@
 # Security Policy
 
-INAV uses a single, organisation-wide security policy for all of its
-repositories.
-
-**Please report security vulnerabilities privately — never through public
-GitHub issues, pull requests, or Discord.**
-
-- **GitHub (preferred, where enabled):** on this repository's **Security** tab,
-  use **Report a vulnerability** if that button is shown.
-- **Email (always works):** security@inavflight.com
-
-https://github.com/iNavFlight/inav/.github/blob/main/SECURITY.md
+**Please report security vulnerabilities _privately_ via the [INAV Discord Server](https://discord.gg/peg2hhbYwN).**
 
 ## Supported Versions
 
-The firmware uses semantic versioning, `MAJOR.MINOR.PATCH` (for example
-`9.1.0` or `10.0.0-RC1`).
-
-We provide security support for the **most recent major release**. Security fixes
+INAV firmware uses semantic (`MAJOR.MINOR.PATCH`) versioning, i.e., `9.1.0` or `10.0.0-RC1`.  We provide security support for the **most recent major release**. Security fixes
 are made on `master` and backported to each supported series as point releases.
 
-| Firmware series          | Security support                             |
-| ------------------------ | -------------------------------------------- |
-| `9.1.x`                  | ✅ Supported                                  |
-| `9.0.x`                  | ✅ Supported                                  |
-| `8.x.x` and older        | ❌ Not supported                              |
+| Version                   | Security support                             |
+| ------------------------- | -------------------------------------------- |
+| `9.1.x`                   | ✅ Supported                                 |
+| `9.0.x`                   | ✅ Supported                                 |
+| `8.x.x` and older         | ❌ Not supported                             |
 
-Older releases are no longer maintained; users should upgrade to a supported release.
-
-See the [organisation-wide policy](https://github.com/iNavFlight/inav/.github/blob/main/SECURITY.md#supported-versions)
-for the full support rule.
+Older releases are no longer maintained -- users requiring INAV firmware with upstream security support must upgrade to a supported release.
