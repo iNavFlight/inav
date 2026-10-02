@@ -332,8 +332,17 @@ static bool deviceDetect(busDevice_t * busDev)
         delay(100);
 
         bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
+        if (!ack) {
+            // A failed transfer may be a bus glitch the I2C driver has just recovered from
+            ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
+        }
 
-        if (ack && (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID)) {
+        // Still no answer: nothing on this address, so the 100 ms retries would only delay the boot
+        if (!ack) {
+            return false;
+        }
+
+        if (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID) {
             return true;
         }
     };
@@ -343,18 +352,22 @@ static bool deviceDetect(busDevice_t * busDev)
 
 bool baroDPS310Detect(baroDev_t *baro)
 {
-    baro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_DPS310, 0, OWNER_BARO);
-    if (baro->busDev == NULL) {
-        return false;
+    bool detected = false;
+
+    for (uint8_t index = 0; index < 2 && !detected; index++) {
+        baro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_DPS310_0 + index, 0, OWNER_BARO);
+        if (baro->busDev == NULL) {
+            continue;
+        }
+
+        if (deviceDetect(baro->busDev) && deviceConfigure(baro->busDev)) {
+            detected = true;
+        } else {
+            busDeviceDeInit(baro->busDev);
+        }
     }
 
-    if (!deviceDetect(baro->busDev)) {
-        busDeviceDeInit(baro->busDev);
-        return false;
-    }
-
-    if (!deviceConfigure(baro->busDev)) {
-        busDeviceDeInit(baro->busDev);
+    if (!detected) {
         return false;
     }
 
