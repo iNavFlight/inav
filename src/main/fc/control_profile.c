@@ -33,7 +33,7 @@
 
 const controlConfig_t *currentControlProfile;
 
-PG_REGISTER_ARRAY_WITH_RESET_FN(controlConfig_t, MAX_CONTROL_PROFILE_COUNT, controlProfiles, PG_CONTROL_PROFILES, 0);
+PG_REGISTER_ARRAY_WITH_RESET_FN(controlConfig_t, MAX_CONTROL_PROFILE_COUNT, controlProfiles, PG_CONTROL_PROFILES, 1);
 
 void pgResetFn_controlProfiles(controlConfig_t *instance)
 {
