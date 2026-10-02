@@ -458,6 +458,11 @@ bool pitotHasFailed(void)
     return pitotHardwareFailed;
 }
 
+static bool isGpsVelocityUsable(void)
+{
+    return STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
+}
+
 static bool isPitotAirspeedValid(void)
 {
     bool ret = false;
@@ -465,7 +470,7 @@ static bool isPitotAirspeedValid(void)
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
     // For virtual pitot, we need GPS fix, current GPS velocity and a valid wind estimate
     if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
-        return ret && STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD && isEstimatedWindSpeedValid();
+        return ret && isGpsVelocityUsable() && isEstimatedWindSpeedValid();
     }
 #endif
     // For hardware pitot sensors, validate readings against GPS when armed
@@ -507,9 +512,9 @@ static bool isPitotAirspeedValid(void)
             pitotRecoveryCounter = 0;
         }
 
-        // If pitot has failed sanity checks, require GPS fix (like virtual pitot)
+        // A failed pitot is only usable through the GPS-based virtual airspeed, never its own reading
         if (pitotHardwareFailed) {
-            ret = ret && STATE(GPS_FIX);
+            ret = ret && isGpsVelocityUsable() && getVirtualAirspeedEstimate() > 0.0f;
         }
     }
 

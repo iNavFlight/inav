@@ -195,6 +195,9 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
 set_property(SOURCE pitotmeter_virtual_validity_unittest.cc PROPERTY depends "sensors/pitotmeter.c" "common/maths.c" "common/filter.c" "common/calibration.c" "common/lulu.c")
 set_property(SOURCE pitotmeter_virtual_validity_unittest.cc PROPERTY definitions USE_PITOT USE_PITOT_VIRTUAL USE_WIND_ESTIMATOR USE_GPS)
 
+set_property(SOURCE pitotmeter_failed_hw_validity_unittest.cc PROPERTY depends "sensors/pitotmeter.c" "common/maths.c" "common/filter.c" "common/calibration.c" "common/lulu.c")
+set_property(SOURCE pitotmeter_failed_hw_validity_unittest.cc PROPERTY definitions USE_PITOT USE_PITOT_VIRTUAL USE_WIND_ESTIMATOR USE_GPS)
+
 set_property(SOURCE servos_swap_roll_yaw_unittest.cc PROPERTY depends
     "flight/servos.c" "common/maths.c" "common/filter.c" "common/lulu.c" "programming/logic_condition.c")
 
