@@ -116,7 +116,7 @@ static void dlvr_calculate(pitotDev_t * pitot, float *pressure, float *temperatu
 
     // result must fit inside the max pressure range
     if ((dP_inchH2O > RANGE_INCH_H2O) || (dP_inchH2O < -RANGE_INCH_H2O)) {
-        LOG_DEBUG( PITOT,"DLVR: Out of range. pressure = %f", (double)(dP_inchH2O) );
+        LOG_DEBUG( PITOT,"DLVR: Out of range. pressure = %d/1000 inH2O", (int)(dP_inchH2O * 1000.0f) );
         return;
     }
 
