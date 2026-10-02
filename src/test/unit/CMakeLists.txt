@@ -38,6 +38,9 @@ set_property(SOURCE sensor_gyro_unittest.cc PROPERTY depends
 set_property(SOURCE telemetry_hott_unittest.cc PROPERTY depends
     "telemetry/hott.c" "common/gps_conversion.c" "common/string_light.c")
 
+set_property(SOURCE telemetry_msp_shared_unittest.cc PROPERTY depends
+    "telemetry/msp_shared.c" "common/streambuf.c")
+
 set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
 set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")

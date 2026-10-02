@@ -243,7 +243,7 @@ bool sendMspReply(uint8_t payloadSize, mspResponseFnPtr responseFn)
     const uint8_t payloadBytesRemaining = sbufBytesRemaining(payloadBuf);
     uint8_t frame[payloadBytesRemaining];
 
-    if (bufferBytesRemaining > payloadBytesRemaining) { // frame is filled up and more data is left for the next one
+    if (bufferBytesRemaining >= payloadBytesRemaining) {
 
         sbufReadData(txBuf, frame, payloadBytesRemaining);
         sbufAdvance(txBuf, payloadBytesRemaining);
