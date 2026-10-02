@@ -132,12 +132,15 @@ function(add_clean_target name)
         ${generated_dir}/${SETTINGS_GENERATED_H}
         ${generated_dir}/${SETTINGS_GENERATED_C})
     foreach(exe ${args_EXECUTABLES})
-        list(APPEND paths $<TARGET_FILE:${exe}>)
+        # Literal paths: a target generator expression here would make clean_<name> build ${exe} first
+        get_target_property(output_dir ${exe} RUNTIME_OUTPUT_DIRECTORY)
+        set(exe_file ${output_dir}/${exe}${CMAKE_EXECUTABLE_SUFFIX})
+        list(APPEND paths ${exe_file})
         # Same name as the map file added by generate_map_file()
         if(CMAKE_VERSION VERSION_LESS 3.15)
-            list(APPEND paths $<TARGET_FILE:${exe}>.map)
+            list(APPEND paths ${exe_file}.map)
         else()
-            list(APPEND paths $<TARGET_FILE_DIR:${exe}>/$<TARGET_FILE_BASE_NAME:${exe}>.map)
+            list(APPEND paths ${output_dir}/${exe}.map)
         endif()
         # Object directory used by both generators for ${exe}
         list(APPEND paths ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${exe}.dir)
