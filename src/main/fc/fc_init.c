@@ -520,6 +520,10 @@ void init(void)
     }
 #endif
 
+#ifdef USE_BEC_VOLTAGE
+    adc_params.adcFunctionChannel[ADC_BEC] = adcChannelConfig()->adcFunctionChannel[ADC_BEC];
+#endif
+
     adcInit(&adc_params);
 #endif
 

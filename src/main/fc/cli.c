@@ -116,6 +116,7 @@ bool cliMode = false;
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
+#include "sensors/bec.h"
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 #include "sensors/diagnostics.h"
@@ -4145,6 +4146,11 @@ static void cliStatus(char *cmdline)
     dateTimeFormatLocal(buf, &dt);
     cliPrintLinef("Current Time: %s", buf);
     cliPrintLinef("Voltage: %d.%02dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
+#ifdef USE_BEC_VOLTAGE
+    if (becIsConfigured()) {
+        cliPrintLinef("BEC: %d.%02dV", becGetVoltage() / 100, becGetVoltage() % 100);
+    }
+#endif
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
 
     const uint32_t detectedSensorsMask = sensorsMask();
@@ -4241,7 +4247,13 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("I2C Errors: %d, config size: %d, max available config: %d", i2cErrorCounter, getEEPROMConfigSize(), &__config_end - &__config_start);
 #endif
 #if defined(USE_ADC) && !defined(SITL_BUILD)
-    static char * adcFunctions[] = { "BATTERY", "RSSI", "CURRENT", "AIRSPEED" };
+    static char * adcFunctions[] = {
+        "BATTERY", "RSSI", "CURRENT", "AIRSPEED",
+#ifdef USE_BEC_VOLTAGE
+        "BEC",
+#endif
+    };
+    STATIC_ASSERT(ARRAYLEN(adcFunctions) == ADC_FUNCTION_COUNT, adc_function_names);
     cliPrintLine("ADC channel usage:");
     for (int i = 0; i < ADC_FUNCTION_COUNT; i++) {
         cliPrintf("  %8s :", adcFunctions[i]);
