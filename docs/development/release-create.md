@@ -120,7 +120,7 @@ The Configurator firmware flasher uses a case-sensitive regex to parse firmware 
 - [ ] Version numbers updated in both repositories
 - [ ] SITL binaries updated in configurator
 - [ ] WASM SITL built and added to configurator `js/web/WASM/` (10.x+)
-- [ ] **PG struct validation passed** (see [PG Validation](#pg-parameter-group-validation))
+- [ ] **PG struct validation passed (exit 0) with `cmake/pg_struct_sizes.reference.db` committed on the release branch** (see [PG Validation](#pg-parameter-group-validation))
 
 ### Documentation
 
@@ -138,7 +138,7 @@ The Configurator firmware flasher uses a case-sensitive regex to parse firmware 
    ├── All PRs merged to firmware repo
    ├── Version numbers updated
    ├── CI passing on firmware target commit
-   └── PG struct validation passed
+   └── PG struct validation passed, reference database committed
 
 2. Download firmware artifacts FIRST
    ├── Download firmware hex files from CI
@@ -423,10 +423,14 @@ git log $LAST_TAG..HEAD --oneline --merges
 cd inav
 ./cmake/validate-pg-for-release.sh
 ```
-THis builds one target and checks that the parameter group structs haven't been changed without updating their version numbers.
+This builds one target and checks that the parameter group structs haven't changed size without a version change since the last release tag. The reference database (`cmake/pg_struct_sizes.reference.db`) as committed at that tag is the baseline, so each release tag must carry an up-to-date copy.
 
-**✅ Pass:** Proceed with release
-**❌ Fail:** Create hotfix PR to increment PG version in affected struct's `PG_REGISTER` macro, then re-run
+Run it before the freeze commit, so the verified and tagged commit already contains the database.
+
+**✅ Exit 0:** Passed and the committed database is current. Proceed with release
+**⚠️ Exit 3:** Passed, but the script rewrote `cmake/pg_struct_sizes.reference.db`. Commit it to the release branch, then re-run until it exits 0. Do not tag until then
+**❌ Exit 1:** Create hotfix PR to increment PG version in affected struct's `PG_REGISTER` macro, then re-run
+**Exit 2:** Setup problem (no toolchain, no release tag, or no database at the baseline tag). Use `--baseline-tag <tag>` to choose a tag that has one
 
 
 ## Downloading Release Artifacts

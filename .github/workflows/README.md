@@ -18,7 +18,7 @@ push builds happen via `nightly-build.yml` instead (see below).
 
 #### `nightly-build.yml` - "Build pre-release"
 **Triggers:** `push` to `master`, `maintenance-8.x.x`, `maintenance-9.x`,
-`maintenance-10.x`, `release/9.1` — **not** a schedule, despite the
+`maintenance-10.x`, `maintenance-11.x`, `release/9.1` — **not** a schedule, despite the
 filename. Invokes `ci.yml`'s jobs via `workflow_call`, then publishes a
 prerelease to the companion `iNavFlight/inav-nightly` repo.
 **Purpose:** Creates nightly development builds for testing, and is the
@@ -35,7 +35,7 @@ fire.
 ### Code Quality
 
 #### `pg-version-check.yml` - Parameter Group Version Check
-**Triggers:** Pull requests to maintenance-9.x, maintenance-10.x, and release/9.1
+**Triggers:** Pull requests to maintenance-9.x, maintenance-10.x, maintenance-11.x, and release/9.1
 **Purpose:** Detects parameter group struct modifications and verifies version increments
 **Why:** Prevents settings corruption when struct layout changes without version bump
 
@@ -78,7 +78,7 @@ every PR.
 1. `ci.yml` extracts a small per-target size report (`arm-none-eabi-size`
    on each built `.elf`) right after each build and uploads it as an
    artifact — no second build anywhere in this flow.
-2. On pushes to `master`/`maintenance-9.x`/`maintenance-10.x`/`release/9.1`,
+2. On pushes to `master`/`maintenance-9.x`/`maintenance-10.x`/`maintenance-11.x`/`release/9.1`,
    `nightly-build.yml` ("Build pre-release") invokes `ci.yml` via
    `workflow_call` as part of building nightly releases — this already
    produces the size report above at no extra build cost. When that
