@@ -32,6 +32,7 @@
 
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
+#include "sensors/barometer.h"
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
@@ -49,6 +50,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_fixedwing_autospeed_logic.h"
+#include "navigation/navigation_fixedwing_flight_tally_logic.h"
 #include "navigation/navigation_fixedwing_turn_math.h"
 #include "navigation/navigation_private.h"
 
@@ -1821,6 +1823,256 @@ bool isFixedWingAutoThrottleManuallyIncreased(void)
     return isAutoThrottleManuallyIncreased;
 }
 
+/*-----------------------------------------------------------
+ * FixedWing flight-state latch (#11644)
+ *
+ * isGPSHeadingValid()-only detection fails during GPS-loss dead reckoning.
+ * A FLYING/NOT_FLYING latch is driven by two named, debounced transition
+ * detectors instead of one instantaneous signal, and a separate raw signal
+ * tally is exposed for call sites that need a graduated confidence bar
+ * rather than the latch's binary answer.
+ *-----------------------------------------------------------*/
+typedef enum {
+    FW_FLIGHT_NOT_FLYING = 0,
+    FW_FLIGHT_FLYING,
+} fwFlightState_e;
+
+static fwFlightState_e fwFlightState = FW_FLIGHT_NOT_FLYING;
+static int8_t fwFlightTallyValue = 0;
+
+int8_t fwFlightTally(void)
+{
+    return fwFlightTallyValue;
+}
+
+bool fwFlightLatchIsFlying(void)
+{
+    return fwFlightState == FW_FLIGHT_FLYING;
+}
+
+/* One-shot push for the launch-controller call site only - not a general
+ * setter. FW_LAUNCH_STATE_FLYING is terminal and never clears on its own,
+ * so the caller must invoke this from the state *transition* into it, never
+ * poll fixedWingLaunchStatus() as a held condition: that reintroduces the
+ * permanent re-latch this design was built to avoid. See #11644. */
+void fwFlightLatchForceFlying(void)
+{
+    fwFlightState = FW_FLIGHT_FLYING;
+}
+
+/* Baro altitude at the last disarmed-on-the-ground moment. Frozen while the
+ * latch reads FLYING so a mid-air disarm keeps its baseline for the rearm. */
+#ifdef USE_BARO
+static float fwFlightBaroBaselineCm = 0.0f;
+#endif
+
+static int8_t computeFwFlightTally(void)
+{
+    float airspeed = 0.0f;
+#ifdef USE_PITOT
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        airspeed = getAirspeedEstimate();
+    }
+#endif
+
+    float baroChange = 0.0f;
+#ifdef USE_BARO
+    // Raw baro, not the fused altitude estimate, which includes GPS altitude.
+    if (sensors(SENSOR_BARO) && baroIsCalibrationComplete()) {
+        const float baroAlt = baroGetLatestAltitude();
+        if (!ARMING_FLAG(ARMED) && fwFlightState == FW_FLIGHT_NOT_FLYING) {
+            fwFlightBaroBaselineCm = baroAlt;
+        }
+        baroChange = baroAlt - fwFlightBaroBaselineCm;
+    }
+#endif
+
+    return fwFlightTallyCompute(isGPSHeadingValid(), airspeed, posControl.actualState.vel3D, baroChange);
+}
+
+/* Generalized takeoff signature: the same bungee/swing/forward-GPS OR
+ * navigation_fw_launch.c uses to detect launch, but free-running (not
+ * confined to FW_LAUNCH_STATE_WAIT_DETECTION) and debounced so a single-tick
+ * accel/gyro spike (e.g. bumping the airframe on a table) can't flip the
+ * latch. Independent static state from navigation_fw_launch.c's own launch
+ * FSM - reads the same instantaneous sensor signals, shares no state with it. */
+static bool isFixedWingTakeoffDetected(void)
+{
+    static timeMs_t signatureSinceMs = 0;
+    const timeMs_t currentTimeMs = millis();
+    const float swingMinRotationRate = DEGREES_TO_RADIANS(100);
+
+    const float swingVelocity = (fabsf(imuMeasuredRotationBF.z) > swingMinRotationRate)
+        ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
+    const bool isAircraftAlmostLevel = (calculateCosTiltAngle() >=
+        cos_approx(DEGREES_TO_RADIANS(navConfig()->fw.launch_max_angle)));
+
+    const bool signature = fwFlightTakeoffSignature(
+        imuMeasuredAccelBF.x, vectorNormSquared(&imuMeasuredAccelBF), GRAVITY_CMSS,
+        navConfig()->fw.launch_accel_thresh, isAircraftAlmostLevel,
+        swingVelocity, navConfig()->fw.launch_velocity_thresh,
+        isGPSHeadingValid(), gpsSol.groundSpeed);
+
+    if (!signature) {
+        signatureSinceMs = 0;
+        return false;
+    }
+
+    if (signatureSinceMs == 0) {
+        signatureSinceMs = currentTimeMs;
+    }
+
+    // Deliberately not navConfig()->fw.launch_time_thresh: that setting is
+    // tuned for fast response once the pilot has already committed to a
+    // launch sequence, not for rejecting spurious spikes in a background
+    // latch that runs unconditionally on every tick.
+    return currentTimeMs - signatureSinceMs > 300;
+}
+
+/* Generalized landing signature: the same static-attitude-datum/low-gyro/
+ * low-velocity check as isFixedWingLandingDetected(), but free-running
+ * instead of startCondition-gated. Deliberately keeps its own independent
+ * static state rather than sharing isFixedWingLandingDetected()'s - the two
+ * run on different schedules (this one unconditionally, that one only
+ * during NAV_CTL_LAND/FAILSAFE/etc.), and sharing one persistence timer
+ * between two callers with different run conditions would let whichever
+ * caller runs perturb the other's in-progress datum capture. */
+static bool isFixedWingStationary(void)
+{
+    static bool axisCheckArmed = false;
+    static timeMs_t stationarySinceMs = 0;
+    static int16_t rollDatum = 0;
+    static int16_t pitchDatum = 0;
+    const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
+    const timeMs_t currentTimeMs = millis();
+
+    /* The position estimator decays velXY/vel.z toward zero (inav_w_xy_res_v)
+     * whenever it can't apply a GPS/flow correction - exactly the sustained
+     * GPS-loss condition this latch exists to survive. A decayed-to-zero
+     * velocity is absence of information, not evidence of being stationary;
+     * without this guard, a long enough GPS outage during stable, level
+     * cruise would eventually read as "stationary" and reopen #11644. */
+    if (posControl.flags.estVelStatus != EST_TRUSTED) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    const bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity) &&
+                        (posControl.actualState.velXY < (100.0f * sensitivity));
+    const bool gyroCondition = averageAbsGyroRates() < (2.0f * sensitivity);
+
+    if (!(velCondition && gyroCondition)) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    if (!axisCheckArmed) {
+        rollDatum = attitude.values.roll;
+        pitchDatum = attitude.values.pitch;
+        axisCheckArmed = true;
+        stationarySinceMs = currentTimeMs;
+        return false;
+    }
+
+    const uint8_t angleLimit = 5 * sensitivity;
+    const bool isRollAxisStatic = ABS(rollDatum - attitude.values.roll) < angleLimit;
+    const bool isPitchAxisStatic = ABS(pitchDatum - attitude.values.pitch) < angleLimit;
+    if (!isRollAxisStatic || !isPitchAxisStatic) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    return currentTimeMs - stationarySinceMs > 1000;
+}
+
+/* Fallback for when isFixedWingStationary()'s EST_TRUSTED guard can never
+ * pass at all - no GPS fix through landing, or a ground/bench test with
+ * none ever acquired. Without this, isFixedWingStationary() is the latch's
+ * only FLYING->NOT_FLYING path and nothing else clears it (not disarm - a
+ * mid-air disarm is exactly what canActivateLaunchModeNow()'s latch check
+ * must survive), so the latch can stick FLYING permanently and block every
+ * later launch-mode arm attempt.
+ *
+ * Uses estAltStatus/vertical velocity (baro-derived) instead of
+ * estVelStatus/horizontal velocity (GPS-derived) - the latter is what
+ * decays under sustained GPS loss and is exactly what the primary check's
+ * guard exists to distrust; the former doesn't share that failure mode
+ * (gated on baro update timeout, not GPS loss). The estVelStatus ==
+ * EST_TRUSTED early-out makes this mutually exclusive with the primary
+ * check by construction - it only ever runs in exactly the case the
+ * primary can't.
+ *
+ * Held 10x longer (10s vs 1s): low gyro rate and near-zero climb rate
+ * alone can't distinguish "parked" from "flying a long straight
+ * dead-reckoning leg in calm air" - the exact GPS-loss scenario this PR is
+ * about - so airspeed corroborates real forward motion where a pitot is
+ * available. Where it isn't, there is no GPS-independent forward-motion
+ * signal at all, and this fallback cannot tell a long calm-air cruise leg
+ * from sitting on the ground; the 10s hold only rules out transient lulls,
+ * not a sustained steady state. That's a knowingly-accepted, narrower risk
+ * on no-pitot airframes, not a solved gap - see
+ * fix-flight-latch-stuck-and-launch-race.md. */
+static bool isFixedWingStationaryFallback(void)
+{
+    static bool axisCheckArmed = false;
+    static timeMs_t stationarySinceMs = 0;
+    static int16_t rollDatum = 0;
+    static int16_t pitchDatum = 0;
+    const float sensitivity = navConfig()->general.land_detect_sensitivity / 5.0f;
+    const timeMs_t currentTimeMs = millis();
+
+    if (posControl.flags.estVelStatus == EST_TRUSTED || posControl.flags.estAltStatus != EST_TRUSTED) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    bool noForwardMotion = true;
+#ifdef USE_PITOT
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        noForwardMotion = getAirspeedEstimate() < (100.0f * sensitivity);
+    }
+#endif
+
+    const bool velCondition = fabsf(navGetCurrentActualPositionAndVelocity()->vel.z) < (50.0f * sensitivity);
+    const bool gyroCondition = averageAbsGyroRates() < (2.0f * sensitivity);
+
+    if (!(velCondition && gyroCondition && noForwardMotion)) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    if (!axisCheckArmed) {
+        rollDatum = attitude.values.roll;
+        pitchDatum = attitude.values.pitch;
+        axisCheckArmed = true;
+        stationarySinceMs = currentTimeMs;
+        return false;
+    }
+
+    const uint8_t angleLimit = 5 * sensitivity;
+    const bool isRollAxisStatic = ABS(rollDatum - attitude.values.roll) < angleLimit;
+    const bool isPitchAxisStatic = ABS(pitchDatum - attitude.values.pitch) < angleLimit;
+    if (!isRollAxisStatic || !isPitchAxisStatic) {
+        axisCheckArmed = false;
+        return false;
+    }
+
+    return currentTimeMs - stationarySinceMs > 10000;
+}
+
+void updateFwFlightDetector(void)
+{
+    fwFlightTallyValue = computeFwFlightTally();
+
+    if (fwFlightState == FW_FLIGHT_NOT_FLYING) {
+        if (isFixedWingTakeoffDetected()) {
+            fwFlightState = FW_FLIGHT_FLYING;
+        }
+    } else if (isFixedWingStationary() || isFixedWingStationaryFallback()) {
+        fwFlightState = FW_FLIGHT_NOT_FLYING;
+    }
+}
+
 bool isFixedWingFlying(void)
 {
     float airspeed = 0.0f;
@@ -1830,7 +2082,7 @@ bool isFixedWingFlying(void)
     }
 #endif
     bool throttleCondition = getMotorCount() == 0 || rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
-    bool velCondition = posControl.actualState.velXY > 350.0f || airspeed > 350.0f;
+    bool velCondition = posControl.actualState.velXY > FW_FLIGHT_MIN_VEL_XY_CMS || airspeed > FW_FLIGHT_MIN_AIRSPEED_CMS;
     bool altCondition = fabsf(posControl.actualState.abs.pos.z - getTakeoffAltitude()) > 500.0f;
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
