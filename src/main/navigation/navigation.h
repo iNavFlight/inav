@@ -876,9 +876,8 @@ void resetLandingDetectorActiveState(void);
  * New code that needs "is the aircraft flying" should call
  * isProbablyStillFlying() (low bar, for rearm-style gates) or
  * isFlightDetected() (moderate bar, navigation_private.h) rather than reading
- * fwFlightTally() with its own threshold. A tally of 5 or more cannot be
- * reached without the airspeed sensor and GPS heading together, and ">5" vs
- * ">=5" is an easy mistake that silently changes that. */
+ * fwFlightTally() with its own threshold. Beware ">5" vs ">=5": 5 is reachable
+ * without a pitot (GPS heading + velocity), 6 or more is not. */
 void updateFwFlightDetector(void);
 bool fwFlightLatchIsFlying(void);
 int8_t fwFlightTally(void);

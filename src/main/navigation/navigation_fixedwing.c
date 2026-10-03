@@ -1870,10 +1870,9 @@ void fwFlightLatchForceFlying(void)
     fwFlightState = FW_FLIGHT_FLYING;
 }
 
-/* Max possible value is 8 (3+3+2). Call sites pick their own bar against
- * this: >=3 needs one strong signal alone (GPS heading or airspeed); >=5
- * needs one strong signal plus velocity, or two weaker ones together;
- * <=0 needs none of them. */
+/* Weights: GPS heading 3, airspeed 3, velocity 2 (max 8). >=3 is GPS heading
+ * or airspeed alone; >=5 is any two signals; >=6 needs both GPS heading and
+ * airspeed; <=0 is none. */
 static int8_t computeFwFlightTally(void)
 {
     int8_t tally = 0;
