@@ -32,6 +32,7 @@
 
 #include "sensors/sensors.h"
 #include "sensors/acceleration.h"
+#include "sensors/barometer.h"
 #include "sensors/boardalignment.h"
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
@@ -49,6 +50,7 @@
 
 #include "navigation/navigation.h"
 #include "navigation/navigation_fixedwing_autospeed_logic.h"
+#include "navigation/navigation_fixedwing_flight_tally_logic.h"
 #include "navigation/navigation_fixedwing_turn_math.h"
 #include "navigation/navigation_private.h"
 
@@ -1830,18 +1832,6 @@ bool isFixedWingAutoThrottleManuallyIncreased(void)
  * tally is exposed for call sites that need a graduated confidence bar
  * rather than the latch's binary answer.
  *-----------------------------------------------------------*/
-/* Speeds above which the aircraft is treated as moving fast enough to be
- * flying, so tune them here rather than at the call sites.
- *
- * The tally uses only the 3D speed: vel3D includes vertical speed, so it is
- * never below velXY and a separate velXY check could not change the outcome.
- * Its value (300) is the one the emergency-rearm gate already used before the
- * tally existed (isProbablyStillFlying()). The XY threshold is used only by
- * isFixedWingFlying(), where it is combined with airspeed. */
-#define FW_FLIGHT_MIN_AIRSPEED_CMS  350.0f
-#define FW_FLIGHT_MIN_VEL_XY_CMS    350.0f
-#define FW_FLIGHT_MIN_VEL_3D_CMS    300.0f
-
 typedef enum {
     FW_FLIGHT_NOT_FLYING = 0,
     FW_FLIGHT_FLYING,
@@ -1870,28 +1860,34 @@ void fwFlightLatchForceFlying(void)
     fwFlightState = FW_FLIGHT_FLYING;
 }
 
-/* Weights: GPS heading 3, airspeed 3, velocity 2 (max 8). >=3 is GPS heading
- * or airspeed alone; >=5 is any two signals; >=6 needs both GPS heading and
- * airspeed; <=0 is none. */
+/* Baro altitude at the last disarmed-on-the-ground moment. Frozen while the
+ * latch reads FLYING so a mid-air disarm keeps its baseline for the rearm. */
+#ifdef USE_BARO
+static float fwFlightBaroBaselineCm = 0.0f;
+#endif
+
 static int8_t computeFwFlightTally(void)
 {
-    int8_t tally = 0;
-
-    if (isGPSHeadingValid()) {
-        tally += 3;
-    }
-
+    float airspeed = 0.0f;
 #ifdef USE_PITOT
-    if (sensors(SENSOR_PITOT) && pitotIsHealthy() && getAirspeedEstimate() > FW_FLIGHT_MIN_AIRSPEED_CMS) {
-        tally += 3;
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+        airspeed = getAirspeedEstimate();
     }
 #endif
 
-    if (posControl.actualState.vel3D > FW_FLIGHT_MIN_VEL_3D_CMS) {
-        tally += 2;
+    float baroChange = 0.0f;
+#ifdef USE_BARO
+    // Raw baro, not the fused altitude estimate, which includes GPS altitude.
+    if (sensors(SENSOR_BARO) && baroIsCalibrationComplete()) {
+        const float baroAlt = baroGetLatestAltitude();
+        if (!ARMING_FLAG(ARMED) && fwFlightState == FW_FLIGHT_NOT_FLYING) {
+            fwFlightBaroBaselineCm = baroAlt;
+        }
+        baroChange = baroAlt - fwFlightBaroBaselineCm;
     }
+#endif
 
-    return tally;
+    return fwFlightTallyCompute(isGPSHeadingValid(), airspeed, posControl.actualState.vel3D, baroChange);
 }
 
 /* A stationary accelerometer reads magnitude g regardless of attitude, so a
