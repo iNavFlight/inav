@@ -4310,6 +4310,11 @@ static void cliStatus(char *cmdline)
     }
 #endif
 
+#if defined(USE_GEOZONE)
+    if ((armingFlags & ARMING_DISABLED_GEOZONE) && geozoneIsConfigInvalid()) {
+        cliPrintErrorLinef("Geozone vertices do not match the zone definitions, no zone is active");
+    }
+#endif
 
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
