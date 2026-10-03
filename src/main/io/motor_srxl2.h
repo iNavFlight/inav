@@ -35,6 +35,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#if defined(ESC_CONNECTOR_UART) && !defined(USE_MOTOR_SRXL2)
+#error "ESC_CONNECTOR_UART needs USE_MOTOR_SRXL2"
+#endif
+#if defined(ESC_CONNECTOR_UART) && !defined(STM32F7) && !defined(STM32H7)
+#error "ESC_CONNECTOR_UART needs uartSetTxPin(), which only STM32F7 and H7 have"
+#endif
+
 /*
  * One ESC per bus, several buses.
  *
@@ -144,6 +151,23 @@ srxl2CalResult_e srxl2MotorCalibrationLastResult(void);
  * no silent degradation to PWM, because the pin is not a timer output.
  */
 bool srxl2MotorInitialize(void);
+
+#ifdef ESC_CONNECTOR_UART
+#include "config/parameter_group.h"
+
+typedef struct escConnectorConfig_s {
+    uint8_t srxl2;      /* a Smart ESC on the board's ESC connector */
+} escConnectorConfig_t;
+
+PG_DECLARE(escConnectorConfig_t, escConnectorConfig);
+
+/*
+ * Whether the board's ESC connector carries a Smart ESC: chosen with esc_srxl2_connector,
+ * protocol SRXL2, and the UART behind the connector free. The motor output there then stays
+ * unused.
+ */
+bool srxl2MotorUsesEscConnector(void);
+#endif
 
 /*
  * Stage one motor value. Takes microseconds on INAV's usual 1000..2000 scale

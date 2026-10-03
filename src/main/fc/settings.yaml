@@ -903,6 +903,17 @@ groups:
         max: 255
         default_value: 14
 
+  - name: PG_ESC_CONNECTOR_CONFIG
+    type: escConnectorConfig_t
+    headers: ["io/motor_srxl2.h"]
+    condition: ESC_CONNECTOR_UART
+    members:
+      - name: esc_srxl2_connector
+        description: "Only on a board with an ESC connector that can also be a UART's TX (NEXUS, NEXUS X/XR, Vantac RF007), with motor_pwm_protocol set to SRXL2. ON puts a Smart ESC on that connector as motor 1, on the one UART the board can wire to it, which must have no function assigned in the ports tab. ESCs on UARTs assigned in the ports tab follow as motors 2 and on."
+        default_value: OFF
+        field: srxl2
+        type: bool
+
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
     headers: ["flight/failsafe.h"]

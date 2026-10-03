@@ -40,10 +40,19 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
+#include "config/parameter_group.h"
+#include "config/parameter_group_ids.h"
+
+#include "drivers/io.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/serial.h"
+#include "drivers/serial_uart.h"
 #include "drivers/time.h"
 
 #include "fc/runtime_config.h"
+#include "fc/settings.h"
+
+#include "flight/mixer.h"
 
 #include "sensors/battery.h"
 
@@ -225,6 +234,7 @@ typedef struct {
 
 static srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
 static uint8_t    escCount;                 /* ports successfully opened */
+static bool       escPortLeftOver;          /* an assigned port past the last ESC driven */
 
 /* Shared, because these describe the aircraft rather than one bus. */
 static uint8_t   reverseChannel1Based = 7;  /* Spektrum ship "Thrust Rev." on CH7 */
@@ -595,43 +605,76 @@ static void srxl2SendControlData(srxl2Esc_t *e)
  * Public API
  *-------------------------------------------------------------------------*/
 
+#ifdef ESC_CONNECTOR_UART
+// PA11/PA12 are USB D-/D+: a connector there would take the USB down
+STATIC_ASSERT(DEFIO_TAG_E(ESC_CONNECTOR_PIN) != DEFIO_TAG_E(PA11)
+              && DEFIO_TAG_E(ESC_CONNECTOR_PIN) != DEFIO_TAG_E(PA12), esc_connector_on_usb_pins);
+
+PG_REGISTER_WITH_RESET_TEMPLATE(escConnectorConfig_t, escConnectorConfig, PG_ESC_CONNECTOR_CONFIG, 0);
+
+PG_RESET_TEMPLATE(escConnectorConfig_t, escConnectorConfig,
+    .srxl2 = SETTING_ESC_SRXL2_CONNECTOR_DEFAULT,
+);
+
+bool srxl2MotorUsesEscConnector(void)
+{
+    const serialPortConfig_t *connector = serialFindPortConfiguration(ESC_CONNECTOR_UART);
+    return escConnectorConfig()->srxl2
+        && motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2
+        && connector && connector->functionMask == FUNCTION_NONE;
+}
+#endif
+
+static void srxl2AddEsc(serialPortIdentifier_e identifier)
+{
+    serialPort_t *port = openSerialPort(identifier, FUNCTION_ESC_SRXL2,
+                                        NULL, NULL, SRXL2_BAUD_LOW, MODE_RXTX,
+                                        SRXL2_PORT_OPTIONS);
+    if (!port) {
+        return;
+    }
+    srxl2Esc_t *e = &esc[escCount++];
+
+    e->port = port;
+
+    /* Every channel starts at its lowest value rather than zero, so the
+     * first frame after a handshake cannot be read as something
+     * unexpected whichever index the ESC happens to care about. */
+    for (uint8_t ch = 0; ch < SRXL2_CHANNEL_COUNT; ch++) {
+        e->channelValue[ch] = srxl2UsToValue(1000);
+    }
+    srxl2BuildChannelMask(e);
+
+    const timeMs_t now = millis();
+    e->lastRxMs = now;
+    e->lastTxMs = now;
+    e->lastControlMs = now;
+
+    srxl2SetState(e, SRXL2_LISTENING);
+}
+
 bool srxl2MotorInitialize(void)
 {
     memset(esc, 0, sizeof(esc));
     escCount = 0;
 
+#ifdef ESC_CONNECTOR_UART
+    if (srxl2MotorUsesEscConnector()) {
+        uartSetTxPin((UARTDevice_e)(ESC_CONNECTOR_UART - SERIAL_PORT_USART1), IO_TAG(ESC_CONNECTOR_PIN));
+        srxl2AddEsc(ESC_CONNECTOR_UART);
+    }
+#endif
+
     // One ESC per port, so open every port assigned the function. The enumeration follows
-    // UART order, so motor 1 is the lowest-numbered assigned UART: nothing on an SRXL2 bus
-    // says which motor an ESC drives, so the wiring order has to carry it
+    // UART order, so the lowest-numbered assigned UART is the first motor after the connector:
+    // nothing on an SRXL2 bus says which motor an ESC drives, so the wiring order has to carry it
     const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_ESC_SRXL2);
 
     while (portConfig && escCount < SRXL2_ESC_MAX_MOTORS) {
-        serialPort_t *port = openSerialPort(portConfig->identifier, FUNCTION_ESC_SRXL2,
-                                            NULL, NULL, SRXL2_BAUD_LOW, MODE_RXTX,
-                                            SRXL2_PORT_OPTIONS);
-        if (port) {
-            srxl2Esc_t *e = &esc[escCount++];
-
-            e->port = port;
-
-            /* Every channel starts at its lowest value rather than zero, so the
-             * first frame after a handshake cannot be read as something
-             * unexpected whichever index the ESC happens to care about. */
-            for (uint8_t ch = 0; ch < SRXL2_CHANNEL_COUNT; ch++) {
-                e->channelValue[ch] = srxl2UsToValue(1000);
-            }
-            srxl2BuildChannelMask(e);
-
-            const timeMs_t now = millis();
-            e->lastRxMs = now;
-            e->lastTxMs = now;
-            e->lastControlMs = now;
-
-            srxl2SetState(e, SRXL2_LISTENING);
-        }
-
+        srxl2AddEsc(portConfig->identifier);
         portConfig = findNextSerialPortConfig(FUNCTION_ESC_SRXL2);
     }
+    escPortLeftOver = portConfig != NULL;
 
     return escCount > 0;
 }
@@ -976,7 +1019,8 @@ uint8_t srxl2MotorCount(void)
 // already flying, wrong for one about to arm, so the arming check asks this instead
 bool srxl2MotorIsConnected(void)
 {
-    if (escCount == 0) {
+    // The ESC on a port past the limit is never fed, however well the others answer
+    if (escCount == 0 || escPortLeftOver) {
         return false;
     }
     const timeMs_t now = millis();
