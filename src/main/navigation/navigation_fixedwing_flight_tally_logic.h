@@ -68,3 +68,35 @@ static inline int8_t fwFlightTallyCompute(
 
     return tally;
 }
+
+/* Takeoff signature, shaped like the launch controller's detection
+ * (navigation_fw_launch.c): every launch path accelerates the aircraft toward
+ * the nose (body +X), whether it is thrown level or steeply nose-up.
+ *
+ * - Bungee: forward acceleration above the launch threshold while almost
+ *   level, so gravity on +X when nose-up cannot satisfy it.
+ * - Swing / forward-GPS: a magnitude excess over g (gravity alone cannot
+ *   produce one at any attitude) that is also toward the nose.
+ *
+ * Magnitude excess alone is not enough: a vertical bump or a sideways shake
+ * has one but is not a launch. */
+static inline bool fwFlightTakeoffSignature(
+    const float accelForwardCmss,
+    const float accelNormSqCmss,
+    const float gravityCmss,
+    const float accelThreshCmss,
+    const bool isAlmostLevel,
+    const float swingVelocityCms,
+    const float velThreshCms,
+    const bool gpsHeadingValid,
+    const float groundSpeedCms)
+{
+    const bool realAccel = (accelNormSqCmss - gravityCmss * gravityCmss) > accelThreshCmss * accelThreshCmss
+                           && accelForwardCmss > 0.0f;
+
+    const bool isBungeeLaunched = accelForwardCmss > accelThreshCmss && isAlmostLevel;
+    const bool isSwingLaunched = swingVelocityCms > velThreshCms && realAccel;
+    const bool isForwardLaunched = gpsHeadingValid && groundSpeedCms > velThreshCms && realAccel;
+
+    return isBungeeLaunched || isSwingLaunched || isForwardLaunched;
+}
