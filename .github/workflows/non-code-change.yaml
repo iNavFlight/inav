@@ -12,6 +12,7 @@ on:
       - 'docs/Settings.md'
       - 'CMakeLists.txt'
       - '*.sh'
+  workflow_dispatch:
 
 jobs:
   test:
