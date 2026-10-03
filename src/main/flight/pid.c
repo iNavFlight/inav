@@ -1369,7 +1369,6 @@ void schedulePidGainsUpdate(void)
 void updatePIDCoefficients(void)
 {
     STATIC_FASTRAM float tpaFactorprev=-1.0f;
-    STATIC_FASTRAM bool fixedWingApaActivePrev = false;
 
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
@@ -1384,6 +1383,8 @@ void updatePIDCoefficients(void)
     for (int axis = 0; axis < 3; axis++) {
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
+
+    STATIC_FASTRAM bool fixedWingApaActivePrev = false;
 
     float tpaFactor = 1.0f;
     float iTermFactor = 1.0f;  // Separate factor for I-term scaling
