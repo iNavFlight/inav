@@ -69,17 +69,21 @@ static inline int8_t fwFlightTallyCompute(
     return tally;
 }
 
-/* Takeoff signature, shaped like the launch controller's detection
- * (navigation_fw_launch.c): every launch path accelerates the aircraft toward
- * the nose (body +X), whether it is thrown level or steeply nose-up.
+/* Launch detection shared by the launch controller (navigation_fw_launch.c)
+ * and the background takeoff detector (navigation_fixedwing.c). Every launch
+ * path accelerates the aircraft toward the nose (body +X), whether it is
+ * thrown level or steeply nose-up.
  *
  * - Bungee: forward acceleration above the launch threshold while almost
  *   level, so gravity on +X when nose-up cannot satisfy it.
- * - Swing / forward-GPS: a magnitude excess over g (gravity alone cannot
- *   produce one at any attitude) that is also toward the nose.
+ * - Swing: swing velocity plus acceleration toward the nose.
+ * - Forward-GPS: GPS groundspeed plus acceleration toward the nose.
  *
- * Magnitude excess alone is not enough: a vertical bump or a sideways shake
- * has one but is not a launch. */
+ * requireAccelExcess adds, to the swing and forward-GPS paths, a magnitude
+ * excess over g (gravity alone cannot produce one at any attitude). The
+ * launch controller only runs once the pilot has committed to a launch and
+ * passes false. The background detector runs continuously and passes true so
+ * a vehicle ride or a sideways shake is not taken for a launch. */
 static inline bool fwFlightTakeoffSignature(
     const float accelForwardCmss,
     const float accelNormSqCmss,
@@ -89,14 +93,16 @@ static inline bool fwFlightTakeoffSignature(
     const float swingVelocityCms,
     const float velThreshCms,
     const bool gpsHeadingValid,
-    const float groundSpeedCms)
+    const float groundSpeedCms,
+    const bool requireAccelExcess)
 {
-    const bool realAccel = (accelNormSqCmss - gravityCmss * gravityCmss) > accelThreshCmss * accelThreshCmss
-                           && accelForwardCmss > 0.0f;
+    const bool accelOk = accelForwardCmss > 0.0f
+                         && (!requireAccelExcess
+                             || (accelNormSqCmss - gravityCmss * gravityCmss) > accelThreshCmss * accelThreshCmss);
 
     const bool isBungeeLaunched = accelForwardCmss > accelThreshCmss && isAlmostLevel;
-    const bool isSwingLaunched = swingVelocityCms > velThreshCms && realAccel;
-    const bool isForwardLaunched = gpsHeadingValid && groundSpeedCms > velThreshCms && realAccel;
+    const bool isSwingLaunched = swingVelocityCms > velThreshCms && accelOk;
+    const bool isForwardLaunched = gpsHeadingValid && groundSpeedCms > velThreshCms && accelOk;
 
     return isBungeeLaunched || isSwingLaunched || isForwardLaunched;
 }

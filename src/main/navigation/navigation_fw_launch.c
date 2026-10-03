@@ -44,10 +44,12 @@
 #include "fc/runtime_config.h"
 
 #include "navigation/navigation.h"
+#include "navigation/navigation_fixedwing_flight_tally_logic.h"
 #include "navigation/navigation_private.h"
 
 #include "io/gps.h"
 
+#include "sensors/acceleration.h"
 #include "sensors/battery.h"
 #include "sensors/gyro.h"
 
@@ -418,16 +420,17 @@ static fixedWingLaunchEvent_t fwLaunchState_FW_LAUNCH_STATE_WAIT_DETECTION(timeU
     }
 
     const float swingVelocity = (fabsf(imuMeasuredRotationBF.z) > SWING_LAUNCH_MIN_ROTATION_RATE) ? (imuMeasuredAccelBF.y / imuMeasuredRotationBF.z) : 0;
-    const bool isForwardAccelerationHigh = (imuMeasuredAccelBF.x > navConfig()->fw.launch_accel_thresh);
     const bool isAircraftAlmostLevel = (calculateCosTiltAngle() >= cos_approx(DEGREES_TO_RADIANS(navConfig()->fw.launch_max_angle)));
 
-    const bool isBungeeLaunched = isForwardAccelerationHigh && isAircraftAlmostLevel;
-    const bool isSwingLaunched = (swingVelocity > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
-    const bool isForwardLaunched = isGPSHeadingValid() && (gpsSol.groundSpeed > navConfig()->fw.launch_velocity_thresh) && (imuMeasuredAccelBF.x > 0);
+    const bool isLaunched = fwFlightTakeoffSignature(
+        imuMeasuredAccelBF.x, vectorNormSquared(&imuMeasuredAccelBF), GRAVITY_CMSS,
+        navConfig()->fw.launch_accel_thresh, isAircraftAlmostLevel,
+        swingVelocity, navConfig()->fw.launch_velocity_thresh,
+        isGPSHeadingValid(), gpsSol.groundSpeed, false);
 
     applyThrottleIdleLogic(false);
 
-    if (isBungeeLaunched || isSwingLaunched || isForwardLaunched) {
+    if (isLaunched) {
         if (currentStateElapsedMs(currentTimeUs) > navConfig()->fw.launch_time_thresh) {
             return FW_LAUNCH_EVENT_SUCCESS; // the launch is detected now, go to FW_LAUNCH_STATE_DETECTED
         }

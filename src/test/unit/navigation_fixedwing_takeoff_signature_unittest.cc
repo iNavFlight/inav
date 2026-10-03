@@ -13,11 +13,13 @@ static const float VEL_THRESH = 300.0f; // launch_velocity_thresh default, cm/s
 
 // Measured specific force: forward (x), vertical (z) components.
 static bool signature(float accelX, float accelZ, bool almostLevel = true,
-                      float swingVelocity = 0, bool gpsHeading = false, float groundSpeed = 0)
+                      float swingVelocity = 0, bool gpsHeading = false, float groundSpeed = 0,
+                      bool requireAccelExcess = true)
 {
     const float normSq = accelX * accelX + accelZ * accelZ;
     return fwFlightTakeoffSignature(accelX, normSq, G, THRESH, almostLevel,
-                                    swingVelocity, VEL_THRESH, gpsHeading, groundSpeed);
+                                    swingVelocity, VEL_THRESH, gpsHeading, groundSpeed,
+                                    requireAccelExcess);
 }
 
 TEST(FwTakeoffSignature, StationaryLevelIsNotALaunch)
@@ -79,4 +81,27 @@ TEST(FwTakeoffSignature, ForwardLaunchNeedsGpsSpeedAndForwardAcceleration)
 TEST(FwTakeoffSignature, SmallForwardAccelerationBelowThresholdIsNotALaunch)
 {
     EXPECT_FALSE(signature(500, G));
+}
+
+// The launch controller runs only after the pilot has committed to a launch,
+// so it does not require the magnitude excess over g that the always-running
+// background detector adds on the swing and forward-GPS paths.
+
+TEST(FwTakeoffSignature, ControllerSwingNeedsOnlyPositiveForwardAcceleration)
+{
+    EXPECT_TRUE(signature(100, G, false, VEL_THRESH + 50, false, 0, false));
+    EXPECT_FALSE(signature(100, G, false, VEL_THRESH + 50, false, 0, true));
+}
+
+TEST(FwTakeoffSignature, ControllerForwardLaunchNeedsOnlyPositiveForwardAcceleration)
+{
+    EXPECT_TRUE(signature(100, G, false, 0, true, VEL_THRESH + 50, false));
+    EXPECT_FALSE(signature(100, G, false, 0, true, VEL_THRESH + 50, true));
+}
+
+TEST(FwTakeoffSignature, ControllerStillRejectsNoForwardAcceleration)
+{
+    EXPECT_FALSE(signature(0, G, false, VEL_THRESH + 50, false, 0, false));
+    EXPECT_FALSE(signature(-100, G, false, VEL_THRESH + 50, false, 0, false));
+    EXPECT_FALSE(signature(0, G, false, 0, true, VEL_THRESH + 50, false));
 }

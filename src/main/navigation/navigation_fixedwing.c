@@ -1890,12 +1890,11 @@ static int8_t computeFwFlightTally(void)
     return fwFlightTallyCompute(isGPSHeadingValid(), airspeed, posControl.actualState.vel3D, baroChange);
 }
 
-/* Generalized takeoff signature: the same bungee/swing/forward-GPS OR
- * navigation_fw_launch.c uses to detect launch, but free-running (not
- * confined to FW_LAUNCH_STATE_WAIT_DETECTION) and debounced so a single-tick
- * accel/gyro spike (e.g. bumping the airframe on a table) can't flip the
- * latch. Independent static state from navigation_fw_launch.c's own launch
- * FSM - reads the same instantaneous sensor signals, shares no state with it. */
+/* Takeoff detection using the launch controller's own signature
+ * (fwFlightTakeoffSignature), but free-running instead of confined to
+ * FW_LAUNCH_STATE_WAIT_DETECTION, with the stricter magnitude check, and held
+ * for nav_fw_launch_detect_time like the controller. Its debounce timer is
+ * independent of the launch FSM's. */
 static bool isFixedWingTakeoffDetected(void)
 {
     static timeMs_t signatureSinceMs = 0;
@@ -1911,7 +1910,7 @@ static bool isFixedWingTakeoffDetected(void)
         imuMeasuredAccelBF.x, vectorNormSquared(&imuMeasuredAccelBF), GRAVITY_CMSS,
         navConfig()->fw.launch_accel_thresh, isAircraftAlmostLevel,
         swingVelocity, navConfig()->fw.launch_velocity_thresh,
-        isGPSHeadingValid(), gpsSol.groundSpeed);
+        isGPSHeadingValid(), gpsSol.groundSpeed, true);
 
     if (!signature) {
         signatureSinceMs = 0;
@@ -1922,11 +1921,7 @@ static bool isFixedWingTakeoffDetected(void)
         signatureSinceMs = currentTimeMs;
     }
 
-    // Deliberately not navConfig()->fw.launch_time_thresh: that setting is
-    // tuned for fast response once the pilot has already committed to a
-    // launch sequence, not for rejecting spurious spikes in a background
-    // latch that runs unconditionally on every tick.
-    return currentTimeMs - signatureSinceMs > 300;
+    return currentTimeMs - signatureSinceMs > navConfig()->fw.launch_time_thresh;
 }
 
 /* Generalized landing signature: the same static-attitude-datum/low-gyro/
