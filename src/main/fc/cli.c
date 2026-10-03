@@ -4752,6 +4752,54 @@ static void cliDiff(char *cmdline)
 }
 
 #ifdef USE_MOTOR_SRXL2
+static void cliSmartBattery(char *cmdline)
+{
+    const bool raw = strcmp(cmdline, "raw") == 0;
+    if (*cmdline && !raw) {
+        cliPrintErrorLine("Use smartbattery [raw]");
+        return;
+    }
+    for (unsigned motor = 0; motor < srxl2MotorCount(); motor++) {
+        const srxl2SmartBatteryState_t *state = srxl2MotorGetSmartBatteryRaw(motor);
+        cliPrintLinef("Smart Battery ESC %u: dropped_sources=%u", motor, state->droppedSources);
+        for (unsigned slot = 0; slot < SRXL2_SMART_BATTERY_SLOTS; slot++) {
+            const srxl2SmartBatterySource_t *source = &state->source[slot];
+            if (!source->used) {
+                continue;
+            }
+            srxl2SmartBatteryTelemetry_t battery;
+            const bool fresh = srxl2MotorGetSmartBattery(motor, slot, &battery);
+            cliPrintLinef("  slot=%u secondary=%u type_low=%u fresh=%u metadata_available=%u cells=%u count_from_id=%u valid_mask=%x",
+                slot, source->secondaryId, source->batteryId, fresh,
+                battery.metadataAvailable, battery.cellCount, battery.cellCountValid, battery.validCells);
+            if (battery.temperatureValid) {
+                cliPrintLinef("  pack_temperature_dC=%d", battery.temperatureDeciC);
+            } else {
+                cliPrintLine("  pack_temperature=unavailable");
+            }
+            for (unsigned cell = 0; cell < SRXL2_SMART_BATTERY_MAX_CELLS; cell++) {
+                if (battery.validCells & (1u << cell)) {
+                    cliPrintLinef("  cell_%u_mV=%u", cell + 1, battery.cellMv[cell]);
+                }
+            }
+            if (raw) {
+                for (unsigned p = 0; p < SRXL2_SMART_BATTERY_PAGE_COUNT; p++) {
+                    const srxl2SmartBatteryPage_t *page = &source->pages[p];
+                    if (!page->count) {
+                        continue;
+                    }
+                    cliPrintf("  page=%x count=%u age_ms=%u retained_valid=%u raw=",
+                        page->payload[2] >> 4, page->count, (uint32_t)(millis() - page->receivedMs), page->valid);
+                    for (unsigned b = 0; b < sizeof(page->payload); b++) {
+                        cliPrintf("%02x", page->payload[b]);
+                    }
+                    cliPrintLinefeed();
+                }
+            }
+        }
+    }
+}
+
 static void cliEscCalibratePrintResult(srxl2CalResult_e r)
 {
     switch (r) {
@@ -5117,6 +5165,7 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
 #ifdef USE_MOTOR_SRXL2
     CLI_COMMAND_DEF("esc_calibrate", "teach a Spektrum Smart ESC its throttle range", "[start|high|low|off]", cliEscCalibrate),
+    CLI_COMMAND_DEF("smartbattery", "show Smart Battery cells and pack temperature", "[raw]", cliSmartBattery),
 #endif
 #ifdef USE_USB_MSC
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
