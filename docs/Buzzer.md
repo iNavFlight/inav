@@ -10,8 +10,6 @@ INAV supports a buzzer which is used for the following purposes:
  * Flight mode change
  * Rate profile change (via TX-AUX switch)
 
-If the arm/disarm is via the control stick, holding the stick in the disarm position will sound a repeating tone.  This can be used as a lost-model locator.
-
 Three beeps immediately after powering the board means that the gyroscope calibration has completed successfully. INAV calibrates the gyro automatically upon every power-up. It is important that the copter stay still on the ground until the three beeps sound, so that gyro calibration isn't thrown off. If you move the copter significantly during calibration, INAV will detect this, and will automatically re-start the calibration once the copter is still again. This will delay the "three beeps" tone. If you move the copter just a little bit, the gyro calibration may be incorrect, and the copter may not fly correctly. In this case, the gyro calibration can be performed manually via [stick command](Controls.md), or you may simply power cycle the board.
 
 There is a special arming tone used if a GPS fix has been attained, and there's a "ready" tone sounded after a GPS fix has been attained (only happens once).  The tone sounded via the TX-AUX-switch will count out the number of satellites (if GPS fix).
@@ -26,22 +24,56 @@ Buzzer tone sequences (square wave generation) are made so that : 1st, 3rd, 5th,
 
 Sequences:
 
-    0    GYRO_CALIBRATED       20, 10, 20, 10, 20, 10	Gyro is calibrated
-    1    RX_LOST_LANDING       10, 10, 10, 10, 10, 40, 40, 10, 40, 10, 40, 40, 10, 10, 10, 10, 10, 70    SOS morse code
-    2    RX_LOST               50, 50		TX off or signal lost (repeats until TX is okay)
-    3    DISARMING             15, 5, 15, 5		Disarming the board
-    4    ARMING                30, 5, 5, 5		Arming the board
-    5    ARMING_GPS_FIX        5, 5, 15, 5, 5, 5, 15, 30	Arming and GPS has fix
-    6    BAT_CRIT_LOW          50, 2		Battery is critically low (repeats)
-    7    BAT_LOW               25, 50		Battery is getting low (repeats)
-    8    NULL                  multi beeps		GPS status (sat count)
-    9    RX_SET                10, 10		RX is set (when aux channel is set for beep or beep sequence how many satellites has found if GPS enabled)
-    10   ACC_CALIBRATION       5, 5, 5, 5		ACC inflight calibration completed
-    11   ACC_CALIBRATION_FAIL  20, 15, 35, 5	ACC inflight calibration failed
-    12   READY_BEEP            4, 5, 4, 5, 8, 5, 15, 5, 8, 5, 4, 5, 4, 5	GPS locked and copter ready   
-    13   NULL                  multi beeps		Variable # of beeps (confirmation, GPS sat count, etc)
-    14   DISARM_REPEAT         0, 100, 10		Stick held in disarm position (after pause)
-    15   ARMED                 0, 245, 10, 5	Board is armed (after pause ; repeats until board is disarmed or throttle is increased)
+    0    RUNTIME_CALIBRATION       20, 10, 20, 10, 20, 10     Sensor calibration finished while disarmed (at power-up,
+                                                              or e.g. after a gyro calibration by sticks)
+    1    HW_FAILURE                10, 10                     A hardware failure was detected (repeats)
+    2    RX_LOST                   50, 50                     RX signal lost or FAILSAFE mode on, only after the first
+                                                              arm since power-up (repeats while it lasts)
+    3    RX_LOST_LANDING           10, 10, 10, 10, 10, 40,    SOS morse code
+                                   40, 10, 40, 10, 40, 40,
+                                   10, 10, 10, 10, 10, 70
+    4    DISARMING                 15, 5, 15, 5               Disarming the board
+    5    ARMING                    30, 5, 5, 5                Arming the board
+    6    ARMING_GPS_FIX            5, 5, 15, 5, 5, 5, 15, 30  Arming and GPS has fix
+    7    BAT_CRIT_LOW              50, 2                      Battery is critically low (repeats)
+    8    BAT_LOW                   25, 50                     Battery is getting low (repeats)
+    9    GPS_STATUS                multi beeps                Never sounds in normal use (only via play_sound); the
+                                                              satellite count plays as MULTI_BEEPS
+    10   RX_SET                    10, 10                     BEEPER mode on; with GPS enabled only while there is no
+                                                              GPS fix or fewer than 5 satellites
+    11   ACTION_SUCCESS            5, 5, 5, 5                 Waypoint list saved or loaded by sticks; compass
+                                                              calibration started (without a compass: heading set to
+                                                              north); temperature auto-calibration ended with a
+                                                              correction
+    12   ACTION_FAIL               20, 15, 35, 5              Waypoint list save or load by sticks failed, or list
+                                                              erased by sticks; temperature auto-calibration ended
+                                                              without a correction
+    13   READY_BEEP                4, 5, 4, 5, 8, 5, 15, 5,   GPS locked and craft ready
+                                   8, 5, 4, 5, 4, 5
+    14   MULTI_BEEPS               multi beeps                Short beeps: flight mode change or arming blocked (1),
+                                                              profile change (profile number), in-flight adjustment
+                                                              (1 down, 2 up), accelerometer calibration position
+                                                              done (2), settings saved (1), satellite count while BEEPER
+                                                              mode is on (GPS fix and at least 5 satellites)
+    15   DISARM_REPEAT             0, 100, 10                 Never sounds in normal use (only via play_sound)
+    16   ARMED                     0, 245, 10, 5              Armed with throttle low and motorstop_on_low on, not on
+                                                              airplanes, rovers or boats (repeats until disarmed or
+                                                              throttle raised)
+    17   SYSTEM_INIT               none                       Not played from this table; disabling it mutes the ten
+                                                              short power-up beeps
+    18   ON_USB                    none                       Not a sequence: when disabled, all tones except the
+                                                              power-up beeps are muted while no battery is detected
+                                                              (needs VBAT)
+    19   LAUNCH_MODE               5, 5, 5, 100               Fixed wing launch mode active
+    20   LAUNCH_MODE_LOW_THROTTLE  5, 5, 5, 5, 3, 100         Launch mode active, throttle below the launch threshold
+    21   LAUNCH_MODE_IDLE_START    5, 5, 5, 5, 5, 5, 5, 80    Launch mode: motor starts at idle throttle within 5 s
+                                                              (nav_fw_launch_idle_motor_delay)
+    22   CAM_CONNECTION_OPEN       5, 15, 10, 15, 20          Camera control connection opened
+    23   CAM_CONNECTION_CLOSED     10, 8, 5                   Camera control connection closed
+    24   ALL                       none                       Not a sequence: beeper ALL / beeper -ALL enables or
+                                                              disables every tone
+    25   PREFERED                  none                       Not a sequence: beeper PREFERED stores the current set,
+                                                              beeper -PREFERED restores it
 
 You can use [this tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/helpful-inav-buzzer-code-checker/) to hear current buzzer sequences or enter custom sequences.
 
@@ -62,9 +94,7 @@ beeper list
 giving:
 
 ```
-Available:  RUNTIME_CALIBRATION  HW_FAILURE  RX_LOST  RX_LOST_LANDING  DISARMING  ARMING  ARMING_GPS_FIX  BAT_CRIT_LOW
-BAT_LOW  GPS_STATUS  RX_SET  ACTION_SUCCESS  ACTION_FAIL  READY_BEEP  MULTI_BEEPS  DISARM_REPEAT  ARMED  SYSTEM_INIT
-ON_USB LAUNCH_MODE  CAM_CONNECTION_OPEN  CAM_CONNECTION_CLOSED  ALL  PREFERED
+Available:  RUNTIME_CALIBRATION  HW_FAILURE  RX_LOST  RX_LOST_LANDING  DISARMING  ARMING  ARMING_GPS_FIX  BAT_CRIT_LOW  BAT_LOW  GPS_STATUS  RX_SET  ACTION_SUCCESS  ACTION_FAIL  READY_BEEP  MULTI_BEEPS  DISARM_REPEAT  ARMED  SYSTEM_INIT  ON_USB  LAUNCH_MODE  LAUNCH_MODE_LOW_THROTTLE  LAUNCH_MODE_IDLE_START  CAM_CONNECTION_OPEN  CAM_CONNECTION_CLOSED  ALL  PREFERED
 ```
 
 The `beeper` command  syntax follows that of the `feature` command; a minus (`-`) in front of a name disables that function.
