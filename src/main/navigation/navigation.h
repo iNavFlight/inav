@@ -871,7 +871,14 @@ void resetLandingDetectorActiveState(void);
 
 /* Fixed-wing flight-state latch: generalized takeoff/landing detectors
  * driving a FLYING/NOT_FLYING state, independent of GPS heading validity.
- * See #11644. */
+ * See #11644.
+ *
+ * New code that needs "is the aircraft flying" should call
+ * isProbablyStillFlying() (low bar, for rearm-style gates) or
+ * isFlightDetected() (moderate bar, navigation_private.h) rather than reading
+ * fwFlightTally() with its own threshold. A tally of 5 or more cannot be
+ * reached without the airspeed sensor and GPS heading together, and ">5" vs
+ * ">=5" is an easy mistake that silently changes that. */
 void updateFwFlightDetector(void);
 bool fwFlightLatchIsFlying(void);
 int8_t fwFlightTally(void);

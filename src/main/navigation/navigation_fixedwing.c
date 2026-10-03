@@ -1830,6 +1830,18 @@ bool isFixedWingAutoThrottleManuallyIncreased(void)
  * tally is exposed for call sites that need a graduated confidence bar
  * rather than the latch's binary answer.
  *-----------------------------------------------------------*/
+/* Speeds above which the aircraft is treated as moving fast enough to be
+ * flying, so tune them here rather than at the call sites.
+ *
+ * The tally uses only the 3D speed: vel3D includes vertical speed, so it is
+ * never below velXY and a separate velXY check could not change the outcome.
+ * Its value (300) is the one the emergency-rearm gate already used before the
+ * tally existed (isProbablyStillFlying()). The XY threshold is used only by
+ * isFixedWingFlying(), where it is combined with airspeed. */
+#define FW_FLIGHT_MIN_AIRSPEED_CMS  350.0f
+#define FW_FLIGHT_MIN_VEL_XY_CMS    350.0f
+#define FW_FLIGHT_MIN_VEL_3D_CMS    300.0f
+
 typedef enum {
     FW_FLIGHT_NOT_FLYING = 0,
     FW_FLIGHT_FLYING,
@@ -1871,12 +1883,12 @@ static int8_t computeFwFlightTally(void)
     }
 
 #ifdef USE_PITOT
-    if (sensors(SENSOR_PITOT) && pitotIsHealthy() && getAirspeedEstimate() > 350.0f) {
+    if (sensors(SENSOR_PITOT) && pitotIsHealthy() && getAirspeedEstimate() > FW_FLIGHT_MIN_AIRSPEED_CMS) {
         tally += 3;
     }
 #endif
 
-    if (posControl.actualState.velXY > 350.0f || posControl.actualState.vel3D > 300.0f) {
+    if (posControl.actualState.vel3D > FW_FLIGHT_MIN_VEL_3D_CMS) {
         tally += 2;
     }
 
@@ -2088,7 +2100,7 @@ bool isFixedWingFlying(void)
     }
 #endif
     bool throttleCondition = getMotorCount() == 0 || rcCommand[THROTTLE] > currentBatteryProfile->nav.fw.cruise_throttle;
-    bool velCondition = posControl.actualState.velXY > 350.0f || airspeed > 350.0f;
+    bool velCondition = posControl.actualState.velXY > FW_FLIGHT_MIN_VEL_XY_CMS || airspeed > FW_FLIGHT_MIN_AIRSPEED_CMS;
     bool altCondition = fabsf(posControl.actualState.abs.pos.z - getTakeoffAltitude()) > 500.0f;
     bool launchCondition = isNavLaunchEnabled() && fixedWingLaunchStatus() == FW_LAUNCH_FLYING;
 
