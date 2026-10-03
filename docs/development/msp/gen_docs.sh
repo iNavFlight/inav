@@ -1,3 +1,5 @@
+set -euo pipefail
+
 INAV_MAIN_PATH="../../../src/main"
 
 echo "###########"
@@ -24,4 +26,6 @@ echo "###########"
 echo gen_enum_md.py
 python gen_enum_md.py
 rm all_enums.h
-read -n 1 -s -r -p "Press any key to continue"
+if [ -t 0 ]; then
+  read -n 1 -s -r -p "Press any key to continue"
+fi
