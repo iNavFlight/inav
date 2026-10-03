@@ -34,8 +34,9 @@ name: CI Size Report
 #    of the two fires per PR and either satisfies the same required-status-
 #    check name. `workflow_run` can't tell the two apart by name (see
 #    github-actions-workflows.md), and the stub's only job is `test` — no
-#    `upload-artifacts`, none of the artifacts this job needs — so a guard
-#    step checks for that job directly before downloading anything.
+#    `upload-artifacts`, none of the artifacts this job needs — so pr-comment
+#    filters on the workflow path, and a guard step still checks that
+#    `upload-artifacts` succeeded before downloading anything.
 #
 # Requires the same repository secret PR_BUILDS_TOKEN as pr-test-builds.yml
 # (Contents: write access to iNavFlight/pr-test-builds).
@@ -137,6 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event.workflow_run.name == 'Build firmware' &&
+      github.event.workflow.path == '.github/workflows/ci.yml' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     concurrency:
@@ -154,12 +156,10 @@ jobs:
       # untrusted code is never checked out in this privileged context.
       - uses: actions/checkout@v4
 
-      # ci.yml's "Build firmware" name is shared with the non-code-change.yaml
-      # stub (see comment at the top of this file), whose only job is `test`
-      # — no upload-artifacts, none of the artifacts downloaded below. Check
-      # for that job directly rather than trusting the aggregate
-      # workflow_run.conclusion, which the job-level `if:` above already
-      # confirmed is 'success' for either workflow.
+      # The job-level `if:` already excludes the non-code-change.yaml stub by
+      # path (see comment at the top of this file). Still check
+      # upload-artifacts directly, so a renamed or skipped job skips the
+      # comment instead of failing on the downloads below.
       - name: Check upload-artifacts job succeeded
         id: check
         env:

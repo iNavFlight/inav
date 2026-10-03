@@ -5310,7 +5310,6 @@ uint8_t drawStat_RXStats(uint8_t col, uint8_t row, uint8_t statValX)
             strcat(osdFormatTrimWhiteSpace(buff), "/");
             itoa(stats.min_rssi_dbm, buff + strlen(buff), 10);
             osdWriteChar(buff + strlen(buff), SYM_DBM);
-            displayWrite(osdDisplayPort, statValX, row++, buff);
         }
     }
 

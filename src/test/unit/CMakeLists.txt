@@ -4,6 +4,10 @@ set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/main")
 
 # Keep these alphabetically sorted by test name
 
+set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY depends
+    "drivers/accgyro/accgyro_lsm6dxx.c")
+set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY definitions USE_IMU_LSM6DXX)
+
 set_property(SOURCE alignsensor_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/boardalignment.c")
 
@@ -43,6 +47,7 @@ set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TE
 set_property(SOURCE gps_null_port_unittest.cc PROPERTY depends "io/gps.c")
 set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT_UNIT_TEST USE_GPS_PROTO_UBLOX)
 
+set_property(SOURCE gps_heartbeat_unittest.cc PROPERTY depends "io/gps.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
 
