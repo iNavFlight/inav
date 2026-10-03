@@ -1361,6 +1361,7 @@ void schedulePidGainsUpdate(void)
 void updatePIDCoefficients(void)
 {
     STATIC_FASTRAM float tpaFactorprev=-1.0f;
+    STATIC_FASTRAM float iTermFactorprev=-1.0f;
 
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
@@ -1391,10 +1392,11 @@ void updatePIDCoefficients(void)
         iTermFactor = tpaFactor;  // Multirotor uses same factor
     }
 
-    if (tpaFactor != tpaFactorprev) {
+    if (tpaFactor != tpaFactorprev || iTermFactor != iTermFactorprev) {
         pidGainsUpdateRequired = true;
     }
     tpaFactorprev = tpaFactor;
+    iTermFactorprev = iTermFactor;
 
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
