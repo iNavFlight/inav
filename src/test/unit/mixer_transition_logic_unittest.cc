@@ -386,7 +386,6 @@ TEST(MixerTransitionLogicTest, NavigationHandbackHoldsProfileWhenManualSwitchDif
         false,
         true,
         false,
-        false,
         0,
         1));
 
@@ -395,7 +394,6 @@ TEST(MixerTransitionLogicTest, NavigationHandbackHoldsProfileWhenManualSwitchDif
         false,
         true,
         false,
-        false,
         0,
         1));
 
@@ -403,7 +401,6 @@ TEST(MixerTransitionLogicTest, NavigationHandbackHoldsProfileWhenManualSwitchDif
         true,
         true,
         true,
-        false,
         false,
         0,
         1));
@@ -415,7 +412,6 @@ TEST(MixerTransitionLogicTest, NavigationHandbackHoldsProfileWhenSwitchStillInTr
         true,
         false,
         true,
-        false,
         true,
         1,
         1));
@@ -450,8 +446,7 @@ TEST(MixerTransitionLogicTest, NavigationHandbackClearsForNewNavigationOrMatchin
     EXPECT_FALSE(mixerTransitionNavigationHandbackShouldHoldProfile(
         true,
         false,
-        true,
-        true,
+        false,
         false,
         0,
         1));
@@ -489,7 +484,6 @@ TEST(MixerTransitionLogicTest, NavigationHandbackIgnoresIntermediatePositionUnti
         true,
         false,
         true,
-        false,
         true,
         0,
         1));
@@ -512,7 +506,6 @@ TEST(MixerTransitionLogicTest, NavigationHandbackIgnoresIntermediatePositionUnti
         true,
         false,
         true,
-        false,
         true,
         1,
         0));

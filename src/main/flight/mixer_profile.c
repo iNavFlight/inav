@@ -1271,7 +1271,6 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
             navigationProfileSwitchWasOwned,
             navigationOwnsProfileSwitch,
             mixerProfileModePresent,
-            mixerAT_inuse,
             transitionModeActive,
             currentMixerProfileIndex,
             requestedProfileIndex);
