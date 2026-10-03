@@ -1314,6 +1314,14 @@ static int16_t tpaPitchThrottleAdjustment(void)
     return tpaThrottleAdjustment;
 }
 
+static void resetFixedWingTpaFilterToThrottle(uint16_t throttle)
+{
+    if (currentControlProfile->throttle.fixedWingTauMs > 0) {
+        const uint16_t throttleIdleValue = getThrottleIdleValue();
+        pt1FilterReset(&fixedWingTpaFilter, constrain(throttle + tpaPitchThrottleAdjustment(), throttleIdleValue + 1, getMaxThrottle()));
+    }
+}
+
 static float calculateFixedWingTPAFactor(uint16_t throttle)
 {
     const uint8_t dynamicPID = currentControlProfile->throttle.dynPID;
@@ -1376,13 +1384,21 @@ void updatePIDCoefficients(void)
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
 
+    STATIC_FASTRAM bool fixedWingApaActivePrev = false;
+
     float tpaFactor = 1.0f;
     float iTermFactor = 1.0f;  // Separate factor for I-term scaling
     if (usedPidControllerType == PID_TYPE_PIFF) { // Fixed wing TPA calculation
         if (currentControlProfile->throttle.apa_pow > 0 && pitotGetValidForAirspeed()) {
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
             iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
+            fixedWingApaActivePrev = true;
         } else {
+            // The throttle TPA filter is not fed while APA is active, so restart it from the current throttle
+            if (fixedWingApaActivePrev) {
+                resetFixedWingTpaFilterToThrottle(rcCommand[THROTTLE]);
+                fixedWingApaActivePrev = false;
+            }
             tpaFactor = calculateFixedWingTPAFactor(rcCommand[THROTTLE]);
             iTermFactor = tpaFactor;  // Use same factor for throttle-based TPA
         }
