@@ -327,6 +327,7 @@ docs — check it before assuming something isn't documented:
   versioning rules, when a new setting is warranted)
 - `build-system.md` - CMake build system internals
 - `pid-to-servo-computation.md` - PID-to-servo signal path (fixed-wing)
+- `non-blocking-i2c.md` - Non-blocking I2C sensor access (bus API, baro/compass/pitot hooks, driver conversion)
 - `msp/` - MSP protocol doc generation tooling
 - Target-specific files in `/src/main/target/`
 
