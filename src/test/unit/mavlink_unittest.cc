@@ -132,6 +132,7 @@ static int setWaypointCalls;
 static int resetWaypointCalls;
 static int saveWaypointCalls;
 static bool saveWaypointResult;
+static bool testWaypointMissionInUse;
 static int mavlinkRxHandleCalls;
 static bool gcsValid;
 static int waypointCount;
@@ -331,6 +332,7 @@ static void initMavlinkTestState(void)
     resetWaypointCalls = 0;
     saveWaypointCalls = 0;
     saveWaypointResult = true;
+    testWaypointMissionInUse = false;
     mavlinkRxHandleCalls = 0;
     mspCommandCallCount = 0;
     testReplyPayloadLength = 300;
@@ -1549,7 +1551,9 @@ TEST(MavlinkTelemetryTest, MissionCountZeroRestoresPreviousMissionOnPersistFailu
     EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
 }
 
-TEST(MavlinkTelemetryTest, MissionCountWhileArmedIsRejected)
+// In-flight upload: while merely armed (WP mode not active) an upload
+// transfer starts normally, matching the MSP policy from #10273.
+TEST(MavlinkTelemetryTest, MissionCountWhileArmedStartsTransfer)
 {
     initMavlinkTestState();
     ENABLE_ARMING_FLAG(ARMED);
@@ -1562,28 +1566,394 @@ TEST(MavlinkTelemetryTest, MissionCountWhileArmedIsRejected)
     pushRxMessage(&msg);
     handleMAVLinkTelemetry(1000);
 
-    mavlink_status_t status;
-    memset(&status, 0, sizeof(status));
-    mavlink_message_t outMsg;
-    bool sawAck = false;
-    bool sawRequest = false;
+    mavlink_message_t requestMsg;
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &requestMsg));
+    mavlink_message_t ackMsg;
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+}
 
-    for (size_t i = 0; i < serialTxLen; i++) {
-        if (mavlink_parse_char(0, serialTxBuffer[i], &outMsg, &status) == MAVLINK_FRAMING_OK) {
-            if (outMsg.msgid == MAVLINK_MSG_ID_MISSION_ACK) {
-                mavlink_mission_ack_t ack;
-                mavlink_msg_mission_ack_decode(&outMsg, &ack);
-                EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
-                sawAck = true;
-            }
-            if (outMsg.msgid == MAVLINK_MSG_ID_MISSION_REQUEST_INT) {
-                sawRequest = true;
-            }
-        }
+TEST(MavlinkTelemetryTest, MissionCountWhileMissionInUseIsRejected)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    testWaypointMissionInUse = true;
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
+    mavlink_message_t requestMsg;
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &requestMsg));
+}
+
+// An in-flight upload commits to RAM but must not touch the EEPROM:
+// saveNonVolatileWaypointList() refuses while armed, and a flash write
+// mid-flight would stall the main loop.
+TEST(MavlinkTelemetryTest, MissionUploadWhileArmedCommitsToRamWithoutPersist)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &countMsg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    resetSerialBuffers();
+
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 1, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(waypointCount, 1);
+    EXPECT_EQ(waypointStore[0].lat, 375000000);
+    EXPECT_EQ(waypointStore[0].lon, -1222500000);
+    EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
+    EXPECT_EQ(saveWaypointCalls, 0);
+}
+
+// An in-flight clear applies to RAM only, without persisting.
+TEST(MavlinkTelemetryTest, MissionClearAllWhileArmedClearsRamWithoutPersist)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_clear_all_pack(
+        42, 200, &msg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(resetWaypointCalls, 1);
+    EXPECT_EQ(saveWaypointCalls, 0);
+}
+
+// The gate is ignored on the ground: the arming checks validate the mission there.
+TEST(MavlinkTelemetryTest, MissionCountOnGroundIgnoresMissionInUse)
+{
+    initMavlinkTestState();
+    testWaypointMissionInUse = true;
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 1, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t requestMsg;
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_REQUEST_INT, &requestMsg));
+    mavlink_message_t ackMsg;
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+}
+
+TEST(MavlinkTelemetryTest, MissionClearAllWhileMissionInUseIsRejected)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    testWaypointMissionInUse = true;
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_clear_all_pack(
+        42, 200, &msg,
+        1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    mavlink_message_t ackMsg;
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg));
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    EXPECT_EQ(ack.type, MAV_MISSION_DENIED);
+    EXPECT_EQ(resetWaypointCalls, 0);
+}
+
+static void preloadSingleWaypointMission(void)
+{
+    waypointCount = 1;
+    waypointStore[0].action = NAV_WP_ACTION_WAYPOINT;
+    waypointStore[0].lat = 365304400;
+    waypointStore[0].lon = -832163830;
+    waypointStore[0].alt = 1234;
+    waypointStore[0].flag = NAV_WP_FLAG_LAST;
+}
+
+static void expectPreloadedMissionUntouched(void)
+{
+    EXPECT_EQ(resetWaypointCalls, 0);
+    EXPECT_EQ(setWaypointCalls, 0);
+    EXPECT_EQ(waypointCount, 1);
+    EXPECT_EQ(waypointStore[0].lat, 365304400);
+    EXPECT_EQ(waypointStore[0].lon, -832163830);
+    EXPECT_EQ(waypointStore[0].flag, NAV_WP_FLAG_LAST);
+}
+
+static void pushMissionCount(uint16_t count)
+{
+    mavlink_message_t msg;
+    mavlink_msg_mission_count_pack(42, 200, &msg, 1, testTargetComponent, count, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+}
+
+static void pushMissionWaypointInt(uint16_t seq, int32_t lat)
+{
+    mavlink_message_t msg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &msg,
+        1, testTargetComponent, seq,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        lat, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+}
+
+static void pushMissionJumpInt(uint16_t seq, uint16_t targetSeq, int16_t repeat)
+{
+    mavlink_message_t msg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &msg,
+        1, testTargetComponent, seq,
+        MAV_FRAME_MISSION,
+        MAV_CMD_DO_JUMP, 0, 1,
+        targetSeq, repeat, 0, 0,
+        0, 0, 0,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+}
+
+static MAV_MISSION_RESULT lastMissionAckType(void)
+{
+    mavlink_message_t ackMsg;
+    if (!findTxMessageById(MAVLINK_MSG_ID_MISSION_ACK, &ackMsg)) {
+        return MAV_MISSION_RESULT_ENUM_END;
+    }
+    mavlink_mission_ack_t ack;
+    mavlink_msg_mission_ack_decode(&ackMsg, &ack);
+    return (MAV_MISSION_RESULT)ack.type;
+}
+
+TEST(MavlinkTelemetryTest, MissionItemIntOutsideTransferWhileMissionInUseIsDenied)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    testWaypointMissionInUse = true;
+    preloadSingleWaypointMission();
+
+    pushMissionWaypointInt(0, 375000000);
+
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_DENIED);
+    expectPreloadedMissionUntouched();
+}
+
+TEST(MavlinkTelemetryTest, GuidedItemWhileMissionInUseBypassesTheGate)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    testWaypointMissionInUse = true;
+    gcsValid = true;
+    preloadSingleWaypointMission();
+
+    mavlink_message_t msg;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &msg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 2, 1,
+        0, 0, 0, 0,
+        375000000, -1222500000, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(lastWaypointNumber, 255);
+    EXPECT_EQ(resetWaypointCalls, 0);
+}
+
+TEST(MavlinkTelemetryTest, GuidedItemDuringArmedUploadKeepsTheTransfer)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    gcsValid = true;
+
+    pushMissionCount(2);
+    pushMissionWaypointInt(0, 375000000);
+
+    resetSerialBuffers();
+    mavlink_message_t guided;
+    mavlink_msg_mission_item_int_pack(
+        42, 200, &guided,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+        MAV_CMD_NAV_WAYPOINT, 2, 1,
+        0, 0, 0, 0,
+        375050000, -1222500000, 20.0f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&guided);
+    handleMAVLinkTelemetry(1000);
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(lastWaypointNumber, 255);
+
+    resetSerialBuffers();
+    pushMissionWaypointInt(1, 375100000);
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(waypointCount, 2);
+    EXPECT_EQ(waypointStore[0].lat, 375000000);
+    EXPECT_EQ(waypointStore[1].lat, 375100000);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadAbortedWhenMissionComesInUseMidTransferWhileArmed)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    preloadSingleWaypointMission();
+
+    pushMissionCount(2);
+    resetSerialBuffers();
+    pushMissionWaypointInt(0, 375000000);
+    resetSerialBuffers();
+
+    testWaypointMissionInUse = true;
+    pushMissionWaypointInt(1, 375100000);
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_DENIED);
+    expectPreloadedMissionUntouched();
+
+    // The denied transfer is gone: a retried item is not taken as part of it.
+    testWaypointMissionInUse = false;
+    resetSerialBuffers();
+    pushMissionWaypointInt(1, 375100000);
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_INVALID_SEQUENCE);
+    expectPreloadedMissionUntouched();
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadTimeoutWhileArmedKeepsPreviousMission)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    preloadSingleWaypointMission();
+
+    pushMissionCount(2);
+    pushMissionWaypointInt(0, 375000000);
+
+    for (int i = 1; i <= 6; i++) {
+        resetSerialBuffers();
+        fakeMillis = i * testMissionUploadRetryMs;
+        handleMAVLinkTelemetry((timeUs_t)fakeMillis * 1000);
     }
 
-    EXPECT_TRUE(sawAck);
-    EXPECT_FALSE(sawRequest);
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_OPERATION_CANCELLED);
+    expectPreloadedMissionUntouched();
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadWhileArmedRejectsAdjacentJump)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+    preloadSingleWaypointMission();
+
+    pushMissionCount(3);
+    pushMissionWaypointInt(0, 375000000);
+    pushMissionWaypointInt(1, 375100000);
+    resetSerialBuffers();
+    pushMissionJumpInt(2, 1, 2);
+
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_INVALID);
+    expectPreloadedMissionUntouched();
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadOnGroundLeavesAdjacentJumpToArmingCheck)
+{
+    initMavlinkTestState();
+
+    pushMissionCount(3);
+    pushMissionWaypointInt(0, 375000000);
+    pushMissionWaypointInt(1, 375100000);
+    resetSerialBuffers();
+    pushMissionJumpInt(2, 1, 2);
+
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(waypointCount, 3);
+}
+
+TEST(MavlinkTelemetryTest, MissionUploadWhileArmedAcceptsValidJump)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    pushMissionCount(4);
+    pushMissionWaypointInt(0, 375000000);
+    pushMissionWaypointInt(1, 375100000);
+    pushMissionWaypointInt(2, 375200000);
+    resetSerialBuffers();
+    pushMissionJumpInt(3, 0, 1);
+
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(waypointCount, 4);
+    EXPECT_EQ(waypointStore[3].action, NAV_WP_ACTION_JUMP);
+    EXPECT_EQ(waypointStore[3].p1, 1);
+    EXPECT_EQ(waypointStore[3].p2, 1);
+    EXPECT_EQ(waypointStore[3].flag, NAV_WP_FLAG_LAST);
+    EXPECT_EQ(saveWaypointCalls, 0);
+}
+
+TEST(MavlinkTelemetryTest, LegacyMissionItemUploadWhileArmedIsAccepted)
+{
+    initMavlinkTestState();
+    ENABLE_ARMING_FLAG(ARMED);
+
+    pushMissionCount(1);
+    resetSerialBuffers();
+
+    // The float MISSION_ITEM path must be accepted too, not only MISSION_ITEM_INT.
+    mavlink_message_t itemMsg;
+    mavlink_msg_mission_item_pack(
+        42, 200, &itemMsg,
+        1, testTargetComponent, 0,
+        MAV_FRAME_GLOBAL_RELATIVE_ALT,
+        MAV_CMD_NAV_WAYPOINT, 0, 1,
+        0, 0, 0, 0,
+        37.5f, -122.25f, 12.3f,
+        MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&itemMsg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_EQ(lastMissionAckType(), MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(waypointCount, 1);
+    EXPECT_EQ(saveWaypointCalls, 0);
 }
 
 TEST(MavlinkTelemetryTest, MissionItemIntSingleItemAcksAccepted)
@@ -3903,6 +4273,12 @@ bool saveNonVolatileWaypointList(void)
 {
     saveWaypointCalls++;
     return saveWaypointResult;
+}
+
+// The in-use predicate reads navigation state that is not linked here; these tests cover the MAVLink wiring.
+bool isWaypointMissionInUse(void)
+{
+    return testWaypointMissionInUse;
 }
 
 void resetWaypointList(void)

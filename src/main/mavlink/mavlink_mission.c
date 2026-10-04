@@ -127,6 +127,21 @@ static void mavlinkAbortMissionUpload(MAV_MISSION_RESULT result)
     mavlinkResetMissionTransfer();
 }
 
+// The ARMED term keeps the ground path unchanged; there the arming checks still validate the mission.
+static bool mavlinkDenyMissionEditInUse(void)
+{
+    if (!ARMING_FLAG(ARMED) || !isWaypointMissionInUse()) {
+        return false;
+    }
+
+    if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
+        mavlinkAbortMissionUpload(MAV_MISSION_DENIED);
+    } else {
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
+    }
+    return true;
+}
+
 static void mavlinkStartMissionTransfer(mavlinkMissionTransferState_e state, uint16_t count)
 {
     mavlinkResetMissionTransfer();
@@ -197,7 +212,8 @@ static bool mavlinkClearPersistedMission(void)
 
     resetWaypointList();
     mavlinkContext.missionCompleted = false;
-    if (mavlinkPersistMission()) {
+    // saveNonVolatileWaypointList() refuses to run while armed, so an in-flight clear stays in RAM.
+    if (ARMING_FLAG(ARMED) || mavlinkPersistMission()) {
         return true;
     }
 
@@ -403,6 +419,20 @@ static bool mavlinkResolveUploadedMissionJumps(void)
             return false;
         }
 
+        // An in-flight commit never passes the arm-time JUMP check in navigationIsBlockingArming().
+        if (ARMING_FLAG(ARMED)) {
+            const int targetIndex = targetWaypointNumber - 1;
+            const navWaypoint_t *target = &mavlinkMissionUploadWaypoints[targetIndex];
+            if (i == 0 ||
+                wp->p2 < -1 ||
+                (targetIndex >= (int)i - 1 && targetIndex <= (int)i + 1) ||
+                !(target->action == NAV_WP_ACTION_WAYPOINT ||
+                  target->action == NAV_WP_ACTION_HOLD_TIME ||
+                  target->action == NAV_WP_ACTION_LAND)) {
+                return false;
+            }
+        }
+
         wp->p1 = targetWaypointNumber;
     }
 
@@ -430,7 +460,8 @@ static bool mavlinkCommitMissionUpload(void)
         setWaypoint(i + 1, &mavlinkMissionUploadWaypoints[i]);
     }
 
-    if (!isWaypointListValid() || !mavlinkPersistMission()) {
+    // saveNonVolatileWaypointList() refuses to run while armed, so an in-flight upload stays in RAM.
+    if (!isWaypointListValid() || (!ARMING_FLAG(ARMED) && !mavlinkPersistMission())) {
         mavlinkRestoreMission(&previousMission);
         return false;
     }
@@ -1004,8 +1035,7 @@ bool mavlinkHandleIncomingMissionClearAll(void)
         mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         return true;
     }
-    if (ARMING_FLAG(ARMED)) {
-        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
+    if (mavlinkDenyMissionEditInUse()) {
         return true;
     }
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_IDLE && !mavlinkMissionSenderOwnsTransfer()) {
@@ -1037,8 +1067,7 @@ bool mavlinkHandleIncomingMissionCount(void)
         }
         return true;
     }
-    if (ARMING_FLAG(ARMED)) {
-        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
+    if (mavlinkDenyMissionEditInUse()) {
         return true;
     }
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_IDLE && !mavlinkMissionSenderOwnsTransfer()) {
@@ -1102,14 +1131,13 @@ bool mavlinkHandleIncomingMissionItem(void)
         }
     }
 
-    if (ARMING_FLAG(ARMED)) {
-        if (msg.command == MAV_CMD_NAV_WAYPOINT) {
-            return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
-                MAV_FRAME_SUPPORTED_GLOBAL | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT,
-                (int32_t)lrintf(msg.x * 1e7f), (int32_t)lrintf(msg.y * 1e7f), msg.z);
-        }
-
-        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
+    // current 2/3 marks a guided fly-to/altitude request, so a guided click is never taken into a running upload.
+    if (ARMING_FLAG(ARMED) && msg.command == MAV_CMD_NAV_WAYPOINT && (msg.current == 2 || msg.current == 3)) {
+        return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
+            MAV_FRAME_SUPPORTED_GLOBAL | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT,
+            (int32_t)lrintf(msg.x * 1e7f), (int32_t)lrintf(msg.y * 1e7f), msg.z);
+    }
+    if (mavlinkDenyMissionEditInUse()) {
         return true;
     }
 
@@ -1305,14 +1333,13 @@ bool mavlinkHandleIncomingMissionItemInt(void)
         return true;
     }
 
-    if (ARMING_FLAG(ARMED)) {
-        if (msg.command == MAV_CMD_NAV_WAYPOINT) {
-            return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
-                MAV_FRAME_SUPPORTED_GLOBAL_INT | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT,
-                msg.x, msg.y, msg.z);
-        }
-
-        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_ERROR);
+    // current 2/3 marks a guided fly-to/altitude request, so a guided click is never taken into a running upload.
+    if (ARMING_FLAG(ARMED) && msg.command == MAV_CMD_NAV_WAYPOINT && (msg.current == 2 || msg.current == 3)) {
+        return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
+            MAV_FRAME_SUPPORTED_GLOBAL_INT | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT,
+            msg.x, msg.y, msg.z);
+    }
+    if (mavlinkDenyMissionEditInUse()) {
         return true;
     }
 
