@@ -11898,7 +11898,7 @@
             "description": "Retrieves the estimated horizontal wind speed and direction from the internal wind estimator."
         },
         "MSP2_INAV_NAV_ROI": {
-            "code": 8754,
+            "code": 8758,
             "mspv": 2,
             "request": null,
             "reply": {
@@ -11957,7 +11957,7 @@
             "description": "Gets the active navigation ROI."
         },
         "MSP2_INAV_SET_NAV_ROI": {
-            "code": 8755,
+            "code": 8759,
             "mspv": 2,
             "request": {
                 "payload": [
@@ -12016,7 +12016,7 @@
             "description": "Sets or clears the active navigation ROI."
         },
         "MSP2_INAV_GOTO_ROI": {
-            "code": 8756,
+            "code": 8760,
             "mspv": 2,
             "request": null,
             "reply": null,
