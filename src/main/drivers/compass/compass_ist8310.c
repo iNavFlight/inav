@@ -26,6 +26,7 @@
 
 #include "build/debug.h"
 
+#include "common/utils.h"
 #include "common/axis.h"
 #include "common/maths.h"
 
@@ -124,20 +125,21 @@ static bool ist8310Init(magDev_t * mag)
     return true;
 }
 
+// Target of the non-blocking data read, filled by the bus driver in the background
+static uint8_t ist8310Data[6];
+
+static busReadStepResult_e ist8310ReadStart(magDev_t * mag, bool firstStep)
+{
+    UNUSED(firstStep);
+
+    // Continuous mode at 50 Hz, the data registers always hold the latest sample
+    return busReadBufStart(mag->busDev, IST8310_REG_DATA, ist8310Data, sizeof(ist8310Data)) ? BUS_READ_STEP_LAST : BUS_READ_STEP_BUSY;
+}
+
 static bool ist8310Read(magDev_t * mag)
 {
-    uint8_t buf[6];
+    const uint8_t *buf = ist8310Data;
     uint8_t LSB2FSV = 3; // 3mG - 14 bit
-
-    // set magData to zero for case of failed read
-    mag->magADCRaw[X] = 0;
-    mag->magADCRaw[Y] = 0;
-    mag->magADCRaw[Z] = 0;
-
-    bool ack = busReadBuf(mag->busDev, IST8310_REG_DATA, buf, 6);
-    if (!ack) {
-        return false;
-    }
 
     // Invert Y axis to co convert from left to right coordinate system
     mag->magADCRaw[X] =  (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
@@ -174,6 +176,7 @@ bool ist8310Detect(magDev_t * mag)
 
         if (deviceDetect(mag)) {
             mag->init = ist8310Init;
+            mag->readStart = ist8310ReadStart;
             mag->read = ist8310Read;
             return true;
         } else {

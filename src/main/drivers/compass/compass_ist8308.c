@@ -26,6 +26,7 @@
 
 #include "build/debug.h"
 
+#include "common/utils.h"
 #include "common/axis.h"
 #include "common/maths.h"
 
@@ -105,21 +106,21 @@ static bool ist8308Init(magDev_t * mag)
     return true;
 }
 
+// Target of the non-blocking data read, filled by the bus driver in the background
+static uint8_t ist8308Data[6];
+
+static busReadStepResult_e ist8308ReadStart(magDev_t * mag, bool firstStep)
+{
+    UNUSED(firstStep);
+
+    // Continuous mode, the data registers always hold the latest sample
+    return busReadBufStart(mag->busDev, IST8308_REG_DATA, ist8308Data, sizeof(ist8308Data)) ? BUS_READ_STEP_LAST : BUS_READ_STEP_BUSY;
+}
+
 static bool ist8308Read(magDev_t * mag)
 {
     const float LSB2FSV = 1.5; // 1.5mG
-
-    uint8_t buf[6];
-
-    bool ack = busReadBuf(mag->busDev, IST8308_REG_DATA, buf, 6);
-    if (!ack) {
-        // set magData to zero for case of failed read
-        mag->magADCRaw[X] = 0;
-        mag->magADCRaw[Y] = 0;
-        mag->magADCRaw[Z] = 0;
-
-        return false;
-    }
+    const uint8_t *buf = ist8308Data;
 
     // Invert Y axis to co convert from left to right coordinate system
     mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
@@ -159,6 +160,7 @@ bool ist8308Detect(magDev_t * mag)
     }
 
     mag->init = ist8308Init;
+    mag->readStart = ist8308ReadStart;
     mag->read = ist8308Read;
 
     return true;

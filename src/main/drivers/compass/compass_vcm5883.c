@@ -78,19 +78,20 @@ static bool vcm5883Init(magDev_t * mag) {
     return true;
 }
 
+// Target of the non-blocking data read, filled by the bus driver in the background
+static uint8_t vcm5883Data[6];
+
+static busReadStepResult_e vcm5883ReadStart(magDev_t * mag, bool firstStep)
+{
+    UNUSED(firstStep);
+
+    // Continuous mode, the data registers always hold the latest sample
+    return busReadBufStart(mag->busDev, VCM5883_REGISTER_ADDR_OUTPUT_X, vcm5883Data, sizeof(vcm5883Data)) ? BUS_READ_STEP_LAST : BUS_READ_STEP_BUSY;
+}
+
 static bool vcm5883Read(magDev_t * mag)
 {
-    uint8_t buf[6];
-
-    // set magData to zero for case of failed read
-    mag->magADCRaw[X] = 0;
-    mag->magADCRaw[Y] = 0;
-    mag->magADCRaw[Z] = 0;
-
-    bool ack = busReadBuf(mag->busDev, VCM5883_REGISTER_ADDR_OUTPUT_X, buf, 6);
-    if (!ack) {
-        return false;
-    }
+    const uint8_t *buf = vcm5883Data;
 
     mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]);
     mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]);
@@ -112,6 +113,7 @@ bool vcm5883Detect(magDev_t * mag)
     }
 
     mag->init = vcm5883Init;
+    mag->readStart = vcm5883ReadStart;
     mag->read = vcm5883Read;
 
     return true;

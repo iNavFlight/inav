@@ -95,33 +95,74 @@ static bool ak8975Init(magDev_t * mag)
 #define BIT_STATUS2_REG_DATA_ERROR              (1 << 2)
 #define BIT_STATUS2_REG_MAG_SENSOR_OVERFLOW     (1 << 3)
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t ak8975Status1;
+static uint8_t ak8975Status2;
+static uint8_t ak8975Data[6];
+
+// Four transfers per sample: status, data once DRDY is set, STATUS2, then the trigger of the next measurement
+static busReadStepResult_e ak8975ReadStart(magDev_t * mag, bool firstStep)
+{
+    static uint8_t step = 0;
+
+    if (firstStep) {
+        step = 0;
+        ak8975Status1 = 0;
+    }
+
+    switch (step) {
+        case 0:
+            if (!busReadBufStart(mag->busDev, AK8975_MAG_REG_STATUS1, &ak8975Status1, 1)) {
+                return BUS_READ_STEP_BUSY;
+            }
+            step = 1;
+            return BUS_READ_STEP_NEXT;
+
+        case 1:
+            if ((ak8975Status1 & BIT_STATUS1_REG_DATA_READY) == 0) {
+                return BUS_READ_STEP_LAST;      // measurement not finished, ak8975Read() reports the miss
+            }
+            if (!busReadBufStart(mag->busDev, AK8975_MAG_REG_HXL, ak8975Data, sizeof(ak8975Data))) {  // AK8975_MAG_REG_HXL to AK8975_MAG_REG_HZH
+                return BUS_READ_STEP_BUSY;
+            }
+            step = 2;
+            return BUS_READ_STEP_NEXT;
+
+        case 2:
+            if (!busReadBufStart(mag->busDev, AK8975_MAG_REG_STATUS2, &ak8975Status2, 1)) {
+                return BUS_READ_STEP_BUSY;
+            }
+            step = 3;
+            return BUS_READ_STEP_NEXT;
+
+        default:
+            // Start the next measurement; ak8975Read() parses once this write is out
+            if (!busWriteStart(mag->busDev, AK8975_MAG_REG_CNTL, 0x01)) {
+                return BUS_READ_STEP_BUSY;
+            }
+            return BUS_READ_STEP_LAST;
+    }
+}
+
 static bool ak8975Read(magDev_t * mag)
 {
-    uint8_t status;
-    uint8_t buf[6];
-
     // set magData to zero for case of failed read
     mag->magADCRaw[X] = 0;
     mag->magADCRaw[Y] = 0;
     mag->magADCRaw[Z] = 0;
 
-    bool ack = busRead(mag->busDev, AK8975_MAG_REG_STATUS1, &status);
-    if (!ack || (status & BIT_STATUS1_REG_DATA_READY) == 0) {
+    if ((ak8975Status1 & BIT_STATUS1_REG_DATA_READY) == 0) {
         return false;
     }
 
-    ack = busReadBuf(mag->busDev, AK8975_MAG_REG_HXL, buf, 6); // read from AK8975_MAG_REG_HXL to AK8975_MAG_REG_HZH
-    ack = busRead(mag->busDev, AK8975_MAG_REG_STATUS2, &status);
-
-    if (!ack || (status & BIT_STATUS2_REG_DATA_ERROR) || (status & BIT_STATUS2_REG_MAG_SENSOR_OVERFLOW)) {
+    if ((ak8975Status2 & BIT_STATUS2_REG_DATA_ERROR) || (ak8975Status2 & BIT_STATUS2_REG_MAG_SENSOR_OVERFLOW)) {
         return false;
     }
 
-    mag->magADCRaw[X] = -(int16_t)(buf[1] << 8 | buf[0]) * 4;
-    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]) * 4;
-    mag->magADCRaw[Z] = -(int16_t)(buf[5] << 8 | buf[4]) * 4;
+    mag->magADCRaw[X] = -(int16_t)(ak8975Data[1] << 8 | ak8975Data[0]) * 4;
+    mag->magADCRaw[Y] = (int16_t)(ak8975Data[3] << 8 | ak8975Data[2]) * 4;
+    mag->magADCRaw[Z] = -(int16_t)(ak8975Data[5] << 8 | ak8975Data[4]) * 4;
 
-    ack = busWrite(mag->busDev, AK8975_MAG_REG_CNTL, 0x01); // start reading again
     return true;
 }
 
@@ -155,6 +196,7 @@ bool ak8975Detect(magDev_t * mag)
     }
 
     mag->init = ak8975Init;
+    mag->readStart = ak8975ReadStart;
     mag->read = ak8975Read;
 
     return true;

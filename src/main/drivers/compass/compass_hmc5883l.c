@@ -111,28 +111,24 @@
 #define HMC_POS_BIAS 1
 #define HMC_NEG_BIAS 2
 
+// Target of the non-blocking data read, filled by the bus driver in the background
+static uint8_t hmc5883lData[6];
+
+static busReadStepResult_e hmc5883lReadStart(magDev_t * mag, bool firstStep)
+{
+    UNUSED(firstStep);
+
+    // Continuous conversion mode, the data registers always hold the latest sample
+    const uint8_t dataRegister = (mag->busDev->busType == BUSTYPE_SPI) ? MAG_DATA_REGISTER_SPI : MAG_DATA_REGISTER;
+
+    return busReadBufStart(mag->busDev, dataRegister, hmc5883lData, sizeof(hmc5883lData)) ? BUS_READ_STEP_LAST : BUS_READ_STEP_BUSY;
+}
+
 static bool hmc5883lRead(magDev_t * mag)
 {
-    uint8_t buf[6];
-    bool ack;
-
-    if (mag->busDev->busType == BUSTYPE_SPI) {
-        ack = busReadBuf(mag->busDev, MAG_DATA_REGISTER_SPI, buf, 6);
-    }
-    else {
-        ack = busReadBuf(mag->busDev, MAG_DATA_REGISTER, buf, 6);
-    }
-
-    if (!ack) {
-        mag->magADCRaw[X] = 0;
-        mag->magADCRaw[Y] = 0;
-        mag->magADCRaw[Z] = 0;
-        return false;
-    }
-
-    mag->magADCRaw[X] = (int16_t)(buf[0] << 8 | buf[1]);
-    mag->magADCRaw[Z] = (int16_t)(buf[2] << 8 | buf[3]);
-    mag->magADCRaw[Y] = (int16_t)(buf[4] << 8 | buf[5]);
+    mag->magADCRaw[X] = (int16_t)(hmc5883lData[0] << 8 | hmc5883lData[1]);
+    mag->magADCRaw[Z] = (int16_t)(hmc5883lData[2] << 8 | hmc5883lData[3]);
+    mag->magADCRaw[Y] = (int16_t)(hmc5883lData[4] << 8 | hmc5883lData[5]);
 
     return true;
 }
@@ -182,6 +178,7 @@ bool hmc5883lDetect(magDev_t * mag)
     }
 
     mag->init = hmc5883lInit;
+    mag->readStart = hmc5883lReadStart;
     mag->read = hmc5883lRead;
 
     return true;

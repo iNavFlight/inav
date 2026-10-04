@@ -75,23 +75,49 @@ static bool mag3110Init(magDev_t * mag)
 
 #define BIT_STATUS_REG_DATA_READY               (1 << 3)
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t mag3110Status;
+static uint8_t mag3110Data[6];
+
+// Two transfers per sample: the status byte first, the data only when DRDY confirms a fresh sample
+static busReadStepResult_e mag3110ReadStart(magDev_t * mag, bool firstStep)
+{
+    static bool statusStarted = false;
+
+    if (firstStep) {
+        statusStarted = false;
+        mag3110Status = 0;
+    }
+
+    if (!statusStarted) {
+        if (!busReadBufStart(mag->busDev, MAG3110_MAG_REG_STATUS, &mag3110Status, 1)) {
+            return BUS_READ_STEP_BUSY;
+        }
+        statusStarted = true;
+        return BUS_READ_STEP_NEXT;
+    }
+
+    if ((mag3110Status & BIT_STATUS_REG_DATA_READY) == 0) {
+        return BUS_READ_STEP_LAST;      // nothing new to fetch, mag3110Read() reports the miss
+    }
+
+    if (!busReadBufStart(mag->busDev, MAG3110_MAG_REG_HXL, mag3110Data, sizeof(mag3110Data))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    return BUS_READ_STEP_LAST;
+}
+
 static bool mag3110Read(magDev_t * mag)
 {
-    uint8_t status;
-    uint8_t buf[6];
+    const uint8_t *buf = mag3110Data;
 
     // set magData to zero for case of failed read
     mag->magADCRaw[X] = 0;
     mag->magADCRaw[Y] = 0;
     mag->magADCRaw[Z] = 0;
 
-    bool ack = busRead(mag->busDev, MAG3110_MAG_REG_STATUS, &status);
-    if (!ack || (status & BIT_STATUS_REG_DATA_READY) == 0) {
-        return false;
-    }
-
-    ack = busReadBuf(mag->busDev, MAG3110_MAG_REG_HXL, buf, 6);
-    if (!ack) {
+    if ((mag3110Status & BIT_STATUS_REG_DATA_READY) == 0) {
         return false;
     }
 
@@ -132,6 +158,7 @@ bool mag3110detect(magDev_t * mag)
     }
 
     mag->init = mag3110Init;
+    mag->readStart = mag3110ReadStart;
     mag->read = mag3110Read;
 
     return true;

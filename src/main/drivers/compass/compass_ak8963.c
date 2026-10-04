@@ -115,32 +115,56 @@ static int16_t parseMag(uint8_t *raw, int16_t gain) {
   return constrain(ret, INT16_MIN, INT16_MAX);
 }
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t ak8963Status;
+static uint8_t ak8963Data[7];       // HXL..HZH followed by STATUS2
+
+// Three transfers per sample: status, data once DRDY is set, then the trigger of the next single measurement
+static busReadStepResult_e ak8963ReadStart(magDev_t * mag, bool firstStep)
+{
+    static uint8_t step = 0;
+
+    if (firstStep) {
+        step = 0;
+        ak8963Status = 0;
+    }
+
+    switch (step) {
+        case 0:
+            if (!busReadBufStart(mag->busDev, AK8963_MAG_REG_STATUS1, &ak8963Status, 1)) {
+                return BUS_READ_STEP_BUSY;
+            }
+            step = 1;
+            return BUS_READ_STEP_NEXT;
+
+        case 1:
+            if ((ak8963Status & STATUS1_DATA_READY) == 0) {
+                return BUS_READ_STEP_LAST;      // measurement not finished, ak8963Read() reports the miss
+            }
+            if (!busReadBufStart(mag->busDev, AK8963_MAG_REG_HXL, ak8963Data, sizeof(ak8963Data))) {
+                return BUS_READ_STEP_BUSY;
+            }
+            step = 2;
+            return BUS_READ_STEP_NEXT;
+
+        default:
+            // Data is in, trigger the next single measurement; ak8963Read() parses once this write is out
+            if (!busWriteStart(mag->busDev, AK8963_MAG_REG_CNTL, CNTL_BIT_16_BIT | CNTL_MODE_ONCE)) {
+                return BUS_READ_STEP_BUSY;
+            }
+            return BUS_READ_STEP_LAST;
+    }
+}
+
 static bool ak8963Read(magDev_t * mag)
 {
-    bool ack = false;
-    uint8_t buf[7];
-
-    ack = busRead(mag->busDev, AK8963_MAG_REG_STATUS1, &buf[0]);
-
-    if (!ack || (buf[0] & STATUS1_DATA_READY) == 0) {
+    if ((ak8963Status & STATUS1_DATA_READY) == 0 || (ak8963Data[6] & STATUS2_MAG_SENSOR_OVERFLOW)) {
         return false;
     }
 
-    ack = busReadBuf(mag->busDev, AK8963_MAG_REG_HXL, &buf[0], 7);
-
-    if (!ack) {
-        return false;
-    }
-
-    ack = busWrite(mag->busDev, AK8963_MAG_REG_CNTL, CNTL_BIT_16_BIT | CNTL_MODE_ONCE);
-
-    if (buf[6] & STATUS2_MAG_SENSOR_OVERFLOW) {
-        return false;
-    }
-
-    mag->magADCRaw[X] = -parseMag(buf + 0, magGain[X]);
-    mag->magADCRaw[Y] = parseMag(buf + 2, magGain[Y]);
-    mag->magADCRaw[Z] = -parseMag(buf + 4, magGain[Z]);
+    mag->magADCRaw[X] = -parseMag(ak8963Data + 0, magGain[X]);
+    mag->magADCRaw[Y] = parseMag(ak8963Data + 2, magGain[Y]);
+    mag->magADCRaw[Z] = -parseMag(ak8963Data + 4, magGain[Z]);
 
     return true;
 }
@@ -175,6 +199,7 @@ bool ak8963Detect(magDev_t * mag)
     }
 
     mag->init = ak8963Init;
+    mag->readStart = ak8963ReadStart;
     mag->read = ak8963Read;
 
     return true;

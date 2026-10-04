@@ -24,6 +24,7 @@
 
 #ifdef USE_MAG_LIS3MDL
 
+#include "common/utils.h"
 #include "common/axis.h"
 
 #include "drivers/time.h"
@@ -104,22 +105,46 @@
 #define LIS3MDL_FAST_READ           0x80  // Default 0
 #define LIS3MDL_BDU                 0x40  // Default 0
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t lis3mdlStatus;
+static uint8_t lis3mdlData[6];
+
+#define LIS3MDL_STATUS_ZYXDA    0x08
+
+// Two transfers per sample: the status byte first, the data only when ZYXDA confirms a fresh sample
+static busReadStepResult_e lis3mdlReadStart(magDev_t * mag, bool firstStep)
+{
+    static bool statusStarted = false;
+
+    if (firstStep) {
+        statusStarted = false;
+        lis3mdlStatus = 0;
+    }
+
+    if (!statusStarted) {
+        if (!busReadBufStart(mag->busDev, LIS3MDL_REG_STATUS_REG, &lis3mdlStatus, 1)) {
+            return BUS_READ_STEP_BUSY;
+        }
+        statusStarted = true;
+        return BUS_READ_STEP_NEXT;
+    }
+
+    if (!(lis3mdlStatus & LIS3MDL_STATUS_ZYXDA)) {
+        return BUS_READ_STEP_LAST;      // nothing new to fetch, lis3mdlRead() reports the miss
+    }
+
+    if (!busReadBufStart(mag->busDev, LIS3MDL_REG_OUT_X_L, lis3mdlData, sizeof(lis3mdlData))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    return BUS_READ_STEP_LAST;
+}
+
 static bool lis3mdlRead(magDev_t * mag)
 {
-    bool ack;
-	uint8_t status = 0;
+    const uint8_t *buf = lis3mdlData;
 
-	ack = busRead(mag->busDev, LIS3MDL_REG_STATUS_REG, &status);
-
-	if ( !( ack && ( ( status & 0x08 ) >> 3 ) ) ) {
-		return false;
-	}
-
-	uint8_t buf[6];
-
-    ack = busReadBuf(mag->busDev, LIS3MDL_REG_OUT_X_L, buf, 6);
-
-    if (!ack) {
+    if (!(lis3mdlStatus & LIS3MDL_STATUS_ZYXDA)) {
         mag->magADCRaw[X] = 0;
         mag->magADCRaw[Y] = 0;
         mag->magADCRaw[Z] = 0;
@@ -176,6 +201,7 @@ bool lis3mdlDetect(magDev_t * mag)
     }
 
     mag->init = lis3mdlInit;
+    mag->readStart = lis3mdlReadStart;
     mag->read = lis3mdlRead;
 
     return true;

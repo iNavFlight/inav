@@ -96,42 +96,58 @@ static bool deviceInit(magDev_t * mag)
     return true;
 }
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t rm3100Status;
+static uint8_t rm3100Report[9];     // X, Y, Z as 24 bit big endian values
+
+// Two transfers per sample: the status byte first, the data only when a new measurement is ready
+static busReadStepResult_e deviceReadStart(magDev_t * mag, bool firstStep)
+{
+    static bool statusStarted = false;
+
+    if (firstStep) {
+        statusStarted = false;
+        rm3100Status = 0;
+    }
+
+    if (!statusStarted) {
+        if (!busReadBufStart(mag->busDev, RM3100_REG_STATUS, &rm3100Status, 1)) {
+            return BUS_READ_STEP_BUSY;
+        }
+        statusStarted = true;
+        return BUS_READ_STEP_NEXT;
+    }
+
+    if ((rm3100Status & 0x80) == 0) {
+        return BUS_READ_STEP_LAST;      // nothing new to fetch, deviceRead() reports the miss
+    }
+
+    if (!busReadBufStart(mag->busDev, RM3100_REG_MX, rm3100Report, sizeof(rm3100Report))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    return BUS_READ_STEP_LAST;
+}
+
 static bool deviceRead(magDev_t * mag)
 {
-    uint8_t status;
-
-#pragma pack(push, 1)
-    struct {
-        uint8_t x[3];
-        uint8_t y[3];
-        uint8_t z[3];
-    } rm_report;
-#pragma pack(pop)
+    const uint8_t *x = &rm3100Report[0];
+    const uint8_t *y = &rm3100Report[3];
+    const uint8_t *z = &rm3100Report[6];
 
     mag->magADCRaw[X] = 0;
     mag->magADCRaw[Y] = 0;
     mag->magADCRaw[Z] = 0;
 
     /* Check if new measurement is ready */
-    bool ack = busRead(mag->busDev, RM3100_REG_STATUS, &status);
-
-    if (!ack || (status & 0x80) == 0) {
+    if ((rm3100Status & 0x80) == 0) {
         return false;
     }
-
-    ack = busReadBuf(mag->busDev, RM3100_REG_MX, (uint8_t *)&rm_report, sizeof(rm_report));
-    if (!ack) {
-        return false;
-    }
-
-    int32_t xraw;
-    int32_t yraw;
-    int32_t zraw;
 
     /* Rearrange mag data */
-    xraw = ((rm_report.x[0] << 24) | (rm_report.x[1] << 16) | (rm_report.x[2]) << 8);
-    yraw = ((rm_report.y[0] << 24) | (rm_report.y[1] << 16) | (rm_report.y[2]) << 8);
-    zraw = ((rm_report.z[0] << 24) | (rm_report.z[1] << 16) | (rm_report.z[2]) << 8);
+    const int32_t xraw = ((x[0] << 24) | (x[1] << 16) | (x[2]) << 8);
+    const int32_t yraw = ((y[0] << 24) | (y[1] << 16) | (y[2]) << 8);
+    const int32_t zraw = ((z[0] << 24) | (z[1] << 16) | (z[2]) << 8);
 
     /* Truncate to 16-bit integers and pass along */
     mag->magADCRaw[X] = (int16_t)(xraw >> 16);
@@ -171,6 +187,7 @@ bool rm3100MagDetect(magDev_t * mag)
     }
 
     mag->init = deviceInit;
+    mag->readStart = deviceReadStart;
     mag->read = deviceRead;
 
     return true;

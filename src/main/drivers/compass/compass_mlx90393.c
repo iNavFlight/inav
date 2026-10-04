@@ -100,19 +100,26 @@ static void mlx90393WriteRegister(magDev_t * mag, uint8_t reg_val, uint16_t valu
 }
 
 // =======================================================================================
+// Target of the non-blocking measurement read, filled by the bus driver in the background
+static uint8_t mlx90393Data[7];
+
+static busReadStepResult_e mlx90393ReadStart(magDev_t * mag, bool firstStep)
+{
+    UNUSED(firstStep);
+
+    // Burst mode, the read measurement command returns the status byte and the latest X, Y, Z
+    return busReadBufStart(mag->busDev, MLX90393_READ_MEASUREMENT | MLX90393_MEASURE_3D, mlx90393Data, sizeof(mlx90393Data)) ? BUS_READ_STEP_LAST : BUS_READ_STEP_BUSY;
+}
+
 static bool mlx90393Read(magDev_t * mag)
 {
-
-    uint8_t buf[7] = {0};
-
-    busReadBuf(mag->busDev, MLX90393_READ_MEASUREMENT | MLX90393_MEASURE_3D, buf, 7);
+    const uint8_t *buf = mlx90393Data;
 
     mag->magADCRaw[X] = ((short)(buf[1] << 8 | buf[2]));
     mag->magADCRaw[Y] = ((short)(buf[3] << 8 | buf[4]));
     mag->magADCRaw[Z] = ((short)(buf[5] << 8 | buf[6]));
 
     return true;
-
 }
 
 static bool deviceDetect(magDev_t * mag)
@@ -167,6 +174,7 @@ bool mlx90393Detect(magDev_t * mag)
     }
 
     mag->init = mlx90393Init;
+    mag->readStart = mlx90393ReadStart;
     mag->read = mlx90393Read;
 
     return true;

@@ -22,6 +22,7 @@
 
 #ifdef USE_MAG_LIS2MDL
 
+#include "common/utils.h"
 #include "common/axis.h"
 
 #include "drivers/time.h"
@@ -66,22 +67,48 @@ static bool lis2mdlInit(magDev_t *mag)
     return ack;
 }
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t lis2mdlStatus;
+static uint8_t lis2mdlData[6];
+
+// Two transfers per sample: the status byte first, the data only when ZYXDA confirms a fresh sample
+static busReadStepResult_e lis2mdlReadStart(magDev_t *mag, bool firstStep)
+{
+    static bool statusStarted = false;
+
+    if (firstStep) {
+        statusStarted = false;
+        lis2mdlStatus = 0;
+    }
+
+    if (!statusStarted) {
+        if (!busReadBufStart(mag->busDev, LIS2MDL_REG_STATUS_REG, &lis2mdlStatus, 1)) {
+            return BUS_READ_STEP_BUSY;
+        }
+        statusStarted = true;
+        return BUS_READ_STEP_NEXT;
+    }
+
+    if (!(lis2mdlStatus & LIS2MDL_STATUS_ZYXDA)) {
+        return BUS_READ_STEP_LAST;      // nothing new to fetch, lis2mdlRead() reports the miss
+    }
+
+    if (!busReadBufStart(mag->busDev, LIS2MDL_REG_OUTX_L, lis2mdlData, sizeof(lis2mdlData))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    return BUS_READ_STEP_LAST;
+}
+
 static bool lis2mdlRead(magDev_t *mag)
 {
-    uint8_t status = 0;
-    uint8_t buf[6];
+    const uint8_t *buf = lis2mdlData;
 
     mag->magADCRaw[X] = 0;
     mag->magADCRaw[Y] = 0;
     mag->magADCRaw[Z] = 0;
 
-    bool ack = busRead(mag->busDev, LIS2MDL_REG_STATUS_REG, &status);
-    if (!ack || !(status & LIS2MDL_STATUS_ZYXDA)) {
-        return false;
-    }
-
-    ack = busReadBuf(mag->busDev, LIS2MDL_REG_OUTX_L, buf, 6);
-    if (!ack) {
+    if (!(lis2mdlStatus & LIS2MDL_STATUS_ZYXDA)) {
         return false;
     }
 
@@ -127,6 +154,7 @@ bool lis2mdlDetect(magDev_t *mag)
     }
 
     mag->init = lis2mdlInit;
+    mag->readStart = lis2mdlReadStart;
     mag->read = lis2mdlRead;
 
     return true;
