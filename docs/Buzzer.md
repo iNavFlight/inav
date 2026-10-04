@@ -44,7 +44,7 @@ Sequences:
     11   ACTION_SUCCESS            5, 5, 5, 5                 Waypoint list saved or loaded by sticks; compass
                                                               calibration started (without a compass: heading set to
                                                               north); temperature auto-calibration ended with a
-                                                              correction
+                                                              correction, settings saved
     12   ACTION_FAIL               20, 15, 35, 5              Waypoint list save or load by sticks failed, or list
                                                               erased by sticks; temperature auto-calibration ended
                                                               without a correction
@@ -53,7 +53,7 @@ Sequences:
     14   MULTI_BEEPS               multi beeps                Short beeps: flight mode change or arming blocked (1),
                                                               profile change (profile number), in-flight adjustment
                                                               (1 down, 2 up), accelerometer calibration position
-                                                              done (2), settings saved (1), satellite count while BEEPER
+                                                              done (2), satellite count while BEEPER
                                                               mode is on (GPS fix and at least 5 satellites)
     15   DISARM_REPEAT             0, 100, 10                 Never sounds in normal use (only via play_sound)
     16   ARMED                     0, 245, 10, 5              Armed with throttle low and motorstop_on_low on, not on
