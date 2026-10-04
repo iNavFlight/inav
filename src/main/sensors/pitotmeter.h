@@ -64,10 +64,15 @@ typedef struct pito_s {
 
 extern pitot_t pitot;
 
+// Regular sample rate of the pitot task and the retry delay while a non-blocking read is on the bus
+#define PITOT_UPDATE_RATE_HZ        50
+#define PITOT_UPDATE_PERIOD_US      (1000000 / PITOT_UPDATE_RATE_HZ)
+#define PITOT_READ_RETRY_US         1000
+
 bool pitotInit(void);
 bool pitotIsCalibrationComplete(void);
 void pitotStartCalibration(void);
-void pitotUpdate(void);
+uint32_t pitotUpdate(void);   // returns the delay until the next call
 float getAirspeedEstimate(void);
 bool pitotIsHealthy(void);
 bool pitotGetValidForAirspeed(void);

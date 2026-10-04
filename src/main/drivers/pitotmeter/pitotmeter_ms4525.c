@@ -38,28 +38,40 @@ typedef struct __attribute__ ((__packed__)) ms4525Ctx_s {
 
 STATIC_ASSERT(sizeof(ms4525Ctx_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t ms4525Frames[2][4];          // two consecutive data frames, compared against each other
+static uint8_t ms4525MeasurementRequest;    // byte returned by the measurement request command
+
 static bool ms4525_start(pitotDev_t * pitot)
 {
-    uint8_t rxbuf[1];
-    bool ack = busReadBuf(pitot->busDev, 0xFF, rxbuf, 1);
-    return ack;
+    // A one byte read is the measurement request command, the answer itself is not used
+    return busReadBufStart(pitot->busDev, 0xFF, &ms4525MeasurementRequest, 1);
+}
+
+// Two data frames per sample, read back to back
+static busReadStepResult_e ms4525_read_start(pitotDev_t * pitot, bool firstStep)
+{
+    static uint8_t frame = 0;
+
+    if (firstStep) {
+        frame = 0;
+    }
+
+    if (!busReadBufStart(pitot->busDev, 0xFF, ms4525Frames[frame], sizeof(ms4525Frames[frame]))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    frame++;
+    return (frame < 2) ? BUS_READ_STEP_NEXT : BUS_READ_STEP_LAST;
 }
 
 static bool ms4525_read(pitotDev_t * pitot)
 {
-    uint8_t rxbuf1[4];
-    uint8_t rxbuf2[4];
+    const uint8_t *rxbuf1 = ms4525Frames[0];
+    const uint8_t *rxbuf2 = ms4525Frames[1];
 
     ms4525Ctx_t * ctx = busDeviceGetScratchpadMemory(pitot->busDev);
     ctx->dataValid = false;
-
-    if (!busReadBuf(pitot->busDev, 0xFF, rxbuf1, 4)) {
-        return false;
-    }
-
-    if (!busReadBuf(pitot->busDev, 0xFF, rxbuf2, 4)) {
-        return false;
-    }
 
     const uint8_t status = ((rxbuf1[0] & 0xC0) >> 6);
     if (status == 2 || status == 3) {
@@ -146,6 +158,7 @@ bool ms4525Detect(pitotDev_t * pitot)
     pitot->delay = 10000;
     pitot->calibThreshold = 0.00005f;   // noisy sensor
     pitot->start = ms4525_start;
+    pitot->readStart = ms4525_read_start;
     pitot->get = ms4525_read;
     pitot->calculate = ms4525_calculate;
     return true;

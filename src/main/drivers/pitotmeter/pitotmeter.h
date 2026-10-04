@@ -21,13 +21,20 @@
 struct pitotDev_s;
 
 typedef bool (*pitotOpFuncPtr)(struct pitotDev_s * pitot);                       // pitot start operation
+typedef busReadStepResult_e (*pitotReadStartFuncPtr)(struct pitotDev_s * pitot, bool firstStep);   // non-blocking read step, see drivers/bus.h
 typedef void (*pitotCalculateFuncPtr)(struct pitotDev_s * pitot, float *pressure, float *temperature); // airspeed calculation (filled params are pressure and temperature)
 
+/*
+ * start() triggers a measurement (may be a non-blocking bus transfer), get() delivers it after `delay`.
+ * A driver with readStart set fetches the data over one or more non-blocking transfers; get() then only parses them.
+ * Without readStart, get() does its own blocking bus access.
+ */
 typedef struct pitotDev_s {
     busDevice_t * busDev;
     uint16_t delay;
     float calibThreshold;
     pitotOpFuncPtr start;
+    pitotReadStartFuncPtr readStart;
     pitotOpFuncPtr get;
     pitotCalculateFuncPtr calculate;
 } pitotDev_t;

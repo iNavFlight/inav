@@ -67,16 +67,20 @@ static bool dlvr_start(pitotDev_t * pitot)
     return true;
 }
 
+// Target of the non-blocking data read, filled by the bus driver in the background
+static uint8_t dlvrFrame[4];
+
+static busReadStepResult_e dlvr_read_start(pitotDev_t * pitot, bool firstStep)
+{
+    UNUSED(firstStep);
+    return busReadBufStart(pitot->busDev, 0xFF, dlvrFrame, sizeof(dlvrFrame)) ? BUS_READ_STEP_LAST : BUS_READ_STEP_BUSY;
+}
+
 static bool dlvr_read(pitotDev_t * pitot)
 {
-    uint8_t rxbuf1[4];
-
+    const uint8_t *rxbuf1 = dlvrFrame;
     dlvrCtx_t * ctx = busDeviceGetScratchpadMemory(pitot->busDev);
     ctx->dataValid = false;
-
-    if (!busReadBuf(pitot->busDev, 0xFF, rxbuf1, 4)) {
-        return false;
-    }
 
     // status = 00 -> ok, new data
 	// status = 01 -> reserved
@@ -159,6 +163,7 @@ bool dlvrDetect(pitotDev_t * pitot)
     pitot->delay = 10000;
     pitot->calibThreshold = 0.00001f;   // low noise sensor
     pitot->start = dlvr_start;
+    pitot->readStart = dlvr_read_start;
     pitot->get = dlvr_read;
     pitot->calculate = dlvr_calculate;
     return true;

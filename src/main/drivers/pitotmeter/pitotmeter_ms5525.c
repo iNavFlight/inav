@@ -79,14 +79,18 @@ static int8_t ms5525_crc(uint16_t *prom)
     return -1;
 }
 
-static bool ms5525_read_adc(pitotDev_t *pitot, uint32_t *result)
+// Target of the non-blocking ADC read, filled by the bus driver in the background
+static uint8_t ms5525AdcBuf[3];
+
+static busReadStepResult_e ms5525_read_start(pitotDev_t * pitot, bool firstStep)
 {
-    uint8_t rxbuf[3];
-    if (busReadBuf(pitot->busDev, CMD_ADC_READ, rxbuf, 3)) {
-        *result = (rxbuf[0] << 16) | (rxbuf[1] << 8) | rxbuf[2];
-        return true;
-    }
-    return false;
+    UNUSED(firstStep);
+    return busReadBufStart(pitot->busDev, CMD_ADC_READ, ms5525AdcBuf, sizeof(ms5525AdcBuf)) ? BUS_READ_STEP_LAST : BUS_READ_STEP_BUSY;
+}
+
+static uint32_t ms5525_adc_value(void)
+{
+    return (ms5525AdcBuf[0] << 16) | (ms5525AdcBuf[1] << 8) | ms5525AdcBuf[2];
 }
 
 static bool ms5525_start(pitotDev_t * pitot)
@@ -95,9 +99,9 @@ static bool ms5525_start(pitotDev_t * pitot)
     uint8_t step = ctx->up >> 24;
     
     if (step == 0) {
-        return busWrite(pitot->busDev, CMD_ADC_CONV + CMD_ADC_D1 + CMD_ADC_4096, 1);
+        return busWriteStart(pitot->busDev, CMD_ADC_CONV + CMD_ADC_D1 + CMD_ADC_4096, 1);
     } else {
-        return busWrite(pitot->busDev, CMD_ADC_CONV + CMD_ADC_D2 + CMD_ADC_4096, 1);
+        return busWriteStart(pitot->busDev, CMD_ADC_CONV + CMD_ADC_D2 + CMD_ADC_4096, 1);
     }
 }
 
@@ -105,10 +109,10 @@ static bool ms5525_read(pitotDev_t * pitot)
 {
     ms5525Ctx_t * ctx = busDeviceGetScratchpadMemory(pitot->busDev);
     uint8_t step = ctx->up >> 24;
-    
-    uint32_t adc_val = 0;
-    if (!ms5525_read_adc(pitot, &adc_val)) {
-        return false;
+    const uint32_t adc_val = ms5525_adc_value();
+
+    if (adc_val == 0) {
+        return false;   // ADC read before the conversion finished
     }
     
     if (step == 0) {
@@ -219,6 +223,7 @@ bool ms5525Detect(pitotDev_t * pitot)
     pitot->delay = 10000; // max 9.04ms for OSR4096
     pitot->calibThreshold = 0.00005f;
     pitot->start = ms5525_start;
+    pitot->readStart = ms5525_read_start;
     pitot->get = ms5525_read;
     pitot->calculate = ms5525_calculate;
 

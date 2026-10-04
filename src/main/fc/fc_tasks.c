@@ -223,7 +223,11 @@ void taskUpdatePitot(timeUs_t currentTimeUs)
         return;
     }
 
-    pitotUpdate();
+    // A non-blocking read asks to be revisited shortly, otherwise the regular period is restored
+    const uint32_t newDeadline = pitotUpdate();
+    if (newDeadline != 0) {
+        rescheduleTask(TASK_SELF, newDeadline);
+    }
 
     if ( pitotIsHealthy()) {
         updatePositionEstimator_PitotTopic(currentTimeUs);
@@ -603,7 +607,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_PITOT] = {
         .taskName = "PITOT",
         .taskFunc = taskUpdatePitot,
-        .desiredPeriod = TASK_PERIOD_MS(20),
+        .desiredPeriod = TASK_PERIOD_HZ(PITOT_UPDATE_RATE_HZ),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
