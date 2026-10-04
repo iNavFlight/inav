@@ -179,6 +179,12 @@ set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions 
 set_property(SOURCE navigation_vtol_mission_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE vtol_mc_protection_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 
+set_property(SOURCE pid_apa_fallback_filter_unittest.cc PROPERTY depends
+    "common/maths.c" "common/filter.c" "common/lulu.c")
+# pid.c is #included by the access shim so the test can see its file-static state
+set_property(SOURCE pid_apa_fallback_filter_unittest.cc PROPERTY extra_sources
+    "../test/unit/pid_apa_fallback_filter_access.c")
+
 set_property(SOURCE terrain_unittest.cc PROPERTY depends "common/crc.c" "common/streambuf.c" "terrain/terrain_utils.c" "terrain/terrain_location.c" "drivers/time.c")
 set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
 
