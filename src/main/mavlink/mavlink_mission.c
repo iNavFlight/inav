@@ -89,19 +89,6 @@ static bool mavlinkMissionTargetIsLocal(uint8_t targetSystem, uint8_t targetComp
         (targetComponent == 0 || targetComponent == mavComponentId);
 }
 
-// A mission edit (upload or clear) is refused while the WP mission is being
-// executed: WP mode active, the mission's own RTH leg running (the land/loiter
-// decision at home reads the live list), or the on-the-fly mission planner
-// writing the same list. This matches the MSP policy from #10273 combined
-// with the updateWpMissionPlanner() guard. The ARMED term makes the disarmed
-// path provably unchanged, including the short window right after disarming
-// before the nav FSM drops out of WP mode.
-static bool mavlinkMissionEditBlocked(void)
-{
-    return ARMING_FLAG(ARMED) &&
-        (FLIGHT_MODE(NAV_WP_MODE) || isWaypointMissionRTHActive() || isWpMissionPlannerActive());
-}
-
 static bool mavlinkMissionSenderOwnsTransfer(void)
 {
     return mavlinkContext.recvMsg.sysid == mavMissionTransfer.partnerSystem &&
@@ -135,6 +122,21 @@ static void mavlinkAbortMissionUpload(MAV_MISSION_RESULT result)
 {
     mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, result);
     mavlinkResetMissionTransfer();
+}
+
+// The ARMED term keeps the ground path unchanged; there the arming checks still validate the mission.
+static bool mavlinkDenyMissionEditInUse(void)
+{
+    if (!ARMING_FLAG(ARMED) || !isWaypointMissionInUse()) {
+        return false;
+    }
+
+    if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
+        mavlinkAbortMissionUpload(MAV_MISSION_DENIED);
+    } else {
+        mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
+    }
+    return true;
 }
 
 static void mavlinkStartMissionTransfer(mavlinkMissionTransferState_e state, uint16_t count)
@@ -207,10 +209,7 @@ static bool mavlinkClearPersistedMission(void)
 
     resetWaypointList();
     mavlinkContext.missionCompleted = false;
-    // While armed the clear applies to RAM only, mirroring the MSP policy:
-    // saveNonVolatileWaypointList() refuses to run while armed, and a flash
-    // write mid-flight would stall the main loop anyway. The persisted
-    // mission is left untouched until the next clear or upload on the ground.
+    // saveNonVolatileWaypointList() refuses to run while armed, so an in-flight clear stays in RAM.
     if (ARMING_FLAG(ARMED) || mavlinkPersistMission()) {
         return true;
     }
@@ -417,13 +416,7 @@ static bool mavlinkResolveUploadedMissionJumps(void)
             return false;
         }
 
-        // For a mission committed in flight, enforce the same JUMP rules as
-        // the arm-time validation in navigationIsBlockingArming(), which an
-        // in-flight upload bypasses entirely: a JUMP cannot be the first
-        // mission item, cannot target itself or an immediately adjacent
-        // item, must have a sane repeat count and must target a
-        // geo-referenced item. Ground uploads are left to the arm-time
-        // check, keeping disarmed behaviour unchanged.
+        // An in-flight commit never passes the arm-time JUMP check in navigationIsBlockingArming().
         if (ARMING_FLAG(ARMED)) {
             const int targetIndex = targetWaypointNumber - 1;
             const navWaypoint_t *target = &mavlinkMissionUploadWaypoints[targetIndex];
@@ -464,10 +457,7 @@ static bool mavlinkCommitMissionUpload(void)
         setWaypoint(i + 1, &mavlinkMissionUploadWaypoints[i]);
     }
 
-    // While armed the uploaded mission lives in RAM only, mirroring the MSP
-    // in-flight upload policy (see #10273): saveNonVolatileWaypointList()
-    // refuses to run while armed, and a flash write mid-flight would stall
-    // the main loop anyway. On the ground the mission is persisted as before.
+    // saveNonVolatileWaypointList() refuses to run while armed, so an in-flight upload stays in RAM.
     if (!isWaypointListValid() || (!ARMING_FLAG(ARMED) && !mavlinkPersistMission())) {
         mavlinkRestoreMission(&previousMission);
         return false;
@@ -991,16 +981,7 @@ bool mavlinkHandleIncomingMissionClearAll(void)
         mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_UNSUPPORTED);
         return true;
     }
-    // Clearing is allowed while merely armed (RAM only, see
-    // mavlinkClearPersistedMission), but not while the WP mission is being
-    // executed. If the refused sender owns a receiving transfer, abort it so
-    // the retry engine stops soliciting items from a partner we just denied.
-    if (mavlinkMissionEditBlocked()) {
-        if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
-            mavlinkAbortMissionUpload(MAV_MISSION_DENIED);
-        } else {
-            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
-        }
+    if (mavlinkDenyMissionEditInUse()) {
         return true;
     }
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_IDLE && !mavlinkMissionSenderOwnsTransfer()) {
@@ -1032,17 +1013,7 @@ bool mavlinkHandleIncomingMissionCount(void)
         }
         return true;
     }
-    // Starting an upload is allowed while merely armed (the commit stays in
-    // RAM, see mavlinkCommitMissionUpload), but not while the WP mission is
-    // being executed. If the refused sender owns a receiving transfer (e.g.
-    // a retry after WP mode engaged mid-upload), abort it so the retry
-    // engine stops soliciting items from a partner we just denied.
-    if (mavlinkMissionEditBlocked()) {
-        if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
-            mavlinkAbortMissionUpload(MAV_MISSION_DENIED);
-        } else {
-            mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
-        }
+    if (mavlinkDenyMissionEditInUse()) {
         return true;
     }
     if (mavMissionTransfer.state != MAVLINK_MISSION_TRANSFER_IDLE && !mavlinkMissionSenderOwnsTransfer()) {
@@ -1106,28 +1077,14 @@ bool mavlinkHandleIncomingMissionItem(void)
         }
     }
 
-    if (ARMING_FLAG(ARMED)) {
-        // Guided fly-to-here (current == 2) and altitude-target (current == 3)
-        // items are identified by the item itself - no legitimate upload item
-        // carries these current values - so a guided click is never absorbed
-        // into a running upload transfer.
-        if (msg.command == MAV_CMD_NAV_WAYPOINT && (msg.current == 2 || msg.current == 3)) {
-            return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
-                MAV_FRAME_SUPPORTED_GLOBAL | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT,
-                (int32_t)lrintf(msg.x * 1e7f), (int32_t)lrintf(msg.y * 1e7f), msg.z);
-        }
-
-        // Upload items are accepted while merely armed (in-flight upload,
-        // matching the MSP policy from #10273), but not while the WP mission
-        // is being executed.
-        if (mavlinkMissionEditBlocked()) {
-            if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
-                mavlinkAbortMissionUpload(MAV_MISSION_DENIED);
-            } else {
-                mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
-            }
-            return true;
-        }
+    // current 2/3 marks a guided fly-to/altitude request, so a guided click is never taken into a running upload.
+    if (ARMING_FLAG(ARMED) && msg.command == MAV_CMD_NAV_WAYPOINT && (msg.current == 2 || msg.current == 3)) {
+        return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
+            MAV_FRAME_SUPPORTED_GLOBAL | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT,
+            (int32_t)lrintf(msg.x * 1e7f), (int32_t)lrintf(msg.y * 1e7f), msg.z);
+    }
+    if (mavlinkDenyMissionEditInUse()) {
+        return true;
     }
 
     return mavlinkHandleMissionItemCommon(false, msg.frame, msg.command, msg.current, msg.autocontinue, msg.seq,
@@ -1322,28 +1279,14 @@ bool mavlinkHandleIncomingMissionItemInt(void)
         return true;
     }
 
-    if (ARMING_FLAG(ARMED)) {
-        // Guided fly-to-here (current == 2) and altitude-target (current == 3)
-        // items are identified by the item itself - no legitimate upload item
-        // carries these current values - so a guided click is never absorbed
-        // into a running upload transfer.
-        if (msg.command == MAV_CMD_NAV_WAYPOINT && (msg.current == 2 || msg.current == 3)) {
-            return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
-                MAV_FRAME_SUPPORTED_GLOBAL_INT | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT,
-                msg.x, msg.y, msg.z);
-        }
-
-        // Upload items are accepted while merely armed (in-flight upload,
-        // matching the MSP policy from #10273), but not while the WP mission
-        // is being executed.
-        if (mavlinkMissionEditBlocked()) {
-            if (mavMissionTransfer.state == MAVLINK_MISSION_TRANSFER_RECEIVING && mavlinkMissionSenderOwnsTransfer()) {
-                mavlinkAbortMissionUpload(MAV_MISSION_DENIED);
-            } else {
-                mavlinkSendMissionAckTo(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid, MAV_MISSION_DENIED);
-            }
-            return true;
-        }
+    // current 2/3 marks a guided fly-to/altitude request, so a guided click is never taken into a running upload.
+    if (ARMING_FLAG(ARMED) && msg.command == MAV_CMD_NAV_WAYPOINT && (msg.current == 2 || msg.current == 3)) {
+        return mavlinkHandleArmedGuidedMissionItem(msg.current, msg.frame,
+            MAV_FRAME_SUPPORTED_GLOBAL_INT | MAV_FRAME_SUPPORTED_GLOBAL_RELATIVE_ALT_INT,
+            msg.x, msg.y, msg.z);
+    }
+    if (mavlinkDenyMissionEditInUse()) {
+        return true;
     }
 
     return mavlinkHandleMissionItemCommon(true, msg.frame, msg.command, msg.current, msg.autocontinue, msg.seq,

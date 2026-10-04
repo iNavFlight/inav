@@ -848,7 +848,7 @@ bool navCanSetHome(void);
  */
 bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
-bool isWpMissionPlannerActive(void);
+bool isWaypointMissionInUse(void);
 #ifdef USE_AUTO_TRANSITION
 navVtolTransitionOsdState_e navigationVtolTransitionOsdState(void);
 #endif

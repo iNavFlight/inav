@@ -5488,8 +5488,7 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
                 posControl.geoWaypointCount = posControl.waypointCount - nonGeoWaypointCount;
                 if (posControl.waypointListValid) {
                     nonGeoWaypointCount = 0;
-                    // If active WP index is beyond the new mission, reset active WP index (Mission Upload mid flight with interrupted mission) if RESUME is enabled.
-                    // activeWaypointIndex is 0-based, so an index equal to waypointCount is already out of range.
+                    // If active WP index is beyond the new mission, reset active WP index (Mission Upload mid flight with interrupted mission) if RESUME is enabled
                     if (posControl.activeWaypointIndex >= posControl.waypointCount) {
                         posControl.activeWaypointIndex = 0;
                     }
@@ -5506,9 +5505,7 @@ void resetWaypointList(void)
     posControl.geoWaypointCount = 0;
     posControl.startWpIndex = 0;
     posControl.wpReachedNotificationPending = false;
-    // The list no longer holds the mission planner's waypoints: an upload or
-    // clear (MSP, MAVLink, EEPROM) replaced it. Otherwise the planner would
-    // resume at its old index inside the new mission when re-enabled.
+    // Otherwise a re-enabled planner keeps writing at its old index inside the replacing mission
     posControl.wpPlannerActiveWPIndex = 0;
     posControl.wpMissionPlannerStatus = WP_PLAN_WAIT;
 #ifdef USE_MULTI_MISSION
@@ -5521,11 +5518,6 @@ void resetWaypointList(void)
 bool isWaypointListValid(void)
 {
     return posControl.waypointListValid;
-}
-
-bool isWpMissionPlannerActive(void)
-{
-    return posControl.flags.wpMissionPlannerActive;
 }
 
 int getWaypointCount(void)
@@ -6930,6 +6922,28 @@ bool isWaypointMissionRTHActive(void)
 {
     return (navGetStateFlags(posControl.navState) & NAV_AUTO_RTH) && IS_RC_MODE_ACTIVE(BOXNAVWP) &&
            !(IS_RC_MODE_ACTIVE(BOXNAVRTH) || posControl.flags.forcedRTHActivated);
+}
+
+bool isWaypointMissionInUse(void)
+{
+    // The WP switch also covers the mission RTH leg, whose landing decision reads the last list item
+    if (IS_RC_MODE_ACTIVE(BOXNAVWP) || FLIGHT_MODE(NAV_WP_MODE) || posControl.flags.wpMissionPlannerActive) {
+        return true;
+    }
+#ifdef USE_AUTO_TRANSITION
+    // MixerAT states map only to ALTHOLD; a transition entered from a mission state returns to the list
+    if (navMixerATMissionTransition.active || navMixerATMissionCapture.active ||
+        navMixerATOwnerMode() == NAV_VTOL_MIXERAT_MODE_WAYPOINT) {
+        return true;
+    }
+#endif
+#ifdef USE_FW_AUTOLAND
+    // Flare and finish ignore mode changes and still credit the mission LAND item
+    if (FLIGHT_MODE(NAV_FW_AUTOLAND) && posControl.fwLandState.landWp) {
+        return true;
+    }
+#endif
+    return false;
 }
 
 bool navigationIsExecutingAnEmergencyLanding(void)

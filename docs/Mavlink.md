@@ -159,10 +159,10 @@ Messages are organized into MAVLink datastream groups. Each group sends one mess
 - `PING`: broadcast requests are echoed to the requesting system/component.
 - `TIMESYNC`: broadcast or locally targeted requests receive the local boot time in nanoseconds.
 - `MISSION_COUNT`: starts an upload transaction. Stored INAV waypoints remain capped at `NAV_MAX_WAYPOINTS`; the upload transaction also allows QGC planned-home and non-storage command items. The owning system/component and ingress port are retained for the transaction.
-- `MISSION_ITEM` / `MISSION_ITEM_INT`: stores mission waypoints; rejects unsupported frames / sequence errors. While armed, an upload is rejected only when the mission is in use; guided waypoint writes (`current` 2 or 3) are always accepted.
+- `MISSION_ITEM` / `MISSION_ITEM_INT`: stores mission waypoints; rejects unsupported frames / sequence errors. While armed, an upload is rejected only when the mission is in use (see [MAVLink missions](#mavlink-missions)); while armed, a `MAV_CMD_NAV_WAYPOINT` item with `current` 2 or 3 is handled as a guided request, never as an upload item.
 - `MISSION_REQUEST_LIST`, `MISSION_REQUEST`, `MISSION_REQUEST_INT`: stateful mission download with partner checks and one-item retransmission support.
 - `MISSION_ACK`: completes an active mission download.
-- `MISSION_CLEAR_ALL`: clears the runtime mission, and the saved mission when disarmed. While armed it clears the runtime mission only.
+- `MISSION_CLEAR_ALL`: clears the runtime mission, and the saved mission when disarmed. While armed it clears the runtime mission only, and is refused while the mission is in use.
 - `COMMAND_LONG` / `COMMAND_INT`: command transport for supported `MAV_CMD_*` handlers.
 - `REQUEST_DATA_STREAM`: legacy stream-rate control per stream group.
 - `SET_POSITION_TARGET_GLOBAL_INT`: writes the GCS-guided waypoint when the frame is supported; altitude-only requests are also accepted when X/Y are masked out and GCS navigation is valid.
@@ -228,7 +228,22 @@ The default ArduPilot-compatible path reports modes through `HEARTBEAT.custom_mo
 
 ## MAVLink missions
 
-INAV supports MAVLink mission upload, download, clear, live mission-state reporting, and waypoint-reached notifications. Uploads retry the outstanding request every 1.5 seconds and abort after five unsuccessful retries. Downloads time out after five seconds of inactivity. Only the system/component and ingress port that started a transfer may continue it. Completed uploads and clears update nonvolatile waypoint storage on targets that provide it when the aircraft is disarmed. While armed they apply to the runtime mission only: the mission survives disarming but is lost on reboot, and writing it to storage afterwards is the GCS's job. An upload while armed also collapses a loaded multi-mission set to the uploaded mission for the rest of the session. Mission downloads always reply with `MISSION_ITEM_INT`, including in response to a legacy float `MISSION_REQUEST`.
+INAV supports MAVLink mission upload, download, clear, live mission-state reporting, and waypoint-reached notifications. Uploads retry the outstanding request every 1.5 seconds and abort after five unsuccessful retries. Downloads time out after five seconds of inactivity. Only the system/component and ingress port that started a transfer may continue it. Completed uploads and clears update nonvolatile waypoint storage on targets that provide it when the aircraft is disarmed. Mission downloads always reply with `MISSION_ITEM_INT`, including in response to a legacy float `MISSION_REQUEST`.
+
+While armed, the mission can be uploaded or cleared only while it is not in use. It is in use:
+
+- while the NAV WP mode is selected, whether or not WP mode is active. This includes the mission's own RTH leg and the RTH fallback when no valid mission is loaded.
+- while WP mode is still active, while the on-the-fly mission planner is active, during a VTOL transition entered from the mission, and during a fixed-wing autoland started by a mission `LAND` item.
+- during a landing commanded with `MAV_CMD_NAV_LAND`, because it runs in the mission landing state.
+
+Edits in those states are answered with `MAV_MISSION_DENIED`, and an upload already in progress from the same sender is aborted. Deselect NAV WP before editing the mission in flight. The MSP upload (`MSP_SET_WP`, accepted in flight since INAV 8.0) is only blocked while WP mode is active, and then the waypoint is dropped while the message is still acknowledged. Edits made while armed:
+
+- apply to the runtime mission only. The mission survives disarming but is lost on reboot; to keep it, upload it again after disarming or save it with the INAV Configurator.
+- replace a loaded multi-mission set with the single uploaded mission until the next reboot or until the stored missions are loaded again (stick command, Configurator or CLI `wp load`).
+- are checked against the arm-time `JUMP` rules (no `JUMP` as first item, no target on itself or a neighbouring item, repeat count of at least -1, target must be a geographic waypoint), because they never pass the arming check. A mission that breaks them is rejected with `MAV_MISSION_INVALID` and the previous mission stays.
+- do not reset the mission position. With `nav_wp_mission_restart = RESUME` (the default), switching WP mode on after an interrupted mission was replaced continues at the interrupted waypoint index of the new mission if that index exists in it, otherwise at its first waypoint. Two limits apply to that resume: `JUMP` counters are not set up, so the first `JUMP` reached is passed over once (also one with repeat count -1); and if the interrupted mission was one of a multi-mission set, the index counts from the start of the whole set. Set `nav_wp_mission_restart = START` to always begin at the first waypoint.
+
+An upload that times out or is denied part way leaves the previous mission untouched.
 
 Mission upload is staged before it touches the live INAV waypoint list. The MAVLink stream is translated into a temporary INAV mission, validated, and committed only after the full upload succeeds, so rejected uploads do not leave a half-written mission in the FC. QGC planned home item `0` is skipped because INAV stores home separately; MAVLink sequence `1` becomes INAV waypoint `1`.
 
