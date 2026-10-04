@@ -20,6 +20,10 @@
 
 #include <platform.h>
 
+#include "build/debug.h"
+
+#include "common/utils.h"
+
 #include "drivers/io.h"
 #include "drivers/time.h"
 
@@ -101,9 +105,99 @@ static volatile uint16_t i2cErrorCount = 0;
 typedef struct {
     bool initialised;
     I2C_HandleTypeDef handle;
+
+    // Interrupt driven transfer started by i2cReadStart() / i2cWriteStart(), finished by the HAL callbacks below
+    volatile bool busy;
+    volatile bool error;
+    timeUs_t startUs;           // start time, used to detect a transfer that never completes
+    uint8_t txByte;             // data of a non-blocking single byte write, must outlive the call
 } i2cState_t;
 
 static i2cState_t i2cState[I2CDEV_COUNT];
+
+// Transfer statistics shown with debug_mode = I2C, shared by all buses
+typedef struct {
+    uint16_t    eventIrqs;      // event interrupts during the current / last transfer
+    uint16_t    errorIrqs;      // error interrupts since boot
+    uint16_t    lastTransferUs; // start to completion of the last non-blocking transfer
+    uint16_t    startCallUs;    // time spent in the last i2cStartTransfer() call
+} i2cDebugStats_t;
+
+static i2cDebugStats_t i2cStats;
+
+static void i2cDebugPublish(void)
+{
+    DEBUG_SET(DEBUG_I2C, 0, i2cStats.eventIrqs);
+    DEBUG_SET(DEBUG_I2C, 1, i2cStats.errorIrqs);
+    DEBUG_SET(DEBUG_I2C, 2, i2cStats.lastTransferUs);
+    DEBUG_SET(DEBUG_I2C, 5, i2cErrorCount);
+    DEBUG_SET(DEBUG_I2C, 7, i2cStats.startCallUs);
+}
+
+static void i2cEventIrq(I2CDevice device)
+{
+    i2cStats.eventIrqs++;
+    HAL_I2C_EV_IRQHandler(&i2cState[device].handle);
+}
+
+static void i2cErrorIrq(I2CDevice device)
+{
+    i2cStats.errorIrqs++;
+    HAL_I2C_ER_IRQHandler(&i2cState[device].handle);
+}
+
+static i2cState_t *i2cStateFromHandle(const I2C_HandleTypeDef *hi2c)
+{
+    for (unsigned i = 0; i < ARRAYLEN(i2cState); i++) {
+        if (&i2cState[i].handle == hi2c) {
+            return &i2cState[i];
+        }
+    }
+    return NULL;
+}
+
+// HAL completion hooks, called from the I2C interrupt handlers once an interrupt driven transfer is over
+static void i2cTransferFinished(I2C_HandleTypeDef *hi2c, bool error)
+{
+    i2cState_t *state = i2cStateFromHandle(hi2c);
+    if (!state) {
+        return;
+    }
+
+    i2cStats.lastTransferUs = microsISR() - state->startUs;
+    state->error = error;
+    state->busy = false;
+}
+
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2cTransferFinished(hi2c, false);
+}
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2cTransferFinished(hi2c, false);
+}
+
+void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2cTransferFinished(hi2c, false);
+}
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2cTransferFinished(hi2c, false);
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2cTransferFinished(hi2c, true);
+}
+
+void HAL_I2C_AbortCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    i2cTransferFinished(hi2c, true);
+}
 
 void i2cSetSpeed(uint8_t speed)
 {
@@ -114,43 +208,43 @@ void i2cSetSpeed(uint8_t speed)
 
 void I2C1_ER_IRQHandler(void)
 {
-    HAL_I2C_ER_IRQHandler(&i2cState[I2CDEV_1].handle);
+    i2cErrorIrq(I2CDEV_1);
 }
 
 void I2C1_EV_IRQHandler(void)
 {
-    HAL_I2C_EV_IRQHandler(&i2cState[I2CDEV_1].handle);
+    i2cEventIrq(I2CDEV_1);
 }
 
 void I2C2_ER_IRQHandler(void)
 {
-    HAL_I2C_ER_IRQHandler(&i2cState[I2CDEV_2].handle);
+    i2cErrorIrq(I2CDEV_2);
 }
 
 void I2C2_EV_IRQHandler(void)
 {
-    HAL_I2C_EV_IRQHandler(&i2cState[I2CDEV_2].handle);
+    i2cEventIrq(I2CDEV_2);
 }
 
 void I2C3_ER_IRQHandler(void)
 {
-    HAL_I2C_ER_IRQHandler(&i2cState[I2CDEV_3].handle);
+    i2cErrorIrq(I2CDEV_3);
 }
 
 void I2C3_EV_IRQHandler(void)
 {
-    HAL_I2C_EV_IRQHandler(&i2cState[I2CDEV_3].handle);
+    i2cEventIrq(I2CDEV_3);
 }
 
 #ifdef USE_I2C_DEVICE_4
 void I2C4_ER_IRQHandler(void)
 {
-    HAL_I2C_ER_IRQHandler(&i2cState[I2CDEV_4].handle);
+    i2cErrorIrq(I2CDEV_4);
 }
 
 void I2C4_EV_IRQHandler(void)
 {
-    HAL_I2C_EV_IRQHandler(&i2cState[I2CDEV_4].handle);
+    i2cEventIrq(I2CDEV_4);
 }
 #endif
 
@@ -160,6 +254,130 @@ static bool i2cHandleHardwareFailure(I2CDevice device)
     i2cErrorCount++;
     i2cInit(device);
     return false;
+}
+
+// Block until no interrupt driven transfer is in progress. Returns false if a stuck transfer had to be aborted.
+static bool i2cWaitForIdle(I2CDevice device)
+{
+    i2cState_t * state = &(i2cState[device]);
+    const timeUs_t startUs = micros();
+
+    while (state->busy) {
+        if (cmpTimeUs(micros(), startUs) >= I2C_TIMEOUT) {
+            return i2cHandleHardwareFailure(device);
+        }
+    }
+
+    return true;
+}
+
+// Start an interrupt driven transfer. Returns false if the bus is busy or the transfer could not be started.
+static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool allowRawAccess, bool reading, uint8_t len, uint8_t *buf)
+{
+    if (device == I2CINVALID || device >= I2CDEV_COUNT)
+        return false;
+
+    i2cState_t * state = &(i2cState[device]);
+
+    if (!state->initialised || state->busy)
+        return false;
+
+    if (reading && len == 0)
+        return false;
+
+    const timeUs_t callStartUs = micros();
+    i2cStats.eventIrqs = 0;
+
+    state->error = false;
+    state->startUs = callStartUs;
+    state->busy = true;
+
+    HAL_StatusTypeDef status;
+
+    if (reading) {
+        if (reg_ == 0xFF && allowRawAccess) {
+            status = HAL_I2C_Master_Receive_IT(&state->handle, addr_ << 1, buf, len);
+        }
+        else {
+            status = HAL_I2C_Mem_Read_IT(&state->handle, addr_ << 1, reg_, I2C_MEMADD_SIZE_8BIT, buf, len);
+        }
+    }
+    else if (len == 0) {
+        if (reg_ == 0xFF && allowRawAccess) {
+            state->busy = false;
+            return false;   // nothing to send
+        }
+        // Register byte alone, the HAL refuses zero length transfers
+        state->txByte = reg_;
+        status = HAL_I2C_Master_Transmit_IT(&state->handle, addr_ << 1, &state->txByte, 1);
+    }
+    else {
+        if (reg_ == 0xFF && allowRawAccess) {
+            status = HAL_I2C_Master_Transmit_IT(&state->handle, addr_ << 1, buf, len);
+        }
+        else {
+            status = HAL_I2C_Mem_Write_IT(&state->handle, addr_ << 1, reg_, I2C_MEMADD_SIZE_8BIT, buf, len);
+        }
+    }
+
+    if (status != HAL_OK) {
+        state->busy = false;
+        if (status == HAL_BUSY) {
+            return false;   // HAL is still finishing the previous transfer (STOP in progress), try again later
+        }
+        return i2cHandleHardwareFailure(device);
+    }
+
+    i2cStats.startCallUs = micros() - callStartUs;
+    i2cDebugPublish();
+
+    return true;
+}
+
+bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf, bool allowRawAccess)
+{
+    return i2cStartTransfer(device, addr_, reg_, allowRawAccess, true, len, buf);
+}
+
+bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
+{
+    // the platform API takes a non-const buffer, the data is only read
+    return i2cStartTransfer(device, addr_, reg_, allowRawAccess, false, len_, (uint8_t *)data);
+}
+
+bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, bool allowRawAccess)
+{
+    if (device == I2CINVALID || device >= I2CDEV_COUNT || i2cState[device].busy)
+        return false;   // don't touch txByte while it may still be going out
+
+    i2cState[device].txByte = data;
+    return i2cStartTransfer(device, addr_, reg_, allowRawAccess, false, 1, &i2cState[device].txByte);
+}
+
+bool i2cBusy(I2CDevice device, bool *error)
+{
+    if (device == I2CINVALID || device >= I2CDEV_COUNT) {
+        if (error) {
+            *error = true;
+        }
+        return false;
+    }
+
+    i2cState_t * state = &(i2cState[device]);
+
+    if (state->busy && cmpTimeUs(micros(), state->startUs) >= I2C_TIMEOUT) {
+        // No completion callback within the timeout, the transfer is stuck - reset the peripheral
+        i2cHandleHardwareFailure(device);
+        state->error = true;
+    }
+
+    if (error) {
+        *error = state->error;
+    }
+
+    i2cDebugPublish();
+
+    return state->busy;
 }
 
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
@@ -172,9 +390,18 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
     if (!state->initialised)
         return false;
 
+    // Let a non-blocking transfer of another device finish first
+    if (!i2cWaitForIdle(device))
+        return false;
+
     HAL_StatusTypeDef status;
 
-    if ((reg_ == 0xFF || len_ == 0) && allowRawAccess) {
+    if (len_ == 0 && !(reg_ == 0xFF && allowRawAccess)) {
+        // Register byte alone, the HAL refuses zero length transfers
+        uint8_t regByte = reg_;
+        status = HAL_I2C_Master_Transmit(&state->handle, addr_ << 1, &regByte, 1, I2C_DEFAULT_TIMEOUT);
+    }
+    else if ((reg_ == 0xFF || len_ == 0) && allowRawAccess) {
         status = HAL_I2C_Master_Transmit(&state->handle, addr_ << 1, (uint8_t *)data, len_, I2C_DEFAULT_TIMEOUT);
     }
     else {
@@ -200,6 +427,10 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
     i2cState_t * state = &(i2cState[device]);
 
     if (!state->initialised)
+        return false;
+
+    // Let a non-blocking transfer of another device finish first
+    if (!i2cWaitForIdle(device))
         return false;
 
     HAL_StatusTypeDef status;
@@ -333,6 +564,13 @@ void i2cInit(I2CDevice device)
     IOConfigGPIOAF(sda, IOCFG_I2C, hardware->af);
 
     // Init I2C peripheral
+    if (state->initialised) {
+        // Re-initialisation after a failure: drop whatever transfer the HAL still thinks is running
+        HAL_I2C_DeInit(pHandle);
+    }
+    state->busy = false;
+    state->error = false;
+
     pHandle->Instance = hardware->dev;
 
 /*
