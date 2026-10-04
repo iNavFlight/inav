@@ -188,22 +188,100 @@ static const uint8_t multiWiiFont[][5] = { // Refer to "Times New Roman" Font Da
 
 static busDevice_t *busDev = NULL;
 
-static bool i2c_OLED_send_cmd(uint8_t command)
+/*
+ * Bytes for the display are queued and sent in the background: i2c_OLED_pump() takes a run of bytes of the same
+ * kind (commands or data) and sends it as one non-blocking transfer. The dashboard task calls the pump every
+ * millisecond while there is work. A full queue is drained synchronously so nothing is lost.
+ */
+#define OLED_TX_QUEUE_SIZE      256
+#define OLED_TX_CHUNK_SIZE      15      // with the control byte this fits the smallest I2C controller FIFO (RP2350)
+#define OLED_CONTROL_COMMANDS   0x00    // Co = 0, D/C = 0: a run of command bytes follows
+#define OLED_CONTROL_DATA       0x40    // Co = 0, D/C = 1: a run of display data follows
+#define OLED_QUEUE_CMD_FLAG     0x100   // marks a command byte in the queue
+
+static uint16_t oledQueue[OLED_TX_QUEUE_SIZE];
+static uint16_t oledQueueHead = 0;
+static uint16_t oledQueueTail = 0;
+static uint16_t oledQueueCount = 0;
+static uint8_t oledChunk[OLED_TX_CHUNK_SIZE];   // the run being sent, it must outlive the transfer
+static uint8_t oledChunkLen = 0;
+static bool oledChunkIsCmd = false;
+static bool oledTransferPending = false;
+
+bool i2c_OLED_pump(void)
+{
+    bool busError = false;
+
+    if (!busDev) {
+        return false;
+    }
+
+    if (oledTransferPending) {
+        if (busIsBusy(busDev, &busError) && !busError) {
+            return true;                        // chunk still on the bus
+        }
+        oledTransferPending = false;
+        oledChunkLen = 0;                       // sent, or lost on a bus error - the next page refresh repairs the display
+    }
+
+    if (oledChunkLen == 0) {
+        if (oledQueueCount == 0) {
+            return false;
+        }
+        // Gather a run of bytes of the same kind
+        oledChunkIsCmd = (oledQueue[oledQueueHead] & OLED_QUEUE_CMD_FLAG) != 0;
+        while (oledChunkLen < OLED_TX_CHUNK_SIZE && oledQueueCount > 0 && ((oledQueue[oledQueueHead] & OLED_QUEUE_CMD_FLAG) != 0) == oledChunkIsCmd) {
+            oledChunk[oledChunkLen++] = oledQueue[oledQueueHead] & 0xFF;
+            oledQueueHead = (oledQueueHead + 1) % OLED_TX_QUEUE_SIZE;
+            oledQueueCount--;
+        }
+    }
+
+    // The chunk stays here until the bus takes it
+    oledTransferPending = busWriteBufStart(busDev, oledChunkIsCmd ? OLED_CONTROL_COMMANDS : OLED_CONTROL_DATA, oledChunk, oledChunkLen);
+    return true;
+}
+
+bool i2c_OLED_isBusy(void)
+{
+    return oledTransferPending || oledChunkLen > 0 || oledQueueCount > 0;
+}
+
+uint32_t i2c_OLED_txBytesFree(void)
+{
+    return OLED_TX_QUEUE_SIZE - oledQueueCount;
+}
+
+void i2c_OLED_flush(void)
+{
+    while (i2c_OLED_pump()) {
+    }
+}
+
+static bool oledQueuePush(uint16_t entry)
 {
     if (!busDev) {
         return false;
     }
 
-    return busWrite(busDev, 0x80, command);
+    while (oledQueueCount >= OLED_TX_QUEUE_SIZE) {
+        i2c_OLED_pump();                        // full: finish what is on the bus and send the next chunk right away
+    }
+
+    oledQueue[oledQueueTail] = entry;
+    oledQueueTail = (oledQueueTail + 1) % OLED_TX_QUEUE_SIZE;
+    oledQueueCount++;
+    return true;
+}
+
+static bool i2c_OLED_send_cmd(uint8_t command)
+{
+    return oledQueuePush(command | OLED_QUEUE_CMD_FLAG);
 }
 
 bool i2c_OLED_send_byte(uint8_t val)
 {
-    if (!busDev) {
-        return false;
-    }
-
-    return busWrite(busDev, 0x40, val);
+    return oledQueuePush(val);
 }
 
 // SH1106 has 132-wide GDDRAM but only 128 columns are visible; the first
@@ -368,8 +446,8 @@ bool ug2864hsweg01InitI2C(void)
     // Detect the OLED controller type before initialization
     detectedController = detectOledController();
 
-    // Set display OFF
-    if (!i2c_OLED_send_cmd(0xAE)) {
+    // Display OFF, sent directly: its acknowledge tells whether a display is present at all
+    if (!busWrite(busDev, 0x80, 0xAE)) {
         LOG_ERROR(SYSTEM, "OLED: Failed to send display OFF command");
         return false;
     }
@@ -399,6 +477,7 @@ bool ug2864hsweg01InitI2C(void)
     i2c_OLED_send_cmd(0xAF); // Set display On
 
     i2c_OLED_clear_display();
+    i2c_OLED_flush();           // initialisation runs to completion before the display is used
 
     return true;
 }
