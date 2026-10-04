@@ -379,26 +379,11 @@ static int16_t osdGetFlightDirection(void)
     return STATE(AIRPLANE) ? CENTIDEGREES_TO_DEGREES(posControl.actualState.cog) : DECIDEGREES_TO_DEGREES(osdGetHeading());
 }
 
-/**
- * Writes the integer part, a two digit fraction and a unit symbol to buff.
- * DJI systems get an explicit decimal separator, every other system embeds
- * it into the surrounding digits, the same way osdFormatCentiNumber() does.
- * @param symbol Unit symbol written after the fraction
- */
 static void osdFormatDistanceFractionStr(char *buff, int integerPart, int fraction, uint8_t symbol)
 {
-    bool djiCompat = false;  // Assume DJICOMPAT mode is not enabled
+    const int integerDigits = tfp_sprintf(buff, "%d", integerPart);
 
-#ifndef DISABLE_MSP_DJI_COMPAT // IF DJICOMPAT is not supported, there's no need to check for it
     if (isDJICompatibleVideoSystem(osdConfig())) {
-        djiCompat = true;
-    }
-#endif
-
-    int integerDigits = tfp_sprintf(buff, "%d", integerPart);
-
-    if (djiCompat) {
-        // DJICOMPAT mode enabled
         tfp_sprintf(buff + integerDigits, ".%02d%c", fraction, symbol);
     } else {
         tfp_sprintf(buff + integerDigits, "%02d%c", fraction, symbol);
