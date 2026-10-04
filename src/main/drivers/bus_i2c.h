@@ -56,7 +56,7 @@ typedef struct i2cDevice_s {
     ioTag_t sda;
     rccPeriphTag_t rcc;
     I2CSpeed speed;
-#if defined(STM32F7) || defined(STM32H7) || defined(AT32F43x) 
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)
     uint8_t ev_irq;
     uint8_t er_irq;
     uint8_t af;
@@ -68,6 +68,13 @@ void i2cInit(I2CDevice device);
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess);
 bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess);
 bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess);
+
+// Non-blocking transfers: start returns immediately (false if the bus is busy or the transfer could not be started),
+// completion and the result are polled with i2cBusy(). Platforms without an asynchronous driver complete the
+// transfer synchronously inside the start call and report the bus as idle.
+bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess);
+bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess);
+bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, const uint8_t *data, bool allowRawAccess);   // data must stay valid until i2cBusy() reports idle
 bool i2cBusy(I2CDevice device, bool *error);
 
 uint16_t i2cGetErrorCounter(void);

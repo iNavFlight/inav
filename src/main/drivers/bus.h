@@ -283,6 +283,17 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
 #endif
 
 // busTransfer and busTransferMultiple are supported only on full-duplex SPI bus
+/*
+ * Result of one step of a sensor read made of several non-blocking transfers (status poll, trigger, data).
+ * The sensor layer calls the driver's readStart(dev, firstStep) with firstStep set for the first transfer and
+ * again after each transfer completed, until the last one is started; read() then only parses the data.
+ */
+typedef enum {
+    BUS_READ_STEP_BUSY = 0,     // nothing was started, the bus is busy - call again later
+    BUS_READ_STEP_NEXT,         // an intermediate transfer was started, call readStart() again once it is done
+    BUS_READ_STEP_LAST,         // the final transfer was started, call read() once it is done
+} busReadStepResult_e;
+
 typedef struct busTransferDescriptor_s {
     uint8_t *       rxBuf;
     const uint8_t * txBuf;
@@ -294,6 +305,9 @@ bool i2cBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * dat
 bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
 bool i2cBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
 bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
+bool i2cBusReadBufferStart(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
+bool i2cBusWriteRegisterStart(const busDevice_t * dev, uint8_t reg, uint8_t data);
+bool i2cBusWriteBufferStart(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length);
 bool i2cBusBusy(const busDevice_t *dev, bool *error);
 
 bool spiBusInitHost(const busDevice_t * dev);
@@ -335,4 +349,9 @@ bool busWrite(const busDevice_t * busdev, uint8_t reg, uint8_t data);
 bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
 bool busTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * buffers, int count);
 
-bool busIsBusy(const busDevice_t * dev);
+/* Non-blocking register access. Start the transfer, then poll busIsBusy() until it reports idle and check error.
+ * On SPI the transfer completes inside the start call. */
+bool busReadBufStart(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
+bool busWriteStart(const busDevice_t * dev, uint8_t reg, uint8_t data);
+bool busWriteBufStart(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length);   // data must stay valid until busIsBusy() reports idle
+bool busIsBusy(const busDevice_t * dev, bool * error);
