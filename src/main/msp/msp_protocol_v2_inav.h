@@ -115,6 +115,7 @@
 #define MSP2_INAV_EZ_TUNE_SET                   0x2071
 
 #define MSP2_INAV_SELECT_MIXER_PROFILE          0x2080
+#define MSP2_INAV_PROFILE_NAMES                 0x2082
 
 #define MSP2_ADSB_VEHICLE_LIST                  0x2090
 #define MSP2_ADSB_LIMITS                        0x2091
