@@ -38,7 +38,7 @@
  * PH0 HEXT IN
  * PH1 HEXT OUT
  */
-  
+#define TARGET_FLASH_SIZE       1024
 #define LED0                    PC13
 #define LED1                    PC14
 #define LED0_INVERTED

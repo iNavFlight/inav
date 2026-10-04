@@ -25,7 +25,7 @@
 
 */
 
-
+_SRAM_SIZE = 192;
 
 MEMORY
 {
