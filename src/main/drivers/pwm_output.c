@@ -66,11 +66,9 @@
 #define DSHOT_COMMAND_QUEUE_LENGTH 8
 #define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommandFrame_t)
 
-// One queued command frame: the command each motor receives, sent `repeats` times.
-// Motors carry their own command so one frame can tell some ESCs to spin normal and
-// others reversed; a frame for "every motor" simply repeats the same command.
 typedef struct {
-    uint8_t cmd[MAX_MOTORS];
+    uint16_t reversedMask;  // motors in the mask get SPIN_DIRECTION_REVERSED instead of cmd, so one frame sets every direction
+    uint8_t cmd;
     uint8_t repeats;
 } dshotCommandFrame_t;
 
@@ -484,19 +482,22 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
 }
 
 void sendDShotCommand(dshotCommands_e cmd) {
-    dshotCommandFrame_t frame;
-    memset(frame.cmd, cmd, sizeof(frame.cmd));
-    frame.repeats = getDShotCommandRepeats(cmd);
+    dshotCommandFrame_t frame = { .reversedMask = 0, .cmd = cmd, .repeats = getDShotCommandRepeats(cmd) };
     circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &frame);
 }
 
-void sendDShotSpinDirection(uint16_t reversedMotorMask) {
-    dshotCommandFrame_t frame;
-    for (int i = 0; i < MAX_MOTORS; i++) {
-        frame.cmd[i] = (reversedMotorMask & (1 << i)) ? DSHOT_CMD_SPIN_DIRECTION_REVERSED : DSHOT_CMD_SPIN_DIRECTION_NORMAL;
+bool sendDShotSpinDirection(uint16_t reversedMotorMask) {
+    if (circularBufferIsFull(&commandsCircularBuffer)) {
+        return false;
     }
-    frame.repeats = getDShotCommandRepeats(DSHOT_CMD_SPIN_DIRECTION_NORMAL);
+
+    dshotCommandFrame_t frame = {
+        .reversedMask = reversedMotorMask,
+        .cmd = DSHOT_CMD_SPIN_DIRECTION_NORMAL,
+        .repeats = getDShotCommandRepeats(DSHOT_CMD_SPIN_DIRECTION_NORMAL),
+    };
     circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &frame);
+    return true;
 }
 
 void initDShotCommands(void) {
@@ -505,8 +506,7 @@ void initDShotCommands(void) {
     currentExecutingCommand.remainingRepeats = 0;
 }
 
-// LTO must not pull the command sequencing into the ITCM-resident scheduler; the F745
-// targets have 16 KB of it and the per-motor frames pushed it over the edge
+// Not inlined so LTO keeps it out of the ITCM-resident scheduler (only 16 KB on F745)
 static bool NOINLINE executeDShotCommands(void){
 
     timeUs_t tNow = micros();
@@ -531,7 +531,7 @@ static bool NOINLINE executeDShotCommands(void){
     }
     for (uint8_t i = 0; i < getMotorCount(); i++) {
          motors[i].requestTelemetry = true;
-         motors[i].value = currentExecutingCommand.frame.cmd[i];
+         motors[i].value = (currentExecutingCommand.frame.reversedMask & (1u << i)) ? DSHOT_CMD_SPIN_DIRECTION_REVERSED : currentExecutingCommand.frame.cmd;
     }
     if (tNow - lastCommandSent >= DSHOT_COMMAND_DELAY_US) {
         currentExecutingCommand.remainingRepeats--; 

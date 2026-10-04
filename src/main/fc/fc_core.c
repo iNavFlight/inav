@@ -611,9 +611,8 @@ void tryArm(void)
         lastDisarmReason = DISARM_NONE;
 
 #ifdef USE_DSHOT
-        // Some ESCs keep a reversed direction through an FC reboot, so every arm sends it (like Betaflight).
-        // Not on an in-flight rearm: the motors are turning and would ignore it
-        if (!STATE(IN_FLIGHT_EMERG_REARM) && (motorConfig()->dshotReversedMotors || !feature(FEATURE_REVERSIBLE_MOTORS))) {
+        // Every arm, like Betaflight: some ESCs keep a runtime 21 through an FC reboot (in-flight rearm: motors turning)
+        if (!STATE(IN_FLIGHT_EMERG_REARM) && (dshotReversedMotorMask() || !feature(FEATURE_REVERSIBLE_MOTORS))) {
             dshotSpinDirectionApply(false);
         }
 #endif

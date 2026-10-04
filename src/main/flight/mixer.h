@@ -147,9 +147,10 @@ bool areMotorsRunning(void);
 bool areMotorsStopped(void);
 
 #ifdef USE_DSHOT
+uint16_t dshotReversedMotorMask(void);
 // Send every motor its configured spin direction now; `invert` flips all of them (turtle mode)
 void dshotSpinDirectionApply(bool invert);
-// Re-send the configured directions while disarmed when they changed or an ESC may have restarted
+// Re-send the configured directions when they changed or an ESC may have restarted
 void dshotSpinDirectionUpdate(timeUs_t currentTimeUs);
 #endif
 
