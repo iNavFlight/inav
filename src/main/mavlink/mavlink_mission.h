@@ -27,6 +27,7 @@ typedef struct mavlinkMissionItemData_s {
     float alt;
 } mavlinkMissionItemData_t;
 
+uint16_t mavlinkMissionHomeSlots(void);
 uint8_t mavlinkWaypointFrame(const navWaypoint_t *wp, bool useIntMessages);
 bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMessages, mavlinkMissionItemData_t *item);
 void mavlinkSendPendingMissionItemReached(void);

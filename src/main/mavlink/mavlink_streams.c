@@ -2,6 +2,7 @@
 
 #include "common/time.h"
 
+#include "mavlink/mavlink_mission.h"
 #include "mavlink/mavlink_modes.h"
 #include "mavlink/mavlink_routing.h"
 #include "mavlink/mavlink_runtime.h"
@@ -1065,7 +1066,7 @@ void mavlinkSendHighLatency2(timeUs_t currentTimeUs)
         }
 
         if (posControl.activeWaypointIndex >= 0) {
-            wpNum = (uint16_t)posControl.activeWaypointIndex;
+            wpNum = (uint16_t)(posControl.activeWaypointIndex + mavlinkMissionHomeSlots());
             targetDistance = (uint16_t)constrain(lrintf(posControl.wpDistance / 1000.0f), 0, UINT16_MAX);
         }
     }
