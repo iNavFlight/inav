@@ -199,12 +199,16 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
         return;
     }
 
-    const uint32_t newDeadline = baroUpdate();
+    bool newSampleReady = false;
+    const uint32_t newDeadline = baroUpdate(&newSampleReady);
     if (newDeadline != 0) {
         rescheduleTask(TASK_SELF, newDeadline);
     }
 
-    updatePositionEstimator_BaroTopic(currentTimeUs);
+    // The estimator derives the climb rate from consecutive samples, feed it only when there is a new one
+    if (newSampleReady) {
+        updatePositionEstimator_BaroTopic(currentTimeUs);
+    }
 }
 #endif
 

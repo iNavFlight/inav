@@ -25,3 +25,4 @@
 #pragma once
 
 bool baroDPS310Detect(baroDev_t *baro);
+bool baroSPL06Detect(baroDev_t *baro);   // SPL06-001 handled by the DPS310 driver

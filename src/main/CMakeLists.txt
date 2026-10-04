@@ -123,8 +123,6 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_lps25h.h
     drivers/barometer/barometer_ms56xx.c
     drivers/barometer/barometer_ms56xx.h
-    drivers/barometer/barometer_spl06.c
-    drivers/barometer/barometer_spl06.h
     drivers/barometer/barometer_msp.c
     drivers/barometer/barometer_msp.h
     drivers/barometer/barometer_crsf.c

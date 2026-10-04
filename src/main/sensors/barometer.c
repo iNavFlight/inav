@@ -38,7 +38,6 @@
 #include "drivers/barometer/barometer_lps25h.h"
 #include "drivers/barometer/barometer_fake.h"
 #include "drivers/barometer/barometer_ms56xx.h"
-#include "drivers/barometer/barometer_spl06.h"
 #include "drivers/barometer/barometer_dps310.h"
 #include "drivers/barometer/barometer_2smpb_02b.h"
 #include "drivers/barometer/barometer_msp.h"
@@ -146,8 +145,9 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
         FALLTHROUGH;
 
     case BARO_SPL06:
-#if defined(USE_BARO_SPL06) || defined(USE_BARO_SPI_SPL06)
-        if (spl06Detect(dev)) {
+#if defined(USE_BARO_SPL06)
+        // SPL06-001 is register compatible with the DPS310 and shares its chip ID, the DPS310 driver handles both
+        if (baroSPL06Detect(dev)) {
             baroHardware = BARO_SPL06;
             break;
         }
@@ -262,45 +262,114 @@ bool baroInit(void)
 }
 
 typedef enum {
-    BAROMETER_NEEDS_SAMPLES = 0,
-    BAROMETER_NEEDS_CALCULATION
+    BARO_STATE_TEMPERATURE_START = 0,
+    BARO_STATE_TEMPERATURE_READ,
+    BARO_STATE_TEMPERATURE_SAMPLE,
+    BARO_STATE_PRESSURE_START,
+    BARO_STATE_PRESSURE_READ,
+    BARO_STATE_PRESSURE_SAMPLE,
 } barometerState_e;
 
-uint32_t baroUpdate(void)
+// Delay before looking at a non-blocking bus transfer again
+#define BARO_STATE_STEP_DELAY_US    1000
+
+/*
+ * Runs the measurement cycle described in drivers/barometer/barometer.h.
+ * Returns the delay until the next call (0 keeps the current task period). *newSampleReady is set when
+ * baro.baroPressure / baro.baroTemperature were updated in this call.
+ */
+uint32_t baroUpdate(bool *newSampleReady)
 {
-    static barometerState_e state = BAROMETER_NEEDS_SAMPLES;
+    static barometerState_e state = BARO_STATE_TEMPERATURE_START;
+    baroDev_t *dev = &baro.dev;
+    bool busError = false;
+
+    *newSampleReady = false;
 
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-        return 0;
+        // Pressure and temperature are injected over MSP, keep publishing them at the sensor's pace
+        *newSampleReady = true;
+        return dev->up_delay;
     }
 #endif
 
-    switch (state) {
-        default:
-        case BAROMETER_NEEDS_SAMPLES:
-            if (baro.dev.get_ut) {
-                baro.dev.get_ut(&baro.dev);
-            }
-            if (baro.dev.start_up) {
-                baro.dev.start_up(&baro.dev);
-            }
-            state = BAROMETER_NEEDS_CALCULATION;
-            return baro.dev.up_delay;
-        break;
+    // States that need no wait on the bus run back to back within one call
+    for (;;) {
+        switch (state) {
+            default:
+            case BARO_STATE_TEMPERATURE_START:
+                if (dev->start_ut && !dev->start_ut(dev) && dev->read_ut) {
+                    return BARO_STATE_STEP_DELAY_US;    // non-blocking start refused, bus is busy
+                }
+                state = BARO_STATE_TEMPERATURE_READ;
+                return dev->ut_delay;
 
-        case BAROMETER_NEEDS_CALCULATION:
-            if (baro.dev.get_up) {
-                baro.dev.get_up(&baro.dev);
-            }
-            if (baro.dev.start_ut) {
-                baro.dev.start_ut(&baro.dev);
-            }
-            //output: baro.baroPressure, baro.baroTemperature
-            baro.dev.calculate(&baro.dev, &baro.baroPressure, &baro.baroTemperature);
-            state = BAROMETER_NEEDS_SAMPLES;
-            return baro.dev.ut_delay;
-        break;
+            case BARO_STATE_TEMPERATURE_READ:
+                if (dev->read_ut) {
+                    if (!dev->read_ut(dev)) {
+                        return BARO_STATE_STEP_DELAY_US;    // bus is busy, try again shortly
+                    }
+                    state = BARO_STATE_TEMPERATURE_SAMPLE;
+                    return BARO_STATE_STEP_DELAY_US;
+                }
+                state = BARO_STATE_TEMPERATURE_SAMPLE;      // blocking driver, sample right away
+                break;
+
+            case BARO_STATE_TEMPERATURE_SAMPLE:
+                if (dev->read_ut) {
+                    if (dev->busDev && busIsBusy(dev->busDev, &busError) && !busError) {
+                        return BARO_STATE_STEP_DELAY_US;    // transfer still in progress
+                    }
+                    if (busError || (dev->get_ut && !dev->get_ut(dev))) {
+                        state = BARO_STATE_TEMPERATURE_START;   // transfer failed or sample unusable, redo the phase
+                        break;
+                    }
+                }
+                else if (dev->get_ut) {
+                    dev->get_ut(dev);
+                }
+                state = BARO_STATE_PRESSURE_START;
+                break;
+
+            case BARO_STATE_PRESSURE_START:
+                if (dev->start_up && !dev->start_up(dev) && dev->read_up) {
+                    return BARO_STATE_STEP_DELAY_US;    // non-blocking start refused, bus is busy
+                }
+                state = BARO_STATE_PRESSURE_READ;
+                return dev->up_delay;
+
+            case BARO_STATE_PRESSURE_READ:
+                if (dev->read_up) {
+                    if (!dev->read_up(dev)) {
+                        return BARO_STATE_STEP_DELAY_US;    // bus is busy, try again shortly
+                    }
+                    state = BARO_STATE_PRESSURE_SAMPLE;
+                    return BARO_STATE_STEP_DELAY_US;
+                }
+                state = BARO_STATE_PRESSURE_SAMPLE;         // blocking driver, sample right away
+                break;
+
+            case BARO_STATE_PRESSURE_SAMPLE:
+                if (dev->read_up) {
+                    if (dev->busDev && busIsBusy(dev->busDev, &busError) && !busError) {
+                        return BARO_STATE_STEP_DELAY_US;    // transfer still in progress
+                    }
+                    if (busError || (dev->get_up && !dev->get_up(dev))) {
+                        state = BARO_STATE_PRESSURE_START;  // transfer failed or sample unusable, redo the phase
+                        break;
+                    }
+                }
+                else if (dev->get_up) {
+                    dev->get_up(dev);
+                }
+
+                //output: baro.baroPressure, baro.baroTemperature
+                dev->calculate(dev, &baro.baroPressure, &baro.baroTemperature);
+                *newSampleReady = true;
+                state = dev->combined_read ? BARO_STATE_PRESSURE_START : BARO_STATE_TEMPERATURE_START;
+                break;
+        }
     }
 }
 
