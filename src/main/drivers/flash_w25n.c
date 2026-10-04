@@ -219,14 +219,7 @@ static bool w25n_waitForReadyInternal(void)
     return true;
 }
 
-/**
- * Wait for the device to become ready.
- *
- * A timeout of zero means "wait for the deadline the pending operation has already armed",
- * which is how flashPartitionErase() waits for a block erase to complete (see also
- * m25p16_waitForReady). Arming a fresh zero length timeout instead would replace the erase
- * timeout with a deadline that has already expired, and the wait would give up immediately.
- */
+// 0 keeps the deadline the pending operation armed, like m25p16_waitForReady(); flashPartitionErase() passes 0
 bool w25n_waitForReady(timeMs_t timeoutMillis)
 {
     if (timeoutMillis > 0) {
@@ -314,10 +307,8 @@ bool w25n_detect(uint32_t chipID)
  */
 void w25n_eraseSector(uint32_t address)
 {
-    // A device that is still busy ignores both the write enable and the erase instruction, so
-    // issuing them anyway would leave the block unerased without any sign of it. Give up on this
-    // block instead; the caller sees the result when it reads the flash back.
-    if (!w25n_waitForReadyInternal()) {
+    // One more deadline for an overrunning previous erase, then skip: a busy chip ignores write enable and erase
+    if (!w25n_waitForReadyInternal() && !w25n_waitForReady(W25N_TIMEOUT_BLOCK_ERASE_MS)) {
         return;
     }
 
@@ -337,8 +328,8 @@ void w25n_eraseCompletely(void)
         w25n_eraseSector(W25N_BLOCK_TO_LINEAR(block));
     }
 
-    // Let the last block finish, so that the device is readable once the erase returns
-    w25n_waitForReadyInternal();
+    // Fresh deadline, so a block that overran the armed one finishes before flashfs reads the result back
+    w25n_waitForReady(W25N_TIMEOUT_BLOCK_ERASE_MS);
 }
 
 static void w25n_programDataLoad(uint16_t columnAddress, const uint8_t *data, int length)
