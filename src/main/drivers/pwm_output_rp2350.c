@@ -194,6 +194,7 @@ static timMotorServoHardware_t rp2350OutputAssignment;
 
 /* Pending DShot command (e.g. spin direction).  Commands are sent 10×. */
 static dshotCommands_e pendingCmd     = 0;
+static uint16_t        pendingReversedMask = 0;
 static int             pendingCmdReps = 0;
 
 /* ── DShot packet construction ───────────────────────────────────────────── */
@@ -261,7 +262,7 @@ void pwmCompleteMotorUpdate(void)
         bool telemetry = dshotMotors[i].requestTelemetry;
 
         if (pendingCmdReps > 0) {
-            value    = (uint16_t)pendingCmd;
+            value    = (pendingReversedMask & (1u << i)) ? DSHOT_CMD_SPIN_DIRECTION_REVERSED : (uint16_t)pendingCmd;
             telemetry = true;
         }
 
@@ -335,13 +336,27 @@ bool isMotorProtocolDigital(void)
 void initDShotCommands(void)
 {
     pendingCmd     = 0;
+    pendingReversedMask = 0;
     pendingCmdReps = 0;
 }
 
 void sendDShotCommand(dshotCommands_e cmd)
 {
+    /* Single slot: a beacon must not cut short the spin directions disarm() just queued */
+    if (pendingCmdReps > 0) {
+        return;
+    }
     pendingCmd     = cmd;
+    pendingReversedMask = 0;
     pendingCmdReps = 10;  /* DShot spec: send each command 10 times */
+}
+
+bool sendDShotSpinDirection(uint16_t reversedMotorMask)
+{
+    pendingCmd     = DSHOT_CMD_SPIN_DIRECTION_NORMAL;
+    pendingReversedMask = reversedMotorMask;
+    pendingCmdReps = 10;
+    return true;
 }
 
 /* ── Telemetry / pin tag ─────────────────────────────────────────────────── */

@@ -31,11 +31,6 @@ typedef enum {
     DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
 } dshotCommands_e;
 
-typedef struct {
-    dshotCommands_e cmd;
-    int remainingRepeats;
-} currentExecutingCommand_t;
-
 void pwmRequestMotorTelemetry(int motorIndex);
 
 ioTag_t pwmGetMotorPinTag(int motorIndex);
@@ -62,6 +57,8 @@ void pwmWriteBeeper(bool onoffBeep);
 bool beeperPwmInit(ioTag_t tag, uint16_t frequency);
 
 void sendDShotCommand(dshotCommands_e cmd);
+// False if the frame was not queued, so the caller retries instead of assuming the ESCs have it
+bool sendDShotSpinDirection(uint16_t reversedMotorMask);
 void initDShotCommands(void);
 
 uint32_t getEscUpdateFrequency(void);

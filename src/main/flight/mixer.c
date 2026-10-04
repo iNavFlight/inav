@@ -53,6 +53,8 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "io/beeper.h"
+
 #include "navigation/navigation.h"
 
 #include "rx/rx.h"
@@ -96,6 +98,9 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmRate = SETTING_MOTOR_PWM_RATE_DEFAULT,
     .mincommand = SETTING_MIN_COMMAND_DEFAULT,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
+#ifdef USE_DSHOT
+    .dshotReversedMotors = SETTING_DSHOT_REVERSED_MOTORS_DEFAULT,
+#endif
 );
 PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
 
@@ -1002,6 +1007,87 @@ bool areMotorsStopped(void)
 {
     return motor[0] == motorZeroCommand;
 }
+
+#ifdef USE_DSHOT
+// The ESC forgets 20/21 when it restarts and the FC cannot see that, so the directions are re-sent periodically
+#define DSHOT_SPIN_DIRECTION_POLL_US            50000
+#define DSHOT_SPIN_DIRECTION_REFRESH_US         2000000
+#define DSHOT_SPIN_DIRECTION_ARMED_REFRESH_US   250000
+#define DSHOT_SPIN_DIRECTION_UNKNOWN            0xFFFF  // after boot an ESC may still hold a runtime 21 from before the reboot
+
+static uint16_t dshotSpinDirectionSent = DSHOT_SPIN_DIRECTION_UNKNOWN;  // reversed mask the ESCs last received
+static timeUs_t dshotSpinDirectionSentAtUs = 0;
+static timeUs_t dshotSpinDirectionPolledAtUs = 0;
+
+uint16_t dshotReversedMotorMask(void)
+{
+    return motorConfig()->dshotReversedMotors & ((1u << motorCount) - 1);
+}
+
+// Not areMotorsStopped(): that only looks at motor 0
+static bool areAllMotorsAtZeroCommand(void)
+{
+    for (int i = 0; i < motorCount; i++) {
+        if (motor[i] != motorZeroCommand) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void dshotSpinDirectionApply(bool invert)
+{
+    if (!isMotorProtocolDshot()) {
+        return;
+    }
+
+    const uint16_t allMotors = (1u << motorCount) - 1;
+    const uint16_t mask = invert ? (~dshotReversedMotorMask() & allMotors) : dshotReversedMotorMask();
+
+    if (sendDShotSpinDirection(mask)) {
+        dshotSpinDirectionSent = mask;
+        dshotSpinDirectionSentAtUs = micros();
+    }
+}
+
+void NOINLINE dshotSpinDirectionUpdate(timeUs_t currentTimeUs)
+{
+    // Called from a busy loop; one evaluation per poll interval is plenty
+    if (currentTimeUs - dshotSpinDirectionPolledAtUs < DSHOT_SPIN_DIRECTION_POLL_US) {
+        return;
+    }
+    dshotSpinDirectionPolledAtUs = currentTimeUs;
+
+    if (!isMotorProtocolDshot()) {
+        return;
+    }
+
+    const uint16_t mask = dshotReversedMotorMask();
+
+    if (ARMING_FLAG(ARMED)) {
+        // An ESC that resets in flight re-arms on DShot 0 with motor stop; not in turtle (inverted) or the emergency rearm recovery
+        if (mask == 0 || FLIGHT_MODE(TURTLE_MODE) || STATE(IN_FLIGHT_EMERG_REARM) || currentTimeUs - dshotSpinDirectionSentAtUs < DSHOT_SPIN_DIRECTION_ARMED_REFRESH_US) {
+            return;
+        }
+    } else {
+        // An all-normal mask stays quiet once sent; 3D ESCs are never told a direction for it, as in tryArm()
+        if (mask == 0 && (dshotSpinDirectionSent == 0 || (dshotSpinDirectionSent == DSHOT_SPIN_DIRECTION_UNKNOWN && feature(FEATURE_REVERSIBLE_MOTORS)))) {
+            return;
+        }
+
+        if (mask == dshotSpinDirectionSent && currentTimeUs - dshotSpinDirectionSentAtUs < DSHOT_SPIN_DIRECTION_REFRESH_US) {
+            return;
+        }
+    }
+
+    // A spinning motor (also the motor test) or an ESC still playing a beacon tone ignores the command
+    if (!areAllMotorsAtZeroCommand() || currentTimeUs - getLastDshotBeeperCommandTimeUs() < getDShotBeaconGuardDelayUs()) {
+        return;
+    }
+
+    dshotSpinDirectionApply(false);
+}
+#endif
 
 uint16_t getMaxThrottle(void) {
 
