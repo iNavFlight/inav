@@ -88,6 +88,9 @@ extern "C" {
     void mavlinkSendBatteryTemperatureStatusText(void);
     bool mavlinkSendStatusText(void);
     void mavlinkSendPosition(timeUs_t currentTimeUs);
+    void mavlinkSendSystemStatus(void);
+    void mavlinkSendBatteryStatus(void);
+    void mavlinkSendHighLatency2(timeUs_t currentTimeUs);
 
     PG_REGISTER(telemetryConfig_t, telemetryConfig, PG_TELEMETRY_CONFIG, 0);
     PG_REGISTER(rxConfig_t, rxConfig, PG_RX_CONFIG, 0);
@@ -158,6 +161,12 @@ static navigationFSMStateFlags_t testNavStateFlags;
 static bool testModeActivationConditions[CHECKBOX_ITEM_COUNT];
 static char testOsdSystemMessage[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN + 1];
 static textAttributes_t testOsdSystemMessageAttributes;
+static uint32_t testFeatureMask;
+static batteryState_e testBatteryState;
+static uint16_t testBatteryVoltage;
+static uint8_t testBatteryPercentage;
+static uint8_t testBatteryCellCount;
+static uint16_t testBatteryAverageCellVoltage;
 
 static void resetSerialBuffers(void)
 {
@@ -362,6 +371,12 @@ static void initMavlinkTestState(void)
     memset(testModeActivationConditions, 0, sizeof(testModeActivationConditions));
     strcpy(testOsdSystemMessage, " ");
     testOsdSystemMessageAttributes = TEXT_ATTRIBUTES_NONE;
+    testFeatureMask = 0;
+    testBatteryState = BATTERY_OK;
+    testBatteryVoltage = 0;
+    testBatteryPercentage = 0;
+    testBatteryCellCount = 0;
+    testBatteryAverageCellVoltage = 0;
     armingFlags = 0;
     stateFlags = 0;
     flightModeFlags = 0;
@@ -2639,6 +2654,73 @@ TEST(MavlinkTelemetryTest, BatteryStatusDoesNotSendExtendedSysState)
     EXPECT_FALSE(sawExtSysState);
 }
 
+static void expectBatteryFields(uint16_t sysStatusVoltage, uint16_t cellVoltage, int cellCount, int8_t remaining)
+{
+    mavlink_message_t msg;
+
+    serialTxLen = 0;
+    mavlinkSendSystemStatus();
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_SYS_STATUS, &msg));
+    mavlink_sys_status_t sysStatus;
+    mavlink_msg_sys_status_decode(&msg, &sysStatus);
+    EXPECT_EQ(sysStatus.voltage_battery, sysStatusVoltage);
+    EXPECT_EQ(sysStatus.battery_remaining, remaining);
+
+    serialTxLen = 0;
+    mavlinkSendBatteryStatus();
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_BATTERY_STATUS, &msg));
+    mavlink_battery_status_t batteryStatus;
+    mavlink_msg_battery_status_decode(&msg, &batteryStatus);
+    for (int cell = 0; cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_LEN; cell++) {
+        EXPECT_EQ(batteryStatus.voltages[cell], cell < cellCount ? cellVoltage : UINT16_MAX);
+    }
+    for (int cell = 0; cell < MAVLINK_MSG_BATTERY_STATUS_FIELD_VOLTAGES_EXT_LEN; cell++) {
+        EXPECT_EQ(batteryStatus.voltages_ext[cell], 0);
+    }
+    EXPECT_EQ(batteryStatus.battery_remaining, remaining);
+
+    serialTxLen = 0;
+    mavlinkSendHighLatency2(0);
+    ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_HIGH_LATENCY2, &msg));
+    mavlink_high_latency2_t highLatency;
+    mavlink_msg_high_latency2_decode(&msg, &highLatency);
+    EXPECT_EQ(highLatency.battery, remaining);
+}
+
+TEST(MavlinkTelemetryTest, BatteryNotPresentIsReportedAsUnknown)
+{
+    initMavlinkTestState();
+    testFeatureMask = FEATURE_VBAT;
+    testBatteryState = BATTERY_NOT_PRESENT;
+    testBatteryVoltage = 37;
+    testBatteryPercentage = 0;
+
+    expectBatteryFields(UINT16_MAX, UINT16_MAX, 0, -1);
+}
+
+TEST(MavlinkTelemetryTest, BatteryWithVbatFeatureOffIsReportedAsUnknown)
+{
+    initMavlinkTestState();
+    testBatteryState = BATTERY_OK;
+    testBatteryVoltage = 1512;
+    testBatteryPercentage = 57;
+
+    expectBatteryFields(UINT16_MAX, UINT16_MAX, 0, -1);
+}
+
+TEST(MavlinkTelemetryTest, BatteryPresentReportsMeasuredValues)
+{
+    initMavlinkTestState();
+    testFeatureMask = FEATURE_VBAT;
+    testBatteryState = BATTERY_CRITICAL;
+    testBatteryVoltage = 1512;
+    testBatteryCellCount = 4;
+    testBatteryAverageCellVoltage = 378;
+    testBatteryPercentage = 57;
+
+    expectBatteryFields(15120, 3780, 4, 57);
+}
+
 TEST(MavlinkTelemetryTest, StatusTextSuppressesUnchangedOsdNoticeUntilRepeatInterval)
 {
     initMavlinkTestState();
@@ -3624,8 +3706,7 @@ bool isBlackboxDeviceFull(void)
 
 bool feature(uint32_t mask)
 {
-    UNUSED(mask);
-    return false;
+    return (testFeatureMask & mask) != 0;
 }
 
 int16_t getAmperage(void)
@@ -3645,12 +3726,12 @@ int32_t getMWhDrawn(void)
 
 uint8_t getBatteryCellCount(void)
 {
-    return 0;
+    return testBatteryCellCount;
 }
 
 batteryState_e getBatteryState(void)
 {
-    return BATTERY_OK;
+    return testBatteryState;
 }
 
 bool isEstimatedWindSpeedValid(void)
@@ -3668,12 +3749,12 @@ float getEstimatedHorizontalWindSpeed(uint16_t *angle)
 
 uint16_t getBatteryAverageCellVoltage(void)
 {
-    return 0;
+    return testBatteryAverageCellVoltage;
 }
 
 uint16_t getBatteryVoltage(void)
 {
-    return 0;
+    return testBatteryVoltage;
 }
 
 int16_t getThrottlePercent(bool scaled)
@@ -3979,7 +4060,7 @@ bool adsbHeartbeat(void)
 
 uint8_t calculateBatteryPercentage(void)
 {
-    return 0;
+    return testBatteryPercentage;
 }
 
 }
