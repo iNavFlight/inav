@@ -34,18 +34,19 @@
 
 #ifdef USE_TEMPERATURE_LM75
 
+// The two result bytes land in the device scratchpad, each of the up to 8 sensors has its own
+static bool lm75ReadStart(temperatureDev_t *tempDev)
+{
+    uint8_t *buf = busDeviceGetScratchpadMemory(tempDev->busDev);
+    return busReadBufStart(tempDev->busDev, LM75_TEMPERATURE_REG_ADDR, buf, 2);
+}
+
 static bool lm75Read(temperatureDev_t *tempDev, int16_t *temperature)
 {
-    uint8_t buf[2];
+    const uint8_t *buf = busDeviceGetScratchpadMemory(tempDev->busDev);
 
-    bool ack = busReadBuf(tempDev->busDev, LM75_TEMPERATURE_REG_ADDR, buf, 2);
-
-    if (ack) {
-        if (temperature) *temperature = (int8_t)buf[0] * 10 + (buf[1] >> 7) * 5;
-        return true;
-    }
-
-    return false;
+    if (temperature) *temperature = (int8_t)buf[0] * 10 + (buf[1] >> 7) * 5;
+    return true;
 }
 
 #define DETECTION_MAX_RETRY_COUNT 5
@@ -73,6 +74,7 @@ bool lm75Detect(temperatureDev_t *tempDev, uint8_t partialAddress)
         return false;
     }
 
+    tempDev->readStart = lm75ReadStart;
     tempDev->read = lm75Read;
 
     return true;

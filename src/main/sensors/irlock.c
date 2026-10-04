@@ -66,10 +66,21 @@ bool irlockMeasurementIsValid(void) {
     return measurementValid;
 }
 
-void irlockUpdate(void)
+uint32_t irlockUpdate(void)
 {
-    if (irlockDetected && irlockDev.read(&irlockDev, &irlockData)) lastUpdateMs = millis();
+    uint32_t nextCallUs = IRLOCK_UPDATE_PERIOD_US;
+
+    if (irlockDetected) {
+        const irlockReadResult_e result = irlockDev.read(&irlockDev, &irlockData);
+        if (result == IRLOCK_READ_FRAME) {
+            lastUpdateMs = millis();
+        } else if (result == IRLOCK_READ_PENDING) {
+            nextCallUs = IRLOCK_READ_RETRY_US;      // a transfer is on the bus, come back shortly
+        }
+    }
     measurementValid = millis() - lastUpdateMs < IRLOCK_TIMEOUT;
+
+    return nextCallUs;
 }
 
 #define X_TO_DISTANCE_FACTOR -0.0029387573f

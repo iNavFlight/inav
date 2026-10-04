@@ -34,9 +34,15 @@ typedef struct {
     uint16_t sizeY;
 } irlockData_t;
 
+typedef enum {
+    IRLOCK_READ_NO_DATA = 0,    // no complete frame this time, try again on the regular period
+    IRLOCK_READ_PENDING,        // a transfer is on the bus, call again shortly
+    IRLOCK_READ_FRAME,          // irlockData holds a fresh, checksum verified frame
+} irlockReadResult_e;
+
 typedef struct irlockDev_s {
     busDevice_t *busDev;
-    bool (*read)(struct irlockDev_s *irlockDev, irlockData_t *irlockData);
+    irlockReadResult_e (*read)(struct irlockDev_s *irlockDev, irlockData_t *irlockData);   // non-blocking, see irlockReadResult_e
 } irlockDev_t;
 
 bool irlockDetect(irlockDev_t *irlockDev);

@@ -22,10 +22,20 @@
 
 typedef struct ina226Dev_s {
     busDevice_t *busDev;
+
+    // Background sampling driven by ina226Update(), the read functions return the last completed values
+    uint8_t rxBuf[2];
+    uint8_t pendingReg;             // register being read, 0 = none
+    uint8_t lastReg;                // register read last, the two are alternated
+    uint16_t rawBusVoltage;
+    uint16_t rawShuntVoltage;
+    bool busVoltageValid;
+    bool shuntVoltageValid;
 } ina226Dev_t;
 
 bool ina226Init(ina226Dev_t *dev, uint8_t i2cBus, uint8_t i2cAddress);
 bool ina226Detect(ina226Dev_t *dev);
+void ina226Update(ina226Dev_t *dev);   // call periodically, alternates non-blocking reads of bus and shunt voltage
 bool ina226ReadBusVoltage(ina226Dev_t *dev, uint16_t *centiVolts);
 bool ina226ReadShuntCurrent(ina226Dev_t *dev, uint32_t shuntMicroOhm, int16_t *centiAmps);
 

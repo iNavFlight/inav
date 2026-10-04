@@ -455,9 +455,23 @@ static void checkBatteryCapacityState(void)
     }
 }
 
+#if defined(USE_INA226)
+// Keeps the cached INA226 readings fresh, the transfers run in the background
+static void ina226Poll(void)
+{
+    if (ina226Detected) {
+        ina226Update(&ina226Dev);
+    }
+}
+#endif
+
 void batteryUpdate(timeUs_t timeDelta)
 {
     static timeUs_t batteryConnectedTime = 0;
+
+#if defined(USE_INA226)
+    ina226Poll();
+#endif
     /* battery has just been connected*/
     if (batteryState == BATTERY_NOT_PRESENT && vbat > VBATT_PRESENT_THRESHOLD) {
         if(batteryConnectedTime == 0) {
@@ -754,6 +768,10 @@ int32_t getMWhDrawn(void)
 void currentMeterUpdate(timeUs_t timeDelta)
 {
     static int64_t mAhdrawnRaw = 0;
+
+#if defined(USE_INA226)
+    ina226Poll();
+#endif
 
     switch (batteryMetersConfig()->current.type) {
         case CURRENT_SENSOR_ADC:

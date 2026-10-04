@@ -130,30 +130,68 @@ bool ina226Init(ina226Dev_t *dev, uint8_t i2cBus, uint8_t i2cAddress)
         return false;
     }
 
+    // Seed the cache so the first readings are available before the background sampling has run
+    dev->busVoltageValid = ina226ReadRegister(dev, INA226_REG_BUS_VOLTAGE, &dev->rawBusVoltage);
+    dev->shuntVoltageValid = ina226ReadRegister(dev, INA226_REG_SHUNT_VOLTAGE, &dev->rawShuntVoltage);
+    dev->pendingReg = 0;
+    dev->lastReg = INA226_REG_SHUNT_VOLTAGE;
+
     return true;
+}
+
+void ina226Update(ina226Dev_t *dev)
+{
+    if (!dev || !dev->busDev) {
+        return;
+    }
+
+    bool busError = false;
+
+    if (dev->pendingReg != 0) {
+        if (busIsBusy(dev->busDev, &busError) && !busError) {
+            return;     // still on the bus, look again on the next call
+        }
+
+        const uint16_t value = ((uint16_t)dev->rxBuf[0] << 8) | dev->rxBuf[1];
+        if (dev->pendingReg == INA226_REG_BUS_VOLTAGE) {
+            dev->busVoltageValid = !busError;
+            if (!busError) {
+                dev->rawBusVoltage = value;
+            }
+        } else {
+            dev->shuntVoltageValid = !busError;
+            if (!busError) {
+                dev->rawShuntVoltage = value;
+            }
+        }
+        dev->lastReg = dev->pendingReg;
+        dev->pendingReg = 0;
+    }
+
+    // Alternate between the two registers, one transfer per call
+    const uint8_t reg = (dev->lastReg == INA226_REG_BUS_VOLTAGE) ? INA226_REG_SHUNT_VOLTAGE : INA226_REG_BUS_VOLTAGE;
+    if (busReadBufStart(dev->busDev, reg, dev->rxBuf, sizeof(dev->rxBuf))) {
+        dev->pendingReg = reg;
+    }
 }
 
 bool ina226ReadBusVoltage(ina226Dev_t *dev, uint16_t *centiVolts)
 {
-    uint16_t rawBusVoltage;
-
-    if (!centiVolts || !ina226ReadRegister(dev, INA226_REG_BUS_VOLTAGE, &rawBusVoltage)) {
+    if (!dev || !centiVolts || !dev->busVoltageValid) {
         return false;
     }
 
-    *centiVolts = ina226BusVoltageToCentivolts(rawBusVoltage);
+    *centiVolts = ina226BusVoltageToCentivolts(dev->rawBusVoltage);
     return true;
 }
 
 bool ina226ReadShuntCurrent(ina226Dev_t *dev, uint32_t shuntMicroOhm, int16_t *centiAmps)
 {
-    uint16_t rawShuntVoltage;
-
-    if (!centiAmps || !ina226ReadRegister(dev, INA226_REG_SHUNT_VOLTAGE, &rawShuntVoltage)) {
+    if (!dev || !centiAmps || !dev->shuntVoltageValid) {
         return false;
     }
 
-    *centiAmps = ina226ShuntVoltageToCentiamps((int16_t)rawShuntVoltage, shuntMicroOhm);
+    *centiAmps = ina226ShuntVoltageToCentiamps((int16_t)dev->rawShuntVoltage, shuntMicroOhm);
     return true;
 }
 

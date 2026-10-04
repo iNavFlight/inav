@@ -190,6 +190,7 @@ bool tempSensorStringToAddress(const char *hex_address, uint64_t *address)
 
 static uint8_t temperatureUpdateSensorIndex;
 static bool temperatureUpdateValueValid;
+static bool temperatureBusError;
 
 #ifdef DS18B20_DRIVER_AVAILABLE
 static uint8_t temperatureUpdateIndex;
@@ -229,7 +230,15 @@ PROTOTHREAD(temperatureUpdate)
             if (configSlot->type == TEMP_SENSOR_LM75) {
                 if (configSlot->address < 8) {
                     temperatureDev_t *dev = lm75Dev + configSlot->address;
-                    if (dev->read && dev->read(dev, &tempSensorValue[temperatureUpdateSensorIndex])) temperatureUpdateValueValid = true;
+                    if (dev->readStart) {
+                        // non-blocking read: start it, wait for the bus, then parse
+                        if (dev->readStart(dev)) {
+                            ptWait(!busIsBusy(dev->busDev, &temperatureBusError));
+                            if (!temperatureBusError && dev->read(dev, &tempSensorValue[temperatureUpdateSensorIndex])) temperatureUpdateValueValid = true;
+                        }
+                    } else if (dev->read && dev->read(dev, &tempSensorValue[temperatureUpdateSensorIndex])) {
+                        temperatureUpdateValueValid = true;
+                    }
                 }
             }
 #endif

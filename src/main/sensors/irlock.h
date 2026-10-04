@@ -22,7 +22,12 @@
 void irlockInit(void);
 bool irlockHasBeenDetected(void);
 
-void irlockUpdate(void);
+// Regular sample rate of the IRLock task and the retry delay while a transfer is on the bus
+#define IRLOCK_UPDATE_RATE_HZ       100
+#define IRLOCK_UPDATE_PERIOD_US     (1000000 / IRLOCK_UPDATE_RATE_HZ)
+#define IRLOCK_READ_RETRY_US        1000
+
+uint32_t irlockUpdate(void);    // returns the delay until the next call
 bool irlockMeasurementIsValid(void);
 bool irlockGetPosition(float *distX, float *distY);
 

@@ -82,6 +82,13 @@ static bool ds2482Reset(owDev_t *owDev)
     return busWrite(owDev->busDev, 0xFF, DS2482_RESET_CMD);
 }
 
+// 1-Wire commands are fired without waiting for the bus; the blocking write is the fallback when another
+// device's transfer is in flight, so a command is never lost
+static bool ds2482WriteCommand(owDev_t *owDev, uint8_t reg, uint8_t data)
+{
+    return busWriteStart(owDev->busDev, reg, data) || busWrite(owDev->busDev, reg, data);
+}
+
 static bool ds2482SetReadPtr(owDev_t *owDev, uint8_t reg)
 {
     return busWrite(owDev->busDev, DS2482_SET_READ_PTR_CMD, reg);
@@ -137,16 +144,27 @@ static bool ds2482WaitForBus(owDev_t *owDev)
     return ds2482Poll(owDev, true, NULL);
 }
 
+// Polled from the temperature protothread: a status read is started on one call and evaluated on a later one
 static bool ds2482OwBusReady(owDev_t *owDev)
 {
-    bool ack = busRead(owDev->busDev, 0xFF, &owDev->status);
-    if (!ack) return false;
-    return !DS2482_1WIRE_BUSY(owDev->status);
+    static bool statusReadPending = false;
+    bool busError = false;
+
+    if (statusReadPending) {
+        if (busIsBusy(owDev->busDev, &busError) && !busError) return false;
+        statusReadPending = false;
+        if (busError) return false;
+        return !DS2482_1WIRE_BUSY(owDev->status);
+    }
+
+    // after a command the read pointer sits on the status register
+    statusReadPending = busReadBufStart(owDev->busDev, 0xFF, &owDev->status, 1);
+    return false;
 }
 
 static bool ds2482OwResetCommand(owDev_t *owDev)
 {
-    return busWrite(owDev->busDev, 0xFF, DS2482_1WIRE_RESET_CMD);
+    return ds2482WriteCommand(owDev, 0xFF, DS2482_1WIRE_RESET_CMD);
 }
 
 static bool ds2482OwReset(owDev_t *owDev)
@@ -158,7 +176,7 @@ static bool ds2482OwReset(owDev_t *owDev)
 
 static bool ds2482OwWriteByteCommand(owDev_t *owDev, uint8_t byte)
 {
-    return busWrite(owDev->busDev, DS2482_1WIRE_WRITE_BYTE_CMD, byte);
+    return ds2482WriteCommand(owDev, DS2482_1WIRE_WRITE_BYTE_CMD, byte);
 }
 
 static bool ds2482OwWriteByte(owDev_t *owDev, uint8_t byte)
@@ -179,7 +197,7 @@ static bool ds2482OwWriteBuf(owDev_t *owDev, const uint8_t *buf, uint8_t len)
 
 static bool ds2482OwReadByteCommand(owDev_t *owDev)
 {
-    return busWrite(owDev->busDev, 0xFF, DS2482_1WIRE_READ_BYTE_CMD);
+    return ds2482WriteCommand(owDev, 0xFF, DS2482_1WIRE_READ_BYTE_CMD);
 }
 
 static bool ds2482OwReadByte(owDev_t *owDev, uint8_t *result)
@@ -204,7 +222,7 @@ static bool ds2482OwReadBuf(owDev_t *owDev, uint8_t *buf, uint8_t len)
 
 static bool ds2482OwSingleBitCommand(owDev_t *owDev, uint8_t type)
 {
-    return busWrite(owDev->busDev, DS2482_1WIRE_SINGLE_BIT_CMD, type);
+    return ds2482WriteCommand(owDev, DS2482_1WIRE_SINGLE_BIT_CMD, type);
 }
 
 static bool ds2482OwSingleBitResult(owDev_t *owDev)
@@ -225,7 +243,7 @@ static bool ds2482OwSingleBit(owDev_t *owDev, uint8_t type, bool *result)
 
 static bool ds2482OwTripletCommand(owDev_t *owDev, uint8_t direction)
 {
-    return busWrite(owDev->busDev, DS2482_1WIRE_TRIPLET_CMD, direction << 7);
+    return ds2482WriteCommand(owDev, DS2482_1WIRE_TRIPLET_CMD, direction << 7);
 }
 
 static uint8_t ds2482OwTripletResult(owDev_t *owDev)

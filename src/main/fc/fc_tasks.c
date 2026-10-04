@@ -262,7 +262,11 @@ void taskUpdateRangefinder(timeUs_t currentTimeUs)
 void taskUpdateIrlock(timeUs_t currentTimeUs)
 {
     UNUSED(currentTimeUs);
-    irlockUpdate();
+    // A non-blocking read asks to be revisited shortly, otherwise the regular period is restored
+    const uint32_t newDeadline = irlockUpdate();
+    if (newDeadline != 0) {
+        rescheduleTask(TASK_SELF, newDeadline);
+    }
 }
 #endif
 
@@ -625,7 +629,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_IRLOCK] = {
         .taskName = "IRLOCK",
         .taskFunc = taskUpdateIrlock,
-        .desiredPeriod = TASK_PERIOD_HZ(100),
+        .desiredPeriod = TASK_PERIOD_HZ(IRLOCK_UPDATE_RATE_HZ),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

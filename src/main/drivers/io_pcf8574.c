@@ -73,7 +73,10 @@ bool pcf8574Init(void)
 
 void pcf8574Write(uint8_t data)
 {
-    busWrite(busDev, PCF8574_WRITE_ADDRESS, data);
+    // Fire and forget; the blocking write is the fallback when another device's transfer is in flight
+    if (!busWriteStart(busDev, PCF8574_WRITE_ADDRESS, data)) {
+        busWrite(busDev, PCF8574_WRITE_ADDRESS, data);
+    }
 }
 
 uint8_t pcf8574Read(void)

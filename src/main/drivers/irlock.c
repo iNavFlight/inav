@@ -34,26 +34,62 @@
 
 static bool irlockHealthy = false;
 
-static bool irlockFrameSync(irlockDev_t *irlockDev)
-{
-    uint32_t sync_word = 0;
-    uint8_t count = 10;
-    while (count-- && sync_word != IRLOCK_FRAME_SYNC) {
-        uint8_t sync_byte;
-        irlockHealthy = busRead(irlockDev->busDev, 0xFF, &sync_byte);
-        if (!(irlockHealthy && sync_byte)) return false;
-        sync_word = (sync_word >> 8) | (((uint32_t)sync_byte) << 24);
-    }
-    return sync_word == IRLOCK_FRAME_SYNC;
-}
+// The sensor streams frames; the blocking driver scanned up to this many bytes for the frame sync per call
+#define IRLOCK_SYNC_READ_LIMIT  10
 
-static bool irlockRead(irlockDev_t *irlockDev, irlockData_t *irlockData)
+static irlockReadResult_e irlockRead(irlockDev_t *irlockDev, irlockData_t *irlockData)
 {
-    if (irlockFrameSync(irlockDev) && busReadBuf(irlockDev->busDev, 0xFF, (void*)irlockData, sizeof(*irlockData))) {
-        uint16_t cksum = irlockData->signature + irlockData->posX + irlockData->posY + irlockData->sizeX + irlockData->sizeY;
-        if (irlockData->cksum == cksum) return true;
+    static uint32_t syncWord = 0;
+    static uint8_t syncReads = 0;
+    static uint8_t syncByte;                // target of the one byte sync reads, filled in the background
+    static bool transferPending = false;
+    static bool frameRequested = false;     // the pending transfer is the frame itself
+    bool busError = false;
+
+    if (transferPending) {
+        if (busIsBusy(irlockDev->busDev, &busError) && !busError) {
+            return IRLOCK_READ_PENDING;
+        }
+        transferPending = false;
+        irlockHealthy = !busError;
+
+        if (busError) {
+            syncWord = 0;
+            syncReads = 0;
+            frameRequested = false;
+            return IRLOCK_READ_NO_DATA;
+        }
+
+        if (frameRequested) {
+            frameRequested = false;
+            syncWord = 0;
+            syncReads = 0;
+            const uint16_t cksum = irlockData->signature + irlockData->posX + irlockData->posY + irlockData->sizeX + irlockData->sizeY;
+            return (irlockData->cksum == cksum) ? IRLOCK_READ_FRAME : IRLOCK_READ_NO_DATA;
+        }
+
+        // one more byte of the sync scan arrived
+        if (syncByte == 0) {
+            syncWord = 0;                   // nothing streaming, give up until the next regular call
+            syncReads = 0;
+            return IRLOCK_READ_NO_DATA;
+        }
+        syncWord = (syncWord >> 8) | (((uint32_t)syncByte) << 24);
+        if (syncWord == IRLOCK_FRAME_SYNC) {
+            transferPending = busReadBufStart(irlockDev->busDev, 0xFF, (uint8_t *)irlockData, sizeof(*irlockData));
+            frameRequested = transferPending;
+            return IRLOCK_READ_PENDING;
+        }
+        if (++syncReads >= IRLOCK_SYNC_READ_LIMIT) {
+            syncWord = 0;
+            syncReads = 0;
+            return IRLOCK_READ_NO_DATA;
+        }
     }
-    return false;
+
+    // scan for the frame sync one byte at a time
+    transferPending = busReadBufStart(irlockDev->busDev, 0xFF, &syncByte, 1);
+    return IRLOCK_READ_PENDING;
 }
 
 static bool deviceDetect(irlockDev_t *irlockDev)
