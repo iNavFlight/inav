@@ -67,11 +67,9 @@ void mavlinkSendPendingMissionItemReached(void)
     mavSendMask = 0;
 }
 
-uint8_t mavlinkWaypointFrame(const navWaypoint_t *wp, bool useIntMessages)
+uint8_t mavlinkWaypointFrame(const navWaypoint_t *wp)
 {
     // The _INT frames are superseded by the plain ones in every message, and some ground stations only know 0/3.
-    UNUSED(useIntMessages);
-
     switch (wp->action) {
         case NAV_WP_ACTION_RTH:
         case NAV_WP_ACTION_JUMP:
@@ -139,6 +137,7 @@ static void mavlinkStartMissionTransfer(mavlinkMissionTransferState_e state, uin
     mavMissionTransfer.partnerComponent = mavlinkContext.recvMsg.compid;
     mavMissionTransfer.ingressPortIndex = mavRecvPortIndex;
     mavMissionTransfer.useIntMessages = true;
+    mavMissionTransfer.homeSlots = mavlinkMissionHomeSlots();
     mavMissionTransfer.lastActivityMs = millis();
 }
 
@@ -611,7 +610,7 @@ static bool mavlinkHandleMissionItemCommon(
         return true;
     }
 
-    if ((seq == 0 && mavlinkMissionHomeSlots() > 0) ||
+    if ((seq == 0 && mavMissionTransfer.homeSlots > 0) ||
         mavlinkMissionItemIsQgcPlannedHome(frame, command, current, seq, param1, param2, param3, param4)) {
         UNUSED(current);
         UNUSED(autocontinue);
@@ -1128,8 +1127,9 @@ bool mavlinkHandleIncomingMissionRequestList(void)
         return true;
     }
 
-    const uint16_t count = getWaypointCount() + mavlinkMissionHomeSlots();
-    mavlinkStartMissionTransfer(MAVLINK_MISSION_TRANSFER_SENDING, count);
+    mavlinkStartMissionTransfer(MAVLINK_MISSION_TRANSFER_SENDING, 0);
+    const uint16_t count = getWaypointCount() + mavMissionTransfer.homeSlots;
+    mavMissionTransfer.count = count;
     mavlink_msg_mission_count_pack(
         mavSystemId,
         mavComponentId,
@@ -1146,11 +1146,11 @@ bool mavlinkHandleIncomingMissionRequestList(void)
     return true;
 }
 
-bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMessages, mavlinkMissionItemData_t *item)
+bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, uint16_t homeSlots, mavlinkMissionItemData_t *item)
 {
     mavlinkMissionItemData_t data = {0};
 
-    data.frame = mavlinkWaypointFrame(wp, useIntMessages);
+    data.frame = mavlinkWaypointFrame(wp);
 
     switch (wp->action) {
         case NAV_WP_ACTION_WAYPOINT:
@@ -1181,7 +1181,7 @@ bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMess
 
         case NAV_WP_ACTION_JUMP:
             data.command = MAV_CMD_DO_JUMP;
-            data.param1 = (wp->p1 > 0) ? (float)(wp->p1 - 1 + mavlinkMissionHomeSlots()) : 0.0f;
+            data.param1 = (wp->p1 > 0) ? (float)(wp->p1 - 1 + homeSlots) : 0.0f;
             data.param2 = wp->p2;
             break;
 
@@ -1212,7 +1212,7 @@ bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMess
 // encoder used to live here but was unreachable and has been removed.
 static bool mavlinkSendMissionItemResponse(uint16_t seq)
 {
-    const uint16_t homeSlots = mavlinkMissionHomeSlots();
+    const uint16_t homeSlots = mavMissionTransfer.homeSlots;
     mavlinkMissionItemData_t item = {0};
 
     if (seq < homeSlots) {
@@ -1226,7 +1226,7 @@ static bool mavlinkSendMissionItemResponse(uint16_t seq)
     } else {
         navWaypoint_t wp;
         getWaypoint(seq - homeSlots + 1, &wp);
-        if (!mavlinkFillMissionItemFromWaypoint(&wp, true, &item)) {
+        if (!mavlinkFillMissionItemFromWaypoint(&wp, homeSlots, &item)) {
             return false;
         }
     }

@@ -3760,6 +3760,72 @@ TEST(MavlinkTelemetryTest, ArduPilotItemReachedCountsHomeSlot)
     EXPECT_EQ(reached.seq, 1);
 }
 
+TEST(MavlinkTelemetryTest, UploadKeepsHomeSlotWhenAutopilotTypeChangesMidTransfer)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t countMsg;
+    mavlink_msg_mission_count_pack(42, 200, &countMsg, 1, testTargetComponent, 3, MAV_MISSION_TYPE_MISSION, 0);
+    pushRxMessage(&countMsg);
+    handleMAVLinkTelemetry(1000);
+    useGenericMissionNumbering();
+
+    pushArduPilotItemInt(0, MAV_FRAME_GLOBAL, MAV_CMD_NAV_WAYPOINT, 1, 0, 375000000, 400.0f);
+    pushArduPilotItemInt(1, MAV_FRAME_GLOBAL_RELATIVE_ALT, MAV_CMD_NAV_WAYPOINT, 0, 0, 375010000, 50.0f);
+    resetSerialBuffers();
+    pushArduPilotItemInt(2, MAV_FRAME_GLOBAL_RELATIVE_ALT, MAV_CMD_NAV_WAYPOINT, 0, 0, 375020000, 50.0f);
+
+    EXPECT_EQ(firstMissionAckType(), MAV_MISSION_ACCEPTED);
+    EXPECT_EQ(waypointCount, 2);
+    EXPECT_EQ(waypointStore[0].lat, 375010000);
+    EXPECT_EQ(waypointStore[1].lat, 375020000);
+}
+
+TEST(MavlinkTelemetryTest, DownloadKeepsHomeSlotWhenAutopilotTypeChangesMidTransfer)
+{
+    initMavlinkTestState();
+    waypointCount = 2;
+    waypointStore[0].action = NAV_WP_ACTION_WAYPOINT;
+    waypointStore[0].lat = 375010000;
+    waypointStore[0].lon = -1222500000;
+    waypointStore[0].alt = 5000;
+    waypointStore[1].action = NAV_WP_ACTION_JUMP;
+    waypointStore[1].p1 = 1;
+    waypointStore[1].p2 = 2;
+    waypointStore[1].flag = NAV_WP_FLAG_LAST;
+
+    mavlink_message_t listMsg;
+    mavlink_msg_mission_request_list_pack(42, 200, &listMsg, 1, testTargetComponent, MAV_MISSION_TYPE_MISSION);
+    pushRxMessage(&listMsg);
+    handleMavlinkUntilRxEmpty(1000);
+    useGenericMissionNumbering();
+
+    const uint16_t expectedCommands[] = { MAV_CMD_NAV_WAYPOINT, MAV_CMD_NAV_WAYPOINT, MAV_CMD_DO_JUMP };
+    for (uint16_t seq = 0; seq < 3; seq++) {
+        resetSerialBuffers();
+        mavlink_message_t reqMsg;
+        mavlink_msg_mission_request_int_pack(42, 200, &reqMsg, 1, testTargetComponent, seq, MAV_MISSION_TYPE_MISSION);
+        pushRxMessage(&reqMsg);
+        handleMavlinkUntilRxEmpty(1000);
+
+        mavlink_message_t itemMsg;
+        ASSERT_TRUE(findTxMessageById(MAVLINK_MSG_ID_MISSION_ITEM_INT, &itemMsg));
+        mavlink_mission_item_int_t item;
+        mavlink_msg_mission_item_int_decode(&itemMsg, &item);
+        EXPECT_EQ(item.seq, seq);
+        EXPECT_EQ(item.command, expectedCommands[seq]);
+        if (seq == 0) {
+            EXPECT_EQ(item.frame, MAV_FRAME_GLOBAL);
+        }
+        if (seq == 1) {
+            EXPECT_EQ(item.x, 375010000);
+        }
+        if (seq == 2) {
+            EXPECT_EQ(item.param1, 1.0f);
+        }
+    }
+}
+
 TEST(MavlinkTelemetryTest, MissionDownloadServesValidOutOfOrderRequests)
 {
     initMavlinkTestState();
