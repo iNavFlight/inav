@@ -14,12 +14,12 @@ static const float VEL_THRESH = 300.0f; // launch_velocity_thresh default, cm/s
 // Measured specific force: forward (x), vertical (z) components.
 static bool signature(float accelX, float accelZ, bool almostLevel = true,
                       float swingVelocity = 0, bool gpsHeading = false, float groundSpeed = 0,
-                      bool requireAccelExcess = true)
+                      bool requireAccelExcess = true, bool forwardAccelWasHigh = false)
 {
     const float normSq = accelX * accelX + accelZ * accelZ;
     return fwFlightTakeoffSignature(accelX, normSq, G, THRESH, almostLevel,
                                     swingVelocity, VEL_THRESH, gpsHeading, groundSpeed,
-                                    requireAccelExcess);
+                                    requireAccelExcess, forwardAccelWasHigh);
 }
 
 TEST(FwTakeoffSignature, StationaryLevelIsNotALaunch)
@@ -70,12 +70,16 @@ TEST(FwTakeoffSignature, SwingNeedsForwardAcceleration)
     EXPECT_FALSE(signature(0, G + 3000, false, VEL_THRESH + 50));
 }
 
-TEST(FwTakeoffSignature, ForwardLaunchNeedsGpsSpeedAndForwardAcceleration)
+TEST(FwTakeoffSignature, ForwardLaunchNeedsGpsSpeedAndARecentForwardAccelerationPeak)
 {
-    EXPECT_TRUE(signature(THRESH + 100, G, false, 0, true, VEL_THRESH + 50));
-    EXPECT_FALSE(signature(0, G + 3000, false, 0, true, VEL_THRESH + 50));
-    EXPECT_FALSE(signature(THRESH + 100, G, false, 0, false, VEL_THRESH + 50));
-    EXPECT_FALSE(signature(THRESH + 100, G, false, 0, true, VEL_THRESH));
+    // The throw's acceleration peak is over before GPS speed follows, so the
+    // peak is remembered (forwardAccelWasHigh) rather than read instantaneously.
+    EXPECT_TRUE(signature(0, G, false, 0, true, VEL_THRESH + 50, true, true));
+    // GPS speed alone (a glitch or phantom velocity while held still) is not a launch.
+    EXPECT_FALSE(signature(0, G, false, 0, true, VEL_THRESH + 50, true, false));
+    EXPECT_FALSE(signature(THRESH + 100, G, false, 0, true, VEL_THRESH + 50, true, false));
+    EXPECT_FALSE(signature(0, G, false, 0, false, VEL_THRESH + 50, true, true));
+    EXPECT_FALSE(signature(0, G, false, 0, true, VEL_THRESH, true, true));
 }
 
 TEST(FwTakeoffSignature, SmallForwardAccelerationBelowThresholdIsNotALaunch)
@@ -85,7 +89,7 @@ TEST(FwTakeoffSignature, SmallForwardAccelerationBelowThresholdIsNotALaunch)
 
 // The launch controller runs only after the pilot has committed to a launch,
 // so it does not require the magnitude excess over g that the always-running
-// background detector adds on the swing and forward-GPS paths.
+// background detector adds on the swing path.
 
 TEST(FwTakeoffSignature, ControllerSwingNeedsOnlyPositiveForwardAcceleration)
 {
@@ -93,10 +97,10 @@ TEST(FwTakeoffSignature, ControllerSwingNeedsOnlyPositiveForwardAcceleration)
     EXPECT_FALSE(signature(100, G, false, VEL_THRESH + 50, false, 0, true));
 }
 
-TEST(FwTakeoffSignature, ControllerForwardLaunchNeedsOnlyPositiveForwardAcceleration)
+TEST(FwTakeoffSignature, ControllerForwardLaunchNeedsARecentForwardAccelerationPeak)
 {
-    EXPECT_TRUE(signature(100, G, false, 0, true, VEL_THRESH + 50, false));
-    EXPECT_FALSE(signature(100, G, false, 0, true, VEL_THRESH + 50, true));
+    EXPECT_TRUE(signature(0, G, false, 0, true, VEL_THRESH + 50, false, true));
+    EXPECT_FALSE(signature(0, G, false, 0, true, VEL_THRESH + 50, false, false));
 }
 
 TEST(FwTakeoffSignature, ControllerStillRejectsNoForwardAcceleration)

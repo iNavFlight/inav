@@ -259,6 +259,16 @@ static const char * const hardwareSensorStatusNames[] = {
     "NONE", "OK", "UNAVAILABLE", "FAILING"
 };
 
+// Not a hardwareSensorStatus_e value: MSP and blackbox pack that enum into two bits
+static const char *hardwareSensorStatusName(hardwareSensorStatus_e status, bool isCalibrated)
+{
+    if (status == HW_SENSOR_OK && !isCalibrated) {
+        return "UNCALIBRATED";
+    }
+
+    return hardwareSensorStatusNames[status];
+}
+
 static const char * const *sensorHardwareNames[] = {
         gyroNames,
         table_acc_hardware,
@@ -4191,8 +4201,8 @@ static void cliStatus(char *cmdline)
 
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, PITOT=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
-        hardwareSensorStatusNames[getHwAccelerometerStatus()],
-        hardwareSensorStatusNames[getHwCompassStatus()],
+        hardwareSensorStatusName(getHwAccelerometerStatus(), STATE(ACCELEROMETER_CALIBRATED)),
+        hardwareSensorStatusName(getHwCompassStatus(), STATE(COMPASS_CALIBRATED)),
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
@@ -4310,6 +4320,11 @@ static void cliStatus(char *cmdline)
     }
 #endif
 
+#if defined(USE_GEOZONE)
+    if ((armingFlags & ARMING_DISABLED_GEOZONE) && geozoneIsConfigInvalid()) {
+        cliPrintErrorLinef("Geozone vertices do not match the zone definitions, no zone is active");
+    }
+#endif
 
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);

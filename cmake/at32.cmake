@@ -185,8 +185,9 @@ function(get_at32_flash_size out size)
 endfunction()
 
 function(add_hex_target name exe hex)
+    escape_env(escaped_path PATH)
     add_custom_target(${name} ALL
-        cmake -E env PATH="$ENV{PATH}"
+        cmake -E env PATH="${escaped_path}"
         # TODO: Overriding the start address with --set-start 0x08000000
         # seems to be required due to some incorrect assumptions about .hex
         # files in the configurator. Verify wether that's the case and fix
@@ -197,8 +198,9 @@ function(add_hex_target name exe hex)
 endfunction()
 
 function(add_bin_target name exe bin)
+    escape_env(escaped_path PATH)
     add_custom_target(${name}
-        cmake -E env PATH="$ENV{PATH}"
+        cmake -E env PATH="${escaped_path}"
         ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${exe}> ${bin}
         BYPRODUCTS ${bin}
     )
@@ -423,20 +425,14 @@ function(target_at32)
     endif()
 
     # clean_<target>
-    set(generator_cmd "")
-    if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-        set(generator_cmd "make")
-    elseif(CMAKE_GENERATOR STREQUAL "Ninja")
-        set(generator_cmd "ninja")
+    set(clean_executables ${main_target_name})
+    set(clean_files ${main_hex_filename} ${main_bin_filename})
+    if(args_BOOTLOADER)
+        list(APPEND clean_executables ${bl_target_name} ${for_bl_target_name})
+        list(APPEND clean_files
+            ${bl_hex_filename} ${bl_bin_filename}
+            ${for_bl_hex_filename} ${for_bl_bin_filename}
+            ${combined_hex})
     endif()
-    if (NOT generator_cmd STREQUAL "")
-        set(clean_target "clean_${name}")
-        add_custom_target(${clean_target}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND ${generator_cmd} clean
-            COMMENT "Removing intermediate files for ${name}")
-        set_property(TARGET ${clean_target} PROPERTY
-            EXCLUDE_FROM_ALL 1
-            EXCLUDE_FROM_DEFAULT_BUILD 1)
-    endif()
+    add_clean_target(${name} EXECUTABLES ${clean_executables} FILES ${clean_files})
 endfunction()
