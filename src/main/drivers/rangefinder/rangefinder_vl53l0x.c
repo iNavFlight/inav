@@ -220,9 +220,11 @@ typedef enum {
 } vcselPeriodType_e;
 
 typedef enum {
-    MEASUREMENT_START,
-    MEASUREMENT_WAIT,
-    MEASUREMENT_READ,
+    MEASUREMENT_START,          // write the start sequence, one register per call
+    MEASUREMENT_WAIT,           // wait for SYSRANGE_START to clear
+    MEASUREMENT_READ_STATUS,    // wait for the interrupt status to report a result
+    MEASUREMENT_READ_RESULT,    // fetch the range
+    MEASUREMENT_CLEAR,          // clear the interrupt
 } measurementSteps_e;
 
 typedef struct {
@@ -1019,113 +1021,134 @@ static void vl53l0x_Init(rangefinderDev_t * rangefinder)
     isInitialized = true;
 }
 
-void vl53l0x_Update(rangefinderDev_t * rangefinder)
+// Register writes that start a single measurement, issued one per call. Entry 3 carries the stop variable.
+static const struct {
+    uint8_t reg;
+    uint8_t value;
+} vl53l0xStartSequence[] = {
+    { 0x80, 0x01 },
+    { 0xFF, 0x01 },
+    { 0x00, 0x00 },
+    { 0x91, 0x00 },     // stopVariable
+    { 0x00, 0x01 },
+    { 0xFF, 0x00 },
+    { 0x80, 0x00 },
+    { VL53L0X_REG_SYSRANGE_START, 0x01 },
+};
+#define VL53L0X_START_SEQUENCE_STOP_VARIABLE_INDEX  3
+
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t vl53l0xRegByte;
+static uint8_t vl53l0xResult[2];
+
+timeDelta_t vl53l0x_Update(rangefinderDev_t * rangefinder)
 {
+    static bool transferPending = false;    // a non-blocking transfer of the current step is on the bus
+    static bool stepIssued = false;         // the current step started its transfer, the next call evaluates it
+    static uint8_t startIndex = 0;
+    busDevice_t * busDev = rangefinder->busDev;
+    bool busError = false;
+
     if (!isInitialized) {
-        return;
+        return 0;
     }
 
-#if 1   // SINGLE MEASUREMENT MODE
+    if (transferPending) {
+        if (busIsBusy(busDev, &busError) && !busError) {
+            return RANGEFINDER_UPDATE_RETRY_US;
+        }
+        transferPending = false;
+        isResponding = !busError;
+        if (busError) {
+            measSteps = MEASUREMENT_START;
+            startIndex = 0;
+            stepIssued = false;
+            return 0;
+        }
+    }
+
+    // SINGLE MEASUREMENT MODE
     switch (measSteps) {
         case MEASUREMENT_START:
-            // Initiate new measurement
-            writeReg(rangefinder->busDev, 0x80, 0x01);
-            writeReg(rangefinder->busDev, 0xFF, 0x01);
-            writeReg(rangefinder->busDev, 0x00, 0x00);
-            writeReg(rangefinder->busDev, 0x91, stopVariable);
-            writeReg(rangefinder->busDev, 0x00, 0x01);
-            writeReg(rangefinder->busDev, 0xFF, 0x00);
-            writeReg(rangefinder->busDev, 0x80, 0x00);
-            writeReg(rangefinder->busDev, VL53L0X_REG_SYSRANGE_START, 0x01);
-
+            // Initiate new measurement, one register write per call
+            if (startIndex < ARRAYLEN(vl53l0xStartSequence)) {
+                const uint8_t value = (startIndex == VL53L0X_START_SEQUENCE_STOP_VARIABLE_INDEX) ? stopVariable : vl53l0xStartSequence[startIndex].value;
+                if (busWriteStart(busDev, vl53l0xStartSequence[startIndex].reg, value)) {
+                    startIndex++;
+                    transferPending = true;
+                }
+                return RANGEFINDER_UPDATE_RETRY_US;
+            }
+            startIndex = 0;
             startTimeout();
             measSteps = MEASUREMENT_WAIT;
-            break;
+            FALLTHROUGH;
 
         case MEASUREMENT_WAIT:
-            // Wait for data and read the measurement
-            if (readReg(rangefinder->busDev, VL53L0X_REG_SYSRANGE_START) & 0x01) {
+            // Wait for the measurement to start
+            if (!stepIssued) {
+                transferPending = busReadBufStart(busDev, VL53L0X_REG_SYSRANGE_START, &vl53l0xRegByte, 1);
+                stepIssued = transferPending;
+                return RANGEFINDER_UPDATE_RETRY_US;
+            }
+            stepIssued = false;
+            if (vl53l0xRegByte & 0x01) {
                 if (checkTimeoutExpired()) {
                     lastMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
                     measSteps = MEASUREMENT_START;
                 }
+                return 0;                   // poll again on the next regular cycle
             }
-            else {
-                startTimeout();
-                measSteps = MEASUREMENT_READ;
-            }
-            break;
+            startTimeout();
+            measSteps = MEASUREMENT_READ_STATUS;
+            FALLTHROUGH;
 
-        case MEASUREMENT_READ:
-            if ((readReg(rangefinder->busDev, VL53L0X_REG_RESULT_INTERRUPT_STATUS) & 0x07) == 0) {
+        case MEASUREMENT_READ_STATUS:
+            // Wait for data
+            if (!stepIssued) {
+                transferPending = busReadBufStart(busDev, VL53L0X_REG_RESULT_INTERRUPT_STATUS, &vl53l0xRegByte, 1);
+                stepIssued = transferPending;
+                return RANGEFINDER_UPDATE_RETRY_US;
+            }
+            stepIssued = false;
+            if ((vl53l0xRegByte & 0x07) == 0) {
                 if (checkTimeoutExpired()) {
                     lastMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
                     measSteps = MEASUREMENT_START;
                 }
+                return 0;                   // poll again on the next regular cycle
             }
-            else {
+            measSteps = MEASUREMENT_READ_RESULT;
+            FALLTHROUGH;
+
+        case MEASUREMENT_READ_RESULT:
+            if (!stepIssued) {
+                transferPending = busReadBufStart(busDev, VL53L0X_REG_RESULT_RANGE_STATUS + 10, vl53l0xResult, sizeof(vl53l0xResult));
+                stepIssued = transferPending;
+                return RANGEFINDER_UPDATE_RETRY_US;
+            }
+            stepIssued = false;
+            {
                 // assumptions: Linearity Corrective Gain is 1000 (default);
-                uint16_t raw = readReg16(rangefinder->busDev, VL53L0X_REG_RESULT_RANGE_STATUS + 10);
-                writeReg(rangefinder->busDev, VL53L0X_REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
-
+                const uint16_t raw = ((uint16_t)vl53l0xResult[0] << 8) | vl53l0xResult[1];
                 lastMeasurementCm = raw / 10;
                 lastMeasurementIsNew = true;
-                measSteps = MEASUREMENT_START;
             }
-            break;
+            measSteps = MEASUREMENT_CLEAR;
+            FALLTHROUGH;
+
+        case MEASUREMENT_CLEAR:
+            if (!stepIssued) {
+                transferPending = busWriteStart(busDev, VL53L0X_REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
+                stepIssued = transferPending;
+                return RANGEFINDER_UPDATE_RETRY_US;
+            }
+            stepIssued = false;
+            measSteps = MEASUREMENT_START;
+            return 0;
     }
-#else   // CONTINUOUS MEASUREMENT MODE
-    switch (measSteps) {
-        case MEASUREMENT_START:
-            // Initiate new measurement
-            writeReg(rangefinder->busDev, 0x80, 0x01);
-            writeReg(rangefinder->busDev, 0xFF, 0x01);
-            writeReg(rangefinder->busDev, 0x00, 0x00);
-            writeReg(rangefinder->busDev, 0x91, stopVariable);
-            writeReg(rangefinder->busDev, 0x00, 0x01);
-            writeReg(rangefinder->busDev, 0xFF, 0x00);
-            writeReg(rangefinder->busDev, 0x80, 0x00);
 
-            uint16_t osc_calibrate_val = readReg16(VL53L0X_REG_OSC_CALIBRATE_VAL);
-
-            if (osc_calibrate_val != 0) {
-                writeReg32(rangefinder->busDev, VL53L0X_REG_SYSTEM_INTERMEASUREMENT_PERIOD, 50 * osc_calibrate_val);
-            }
-            else {
-                writeReg32(rangefinder->busDev, VL53L0X_REG_SYSTEM_INTERMEASUREMENT_PERIOD, 50);
-            }
-
-            writeReg(rangefinder->busDev, VL53L0X_REG_SYSRANGE_START, 0x02); // VL53L0X_REG_SYSRANGE_MODE_BACKTOBACK
-
-            startTimeout();
-            measSteps = MEASUREMENT_READ;
-            break;
-
-        case MEASUREMENT_READ:
-        default:
-            if ((readReg(rangefinder->busDev, VL53L0X_REG_RESULT_INTERRUPT_STATUS) & 0x07) == 0) {
-                if (checkTimeoutExpired()) {
-                    lastMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
-
-                    // Restart timeout
-                    startTimeout();
-                    measSteps = MEASUREMENT_READ;
-                }
-            }
-            else {
-                // assumptions: Linearity Corrective Gain is 1000 (default);
-                uint16_t raw = readReg16(rangefinder->busDev, VL53L0X_REG_RESULT_RANGE_STATUS + 10);
-                writeReg(rangefinder->busDev, VL53L0X_REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
-
-                lastMeasurementCm = raw / 10;
-
-                // Restart timeout
-                startTimeout();
-                measSteps = MEASUREMENT_READ;
-            }
-            break;
-    }
-#endif
+    return 0;
 }
 
 int32_t vl53l0x_GetDistance(rangefinderDev_t *dev)

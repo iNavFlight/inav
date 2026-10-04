@@ -104,33 +104,76 @@ static void srf10_init(rangefinderDev_t * rangefinder)
  * Start a range reading
  * Called periodically by the scheduler
  */
-static void srf10_start_reading(rangefinderDev_t * rangefinder)
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t srf10Revision;
+static uint8_t srf10RangeHigh;
+static uint8_t srf10RangeLow;
+
+typedef enum {
+    SRF10_STEP_REVISION = 0,    // the revision register reads 0xFF while a ranging is in progress
+    SRF10_STEP_RANGE_HIGH,
+    SRF10_STEP_RANGE_LOW,
+    SRF10_STEP_FIRE,            // start the next ranging
+} srf10Step_e;
+
+static timeDelta_t srf10_start_reading(rangefinderDev_t * rangefinder)
 {
-    uint8_t revision;
+    static srf10Step_e step = SRF10_STEP_REVISION;
+    static bool transferPending = false;
+    bool busError = false;
 
-    // check if there is a measurement outstanding, 0xFF is returned if no measurement
-    isSensorResponding = busRead(rangefinder->busDev, SRF10_READ_SoftwareRevision, &revision);
+    if (transferPending) {
+        if (busIsBusy(rangefinder->busDev, &busError) && !busError) {
+            return RANGEFINDER_UPDATE_RETRY_US;
+        }
+        transferPending = false;
+        isSensorResponding = !busError;
 
-    if (isSensorResponding && revision != 0xFF) {
-        // there is a measurement
-        uint8_t lowByte, highByte;
+        if (busError) {
+            step = SRF10_STEP_REVISION;
+            return 0;
+        }
 
-        isSensorResponding = busRead(rangefinder->busDev, SRF10_READ_RangeLowByte, &lowByte);
-        isSensorResponding = busRead(rangefinder->busDev, SRF10_READ_RangeHighByte, &highByte);
-
-        srf10measurementCm =  highByte << 8 | lowByte;
-
-        if (srf10measurementCm > SRF10_MAX_RANGE_CM) {
-            srf10measurementCm = RANGEFINDER_OUT_OF_RANGE;
+        switch (step) {
+            case SRF10_STEP_REVISION:
+                step = (srf10Revision != 0xFF) ? SRF10_STEP_RANGE_HIGH : SRF10_STEP_FIRE;
+                break;
+            case SRF10_STEP_RANGE_HIGH:
+                step = SRF10_STEP_RANGE_LOW;
+                break;
+            case SRF10_STEP_RANGE_LOW:
+                srf10measurementCm = srf10RangeHigh << 8 | srf10RangeLow;
+                if (srf10measurementCm > SRF10_MAX_RANGE_CM) {
+                    srf10measurementCm = RANGEFINDER_OUT_OF_RANGE;
+                }
+                step = SRF10_STEP_FIRE;
+                break;
+            default:
+                step = SRF10_STEP_REVISION;
+                return 0;                   // cycle complete, next one after the regular period
         }
     }
 
-    const timeMs_t timeNowMs = millis();
-    if (timeNowMs > timeOfLastMeasurementMs + minimumFiringIntervalMs) {
-        // measurement repeat interval should be greater than minimumFiringIntervalMs
-        // to avoid interference between connective measurements.
-        timeOfLastMeasurementMs = timeNowMs;
-        busWrite(rangefinder->busDev, SRF10_WRITE_CommandRegister, SRF10_COMMAND_InitiateRangingCm);
+    switch (step) {
+        case SRF10_STEP_REVISION:
+            transferPending = busReadBufStart(rangefinder->busDev, SRF10_READ_SoftwareRevision, &srf10Revision, 1);
+            return RANGEFINDER_UPDATE_RETRY_US;
+        case SRF10_STEP_RANGE_HIGH:
+            transferPending = busReadBufStart(rangefinder->busDev, SRF10_READ_RangeHighByte, &srf10RangeHigh, 1);
+            return RANGEFINDER_UPDATE_RETRY_US;
+        case SRF10_STEP_RANGE_LOW:
+            transferPending = busReadBufStart(rangefinder->busDev, SRF10_READ_RangeLowByte, &srf10RangeLow, 1);
+            return RANGEFINDER_UPDATE_RETRY_US;
+        default: {
+            const timeMs_t timeNowMs = millis();
+            if (timeNowMs > timeOfLastMeasurementMs + minimumFiringIntervalMs) {
+                timeOfLastMeasurementMs = timeNowMs;
+                transferPending = busWriteStart(rangefinder->busDev, SRF10_WRITE_CommandRegister, SRF10_COMMAND_InitiateRangingCm);
+                return RANGEFINDER_UPDATE_RETRY_US;
+            }
+            step = SRF10_STEP_REVISION;
+            return 0;
+        }
     }
 }
 

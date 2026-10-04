@@ -71,6 +71,11 @@ static void triggerNewReading(rangefinderDev_t *rangefinder){
     busWrite(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, 0x00); //request to next measure, scheduler is much slower than 500uS to we need to wait between write and read
 }
 
+typedef enum {
+    TERA_STEP_READ = 0,     // fetch the last measurement
+    TERA_STEP_TRIGGER,      // request the next one
+} teraStep_e;
+
 static void teraRangerInit(rangefinderDev_t *rangefinder){
     triggerNewReading(rangefinder);
 }
@@ -94,27 +99,50 @@ static bool checkCrc(void){
     return teraRangerEvo.dataBuff[2] == crc8_update(0, teraRangerEvo.dataBuff, 2);
 }
 
-void teraRangerUpdate(rangefinderDev_t *rangefinder){
-    if (busReadBuf(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, teraRangerEvo.dataBuff, 3)) {
-        if (!checkCrc()) {
+timeDelta_t teraRangerUpdate(rangefinderDev_t *rangefinder){
+    static teraStep_e step = TERA_STEP_READ;
+    static bool transferPending = false;
+    bool busError = false;
+
+    if (transferPending) {
+        if (busIsBusy(rangefinder->busDev, &busError) && !busError) {
+            return RANGEFINDER_UPDATE_RETRY_US;
+        }
+        transferPending = false;
+
+        if (step == TERA_STEP_TRIGGER) {
+            step = TERA_STEP_READ;
+            return 0;                       // cycle complete, next one after the regular period
+        }
+
+        // the measurement is in teraRangerEvo.dataBuff
+        if (busError) {
+            teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_HARDWARE_FAILURE;
+        } else if (!checkCrc()) {
             teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_NO_NEW_DATA;
-            triggerNewReading(rangefinder);
-            return;
+        } else {
+            const int32_t teraRangerMeasurementMM = ((int32_t)teraRangerEvo.dataBuff[0] << 8 | (int32_t)teraRangerEvo.dataBuff[1]);
+            if (teraRangerMeasurementMM == TERARANGER_EVO_VALUE_TOO_CLOSE || teraRangerMeasurementMM == TERARANGER_EVO_VALUE_OUT_OF_RANGE) {
+                teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
+            } else {
+                teraRangerEvo.teraRangerMeasurementCm = MILLIMETERS_TO_CENTIMETERS(teraRangerMeasurementMM);
+            }
         }
-
-        const int32_t teraRangerMeasurementMM = ((int32_t)teraRangerEvo.dataBuff[0] << 8 | (int32_t)teraRangerEvo.dataBuff[1]);
-        if (teraRangerMeasurementMM == TERARANGER_EVO_VALUE_TOO_CLOSE || teraRangerMeasurementMM == TERARANGER_EVO_VALUE_OUT_OF_RANGE) {
-            teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
-            triggerNewReading(rangefinder);
-            return;
-        }
-
-        teraRangerEvo.teraRangerMeasurementCm = MILLIMETERS_TO_CENTIMETERS(teraRangerMeasurementMM);
-    } else {
-        teraRangerEvo.teraRangerMeasurementCm = RANGEFINDER_HARDWARE_FAILURE;
+        step = TERA_STEP_TRIGGER;
     }
 
-    triggerNewReading(rangefinder);
+    if (step == TERA_STEP_READ) {
+        if (busReadBufStart(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, teraRangerEvo.dataBuff, sizeof(teraRangerEvo.dataBuff))) {
+            transferPending = true;
+        }
+        return RANGEFINDER_UPDATE_RETRY_US;
+    }
+
+    // request the next measurement, it is read on the next regular cycle
+    if (busWriteStart(rangefinder->busDev, TERARANGER_EVO_I2C_REGISTRY_TRIGGER_READING, 0x00)) {
+        transferPending = true;
+    }
+    return RANGEFINDER_UPDATE_RETRY_US;
 }
 
 

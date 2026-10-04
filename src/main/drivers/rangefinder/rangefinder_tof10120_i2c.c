@@ -49,25 +49,40 @@ static void tof10120i2cInit(rangefinderDev_t *rangefinder)
     delay(100);
 }
 
-void tof10120i2cUpdate(rangefinderDev_t *rangefinder)
+// Target of the non-blocking read, filled by the bus driver in the background
+static uint8_t tof10120Frame[2];
+static bool tof10120TransferPending = false;
+
+timeDelta_t tof10120i2cUpdate(rangefinderDev_t *rangefinder)
 {
-    uint8_t buffer[2];
-    uint16_t distance_mm;
+    bool busError = false;
 
-    isTof10120Responding = busReadBuf(rangefinder->busDev, TOF10120_I2C_REGISTRY_RT_DISTANCE, buffer, sizeof(buffer));
-
-    if (!isTof10120Responding) {
-        return;
+    if (!tof10120TransferPending) {
+        if (busReadBufStart(rangefinder->busDev, TOF10120_I2C_REGISTRY_RT_DISTANCE, tof10120Frame, sizeof(tof10120Frame))) {
+            tof10120TransferPending = true;
+        }
+        return RANGEFINDER_UPDATE_RETRY_US;     // wait for the transfer, or for the bus to free up
     }
 
-    distance_mm = (buffer[0] << 8) | buffer[1];
+    if (busIsBusy(rangefinder->busDev, &busError) && !busError) {
+        return RANGEFINDER_UPDATE_RETRY_US;
+    }
+    tof10120TransferPending = false;
+
+    isTof10120Responding = !busError;
+    if (!isTof10120Responding) {
+        return 0;
+    }
+
+    const uint16_t distance_mm = (tof10120Frame[0] << 8) | tof10120Frame[1];
 
     if (distance_mm >= TOF10120_I2C_MAX_RANGE_MM) {
         tof10120MeasurementCm = RANGEFINDER_OUT_OF_RANGE;
-        return;
+        return 0;
     }
 
     tof10120MeasurementCm = (int32_t)roundf(distance_mm / 10);
+    return 0;
 }
 
 /**

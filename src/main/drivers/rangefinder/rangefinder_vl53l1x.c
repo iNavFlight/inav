@@ -723,6 +723,7 @@ static int32_t lastMeasurementCm = RANGEFINDER_OUT_OF_RANGE;
 static bool lastMeasurementIsNew = false;
 static bool isInitialized = false;
 static bool isResponding = true;
+static uint8_t interruptPolarity = 1;   // read once at init, decides which GPIO__TIO_HV_STATUS level means data ready
 
 #define _I2CWrite(dev, data, size) \
     (busWriteBuf(dev, 0xFF, data, size) ? 0 : -1)
@@ -1613,26 +1614,110 @@ static void vl53l1x_Init(rangefinderDev_t * rangefinder)
         VL53L1X_SetTimingBudgetInMs(rangefinder->busDev, 33); /* in ms possible values [20, 50, 100, 200, 500] */
         VL53L1X_SetInterMeasurementInMs(rangefinder->busDev, RANGEFINDER_VL53L1X_TASK_PERIOD_MS); /* in ms, IM must be > = TB */
         status = VL53L1X_StartRanging(rangefinder->busDev);
+        VL53L1X_GetInterruptPolarity(rangefinder->busDev, &interruptPolarity);
     }
     isInitialized = (status == VL53L1_ERROR_NONE);
 }
 
-void vl53l1x_Update(rangefinderDev_t * rangefinder)
+/*
+ * Non-blocking measurement cycle. Every register access of this sensor is a raw write of the 16 bit index
+ * followed by a raw read, so a step is either "send index" or "read data" / "write register".
+ */
+typedef enum {
+    VL53L1X_STEP_STATUS_INDEX = 0,  // send the index of GPIO__TIO_HV_STATUS
+    VL53L1X_STEP_STATUS_READ,       // read it, data ready when the level matches the interrupt polarity
+    VL53L1X_STEP_RESULT_INDEX,      // send the index of the range result
+    VL53L1X_STEP_RESULT_READ,       // read the range
+    VL53L1X_STEP_CLEAR,             // clear the interrupt, finishes while the task waits for the next cycle
+} vl53l1xStep_e;
+
+// Buffers of the non-blocking transfers, they must outlive the call
+static uint8_t vl53l1xIndex[2];
+static uint8_t vl53l1xRx[2];
+static const uint8_t vl53l1xClearInterrupt[3] = { SYSTEM__INTERRUPT_CLEAR >> 8, SYSTEM__INTERRUPT_CLEAR & 0xFF, 0x01 };
+
+static bool vl53l1xSendIndex(busDevice_t * busDev, uint16_t index)
 {
-    uint16_t Distance;
-    uint8_t dataReady;
+    vl53l1xIndex[0] = index >> 8;
+    vl53l1xIndex[1] = index & 0xFF;
+    return busWriteBufStart(busDev, 0xFF, vl53l1xIndex, sizeof(vl53l1xIndex));
+}
+
+timeDelta_t vl53l1x_Update(rangefinderDev_t * rangefinder)
+{
+    static vl53l1xStep_e step = VL53L1X_STEP_STATUS_INDEX;
+    static bool transferPending = false;    // a non-blocking transfer of the current step is on the bus
+    static bool stepIssued = false;         // the current step started its transfer, the next call evaluates it
+    busDevice_t * busDev = rangefinder->busDev;
+    bool busError = false;
 
     if (!isInitialized) {
-        return;
+        return 0;
     }
 
-    VL53L1X_CheckForDataReady(rangefinder->busDev, &dataReady);
-    if (dataReady != 0) {
-        VL53L1X_GetDistance(rangefinder->busDev, &Distance);
-        lastMeasurementCm = Distance / 10;
-        lastMeasurementIsNew = true;
+    if (transferPending) {
+        if (busIsBusy(busDev, &busError) && !busError) {
+            return RANGEFINDER_UPDATE_RETRY_US;
+        }
+        transferPending = false;
+        isResponding = !busError;
+        if (busError) {
+            step = VL53L1X_STEP_STATUS_INDEX;
+            stepIssued = false;
+            return 0;
+        }
     }
-    VL53L1X_ClearInterrupt(rangefinder->busDev);
+
+    switch (step) {
+        case VL53L1X_STEP_STATUS_INDEX:
+            transferPending = vl53l1xSendIndex(busDev, GPIO__TIO_HV_STATUS);
+            if (transferPending) {
+                step = VL53L1X_STEP_STATUS_READ;
+            }
+            return RANGEFINDER_UPDATE_RETRY_US;
+
+        case VL53L1X_STEP_STATUS_READ:
+            if (!stepIssued) {
+                transferPending = busReadBufStart(busDev, 0xFF, vl53l1xRx, 1);
+                stepIssued = transferPending;
+                return RANGEFINDER_UPDATE_RETRY_US;
+            }
+            stepIssued = false;
+            if ((vl53l1xRx[0] & 1) == interruptPolarity) {
+                step = VL53L1X_STEP_RESULT_INDEX;
+            } else {
+                step = VL53L1X_STEP_CLEAR;      // no new data this cycle, the interrupt is still cleared as before
+            }
+            return RANGEFINDER_UPDATE_RETRY_US;
+
+        case VL53L1X_STEP_RESULT_INDEX:
+            transferPending = vl53l1xSendIndex(busDev, VL53L1_RESULT__FINAL_CROSSTALK_CORRECTED_RANGE_MM_SD0);
+            if (transferPending) {
+                step = VL53L1X_STEP_RESULT_READ;
+            }
+            return RANGEFINDER_UPDATE_RETRY_US;
+
+        case VL53L1X_STEP_RESULT_READ:
+            if (!stepIssued) {
+                transferPending = busReadBufStart(busDev, 0xFF, vl53l1xRx, 2);
+                stepIssued = transferPending;
+                return RANGEFINDER_UPDATE_RETRY_US;
+            }
+            stepIssued = false;
+            {
+                const uint16_t distanceMm = ((uint16_t)vl53l1xRx[0] << 8) | vl53l1xRx[1];
+                lastMeasurementCm = distanceMm / 10;
+                lastMeasurementIsNew = true;
+            }
+            step = VL53L1X_STEP_CLEAR;
+            FALLTHROUGH;
+
+        default:
+            // The clear write completes while the task waits for the next regular cycle
+            transferPending = busWriteBufStart(busDev, 0xFF, vl53l1xClearInterrupt, sizeof(vl53l1xClearInterrupt));
+            step = VL53L1X_STEP_STATUS_INDEX;
+            return transferPending ? 0 : RANGEFINDER_UPDATE_RETRY_US;
+    }
 }
 
 int32_t vl53l1x_GetDistance(rangefinderDev_t *dev)

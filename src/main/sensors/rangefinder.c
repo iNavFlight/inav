@@ -227,11 +227,14 @@ static int32_t applyMedianFilter(int32_t newReading)
  */
 timeDelta_t rangefinderUpdate(void)
 {
+    timeDelta_t nextCallUs = 0;
+
     if (rangefinder.dev.update) {
-        rangefinder.dev.update(&rangefinder.dev);
+        // A driver with a non-blocking transfer on the bus asks to be called again shortly
+        nextCallUs = rangefinder.dev.update(&rangefinder.dev);
     }
 
-    return MS2US(rangefinder.dev.delayMs);
+    return (nextCallUs > 0) ? nextCallUs : (timeDelta_t)MS2US(rangefinder.dev.delayMs);
 }
 
 /**

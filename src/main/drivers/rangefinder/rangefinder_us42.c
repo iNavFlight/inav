@@ -56,29 +56,63 @@ static void us42Init(rangefinderDev_t *rangefinder)
     busWriteBuf(rangefinder->busDev, US42_I2C_REGISTRY_PROBE, nullProbeCommandValue, 0);
 }
 
-void us42Update(rangefinderDev_t *rangefinder)
+// Target of the non-blocking read, filled by the bus driver in the background
+static uint8_t us42Frame[2];
+
+typedef enum {
+    US42_STEP_READ = 0,     // fetch the last measurement
+    US42_STEP_PROBE,        // ask for the next one
+} us42Step_e;
+
+timeDelta_t us42Update(rangefinderDev_t *rangefinder)
 {
-    uint8_t data[2];
-    isUs42Responding = busReadBuf(rangefinder->busDev, US42_I2C_REGISTRY_PROBE, data, 2);
+    static us42Step_e step = US42_STEP_READ;
+    static bool transferPending = false;
+    bool busError = false;
 
-    if (isUs42Responding) {
-        us42MeasurementCm = (int32_t)data[0] << 8 | (int32_t)data[1];
+    if (transferPending) {
+        if (busIsBusy(rangefinder->busDev, &busError) && !busError) {
+            return RANGEFINDER_UPDATE_RETRY_US;
+        }
+        transferPending = false;
 
-        if (us42MeasurementCm > US42_MAX_RANGE_CM) {
-             us42MeasurementCm = RANGEFINDER_OUT_OF_RANGE;
-        }    
+        if (step == US42_STEP_READ) {
+            isUs42Responding = !busError;
+            if (isUs42Responding) {
+                us42MeasurementCm = (int32_t)us42Frame[0] << 8 | (int32_t)us42Frame[1];
+                if (us42MeasurementCm > US42_MAX_RANGE_CM) {
+                    us42MeasurementCm = RANGEFINDER_OUT_OF_RANGE;
+                }
+            } else {
+                us42MeasurementCm = RANGEFINDER_HARDWARE_FAILURE;
+            }
+            step = US42_STEP_PROBE;
+        }
+        else {
+            step = US42_STEP_READ;
+            return 0;                       // cycle complete, next one after the regular period
+        }
+    }
 
-    } else {
-        us42MeasurementCm = RANGEFINDER_HARDWARE_FAILURE;
-    }    
+    if (step == US42_STEP_READ) {
+        if (busReadBufStart(rangefinder->busDev, US42_I2C_REGISTRY_PROBE, us42Frame, sizeof(us42Frame))) {
+            transferPending = true;
+        }
+        return RANGEFINDER_UPDATE_RETRY_US;
+    }
 
     const timeMs_t timeNowMs = millis();
     if (timeNowMs > timeOfLastMeasurementMs + minimumReadingIntervalMs) {
-        // measurement repeat interval should be greater than minimumReadingIntervalMs
-        // to avoid interference between connective measurements.
         timeOfLastMeasurementMs = timeNowMs;
-        busWriteBuf(rangefinder->busDev, US42_I2C_REGISTRY_PROBE, nullProbeCommandValue, 0);
+        // The probe command is the register byte alone
+        if (busWriteBufStart(rangefinder->busDev, US42_I2C_REGISTRY_PROBE, nullProbeCommandValue, 0)) {
+            transferPending = true;
+        }
+        return RANGEFINDER_UPDATE_RETRY_US;
     }
+
+    step = US42_STEP_READ;
+    return 0;
 }
 
 /**

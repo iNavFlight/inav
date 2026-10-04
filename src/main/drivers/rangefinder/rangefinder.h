@@ -27,8 +27,12 @@
 
 struct rangefinderDev_s;
 
+// Delay before a driver looks at a pending non-blocking bus transfer again
+#define RANGEFINDER_UPDATE_RETRY_US     1000
+
 typedef void (*rangefinderOpInitFuncPtr)(struct rangefinderDev_s * dev);
-typedef void (*rangefinderOpStartFuncPtr)(struct rangefinderDev_s * dev);
+// Returns the delay until the next update() call in microseconds, 0 = the regular delayMs period
+typedef timeDelta_t (*rangefinderOpStartFuncPtr)(struct rangefinderDev_s * dev);
 typedef int32_t (*rangefinderOpReadFuncPtr)(struct rangefinderDev_s * dev);
 
 typedef struct rangefinderDev_s {

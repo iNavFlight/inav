@@ -46,10 +46,11 @@ static void virtualRangefinderInit(rangefinderDev_t * dev)
     return highLevelDeviceVTable->init();
 }
 
-static void virtualRangefinderUpdate(rangefinderDev_t * dev)
+static timeDelta_t virtualRangefinderUpdate(rangefinderDev_t * dev)
 {
     UNUSED(dev);
-    return highLevelDeviceVTable->update();
+    highLevelDeviceVTable->update();
+    return 0;
 }
 
 static int32_t virtualRangefinderGetDistance(rangefinderDev_t * dev)
