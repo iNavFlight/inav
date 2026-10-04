@@ -326,48 +326,55 @@ static bool deviceCalculate(baroDev_t *baro, int32_t *pressure, int32_t *tempera
 
 
 #define DETECTION_MAX_RETRY_COUNT   5
+#define DPS310_ADDRESS_COUNT        2
+
 static bool deviceDetect(busDevice_t * busDev)
 {
-    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
-        delay(100);
+    bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
 
-        bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
-        if (!ack) {
-            // A failed transfer may be a bus glitch the I2C driver has just recovered from
-            ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
-        }
-
-        // Still no answer: nothing on this address, so the 100 ms retries would only delay the boot
-        if (!ack) {
-            return false;
-        }
-
-        if (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID) {
-            return true;
-        }
-    };
-
-    return false;
+    return ack && (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID);
 }
 
 bool baroDPS310Detect(baroDev_t *baro)
 {
-    bool detected = false;
+    busDevice_t * candidates[DPS310_ADDRESS_COUNT];
+    int candidateCount = 0;
 
-    for (uint8_t index = 0; index < 2 && !detected; index++) {
-        baro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_DPS310_0 + index, 0, OWNER_BARO);
-        if (baro->busDev == NULL) {
-            continue;
-        }
-
-        if (deviceDetect(baro->busDev) && deviceConfigure(baro->busDev)) {
-            detected = true;
-        } else {
-            busDeviceDeInit(baro->busDev);
+    for (int index = 0; index < DPS310_ADDRESS_COUNT; index++) {
+        candidates[index] = busDeviceInit(BUSTYPE_ANY, DEVHW_DPS310_0 + index, 0, OWNER_BARO);
+        if (candidates[index]) {
+            candidateCount++;
         }
     }
 
-    if (!detected) {
+    baro->busDev = NULL;
+
+    // Both addresses share one retry window: a late chip keeps the full window and 0x77 adds no boot delay
+    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT && candidateCount > 0 && !baro->busDev; retry++) {
+        delay(100);
+
+        for (int index = 0; index < DPS310_ADDRESS_COUNT && !baro->busDev; index++) {
+            if (!candidates[index] || !deviceDetect(candidates[index])) {
+                continue;
+            }
+
+            if (deviceConfigure(candidates[index])) {
+                baro->busDev = candidates[index];
+            } else {
+                busDeviceDeInit(candidates[index]);
+                candidates[index] = NULL;
+                candidateCount--;
+            }
+        }
+    }
+
+    for (int index = 0; index < DPS310_ADDRESS_COUNT; index++) {
+        if (candidates[index] && candidates[index] != baro->busDev) {
+            busDeviceDeInit(candidates[index]);
+        }
+    }
+
+    if (!baro->busDev) {
         return false;
     }
 
