@@ -164,12 +164,14 @@ static uint8_t sensor_data[BMP388_DATA_FRAME_SIZE+1];
 
 static int64_t t_lin = 0;
 
-static bool bmp388StartUT(baroDev_t *baro);
-static bool bmp388GetUT(baroDev_t *baro);
 static bool bmp388StartUP(baroDev_t *baro);
+static bool bmp388ReadUP(baroDev_t *baro);
 static bool bmp388GetUP(baroDev_t *baro);
 
 static bool bmp388Calculate(baroDev_t *baro, int32_t *pressure, int32_t *temperature);
+
+// PWR_CTRL: pressure and temperature enabled, forced mode
+#define BMP388_PWR_CTRL_FORCED_MEASUREMENT  (BMP388_MODE_FORCED << 4 | 1 << 1 | 1 << 0)
 
 static bool bmp388BeginForcedMeasurement(busDevice_t *busdev)
 {
@@ -178,35 +180,27 @@ static bool bmp388BeginForcedMeasurement(busDevice_t *busdev)
     return busWrite(busdev, BMP388_PWR_CTRL_REG, mode);
 }
 
-static bool bmp388StartUT(baroDev_t *baro)
-{
-    UNUSED(baro);
-    // dummy
-    return true;
-}
-
-static bool bmp388GetUT(baroDev_t *baro)
-{
-    UNUSED(baro);
-    // dummy
-    return true;
-}
-
 static bool bmp388StartUP(baroDev_t *baro)
 {
     // start measurement
-    return bmp388BeginForcedMeasurement(baro->busDev);
+    return busWriteStart(baro->busDev, BMP388_PWR_CTRL_REG, BMP388_PWR_CTRL_FORCED_MEASUREMENT);
+}
+
+static bool bmp388ReadUP(baroDev_t *baro)
+{
+    // kick off the read of pressure and temperature, bmp388GetUP() parses it once the bus is idle
+    if (baro->busDev->busType == BUSTYPE_SPI) {
+        // In SPI mode there is a dummy byte before the data
+        return busReadBufStart(baro->busDev, BMP388_DATA_0_REG, &sensor_data[0], BMP388_DATA_FRAME_SIZE + 1);
+    }
+    else {
+        return busReadBufStart(baro->busDev, BMP388_DATA_0_REG, &sensor_data[1], BMP388_DATA_FRAME_SIZE);
+    }
 }
 
 static bool bmp388GetUP(baroDev_t *baro)
 {
-    if (baro->busDev->busType == BUSTYPE_SPI) {
-        // In SPI mode, first byte read is a dummy byte
-        busReadBuf(baro->busDev, BMP388_DATA_0_REG, &sensor_data[0], BMP388_DATA_FRAME_SIZE + 1);
-    } else {
-        // In I2C mode, no dummy byte is read
-        busReadBuf(baro->busDev, BMP388_DATA_0_REG, &sensor_data[1], BMP388_DATA_FRAME_SIZE);
-    }
+    UNUSED(baro);
 
     bmp388_up = sensor_data[1] << 0 | sensor_data[2] << 8 | sensor_data[3] << 16;
     bmp388_ut = sensor_data[4] << 0 | sensor_data[5] << 8 | sensor_data[6] << 16;
@@ -358,12 +352,17 @@ bool bmp388Detect(baroDev_t *baro)
 
     bmp388BeginForcedMeasurement(baro->busDev);
 
+    // Forced mode: one measurement per cycle, pressure and temperature come out of one read
+    baro->combined_read = true;
+
     baro->ut_delay = 0;
-    baro->get_ut = bmp388GetUT;
-    baro->start_ut = bmp388StartUT;
+    baro->start_ut = NULL;
+    baro->read_ut = NULL;
+    baro->get_ut = NULL;
 
     baro->up_delay = 234 + (392 + ((1 << (BMP388_PRESSURE_OSR + 1)) * 2000)) + (313 + ((1 << (BMP388_TEMPERATURE_OSR + 1)) * 2000));
     baro->start_up = bmp388StartUP;
+    baro->read_up = bmp388ReadUP;
     baro->get_up = bmp388GetUP;
 
     baro->calculate = bmp388Calculate;

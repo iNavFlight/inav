@@ -100,6 +100,9 @@ STATIC_UNIT_TESTED bmp085_t bmp085;
 STATIC_UNIT_TESTED uint16_t bmp085_ut;  // static result of temperature measurement
 STATIC_UNIT_TESTED uint32_t bmp085_up;  // static result of pressure measurement
 
+// Target of the non-blocking ADC read, filled by the bus driver in the background
+static uint8_t bmp085_adc_buf[3];
+
 static void bmp085_get_cal_param(baroDev_t *baro)
 {
     uint8_t data[BMP085_PROM_DATA__LEN];
@@ -178,26 +181,33 @@ static int32_t bmp085_get_pressure(uint32_t up)
 
 static bool bmp085_start_ut(baroDev_t *baro)
 {
-    bool ack = busWrite(baro->busDev, BMP085_CTRL_MEAS_REG, BMP085_T_MEASURE);
-    return ack;
+    return busWriteStart(baro->busDev, BMP085_CTRL_MEAS_REG, BMP085_T_MEASURE);
+}
+
+static bool bmp085_read_ut(baroDev_t *baro)
+{
+    // kick off the ADC read, bmp085_get_ut() parses it once the bus is idle
+    return busReadBufStart(baro->busDev, BMP085_ADC_OUT_MSB_REG, bmp085_adc_buf, 2);
 }
 
 static bool bmp085_get_ut(baroDev_t *baro)
 {
-    uint8_t data[2];
-    bool ack = busReadBuf(baro->busDev, BMP085_ADC_OUT_MSB_REG, data, 2);
-    if (ack) {
-        bmp085_ut = (data[0] << 8) | data[1];
-    }
+    UNUSED(baro);
 
-    return ack;
+    bmp085_ut = (bmp085_adc_buf[0] << 8) | bmp085_adc_buf[1];
+    return true;
 }
 
 static bool bmp085_start_up(baroDev_t *baro)
 {
     uint8_t ctrl_reg_data = BMP085_P_MEASURE + (bmp085.oversampling_setting << 6);
-    bool ack = busWrite(baro->busDev, BMP085_CTRL_MEAS_REG, ctrl_reg_data);
-    return ack;
+    return busWriteStart(baro->busDev, BMP085_CTRL_MEAS_REG, ctrl_reg_data);
+}
+
+static bool bmp085_read_up(baroDev_t *baro)
+{
+    // kick off the ADC read, bmp085_get_up() parses it once the bus is idle
+    return busReadBufStart(baro->busDev, BMP085_ADC_OUT_MSB_REG, bmp085_adc_buf, 3);
 }
 
 /** read out up for pressure conversion
@@ -206,14 +216,10 @@ static bool bmp085_start_up(baroDev_t *baro)
  */
 static bool bmp085_get_up(baroDev_t *baro)
 {
-    uint8_t data[3];
-    bool ack = busReadBuf(baro->busDev, BMP085_ADC_OUT_MSB_REG, data, 3);
+    UNUSED(baro);
 
-    if (ack) {
-        bmp085_up = (((uint32_t) data[0] << 16) | ((uint32_t) data[1] << 8) | (uint32_t) data[2]) >> (8 - bmp085.oversampling_setting);
-    }
-
-    return ack;
+    bmp085_up = (((uint32_t) bmp085_adc_buf[0] << 16) | ((uint32_t) bmp085_adc_buf[1] << 8) | (uint32_t) bmp085_adc_buf[2]) >> (8 - bmp085.oversampling_setting);
+    return true;
 }
 
 STATIC_UNIT_TESTED bool bmp085_calculate(baroDev_t *baro, int32_t *pressure, int32_t *temperature)
@@ -265,10 +271,12 @@ bool bmp085Detect(baroDev_t *baro)
 
     baro->ut_delay = UT_DELAY;
     baro->start_ut = bmp085_start_ut;
+    baro->read_ut = bmp085_read_ut;
     baro->get_ut = bmp085_get_ut;
 
     baro->up_delay = UP_DELAY;
     baro->start_up = bmp085_start_up;
+    baro->read_up = bmp085_read_up;
     baro->get_up = bmp085_get_up;
 
     baro->calculate = bmp085_calculate;

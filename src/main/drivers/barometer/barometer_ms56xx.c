@@ -52,6 +52,9 @@ STATIC_UNIT_TESTED uint32_t ms56xx_up;  // static result of pressure measurement
 STATIC_UNIT_TESTED uint16_t ms56xx_c[PROM_NB];  // on-chip ROM
 static uint8_t ms56xx_osr = CMD_ADC_4096;
 
+// Target of the non-blocking ADC read, filled by the bus driver in the background
+static uint8_t ms56xx_adc_buf[3];
+
 STATIC_UNIT_TESTED int8_t ms56xx_crc(uint16_t *prom)
 {
     int32_t i, j;
@@ -82,32 +85,50 @@ STATIC_UNIT_TESTED int8_t ms56xx_crc(uint16_t *prom)
     return -1;
 }
 
-static uint32_t ms56xx_read_adc(baroDev_t *baro)
+static bool ms56xx_read_adc(baroDev_t *baro)
 {
-    uint8_t rxbuf[3];
-    busReadBuf(baro->busDev, CMD_ADC_READ, rxbuf, 3);
-    return (rxbuf[0] << 16) | (rxbuf[1] << 8) | rxbuf[2];
+    // kick off the ADC read, ms56xx_adc_value() picks the result up once the bus is idle
+    return busReadBufStart(baro->busDev, CMD_ADC_READ, ms56xx_adc_buf, sizeof(ms56xx_adc_buf));
+}
+
+static uint32_t ms56xx_adc_value(void)
+{
+    return (ms56xx_adc_buf[0] << 16) | (ms56xx_adc_buf[1] << 8) | ms56xx_adc_buf[2];
 }
 
 static bool ms56xx_start_ut(baroDev_t *baro)
 {
-    return busWrite(baro->busDev, CMD_ADC_CONV + CMD_ADC_D2 + ms56xx_osr, 1);
+    return busWriteStart(baro->busDev, CMD_ADC_CONV + CMD_ADC_D2 + ms56xx_osr, 1);
 }
 
 static bool ms56xx_get_ut(baroDev_t *baro)
 {
-    ms56xx_ut = ms56xx_read_adc(baro);
+    UNUSED(baro);
+
+    const uint32_t value = ms56xx_adc_value();
+    if (value == 0) {
+        return false;   // ADC read before the conversion finished, redo the measurement
+    }
+
+    ms56xx_ut = value;
     return true;
 }
 
 static bool ms56xx_start_up(baroDev_t *baro)
 {
-    return busWrite(baro->busDev, CMD_ADC_CONV + CMD_ADC_D1 + ms56xx_osr, 1);
+    return busWriteStart(baro->busDev, CMD_ADC_CONV + CMD_ADC_D1 + ms56xx_osr, 1);
 }
 
 static bool ms56xx_get_up(baroDev_t *baro)
 {
-    ms56xx_up = ms56xx_read_adc(baro);
+    UNUSED(baro);
+
+    const uint32_t value = ms56xx_adc_value();
+    if (value == 0) {
+        return false;   // ADC read before the conversion finished, redo the measurement
+    }
+
+    ms56xx_up = value;
     return true;
 }
 
@@ -222,8 +243,10 @@ static bool deviceInit(baroDev_t *baro)
     baro->ut_delay = 10000;
     baro->up_delay = 10000;
     baro->start_ut = ms56xx_start_ut;
+    baro->read_ut = ms56xx_read_adc;
     baro->get_ut = ms56xx_get_ut;
     baro->start_up = ms56xx_start_up;
+    baro->read_up = ms56xx_read_adc;
     baro->get_up = ms56xx_get_up;
 
     return true;

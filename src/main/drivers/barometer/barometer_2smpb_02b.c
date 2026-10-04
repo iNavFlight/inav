@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 #include <platform.h>
 
@@ -169,7 +170,13 @@ static bool deviceDetect(busDevice_t * busDev)
 static bool b2smpbStartUP(baroDev_t *baro)
 {
     // start a forced measurement
-    return busWrite(baro->busDev, REG_CTRL_MEAS, REG_CLT_MEAS_VAL_TAVG4X_PAVG32X_FORCED);
+    return busWriteStart(baro->busDev, REG_CTRL_MEAS, REG_CLT_MEAS_VAL_TAVG4X_PAVG32X_FORCED);
+}
+
+static bool b2smpbReadUP(baroDev_t *baro)
+{
+    // kick off the read of pressure and temperature, b2smpbGetUP() parses it once the bus is idle
+    return busReadBufStart(baro->busDev, REG_PRESS_TXD2, &baroDataBuf[0], 6);
 }
 
 static bool b2smpbGetUP(baroDev_t *baro)
@@ -177,9 +184,7 @@ static bool b2smpbGetUP(baroDev_t *baro)
     int32_t dtp;
     float tr, pl, tmp;
 
-    if (!busReadBuf(baro->busDev, REG_PRESS_TXD2, &baroDataBuf[0], 6)) {
-        return false;
-    }
+    UNUSED(baro);
 
     // Calculate compensated temperature
     dtp = getSigned24bitValue(&baroDataBuf[3]);
@@ -234,12 +239,17 @@ bool baro2SMPB02BDetect(baroDev_t *baro)
         return false;
     }
 
+    // Forced mode: one measurement per cycle, pressure and temperature come out of one read
+    baro->combined_read = true;
+
     baro->up_delay = 35000; // measurement takes 33.7 ms with 4x / 32x averaging
     baro->start_up = b2smpbStartUP;
+    baro->read_up = b2smpbReadUP;
     baro->get_up = b2smpbGetUP;
 
     baro->ut_delay = 0;
     baro->start_ut = NULL;
+    baro->read_ut = NULL;
     baro->get_ut = NULL;
 
     baro->calculate = deviceCalculate;

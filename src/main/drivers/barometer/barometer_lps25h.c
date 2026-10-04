@@ -103,6 +103,11 @@
 static int32_t pressureRaw;
 static int32_t temperatureRaw;
 
+// STATUS_REG, PRESS_OUT_XL/L/H and TEMP_OUT_L/H are consecutive, one burst read brings the ready flags and both results.
+// Filled by the bus driver in the background.
+#define LPS25HB_BURST_LEN   6
+static uint8_t lps25h_data[LPS25HB_BURST_LEN];
+
 static bool lps25hbRebootCmd(baroDev_t * baro)
 {
     uint8_t tmpreg;
@@ -211,63 +216,29 @@ static bool lps25hbInit(baroDev_t * baro)
     return true;
 }
 
-
 // check the status register bit to be present
-static bool isDataReady(baroDev_t * baro, uint8_t bitMask)
+
+static bool lps25h_read_up(baroDev_t * baro)
 {
-    uint8_t tmp = 0;
-
-    bool ack = busRead(baro->busDev, LPS25HB_STATUS_REG_ADDR, &tmp);
-    if (!ack) {
-        return false;
-    }
-
-    return (tmp & bitMask);
-}
-
-static bool lps25h_start_up(baroDev_t * baro)
-{
-    UNUSED(baro);
-    return true;
+    // kick off the burst read of status, pressure and temperature, lps25h_get_up() parses it once the bus is idle
+    const uint8_t autoIncrement = (baro->busDev->busType == BUSTYPE_SPI) ? LPS25HB_SPI_MULTIPLEBYTE_CMD : LPS25HB_I2C_MULTIPLEBYTE_CMD;
+    return busReadBufStart(baro->busDev, autoIncrement | LPS25HB_STATUS_REG_ADDR, lps25h_data, LPS25HB_BURST_LEN);
 }
 
 static bool lps25h_get_up(baroDev_t * baro)
 {
-    uint8_t buffer[3] = {0};
+    UNUSED(baro);
 
-    if (isDataReady(baro, PRESSURE_READY_MASK)) {
-        if (baro->busDev->busType == BUSTYPE_SPI) {
-            busReadBuf(baro->busDev, LPS25HB_SPI_MULTIPLEBYTE_CMD | LPS25HB_PRESS_POUT_XL_ADDR, buffer, sizeof(buffer));
-        }
-        else {
-            busReadBuf(baro->busDev, LPS25HB_I2C_MULTIPLEBYTE_CMD | LPS25HB_PRESS_POUT_XL_ADDR, buffer, sizeof(buffer));
-        }
+    const uint8_t status = lps25h_data[0];
 
-        pressureRaw = (int32_t)((uint32_t)buffer[2] << 16 | (uint32_t)buffer[1] << 8 | (uint32_t)buffer[0]);
+    if (!(status & PRESSURE_READY_MASK)) {
+        return false;   // no new pressure sample yet, come back after up_delay
     }
 
-    return true;
-}
+    pressureRaw = (int32_t)((uint32_t)lps25h_data[3] << 16 | (uint32_t)lps25h_data[2] << 8 | (uint32_t)lps25h_data[1]);
 
-static bool lps25h_start_ut(baroDev_t * baro)
-{
-    UNUSED(baro);
-    return true;
-}
-
-static bool lps25h_get_ut(baroDev_t * baro)
-{
-    uint8_t data[2] = {0};
-
-    if (isDataReady(baro, TEMPERATURE_READY_MASK)) {
-        if (baro->busDev->busType == BUSTYPE_SPI) {
-            busReadBuf(baro->busDev, LPS25HB_SPI_MULTIPLEBYTE_CMD | LPS25HB_TEMP_OUT_L_ADDR, data, sizeof(data));
-        }
-        else {
-            busReadBuf(baro->busDev, LPS25HB_I2C_MULTIPLEBYTE_CMD | LPS25HB_TEMP_OUT_L_ADDR, data, sizeof(data));
-        }
-
-        temperatureRaw = (int16_t)((uint16_t)data[1] << 8 | (uint16_t)data[0]);
+    if (status & TEMPERATURE_READY_MASK) {
+        temperatureRaw = (int16_t)((uint16_t)lps25h_data[5] << 8 | (uint16_t)lps25h_data[4]);
     }
 
     return true;
@@ -326,12 +297,17 @@ bool lps25hDetect(baroDev_t *baro)
 
     lps25hbInit(baro);
 
-    baro->ut_delay = 0;
-    baro->get_ut = lps25h_get_ut;
-    baro->start_ut = lps25h_start_ut;
+    // Continuous mode at 25 Hz, pressure and temperature come out of one burst read
+    baro->combined_read = true;
 
-    baro->up_delay = 1000;
-    baro->start_up = lps25h_start_up;
+    baro->ut_delay = 0;
+    baro->start_ut = NULL;
+    baro->read_ut = NULL;
+    baro->get_ut = NULL;
+
+    baro->up_delay = 20000;     // twice the output data rate to catch every sample
+    baro->start_up = NULL;
+    baro->read_up = lps25h_read_up;
     baro->get_up = lps25h_get_up;
 
     baro->calculate = lps25h_calculate;
