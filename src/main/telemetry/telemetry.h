@@ -97,8 +97,10 @@ typedef struct telemetryConfig_s {
     uint16_t accEventThresholdLow;
     uint16_t accEventThresholdNegX;
 #endif
+#ifdef USE_TELEMETRY_MAVLINK
     mavlinkTelemetryCommonConfig_t mavlink_common;
     mavlinkTelemetryPortConfig_t mavlink[MAX_MAVLINK_PORTS];
+#endif
     bool crsf_use_legacy_baro_packet;
 } telemetryConfig_t;
 

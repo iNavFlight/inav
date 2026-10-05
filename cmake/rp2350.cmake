@@ -234,6 +234,7 @@ set(RP2350_DEFINITIONS
     PICO_CONFIG_HEADER=pico_sdk_config.h
     PICO_NO_FPGA_CHECK=1
     PICO_FLASH_SIZE_BYTES=4194304
+    MCU_RAM_SIZE=520
     # Tell pico_stdio_usb that TinyUSB device mode is already linked by the application.
     # Without this, stdio_usb_init() would call tusb_init() a second time AND set up its
     # own low-priority IRQ + alarm to call tud_task(), racing with INAV's own 1ms timer.
@@ -419,20 +420,7 @@ function(target_rp2350 name)
     setup_firmware_target(${exe_target} ${name} ${ARGN})
 
     # clean_<target>
-    set(generator_cmd "")
-    if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-        set(generator_cmd "make")
-    elseif(CMAKE_GENERATOR STREQUAL "Ninja")
-        set(generator_cmd "ninja")
-    endif()
-    if (NOT generator_cmd STREQUAL "")
-        set(clean_target "clean_${name}")
-        add_custom_target(${clean_target}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND ${generator_cmd} clean
-            COMMENT "Removing intermediate files for ${name}")
-        set_property(TARGET ${clean_target} PROPERTY
-            EXCLUDE_FROM_ALL 1
-            EXCLUDE_FROM_DEFAULT_BUILD 1)
-    endif()
+    add_clean_target(${name}
+        EXECUTABLES ${exe_target}
+        FILES ${hex_filename} ${bin_filename} ${uf2_filename})
 endfunction()

@@ -35,11 +35,11 @@ kalman_t kalmanFilterStateRate[XYZ_AXIS_COUNT];
 static void gyroKalmanInitAxis(kalman_t *filter, uint16_t q)
 {
     memset(filter, 0, sizeof(kalman_t));
-    filter->q = q * 0.03f; //add multiplier to make tuning easier
-    filter->r = 88.0f;      //seeding R at 88.0f
-    filter->p = 30.0f;      //seeding P at 30.0f
+    filter->q = q * 0.03f;  // add multiplier to make tuning easier
+    filter->r = 88.0f;      // seeding R at 88.0f
+    filter->p = 30.0f;      // seeding P at 30.0f
     filter->e = 1.0f;
-    filter->w = MAX_KALMAN_WINDOW_SIZE;         
+    filter->w = MAX_KALMAN_WINDOW_SIZE;
     filter->inverseN = 1.0f / (float)(filter->w);
 }
 
@@ -52,24 +52,24 @@ void gyroKalmanInitialize(uint16_t q)
 
 float kalman_process(kalman_t *kalmanState, float input)
 {
-    //project the state ahead using acceleration
+    // project the state ahead using acceleration
     kalmanState->x += (kalmanState->x - kalmanState->lastX);
 
-    //update last state
+    // update last state
     kalmanState->lastX = kalmanState->x;
 
-    if (kalmanState->lastX != 0.0f)
-    {
+    if (fabsf(kalmanState->lastX) > 1e-9f) {    // small number rather than 0 to prevent float inf/NaN issue as lastX tends toward 0
         kalmanState->e = fabsf(1.0f - (kalmanState->setpoint / kalmanState->lastX));
     }
 
-    //prediction update
-    kalmanState->p = kalmanState->p + (kalmanState->q * kalmanState->e);
+    // prediction update
+    kalmanState->p += (kalmanState->q * kalmanState->e);
 
-    //measurement update
+    // measurement update
     kalmanState->k = kalmanState->p / (kalmanState->p + kalmanState->r);
     kalmanState->x += kalmanState->k * (input - kalmanState->x);
     kalmanState->p = (1.0f - kalmanState->k) * kalmanState->p;
+
     return kalmanState->x;
 }
 
@@ -91,7 +91,7 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
     kalmanState->axisSumMean -= kalmanState->axisWindow[kalmanState->windex];
     kalmanState->axisSumVar -= kalmanState->varianceWindow[kalmanState->windex];
 
-    //New mean
+    // New mean
     kalmanState->axisMean = kalmanState->axisSumMean * kalmanState->inverseN;
     kalmanState->axisVar = kalmanState->axisSumVar * kalmanState->inverseN;
 
@@ -101,7 +101,7 @@ static void updateAxisVariance(kalman_t *kalmanState, float rate)
 #else
     float squirt = sqrtf(kalmanState->axisVar);
 #endif
-    
+
     kalmanState->r = squirt * VARIANCE_SCALE;
 }
 

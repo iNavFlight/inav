@@ -98,7 +98,8 @@ typedef enum {
     DEVHW_LPS25H,
     DEVHW_SPL06,
     DEVHW_BMP388,
-    DEVHW_DPS310,
+    DEVHW_DPS310_0,
+    DEVHW_DPS310_1,
     DEVHW_B2SMPB,
 
     /* Compass chips */
@@ -115,6 +116,7 @@ typedef enum {
     DEVHW_RM3100,
     DEVHW_VCM5883,
     DEVHW_MLX90393,
+    DEVHW_LIS2MDL,
 
     /* Temp sensor chips */
     DEVHW_LM75_0,

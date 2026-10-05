@@ -161,6 +161,7 @@
 
 #if defined(USE_GEOZONE)
 #define OSD_MSG_NFZ                 "NO FLY ZONE"
+#define OSD_MSG_GEOZONE_MISCONFIG   "GEOZONE MISCONFIGURED"
 #define OSD_MSG_LEAVING_FZ          "LEAVING FZ IN %s"
 #define OSD_MSG_OUTSIDE_FZ          "OUTSIDE FZ"
 #define OSD_MSG_ENTERING_NFZ        "ENTERING NFZ IN %s %s"
@@ -605,6 +606,7 @@ void osdStartFullRedraw(void);
 // the OSD after the given duration. Otherwise, the caller must
 // explicitely remove it.
 void osdOverrideLayout(int layout, timeMs_t duration);
+void osdSetLayoutOverrideOwnedByMenu(bool owned);
 // Returns the current current layout as well as wether its
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);

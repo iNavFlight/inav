@@ -127,7 +127,7 @@ void osdHudDrawPoi(uint32_t poiDistance, int16_t poiDirection, int32_t poiAltitu
     uint8_t center_x;
     uint8_t center_y;
     bool poi_is_oos = 0;
-    char buff[4];
+    char buff[5]; // 4 characters plus the terminator osdFormatCentiNumber and tfp_sprintf write at index 4
     int altc = 0;
 
     uint8_t minX = osdConfig()->hud_margin_h + 2;

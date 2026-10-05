@@ -65,6 +65,11 @@ typedef struct gyro_s {
     uint32_t targetLooptime;
     float gyroADCf[XYZ_AXIS_COUNT];
     float gyroRaw[XYZ_AXIS_COUNT];
+#ifdef USE_DUAL_GYRO
+    // Secondary IMU, for logging only: never feeds attitude estimation or the PID loops
+    float gyroRaw2[XYZ_AXIS_COUNT];
+    bool  secondaryInitialized;
+#endif
 } gyro_t;
 
 extern gyro_t gyro;
@@ -107,9 +112,19 @@ typedef struct gyroConfig_s {
 
     uint8_t gyroLuluSampleCount;
     bool gyroLuluEnabled;
+#ifdef USE_DUAL_GYRO
+    // Appended at the end on purpose: pgLoad() copies MIN(stored, current) bytes over the
+    // defaults, so appending leaves existing settings at their offset and needs no version
+    // bump. A field added here must default to zero: it can land in the old struct's padding
+    bool     gyro_secondary_enabled;
+#endif
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
+
+#ifdef USE_DUAL_GYRO
+void gyroSetSecondaryLogging(bool logging);
+#endif
 
 bool gyroInit(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
