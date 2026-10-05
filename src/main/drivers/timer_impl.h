@@ -17,22 +17,29 @@
 
 #pragma once
 
+#include "common/utils.h"
+
 #if defined(AT32F43x)
 #define IMPL_TIM_IT_UPDATE_INTERRUPT      TMR_OVF_INT
 #define TIM_IT_CCx(chIdx)                 (TMR_C1_INT << (chIdx))
 // 0x2 0x4 0x8 0x10 0\1\2\3
 
 #define _TIM_IRQ_HANDLER2(name, i, j)                                   \
+    STATIC_ASSERT(TIMER_INDEX(i) < HARDWARE_TIMER_DEFINITION_COUNT &&   \
+                  TIMER_INDEX(j) < HARDWARE_TIMER_DEFINITION_COUNT,     \
+                  name ## _timer_index_out_of_range);                   \
     void name(void)                                                     \
     {                                                                   \
-        impl_timerCaptureCompareHandler(TMR ## i, timerCtx[i - 1]); \
-        impl_timerCaptureCompareHandler(TMR ## j, timerCtx[j - 1]); \
+        impl_timerCaptureCompareHandler(TMR ## i, timerCtx[TIMER_INDEX(i)]); \
+        impl_timerCaptureCompareHandler(TMR ## j, timerCtx[TIMER_INDEX(j)]); \
     } struct dummy
 
 #define _TIM_IRQ_HANDLER(name, i)                                       \
+    STATIC_ASSERT(TIMER_INDEX(i) < HARDWARE_TIMER_DEFINITION_COUNT,     \
+                  name ## _timer_index_out_of_range);                   \
     void name(void)                                                     \
     {                                                                   \
-        impl_timerCaptureCompareHandler(TMR ## i, timerCtx[i - 1]); \
+        impl_timerCaptureCompareHandler(TMR ## i, timerCtx[TIMER_INDEX(i)]); \
     } struct dummy
 
 uint8_t lookupTimerIndex(const tmr_type *tim);
@@ -49,16 +56,21 @@ void impl_timerCaptureCompareHandler(tmr_type *tim, timHardwareContext_t * timer
 #endif
 
 #define _TIM_IRQ_HANDLER2(name, i, j)                                   \
+    STATIC_ASSERT(TIMER_INDEX(i) < HARDWARE_TIMER_DEFINITION_COUNT &&   \
+                  TIMER_INDEX(j) < HARDWARE_TIMER_DEFINITION_COUNT,     \
+                  name ## _timer_index_out_of_range);                   \
     void name(void)                                                     \
     {                                                                   \
-        impl_timerCaptureCompareHandler(TIM ## i, timerCtx[i - 1]); \
-        impl_timerCaptureCompareHandler(TIM ## j, timerCtx[j - 1]); \
+        impl_timerCaptureCompareHandler(TIM ## i, timerCtx[TIMER_INDEX(i)]); \
+        impl_timerCaptureCompareHandler(TIM ## j, timerCtx[TIMER_INDEX(j)]); \
     } struct dummy
 
 #define _TIM_IRQ_HANDLER(name, i)                                       \
+    STATIC_ASSERT(TIMER_INDEX(i) < HARDWARE_TIMER_DEFINITION_COUNT,     \
+                  name ## _timer_index_out_of_range);                   \
     void name(void)                                                     \
     {                                                                   \
-        impl_timerCaptureCompareHandler(TIM ## i, timerCtx[i - 1]); \
+        impl_timerCaptureCompareHandler(TIM ## i, timerCtx[TIMER_INDEX(i)]); \
     } struct dummy
 
 uint8_t lookupTimerIndex(const TIM_TypeDef *tim);
@@ -84,11 +96,11 @@ bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBuf
 void impl_timerPWMPrepareDMA(TCH_t * tch, uint32_t dmaBufferElementCount);
 void impl_timerPWMStartDMA(TCH_t * tch);
 void impl_timerPWMStopDMA(TCH_t * tch);
-void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferSize);
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize);
 void impl_timerPWMSetDMARefillCallback(TCH_t * tch, timerDmaRefillFn * callback);
 
 #ifdef USE_DSHOT_DMAR
 bool impl_timerPWMConfigDMABurst(burstDmaTimer_t *burstDmaTimer, TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount);
 void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength);
-void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, uint32_t dmaBufferSize);
+void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize);
 #endif

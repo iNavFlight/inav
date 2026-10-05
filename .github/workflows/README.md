@@ -35,7 +35,7 @@ fire.
 ### Code Quality
 
 #### `pg-version-check.yml` - Parameter Group Version Check
-**Triggers:** Pull requests to maintenance-9.x and maintenance-10.x
+**Triggers:** Pull requests to maintenance-9.x, maintenance-10.x, and release/9.1
 **Purpose:** Detects parameter group struct modifications and verifies version increments
 **Why:** Prevents settings corruption when struct layout changes without version bump
 
@@ -120,7 +120,8 @@ as `pr-test-builds.yml`** (secrets available even for fork PRs).
 
 #### `pr-branch-suggestion.yml` - Branch Targeting Suggestion
 **Triggers:** PRs targeting master branch
-**Purpose:** Suggests using maintenance-9.x or maintenance-10.x instead
+**Purpose:** Suggests using maintenance-10.x (backward-compatible) or
+maintenance-11.x (breaking compatibility) instead
 
 #### `non-code-change.yaml` - Non-Code Change Detection
 **Triggers:** Pull requests

@@ -26,7 +26,6 @@
 
 #include "build/debug.h"
 
-#include "common/utils.h"
 #include "common/axis.h"
 #include "common/maths.h"
 
@@ -86,6 +85,8 @@
  */
 
 #define IST8310_REG_DATA 0x03
+#define IST8310_REG_STAT1 0x02
+#define IST8310_DRDY_MASK 0x01
 #define IST8310_REG_WHOAMI 0x00
 
 // I2C Contorl Register
@@ -125,21 +126,51 @@ static bool ist8310Init(magDev_t * mag)
     return true;
 }
 
-// Target of the non-blocking data read, filled by the bus driver in the background
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t ist8310Status;
 static uint8_t ist8310Data[6];
 
+// Two transfers per sample: the status byte first, the data only when DRDY confirms a fresh sample
 static busReadStepResult_e ist8310ReadStart(magDev_t * mag, bool firstStep)
 {
-    UNUSED(firstStep);
+    static bool statusStarted = false;
 
-    // Continuous mode at 50 Hz, the data registers always hold the latest sample
-    return busReadBufStart(mag->busDev, IST8310_REG_DATA, ist8310Data, sizeof(ist8310Data)) ? BUS_READ_STEP_LAST : BUS_READ_STEP_BUSY;
+    if (firstStep) {
+        statusStarted = false;
+        ist8310Status = 0;
+    }
+
+    if (!statusStarted) {
+        if (!busReadBufStart(mag->busDev, IST8310_REG_STAT1, &ist8310Status, 1)) {
+            return BUS_READ_STEP_BUSY;
+        }
+        statusStarted = true;
+        return BUS_READ_STEP_NEXT;
+    }
+
+    // The IST8310 updates its data registers once per output-data period. Only read
+    // them once DRDY is set; a read racing an update would mix old and new samples
+    // across axes, corrupting the mag vector and calibration.
+    if ((ist8310Status & IST8310_DRDY_MASK) == 0) {
+        return BUS_READ_STEP_LAST;     // nothing new to fetch, ist8310Read() keeps the previous sample
+    }
+
+    if (!busReadBufStart(mag->busDev, IST8310_REG_DATA, ist8310Data, sizeof(ist8310Data))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    return BUS_READ_STEP_LAST;
 }
 
 static bool ist8310Read(magDev_t * mag)
 {
     const uint8_t *buf = ist8310Data;
     uint8_t LSB2FSV = 3; // 3mG - 14 bit
+
+    // When no fresh sample was ready, return success so the caller keeps the previous values
+    if ((ist8310Status & IST8310_DRDY_MASK) == 0) {
+        return true;
+    }
 
     // Invert Y axis to co convert from left to right coordinate system
     mag->magADCRaw[X] =  (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;

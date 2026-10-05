@@ -74,6 +74,15 @@
 #define USE_SERVO_SBUS
 #endif
 
+// Spektrum Smart ESC, one per spare UART. It costs about 3.5 KB of flash and none of the
+// fast section, so it is on wherever there is room to spare: the F405 boards these ESCs
+// usually fly on sit around 77 % with some 200 KB free. The F7 family is not included
+// because parts of it are very tight, ZEEZF73030V3 being at 97.9 %; any of those can opt in
+// with a #define USE_MOTOR_SRXL2 in its own target.h, which is included after this file
+#if !defined(USE_MOTOR_SRXL2) && (defined(STM32H7) || defined(AT32F43x) || defined(STM32F405xx))
+#define USE_MOTOR_SRXL2
+#endif
+
 #ifndef USE_ADC_AVERAGING
 #define USE_ADC_AVERAGING
 #endif
@@ -303,7 +312,6 @@
 #ifndef USE_LOG
 #define USE_LOG
 #endif
-#define USE_BOOTLOG 2048
 #ifndef USE_STATS
 #define USE_STATS
 #endif
@@ -424,8 +432,8 @@
 #define USE_HEADTRACKER_MSP
 #endif
 
-#if defined(STM32F7) || defined(STM32H7)
-// needs bi-direction inverter, not available on F4 hardware.
+#if defined(STM32F7) || defined(STM32H7) || defined(RP2350)
+// needs bi-directional inverter; not available on F4 or AT32F43x hardware
 #define USE_TELEMETRY_SBUS2
 #endif
 

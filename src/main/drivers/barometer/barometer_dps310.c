@@ -343,35 +343,56 @@ static bool deviceCalculate(baroDev_t *baro, int32_t *pressure, int32_t *tempera
 
 
 #define DETECTION_MAX_RETRY_COUNT   5
+#define DPS310_ADDRESS_COUNT        2
+
 static bool deviceDetect(busDevice_t * busDev)
 {
-    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
-        delay(100);
+    bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
 
-        bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
-
-        if (ack && (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID)) {
-            return true;
-        }
-    };
-
-    return false;
+    return ack && (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID);
 }
 
-static bool baroDetectWithDevice(baroDev_t *baro, devHardwareType_e devHw)
+// Probes devHwCount consecutive bus device slots starting at firstDevHw and keeps the first chip that answers
+static bool baroDetectWithDevices(baroDev_t *baro, devHardwareType_e firstDevHw, int devHwCount)
 {
-    baro->busDev = busDeviceInit(BUSTYPE_ANY, devHw, 0, OWNER_BARO);
-    if (baro->busDev == NULL) {
-        return false;
+    busDevice_t * candidates[DPS310_ADDRESS_COUNT];
+    int candidateCount = 0;
+
+    for (int index = 0; index < devHwCount; index++) {
+        candidates[index] = busDeviceInit(BUSTYPE_ANY, firstDevHw + index, 0, OWNER_BARO);
+        if (candidates[index]) {
+            candidateCount++;
+        }
     }
 
-    if (!deviceDetect(baro->busDev)) {
-        busDeviceDeInit(baro->busDev);
-        return false;
+    baro->busDev = NULL;
+
+    // All addresses share one retry window: a late chip keeps the full window and 0x77 adds no boot delay
+    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT && candidateCount > 0 && !baro->busDev; retry++) {
+        delay(100);
+
+        for (int index = 0; index < devHwCount && !baro->busDev; index++) {
+            if (!candidates[index] || !deviceDetect(candidates[index])) {
+                continue;
+            }
+
+            if (deviceConfigure(candidates[index])) {
+                baro->busDev = candidates[index];
+            } else {
+                busDeviceDeInit(candidates[index]);
+                candidates[index] = NULL;
+                candidateCount--;
+            }
+        }
     }
 
-    if (!deviceConfigure(baro->busDev)) {
-        busDeviceDeInit(baro->busDev);
+    for (int index = 0; index < devHwCount; index++) {
+        if (candidates[index] && candidates[index] != baro->busDev) {
+            busDeviceDeInit(candidates[index]);
+        }
+    }
+
+    if (!baro->busDev) {
         return false;
     }
 
@@ -399,14 +420,15 @@ static bool baroDetectWithDevice(baroDev_t *baro, devHardwareType_e devHw)
 #if defined(USE_BARO_DPS310)
 bool baroDPS310Detect(baroDev_t *baro)
 {
-    return baroDetectWithDevice(baro, DEVHW_DPS310);
+    // SDO low selects 0x76, SDO high 0x77; both slots are registered, the first one that answers wins
+    return baroDetectWithDevices(baro, DEVHW_DPS310_0, DPS310_ADDRESS_COUNT);
 }
 #endif
 
 #if defined(USE_BARO_SPL06)
 bool baroSPL06Detect(baroDev_t *baro)
 {
-    return baroDetectWithDevice(baro, DEVHW_SPL06);
+    return baroDetectWithDevices(baro, DEVHW_SPL06, 1);
 }
 #endif
 

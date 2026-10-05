@@ -282,7 +282,10 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,            // pitch angle mode deadband when Saoring mode enabled
         .wp_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,                // 0, improves course tracking accuracy during FW WP missions
         .wp_tracking_max_angle = SETTING_NAV_FW_WP_TRACKING_MAX_ANGLE_DEFAULT,              // 60 degs
-        .wp_turn_smoothing = SETTING_NAV_FW_WP_TURN_SMOOTHING_DEFAULT,                      // 0, smooths turns during FW WP mode missions
+        .wp_turn_mode = SETTING_NAV_FW_WP_TURN_MODE_DEFAULT,                                // COORD_FLYBY, WP mission turn mode
+        .turn_ff_gain = SETTING_NAV_FW_TURN_FF_GAIN_DEFAULT,                                // 100, turn FF
+        .wp_turn_max_lead_time = SETTING_NAV_FW_WP_TURN_MAX_LEAD_TIME_DEFAULT,              // 3000 ms
+        .wp_turn_control_ease = SETTING_NAV_FW_WP_TURN_CONTROL_EASE_DEFAULT,                // 100 ms
     }
 );
 
@@ -4082,6 +4085,7 @@ static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
     if (posControl.navState != newState) {
         posControl.navState = newState;
         posControl.navPersistentId = navFSM[newState].persistentId;
+        posControl.flags.wpTurnSmoothingActive = false;     // a turn's "WP reached" verdict is only valid in the state that produced it
     }
     return previousState;
 }
@@ -4524,21 +4528,29 @@ bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBe
     posControl.wpDistance = calculateDistanceToDestination(waypointPos);
 
     // Check if waypoint was missed based on bearing to waypoint exceeding given angular limit relative to initial waypoint bearing.
-    // Default angular limit = 100 degs with a reduced limit of 60 degs used if fixed wing waypoint turn smoothing option active
+    // Angular limit = 100 degs.
     uint16_t relativeBearingTargetAngle = 10000;
 
     if (STATE(AIRPLANE) && posControl.flags.wpTurnSmoothingActive) {
-        // If WP mode turn smoothing CUT option used waypoint is reached when start of turn is initiated
-        if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_CUT) {
-            posControl.flags.wpTurnSmoothingActive = false;
-            return true;
-        }
-        relativeBearingTargetAngle = 6000;
+        // The turn coordinator declared the WP reached (FLY_BY at turn start, FLY_INTO at the S pickup).
+        // Set once, consumed here only - it must survive until this check runs, so nothing clears it per tick.
+        posControl.flags.wpTurnSmoothingActive = false;
+        return true;
     }
 
 
     if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointBearing)) > relativeBearingTargetAngle) {
         return true;
+    }
+
+    /* Beyond a ~80 deg turn the bearing check above can only fire on the brief swing next to the WP,
+     * leaving the WP active behind the aircraft; the plane test cannot fire early (a leg length short). */
+    if (STATE(AIRPLANE) && FLIGHT_MODE(NAV_WP_MODE)) {
+        const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+        const float legRad = CENTIDEGREES_TO_RADIANS((float)*waypointBearing);
+        if ((pos->x - waypointPos->x) * cos_approx(legRad) + (pos->y - waypointPos->y) * sin_approx(legRad) >= 0.0f) {
+            return true;
+        }
     }
 
     return posControl.wpDistance <= (navConfig()->general.waypoint_radius);
@@ -5512,6 +5524,11 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 if (wpNumber == 1) {
                     resetWaypointList();
+                    nonGeoWaypointCount = 0;
+                }
+                // Reject the new mission after clearing the previous one, before copying or converting the target.
+                if (wpData->action == NAV_WP_ACTION_JUMP && (wpData->p1 < 1 || wpData->p1 > NAV_MAX_WAYPOINTS)) {
+                    return;
                 }
                 posControl.waypointList[wpNumber - 1] = *wpData;
                 if(wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD || wpData->action == NAV_WP_ACTION_JUMP) {
@@ -5781,7 +5798,8 @@ static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
     mapWaypointToLocalPosition(&localPos, waypoint, waypointMissionAltConvMode(waypoint->p3));
     calculateAndSetActiveWaypointToLocalPosition(&localPos);
 
-    if (navConfig()->fw.wp_turn_smoothing) {
+    // Turn anticipation (nextTurnAngle) is needed for FLY_BY and FLY_INTO; FLY_OVER flies to the WP then turns.
+    if (navConfig()->fw.wp_turn_mode != NAV_FW_WP_TURN_COORD_FLY_OVER) {
         fpVector3_t posNextWp;
         if (getLocalPosNextWaypoint(&posNextWp)) {
             int32_t bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
@@ -6404,7 +6422,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     if (posControl.waypointCount) {
         for (uint8_t wp = posControl.startWpIndex; wp < posControl.waypointCount + posControl.startWpIndex; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
-                if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 >= posControl.waypointCount ||
+                if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 < 0 || posControl.waypointList[wp].p1 >= posControl.waypointCount ||
                 (posControl.waypointList[wp].p1 > (wp - posControl.startWpIndex - 2) && posControl.waypointList[wp].p1 < (wp - posControl.startWpIndex + 2)) || posControl.waypointList[wp].p2 < -1) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
@@ -7189,7 +7207,9 @@ static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos
 {
     calculateAndSetActiveWaypointToLocalPosition(pos);
 
-    if (navConfig()->fw.wp_turn_smoothing && nextWpPos != NULL) {
+    // Landing approach always uses FLY_BY turns (clean cut onto the next approach leg),
+    // so the turn angle is set whenever a following approach waypoint exists.
+    if (nextWpPos != NULL) {
         int32_t bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, nextWpPos);
         posControl.activeWaypoint.nextTurnAngle = wrap_18000(bearingToNextWp - posControl.activeWaypoint.bearing);
     } else {
