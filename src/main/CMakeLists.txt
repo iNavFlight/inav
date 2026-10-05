@@ -391,6 +391,8 @@ main_sources(COMMON_SRC
     io/beeper.h
     io/motor_srxl2.c
     io/motor_srxl2.h
+    io/srxl2_smart_battery.c
+    io/srxl2_smart_battery.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c

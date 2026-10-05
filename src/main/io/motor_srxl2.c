@@ -71,14 +71,14 @@
 #define SRXL2_ESC_ID_FIRST          0x40
 #define SRXL2_ESC_ID_LAST           0x4F
 
-// Flight controller type, unit ID 1. Not unit 0: specification 7.1.1 has a device whose
-// lower nibble is 0 announce itself unprompted, which is the slave's behaviour, and a
-// master doing it would collide with the ESC's own announcements
-#define SRXL2_OUR_DEVICE_ID         0x31
+// Receiver type, unit ID 1: the Avian addresses Smart Battery telemetry to 0x21.
+// Not unit 0: specification 7.1.1 has a device whose lower nibble is 0 announce
+// itself unprompted. A master doing that would collide with the ESC's announcements.
+#define SRXL2_OUR_DEVICE_ID         0x21
 
 // The bus picks its master by lowest device ID and we never implement standing down, since
 // this port is a dedicated link to one ESC, which cannot outrank us from 0x40. It would be
-// wrong on a bus shared with a Spektrum receiver, which is master at 0x21
+// wrong on a bus shared with a Spektrum receiver, which would use the same identity
 
 // The protocol's failsafe channel-data command, 0x01, is deliberately never sent: INAV owns
 // failsafe and keeps commanding the motors all the way down, so handing throttle authority
@@ -223,6 +223,7 @@ typedef struct {
     uint8_t   telemRequestCounter;
 
     srxl2EscTelemetry_t telemetry;
+    srxl2SmartBatteryState_t smartBattery;
 
     uint32_t  statTxFrames, statRxFrames, statCrcErrors, statHandshakes;
     uint32_t  statEchoFrames;           /* our own frames heard back on a single wire */
@@ -464,6 +465,8 @@ static void srxl2HandleTelemetry(srxl2Esc_t *e, const uint8_t *buf, uint8_t len)
     const uint8_t *payload = &buf[4];
     if (payload[0] == SRXL2_TELEM_SENSOR_ESC) {
         srxl2DecodeEscTelemetry(e, payload);
+    } else if (payload[0] == SRXL2_TELEM_SENSOR_SMART_BATTERY && buf[3] == SRXL2_OUR_DEVICE_ID) {
+        srxl2SmartBatteryReceive(&e->smartBattery, payload, millis());
     }
 }
 
@@ -493,7 +496,13 @@ static void srxl2HandleFrame(srxl2Esc_t *e, const uint8_t *buf, uint8_t len)
     }
 
     e->statRxFrames++;
-    e->lastRxMs = millis();
+    const timeMs_t receivedMs = millis();
+    if (receivedMs - e->lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
+        // Also cover a scheduler gap: a new ESC-only packet must not revive
+        // Smart Battery pages cached before an unobserved link interruption.
+        srxl2SmartBatteryInvalidate(&e->smartBattery);
+    }
+    e->lastRxMs = receivedMs;
 
     switch (buf[1]) {
     case Handshake:
@@ -929,6 +938,7 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
 
         if (now - e->lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
             e->telemetry.valid = false;
+            srxl2SmartBatteryInvalidate(&e->smartBattery);
 
             // Silence from the ESC is not a reason to stop commanding it. An Avian holds
             // throttle indefinitely with no telemetry request sent at all; what stops it is
@@ -1025,6 +1035,24 @@ bool srxl2MotorGetTelemetry(uint8_t index, srxl2EscTelemetry_t *out)
     }
     *out = esc[index].telemetry;
     return true;
+}
+
+bool srxl2MotorGetSmartBattery(uint8_t motor, uint8_t slot, srxl2SmartBatteryTelemetry_t *out)
+{
+    if (!out) {
+        return false;
+    }
+    memset(out, 0, sizeof(*out));
+    const timeMs_t now = millis();
+    if (motor >= escCount || esc[motor].state != SRXL2_RUNNING || now - esc[motor].lastRxMs >= SRXL2_LINK_TIMEOUT_MS) {
+        return false;
+    }
+    return srxl2SmartBatteryGet(&esc[motor].smartBattery, slot, now, out);
+}
+
+const srxl2SmartBatteryState_t *srxl2MotorGetSmartBatteryRaw(uint8_t motor)
+{
+    return motor < escCount ? &esc[motor].smartBattery : NULL;
 }
 
 #endif /* USE_MOTOR_SRXL2 */
