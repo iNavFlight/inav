@@ -834,7 +834,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, currentControlProfile->throttle.dynPID);
         sbufWriteU8(dst, currentControlProfile->throttle.rcMid8);
         sbufWriteU8(dst, currentControlProfile->throttle.rcExpo8);
-        sbufWriteU16(dst, currentControlProfile->throttle.pa_breakpoint);
+        sbufWriteU16(dst, currentControlProfile->throttle.tpa_breakpoint);
         sbufWriteU8(dst, currentControlProfile->stabilized.rcYawExpo8);
         break;
 
@@ -843,7 +843,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, currentControlProfile->throttle.rcMid8);
         sbufWriteU8(dst, currentControlProfile->throttle.rcExpo8);
         sbufWriteU8(dst, currentControlProfile->throttle.dynPID);
-        sbufWriteU16(dst, currentControlProfile->throttle.pa_breakpoint);
+        sbufWriteU16(dst, currentControlProfile->throttle.tpa_breakpoint);
 
         // stabilized
         sbufWriteU8(dst, currentControlProfile->stabilized.rcExpo8);
@@ -2213,7 +2213,7 @@ typedef struct PACKED {
     uint8_t  dynPID;
     uint8_t  throttleRcMid8;
     uint8_t  throttleRcExpo8;
-    uint16_t throttlePaBreakpoint;
+    uint16_t throttleTpaBreakpoint;
 } mspSetRcTuning_t;
 STATIC_ASSERT(sizeof(mspSetRcTuning_t) == 10, mspSetRcTuning_t_size);
 
@@ -2221,7 +2221,7 @@ typedef struct PACKED {
     uint8_t  throttleRcMid8;
     uint8_t  throttleRcExpo8;
     uint8_t  throttleDynPID;
-    uint16_t throttlePaBreakpoint;
+    uint16_t throttleTpaBreakpoint;
     uint8_t  stabilizedRcExpo8;
     uint8_t  stabilizedRcYawExpo8;
     uint8_t  stabilizedRollRate;
@@ -2375,7 +2375,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentControlProfile_p->throttle.dynPID = MIN(pkt.dynPID, SETTING_TPA_RATE_MAX);
             currentControlProfile_p->throttle.rcMid8 = pkt.throttleRcMid8;
             currentControlProfile_p->throttle.rcExpo8 = pkt.throttleRcExpo8;
-            currentControlProfile_p->throttle.pa_breakpoint = pkt.throttlePaBreakpoint;
+            currentControlProfile_p->throttle.tpa_breakpoint = pkt.throttleTpaBreakpoint;
 
             if (dataSize > sizeof(mspSetRcTuning_t)) {
                 uint8_t rcYawExpo8;
@@ -2406,7 +2406,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentControlProfile_p->throttle.rcMid8 = pkt.throttleRcMid8;
             currentControlProfile_p->throttle.rcExpo8 = pkt.throttleRcExpo8;
             currentControlProfile_p->throttle.dynPID = pkt.throttleDynPID;
-            currentControlProfile_p->throttle.pa_breakpoint = pkt.throttlePaBreakpoint;
+            currentControlProfile_p->throttle.tpa_breakpoint = pkt.throttleTpaBreakpoint;
 
             // stabilized
             currentControlProfile_p->stabilized.rcExpo8 = pkt.stabilizedRcExpo8;
@@ -3274,8 +3274,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }
 
             displayPort_t *osdDisplayPort = osdGetDisplayPort();
-            if (osdDisplayPort) {
-                displayWriteFontCharacter(osdDisplayPort, addr, &chr);
+            if (!osdDisplayPort || displayWriteFontCharacter(osdDisplayPort, addr, &chr) < 0) {
+                return MSP_RESULT_ERROR;
             }
         } else {
             return MSP_RESULT_ERROR;
