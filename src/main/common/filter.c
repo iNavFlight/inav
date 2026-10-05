@@ -73,6 +73,7 @@ float FAST_CODE NOINLINE pt1FilterApply3(pt1Filter_t *filter, float input, float
 
 void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau) {
     filter->RC = tau;
+    filter->alpha = filter->dT / (filter->RC + filter->dT);
 }
 
 void pt1FilterSetCutoff(pt1Filter_t *filter, float f_cut)

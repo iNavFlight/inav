@@ -1302,12 +1302,11 @@ static int16_t tpaPitchThrottleAdjustment(void)
     /* Applies correction to throttle input for throttle based tpa to compensate for speed decrease in climb or increase during descent.
      * +ve correction during descent, -ve correction during climb.
      * e.g. +ve correction during descent increases tpa throttle input attenuating PIDS for increased speed during descent */
-
-    int16_t tpaThrottleAdjustment = 0;
-
+ 
     const uint8_t tpaPitchCompensationValue = currentControlProfile->throttle.tpa_pitch_compensation;
-
-    if (currentControlProfile->throttle.fixedWingTauMs && tpaPitchCompensationValue) {
+    int16_t tpaThrottleAdjustment = 0;
+    
+    if (tpaPitchCompensationValue) {
         tpaThrottleAdjustment = constrain(tpaPitchCompensationValue * RADIANS_TO_DEGREES(-HeadVecEFFiltered.z), -PWM_RANGE_MIN, PWM_RANGE_MIN);
     }
 
@@ -1334,7 +1333,10 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
     if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(AUTO_TUNE) && dynamicPID && tpaBreakpoint > throttleIdleValue) {
         // throttleIdleValue + 1 to avoid div zero
         uint16_t pitchThrottleSpeedFactor = constrain(throttle + tpaPitchThrottleAdjustment(), throttleIdleValue + 1, getMaxThrottle());
-        pitchThrottleSpeedFactor = pt1FilterApply(&fixedWingTpaFilter, pitchThrottleSpeedFactor);
+
+        if (currentControlProfile->throttle.fixedWingTauMs) {
+            pitchThrottleSpeedFactor = pt1FilterApply(&fixedWingTpaFilter, pitchThrottleSpeedFactor);
+        }
 
         // Calculate TPA according to throttle with compensation for pitch attitude
         tpaFactor = 0.5f + 0.5f * ((tpaBreakpoint - throttleIdleValue) / (float)(pitchThrottleSpeedFactor - throttleIdleValue));
