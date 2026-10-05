@@ -241,9 +241,7 @@ typedef struct {
     uint8_t   rxBuf[SRXL2_CONTROL_FRAME_MAX];
 } srxl2Esc_t;
 
-// Out of the main RAM of F405 and AT32, which fills first; only the CPU touches it. AT32 does not zero
-// FASTRAM: srxl2MotorInitialize() clears it, and escCount keeps every reader off it until then
-STATIC_FASTRAM srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
+static srxl2Esc_t esc[SRXL2_ESC_MAX_MOTORS];
 static uint8_t    escCount;                 /* ports successfully opened */
 
 /* Shared, because these describe the aircraft rather than one bus. */
