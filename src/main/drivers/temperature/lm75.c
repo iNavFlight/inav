@@ -41,6 +41,7 @@ static bool lm75ReadStart(temperatureDev_t *tempDev)
     return busReadBufStart(tempDev->busDev, LM75_TEMPERATURE_REG_ADDR, buf, 2);
 }
 
+// Parses the result of the last lm75ReadStart(), the bus itself is not touched
 static bool lm75Read(temperatureDev_t *tempDev, int16_t *temperature)
 {
     const uint8_t *buf = busDeviceGetScratchpadMemory(tempDev->busDev);
@@ -52,9 +53,12 @@ static bool lm75Read(temperatureDev_t *tempDev, int16_t *temperature)
 #define DETECTION_MAX_RETRY_COUNT 5
 static bool deviceDetect(temperatureDev_t *tempDev)
 {
+    uint8_t buf[2];
+
+    // Blocking read: only a chip that acknowledges counts, lm75Read() alone cannot tell whether one is there
     for (int retryCount = 0; retryCount < DETECTION_MAX_RETRY_COUNT; retryCount++) {
         delay(10);
-        if (lm75Read(tempDev, NULL)) return true;
+        if (busReadBuf(tempDev->busDev, LM75_TEMPERATURE_REG_ADDR, buf, 2)) return true;
     }
 
     return false;
@@ -70,6 +74,12 @@ bool lm75Detect(temperatureDev_t *tempDev, uint8_t partialAddress)
     }
 
     if (!deviceDetect(tempDev)) {
+        busDeviceDeInit(tempDev->busDev);
+        return false;
+    }
+
+    // Get the result buffer now, lm75ReadStart() runs from the scheduler and must not be the first to allocate it
+    if (busDeviceGetScratchpadMemory(tempDev->busDev) == NULL) {
         busDeviceDeInit(tempDev->busDev);
         return false;
     }

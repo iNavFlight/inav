@@ -190,7 +190,12 @@ bool tempSensorStringToAddress(const char *hex_address, uint64_t *address)
 
 static uint8_t temperatureUpdateSensorIndex;
 static bool temperatureUpdateValueValid;
+
+#ifdef USE_TEMPERATURE_LM75
+// Protothread state: locals do not survive a ptWait(), so the sensor being read lives here
+static temperatureDev_t *temperatureUpdateDev;
 static bool temperatureBusError;
+#endif
 
 #ifdef DS18B20_DRIVER_AVAILABLE
 static uint8_t temperatureUpdateIndex;
@@ -229,14 +234,14 @@ PROTOTHREAD(temperatureUpdate)
 #ifdef USE_TEMPERATURE_LM75
             if (configSlot->type == TEMP_SENSOR_LM75) {
                 if (configSlot->address < 8) {
-                    temperatureDev_t *dev = lm75Dev + configSlot->address;
-                    if (dev->readStart) {
+                    temperatureUpdateDev = lm75Dev + configSlot->address;
+                    if (temperatureUpdateDev->readStart) {
                         // non-blocking read: start it, wait for the bus, then parse
-                        if (dev->readStart(dev)) {
-                            ptWait(!busIsBusy(dev->busDev, &temperatureBusError));
-                            if (!temperatureBusError && dev->read(dev, &tempSensorValue[temperatureUpdateSensorIndex])) temperatureUpdateValueValid = true;
+                        if (temperatureUpdateDev->readStart(temperatureUpdateDev)) {
+                            ptWait(!busIsBusy(temperatureUpdateDev->busDev, &temperatureBusError));
+                            if (!temperatureBusError && temperatureUpdateDev->read(temperatureUpdateDev, &tempSensorValue[temperatureUpdateSensorIndex])) temperatureUpdateValueValid = true;
                         }
-                    } else if (dev->read && dev->read(dev, &tempSensorValue[temperatureUpdateSensorIndex])) {
+                    } else if (temperatureUpdateDev->read && temperatureUpdateDev->read(temperatureUpdateDev, &tempSensorValue[temperatureUpdateSensorIndex])) {
                         temperatureUpdateValueValid = true;
                     }
                 }
@@ -244,7 +249,8 @@ PROTOTHREAD(temperatureUpdate)
 #endif
 
 #ifdef DS18B20_DRIVER_AVAILABLE
-            if ((configSlot->type == TEMP_SENSOR_DS18B20) && owDev) {
+            // configSlot is stale once the LM75 ptWait() above has resumed, read the slot again
+            if ((tempSensorConfig(temperatureUpdateSensorIndex)->type == TEMP_SENSOR_DS18B20) && owDev) {
                 bool ack = owDev->owResetCommand(owDev);
                 if (!ack) goto temperatureUpdateError;
                 ptWait(owDev->owBusReady(owDev));

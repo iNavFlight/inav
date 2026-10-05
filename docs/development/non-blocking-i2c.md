@@ -122,12 +122,15 @@ polarity it needs is read once at init.
   blocking, two short transfers per byte.
 * PCF8574: the output write is fired and forgotten, with the blocking write
   as fallback.
-* OLED (`display_ug2864hsweg01.c`): bytes are queued and `i2c_OLED_pump()`
-  sends runs of up to 15 commands or data bytes as one transfer. The
-  dashboard task calls the pump every millisecond while the queue holds
-  data, the CMS display port reports the queue through
-  `isTransferInProgress`. A full queue and the initialisation drain
-  synchronously.
+* OLED (`display_ug2864hsweg01.c`): the drawing calls write into a shadow
+  of the panel's GDDRAM (8 pages x 128 columns) and never wait for the bus.
+  `i2c_OLED_pump()` streams the columns that changed: a 3 byte page/column
+  address run, then data runs of up to 15 bytes, one transfer per call. The
+  dashboard task calls the pump every millisecond while something is dirty,
+  the CMS display port reports that through `isTransferInProgress`. A
+  column rewritten with the same value costs nothing, a chunk lost to a bus
+  error is marked dirty again and the pump backs off for 200 ms. Only the
+  initialisation (command table, first clear) is blocking.
 
 ## Converting a driver
 

@@ -449,7 +449,7 @@ static VL53L1X_ERROR VL53L1X_SetInterMeasurementInMs(busDevice_t * dev,
 /**
  * @brief This function returns the distance measured by the sensor in mm
  */
-static VL53L1X_ERROR VL53L1X_GetDistance(busDevice_t * dev, uint16_t *distance);
+// VL53L1X_ERROR VL53L1X_GetDistance(busDevice_t * dev, uint16_t *distance);
 
 /**
  * @brief This function returns the returned signal per SPAD in kcps/SPAD.
@@ -1233,16 +1233,17 @@ static VL53L1X_ERROR VL53L1X_SetInterMeasurementInMs(busDevice_t * dev, uint32_t
 //     return status;
 // }
 
-static VL53L1X_ERROR VL53L1X_GetDistance(busDevice_t * dev, uint16_t *distance)
-{
-    VL53L1X_ERROR status = 0;
-    uint16_t tmp;
-
-    status = (VL53L1_RdWord(dev,
-            VL53L1_RESULT__FINAL_CROSSTALK_CORRECTED_RANGE_MM_SD0, &tmp));
-    *distance = tmp;
-    return status;
-}
+// The asynchronous read step fetches the distance register itself, kept for reference like the other unused API calls
+// VL53L1X_ERROR VL53L1X_GetDistance(busDevice_t * dev, uint16_t *distance)
+// {
+//     VL53L1X_ERROR status = 0;
+//     uint16_t tmp;
+//
+//     status = (VL53L1_RdWord(dev,
+//             VL53L1_RESULT__FINAL_CROSSTALK_CORRECTED_RANGE_MM_SD0, &tmp));
+//     *distance = tmp;
+//     return status;
+// }
 
 // VL53L1X_ERROR VL53L1X_GetSignalPerSpad(busDevice_t * dev, uint16_t *signalRate)
 // {

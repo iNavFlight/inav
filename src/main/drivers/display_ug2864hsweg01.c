@@ -189,24 +189,71 @@ static const uint8_t multiWiiFont[][5] = { // Refer to "Times New Roman" Font Da
 static busDevice_t *busDev = NULL;
 
 /*
- * Bytes for the display are queued and sent in the background: i2c_OLED_pump() takes a run of bytes of the same
- * kind (commands or data) and sends it as one non-blocking transfer. The dashboard task calls the pump every
- * millisecond while there is work. A full queue is drained synchronously so nothing is lost.
+ * The display is drawn into a shadow of its GDDRAM (8 pages of 128 columns). The drawing calls only touch the
+ * shadow and never wait for the bus; i2c_OLED_pump() streams the columns that changed, one non-blocking transfer
+ * at a time: a 3 byte page/column address run, then runs of up to OLED_TX_CHUNK_SIZE data bytes. The dashboard
+ * task calls the pump every millisecond while there is work. A column written while it is on the wire is marked
+ * dirty again and goes out on the next round, a column rewritten with the same value costs nothing.
  */
-#define OLED_TX_QUEUE_SIZE      256
+#define OLED_PAGE_COUNT         (SCREEN_HEIGHT / 8)
 #define OLED_TX_CHUNK_SIZE      15      // with the control byte this fits the smallest I2C controller FIFO (RP2350)
 #define OLED_CONTROL_COMMANDS   0x00    // Co = 0, D/C = 0: a run of command bytes follows
 #define OLED_CONTROL_DATA       0x40    // Co = 0, D/C = 1: a run of display data follows
-#define OLED_QUEUE_CMD_FLAG     0x100   // marks a command byte in the queue
+#define OLED_ERROR_BACKOFF_US   200000  // after a lost chunk leave the bus alone for a while, a dead display must not hog it
 
-static uint16_t oledQueue[OLED_TX_QUEUE_SIZE];
-static uint16_t oledQueueHead = 0;
-static uint16_t oledQueueTail = 0;
-static uint16_t oledQueueCount = 0;
-static uint8_t oledChunk[OLED_TX_CHUNK_SIZE];   // the run being sent, it must outlive the transfer
-static uint8_t oledChunkLen = 0;
+static uint8_t oledFrame[OLED_PAGE_COUNT][SCREEN_WIDTH];
+static uint8_t oledDirtyFirst[OLED_PAGE_COUNT];     // first changed column of the page, SCREEN_WIDTH when the page is clean
+static uint8_t oledDirtyLast[OLED_PAGE_COUNT];      // last changed column of the page
+
+// Drawing cursor, advanced by i2c_OLED_send_byte()
+static uint8_t oledCursorPage = 0;
+static uint8_t oledCursorCol = 0;
+
+// The run of dirty columns being streamed and the chunk of it on the wire (the chunk must outlive the transfer)
+static bool oledRunActive = false;
+static bool oledRunNeedsAddress = true;             // the next chunk has to set the page / column address
+static uint8_t oledRunPage = 0;
+static uint8_t oledRunCol = 0;                      // next column of the run to send
+static uint8_t oledRunEnd = 0;                      // one past the last column of the run
+static uint8_t oledChunk[OLED_TX_CHUNK_SIZE];
+static uint8_t oledChunkLen = 0;                    // > 0: chunk built, waiting for the bus or in flight
 static bool oledChunkIsCmd = false;
+static uint8_t oledChunkCol = 0;                    // first column carried by a data chunk, re-dirtied on a bus error
 static bool oledTransferPending = false;
+static timeUs_t oledRetryAtUs = 0;                  // no transfer is started before this time
+
+// SH1106 has 132-wide GDDRAM but only 128 columns are visible; the first
+// 2 columns are hidden, so writes must start 2 columns in. Other controllers
+// use the full visible width and need no offset.
+static uint8_t oledColumnOffset(void)
+{
+    return (detectedController == OLED_CONTROLLER_SH1106) ? 2 : 0;
+}
+
+static void oledMarkDirty(uint8_t page, uint8_t first, uint8_t last)
+{
+    if (first < oledDirtyFirst[page]) {
+        oledDirtyFirst[page] = first;
+    }
+    if (last > oledDirtyLast[page]) {
+        oledDirtyLast[page] = last;
+    }
+}
+
+static void oledResetState(void)
+{
+    oledTransferPending = false;
+    oledChunkLen = 0;
+    oledRunActive = false;
+    oledRunNeedsAddress = true;
+    oledRetryAtUs = 0;
+    oledCursorPage = 0;
+    oledCursorCol = 0;
+    for (uint8_t page = 0; page < OLED_PAGE_COUNT; page++) {
+        oledDirtyFirst[page] = SCREEN_WIDTH;
+        oledDirtyLast[page] = 0;
+    }
+}
 
 bool i2c_OLED_pump(void)
 {
@@ -218,22 +265,62 @@ bool i2c_OLED_pump(void)
 
     if (oledTransferPending) {
         if (busIsBusy(busDev, &busError) && !busError) {
-            return true;                        // chunk still on the bus
+            return true;                            // chunk still on the bus
         }
         oledTransferPending = false;
-        oledChunkLen = 0;                       // sent, or lost on a bus error - the next page refresh repairs the display
+        oledChunkLen = 0;
+        if (busError) {
+            // The chunk was lost and the display's column pointer is unknown: redo its columns, address again
+            if (!oledChunkIsCmd) {
+                oledMarkDirty(oledRunPage, oledChunkCol, oledRunCol - 1);
+            }
+            oledRunNeedsAddress = true;
+            oledRetryAtUs = micros() + OLED_ERROR_BACKOFF_US;
+        }
     }
 
     if (oledChunkLen == 0) {
-        if (oledQueueCount == 0) {
-            return false;
+        if (cmpTimeUs(micros(), oledRetryAtUs) < 0) {
+            return false;                           // backing off after a lost chunk, the dirty columns wait
         }
-        // Gather a run of bytes of the same kind
-        oledChunkIsCmd = (oledQueue[oledQueueHead] & OLED_QUEUE_CMD_FLAG) != 0;
-        while (oledChunkLen < OLED_TX_CHUNK_SIZE && oledQueueCount > 0 && ((oledQueue[oledQueueHead] & OLED_QUEUE_CMD_FLAG) != 0) == oledChunkIsCmd) {
-            oledChunk[oledChunkLen++] = oledQueue[oledQueueHead] & 0xFF;
-            oledQueueHead = (oledQueueHead + 1) % OLED_TX_QUEUE_SIZE;
-            oledQueueCount--;
+
+        if (!oledRunActive) {
+            // Take the dirty columns of the first changed page
+            uint8_t page = 0;
+            while (page < OLED_PAGE_COUNT && oledDirtyFirst[page] >= SCREEN_WIDTH) {
+                page++;
+            }
+            if (page >= OLED_PAGE_COUNT) {
+                return false;
+            }
+            oledRunActive = true;
+            oledRunNeedsAddress = true;
+            oledRunPage = page;
+            oledRunCol = oledDirtyFirst[page];
+            oledRunEnd = oledDirtyLast[page] + 1;
+            oledDirtyFirst[page] = SCREEN_WIDTH;        // writes from now on mark the page dirty again
+            oledDirtyLast[page] = 0;
+        }
+
+        if (oledRunNeedsAddress) {
+            const uint8_t pixelCol = oledRunCol + oledColumnOffset();
+            oledChunk[0] = 0xB0 + oledRunPage;                  // set page address
+            oledChunk[1] = 0x00 + (pixelCol & 0x0F);            // set low column address
+            oledChunk[2] = 0x10 + ((pixelCol >> 4) & 0x0F);     // set high column address
+            oledChunkLen = 3;
+            oledChunkIsCmd = true;
+            oledRunNeedsAddress = false;
+        }
+        else {
+            const uint8_t remaining = oledRunEnd - oledRunCol;
+            oledChunkLen = (remaining > OLED_TX_CHUNK_SIZE) ? OLED_TX_CHUNK_SIZE : remaining;
+            memcpy(oledChunk, &oledFrame[oledRunPage][oledRunCol], oledChunkLen);
+            oledChunkIsCmd = false;
+            oledChunkCol = oledRunCol;
+            oledRunCol += oledChunkLen;
+            if (oledRunCol >= oledRunEnd) {
+                oledRunActive = false;                  // the run is complete once this chunk is out
+            }
         }
     }
 
@@ -244,12 +331,23 @@ bool i2c_OLED_pump(void)
 
 bool i2c_OLED_isBusy(void)
 {
-    return oledTransferPending || oledChunkLen > 0 || oledQueueCount > 0;
+    if (!busDev) {
+        return false;
+    }
+    if (oledTransferPending || oledChunkLen > 0 || oledRunActive) {
+        return true;
+    }
+    for (uint8_t page = 0; page < OLED_PAGE_COUNT; page++) {
+        if (oledDirtyFirst[page] < SCREEN_WIDTH) {
+            return true;
+        }
+    }
+    return false;
 }
 
 uint32_t i2c_OLED_txBytesFree(void)
 {
-    return OLED_TX_QUEUE_SIZE - oledQueueCount;
+    return sizeof(oledFrame);       // drawing goes to the shadow frame and never waits for the bus
 }
 
 void i2c_OLED_flush(void)
@@ -258,91 +356,50 @@ void i2c_OLED_flush(void)
     }
 }
 
-static bool oledQueuePush(uint16_t entry)
-{
-    if (!busDev) {
-        return false;
-    }
-
-    while (oledQueueCount >= OLED_TX_QUEUE_SIZE) {
-        i2c_OLED_pump();                        // full: finish what is on the bus and send the next chunk right away
-    }
-
-    oledQueue[oledQueueTail] = entry;
-    oledQueueTail = (oledQueueTail + 1) % OLED_TX_QUEUE_SIZE;
-    oledQueueCount++;
-    return true;
-}
-
-static bool i2c_OLED_send_cmd(uint8_t command)
-{
-    return oledQueuePush(command | OLED_QUEUE_CMD_FLAG);
-}
-
 bool i2c_OLED_send_byte(uint8_t val)
 {
-    return oledQueuePush(val);
-}
-
-// SH1106 has 132-wide GDDRAM but only 128 columns are visible; the first
-// 2 columns are hidden, so writes must start 2 columns in. Other controllers
-// use the full visible width and need no offset.
-static uint8_t oledColumnOffset(void)
-{
-    return (detectedController == OLED_CONTROLLER_SH1106) ? 2 : 0;
-}
-
-void i2c_OLED_clear_display(void)
-{
-    // SH1106 only supports page addressing mode; use page-by-page clear for all controllers
-    uint8_t startCol = oledColumnOffset();
-
-    i2c_OLED_send_cmd(0xa6);  // Set Normal Display
-    i2c_OLED_send_cmd(0xae);  // Display OFF
-    i2c_OLED_send_cmd(0x40);  // Display start line register to 0
-
-    for (uint8_t page = 0; page < 8; page++) {
-        i2c_OLED_send_cmd(0xb0 + page);                      // set page address
-        i2c_OLED_send_cmd(0x00 + (startCol & 0x0f));         // set low col address
-        i2c_OLED_send_cmd(0x10 + ((startCol >> 4) & 0x0f)); // set high col address
-        for (uint8_t col = 0; col < 128; col++) {
-            i2c_OLED_send_byte(0x00);
-        }
+    if (!busDev || oledCursorPage >= OLED_PAGE_COUNT || oledCursorCol >= SCREEN_WIDTH) {
+        return false;               // off the panel, dropped rather than wrapped (the controllers differ here)
     }
 
-    i2c_OLED_send_cmd(0x81);  // Setup CONTRAST CONTROL
-    i2c_OLED_send_cmd(200);   // Contrast value (1=dull, 255=very bright)
-    i2c_OLED_send_cmd(0xaf);  // display on
+    if (oledFrame[oledCursorPage][oledCursorCol] != val) {
+        oledFrame[oledCursorPage][oledCursorCol] = val;
+        oledMarkDirty(oledCursorPage, oledCursorCol, oledCursorCol);
+    }
+    oledCursorCol++;
+    return true;
 }
 
 void i2c_OLED_clear_display_quick(void)
 {
-    uint8_t startCol = oledColumnOffset();
-
-    for (uint8_t page = 0; page < 8; page++) {
-        i2c_OLED_send_cmd(0xb0 + page);                      // set page address
-        i2c_OLED_send_cmd(0x00 + (startCol & 0x0f));         // set low col address
-        i2c_OLED_send_cmd(0x10 + ((startCol >> 4) & 0x0f)); // set high col address
-        for (uint8_t col = 0; col < 128; col++) {
-            i2c_OLED_send_byte(0x00);
-        }
+    memset(oledFrame, 0, sizeof(oledFrame));
+    for (uint8_t page = 0; page < OLED_PAGE_COUNT; page++) {
+        oledMarkDirty(page, 0, SCREEN_WIDTH - 1);   // the panel may hold anything, send the whole frame
     }
+}
+
+// Initialisation only, blocking: blanks the panel while it is switched off
+void i2c_OLED_clear_display(void)
+{
+    static const uint8_t displayOff[] = { 0xA6, 0xAE, 0x40 };   // normal display, display off, start line 0
+    static const uint8_t displayOn[] = { 0x81, 200, 0xAF };     // contrast (1 = dull, 255 = very bright), display on
+
+    busWriteBuf(busDev, OLED_CONTROL_COMMANDS, displayOff, sizeof(displayOff));
+    i2c_OLED_clear_display_quick();
+    i2c_OLED_flush();
+    busWriteBuf(busDev, OLED_CONTROL_COMMANDS, displayOn, sizeof(displayOn));
 }
 
 void i2c_OLED_set_xy(uint8_t col, uint8_t row)
 {
-    uint8_t pixelCol = CHARACTER_WIDTH_TOTAL * col + oledColumnOffset();
-    i2c_OLED_send_cmd(0xb0 + row);                           // set page address
-    i2c_OLED_send_cmd(0x00 + (pixelCol & 0x0f));             // set low col address
-    i2c_OLED_send_cmd(0x10 + ((pixelCol >> 4) & 0x0f));     // set high col address
+    oledCursorPage = row;
+    oledCursorCol = CHARACTER_WIDTH_TOTAL * col;    // the SH1106 column offset is applied when the panel is addressed
 }
 
 void i2c_OLED_set_line(uint8_t row)
 {
-    uint8_t startCol = oledColumnOffset();
-    i2c_OLED_send_cmd(0xb0 + row);                           // set page address
-    i2c_OLED_send_cmd(0x00 + (startCol & 0x0f));             // set low col address
-    i2c_OLED_send_cmd(0x10 + ((startCol >> 4) & 0x0f));     // set high col address
+    oledCursorPage = row;
+    oledCursorCol = 0;
 }
 
 void i2c_OLED_send_char(unsigned char ascii)
@@ -436,12 +493,32 @@ static oledControllerType_e detectOledController(void)
 */
 bool ug2864hsweg01InitI2C(void)
 {
+    // Sent as one blocking write: the display has to be ready before anything is drawn on it
+    static const uint8_t initCommands[] = {
+        0xD4, 0x80,     // Set Display Clock Divide Ratio / OSC Frequency
+        0xA8, 0x3F,     // Set Multiplex Ratio for 128x64 (64-1)
+        0xD3, 0x00,     // Set Display Offset
+        0x40,           // Set Display Start Line
+        0x8D, 0x14,     // Set Charge Pump (0x10 External, 0x14 Internal DC/DC)
+        0xA1,           // Set Segment Re-Map
+        0xC8,           // Set Com Output Scan Direction
+        0xDA, 0x12,     // Set COM Hardware Configuration
+        0x81, 0xCF,     // Set Contrast
+        0xD9, 0xF1,     // Set Pre-Charge Period (0x22 External, 0xF1 Internal)
+        0xDB, 0x40,     // Set VCOMH Deselect Level
+        0xA4,           // Set all pixels OFF
+        0xA6,           // Set display not inverted
+        0xAF,           // Set display On
+    };
+
     busDev = busDeviceInit(BUSTYPE_I2C, DEVHW_UG2864, 0, OWNER_OLED_DISPLAY);
 
     if (!busDev) {
         LOG_ERROR(SYSTEM, "OLED: Bus device init failed");
         return false;
     }
+
+    oledResetState();
 
     // Detect the OLED controller type before initialization
     detectedController = detectOledController();
@@ -452,32 +529,12 @@ bool ug2864hsweg01InitI2C(void)
         return false;
     }
 
-    i2c_OLED_send_cmd(0xD4); // Set Display Clock Divide Ratio / OSC Frequency
-    i2c_OLED_send_cmd(0x80); // Display Clock Divide Ratio / OSC Frequency
-    i2c_OLED_send_cmd(0xA8); // Set Multiplex Ratio
-    i2c_OLED_send_cmd(0x3F); // Multiplex Ratio for 128x64 (64-1)
-    i2c_OLED_send_cmd(0xD3); // Set Display Offset
-    i2c_OLED_send_cmd(0x00); // Display Offset
-    i2c_OLED_send_cmd(0x40); // Set Display Start Line
-    i2c_OLED_send_cmd(0x8D); // Set Charge Pump
-    i2c_OLED_send_cmd(0x14); // Charge Pump (0x10 External, 0x14 Internal DC/DC)
+    if (!busWriteBuf(busDev, OLED_CONTROL_COMMANDS, initCommands, sizeof(initCommands))) {
+        LOG_ERROR(SYSTEM, "OLED: Failed to send the init sequence");
+        return false;
+    }
 
-    i2c_OLED_send_cmd(0xA1); // Set Segment Re-Map
-    i2c_OLED_send_cmd(0xC8); // Set Com Output Scan Direction
-    i2c_OLED_send_cmd(0xDA); // Set COM Hardware Configuration
-    i2c_OLED_send_cmd(0x12); // COM Hardware Configuration
-    i2c_OLED_send_cmd(0x81); // Set Contrast
-    i2c_OLED_send_cmd(0xCF); // Contrast
-    i2c_OLED_send_cmd(0xD9); // Set Pre-Charge Period
-    i2c_OLED_send_cmd(0xF1); // Set Pre-Charge Period (0x22 External, 0xF1 Internal)
-    i2c_OLED_send_cmd(0xDB); // Set VCOMH Deselect Level
-    i2c_OLED_send_cmd(0x40); // VCOMH Deselect Level
-    i2c_OLED_send_cmd(0xA4); // Set all pixels OFF
-    i2c_OLED_send_cmd(0xA6); // Set display not inverted
-    i2c_OLED_send_cmd(0xAF); // Set display On
-
-    i2c_OLED_clear_display();
-    i2c_OLED_flush();           // initialisation runs to completion before the display is used
+    i2c_OLED_clear_display();   // the panel is blank and switched on when this returns
 
     return true;
 }
