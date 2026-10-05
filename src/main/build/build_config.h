@@ -63,6 +63,11 @@
  * only costs space beyond what MSC already uses, not on top of it. No consumer
  * exists yet, this only reserves the space. F411/F446 (FASTRAM aliases plain
  * RAM, no separate bank) get plain FASTRAM here - nothing to reclaim.
+ *
+ * .fastram_bss_my_thing would sit outside the startup zero-fill loop too, same
+ * as .fastram_bss_msc_only - whoever adds that consumer needs their own
+ * explicit zero on the MSC path's model (FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO,
+ * mscZeroOnlyRegion() below), not bss zero-init.
  */
 #ifdef __APPLE__
 #define FASTRAM_MSC_ONLY             __attribute__ ((section("__DATA,__.fastram_bss_msc"), aligned(8)))
@@ -70,11 +75,12 @@
 #define FASTRAM_MSC_ONLY             __attribute__ ((section(".fastram_bss.msc_only"), aligned(4)))
 #endif
 
-// F405/F427's CCM zero-fill loop (startup_stm32f40[27]xx.s) stops at
-// __fastram_bss_end__, before this carved-out sub-section - mscInit()
-// (usb_msc_f4xx.c) zeroes it explicitly instead. AT32F43x already does its own
-// explicit zeroing (usb_msc_at32f43x.c / emfat_file.c); F411/F446/F7/H7 don't
-// need this at all.
+// This sub-section sits ahead of .fastram_bss in the linker scripts
+// (stm32_flash.ld / at32_flash_f4_split.ld), outside the range F405/F427's CCM
+// zero-fill loop (startup_stm32f40[27]xx.s) covers - mscZeroOnlyRegion()
+// (usb_msc_f4xx.c) zeroes it explicitly instead, on the MSC path only
+// (fc/fc_init.c). AT32F43x already does its own explicit zeroing
+// (usb_msc_at32f43x.c / emfat_file.c); F411/F446/F7/H7 don't need this at all.
 #if defined(STM32F405xx) || defined(STM32F427_437xx)
 #define FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO
 #endif
