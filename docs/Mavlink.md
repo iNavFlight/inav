@@ -6,6 +6,10 @@ INAV supports up to 4 concurrent MAVLink telemetry ports (`MAX_MAVLINK_PORTS`), 
 
 INAV builds against the checked-in generated `storm32` MAVLink headers/dialect bundle, which includes the native mLRS messages used by the implementation. The STorM32 dialect is a superset of the ArduPilot and common message sets.
 
+## Target support
+
+MAVLink is built only into targets with more than 512 KB of flash (STM32F405, STM32F745, STM32F765, STM32H743, AT32F435, etc.). On 512 KB targets, which includes every STM32F722 and STM32F411 board, the whole subsystem is absent: no MAVLink telemetry, no MAVLink serial RX, and no MSP-over-MAVLink tunnel. Everything described on this page applies only to the larger targets.
+
 ## What INAV currently supports
 
 - Multiport MAVLink telemetry on up to 4 serial ports, with per-port stream rates, radio type, and high-latency mode.
@@ -260,6 +264,7 @@ CLI mode is unavailable in MSP-over-MAVLink.
 - `target_component` may be `0` or `MAV_COMP_ID_AUTOPILOT1`.
 - `target_component = 0` is handled on the ingress MAVLink port only; it is not fanned out to other local MAVLink ports.
 - MSP replies are sent back to the requester as one or more `TUNNEL` messages on that same ingress port.
+- A reply that does not fit into the port's free TX buffer at once is sent over the following telemetry cycles instead of being dropped. The tunnel serves one request at a time: a request that arrives while a reply is still being sent is discarded, so wait for the complete reply before sending the next request; a reply that makes no progress for one second is abandoned.
 - MSP framing is preserved end-to-end: MSPv1 requests get MSPv1 replies, and MSPv2 requests get MSPv2 replies.
 - Reboot (`MSP_REBOOT`) is supported over the tunnel. Serial passthrough and ESC 4way passthrough are rejected before execution.
 

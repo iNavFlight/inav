@@ -20,40 +20,72 @@ static void mavlinkReleaseTunnelOwnerIfIdle(uint8_t ingressPortIndex)
     }
 }
 
-static void mavlinkSendTunnelReply(uint8_t targetSystem, uint8_t targetComponent, const uint8_t *payload, uint8_t payloadLength)
+static bool mavlinkTunnelMspReplyIsPending(void)
 {
-    uint8_t tunnelPayload[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN] = { 0 };
-    memcpy(tunnelPayload, payload, payloadLength);
-
-    mavlink_msg_tunnel_pack(
-        mavSystemId,
-        mavComponentId,
-        &mavSendMsg,
-        targetSystem,
-        targetComponent,
-        MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP,
-        payloadLength,
-        tunnelPayload);
-    mavlinkSendMessage();
+    return mavTunnelPendingReply.offset < mavTunnelPendingReply.frame.totalLength;
 }
 
-static bool mavlinkSendTunnelMspReply(uint8_t targetSystem, uint8_t targetComponent, mspPacket_t *reply, uint8_t *replyPayloadHead, mspVersion_e mspVersion)
+// Must not block on TX drain; the telemetry cycle resumes whatever does not fit now.
+void mavlinkFlushTunnelMspReply(uint8_t portIndex)
+{
+    mavlinkTunnelPendingReply_t *pending = &mavTunnelPendingReply;
+    if (!mavlinkTunnelMspReplyIsPending()) {
+        return;
+    }
+
+    // Abandoned on any port's call, so a reply stuck in half-duplex backoff or a stalled TX cannot lock the tunnel.
+    if ((millis() - pending->lastProgressMs) >= MAVLINK_TUNNEL_MSP_TIMEOUT_MS) {
+        memset(pending, 0, sizeof(*pending));
+        return;
+    }
+
+    if (pending->portIndex != portIndex) {
+        return;
+    }
+
+    while (mavlinkTunnelMspReplyIsPending()) {
+        uint8_t chunk[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN] = { 0 };
+        const int chunkLength = mspSerialFrameCopyRange(&pending->frame, pending->offset, chunk, sizeof(chunk));
+        if (chunkLength <= 0) {
+            break;
+        }
+
+        mavlink_msg_tunnel_pack(
+            mavSystemId,
+            mavComponentId,
+            &mavSendMsg,
+            pending->targetSystem,
+            pending->targetComponent,
+            MAVLINK_TUNNEL_PAYLOAD_TYPE_INAV_MSP,
+            chunkLength,
+            chunk);
+        if (!mavlinkSendMessageToPortIfRoom(portIndex)) {
+            return;
+        }
+
+        pending->offset += chunkLength;
+        pending->lastProgressMs = millis();
+    }
+
+    memset(pending, 0, sizeof(*pending));
+}
+
+static bool mavlinkSendTunnelMspReply(uint8_t ingressPortIndex, uint8_t targetSystem, uint8_t targetComponent, mspPacket_t *reply, uint8_t *replyPayloadHead, mspVersion_e mspVersion)
 {
     sbufSwitchToReader(&reply->buf, replyPayloadHead);
 
-    mspEncodedFrame_t frame;
-    if (!mspSerialPrepareFrame(reply, mspVersion, &frame)) {
+    mavlinkTunnelPendingReply_t *pending = &mavTunnelPendingReply;
+    if (!mspSerialPrepareFrame(reply, mspVersion, &pending->frame)) {
+        memset(pending, 0, sizeof(*pending));
         return false;
     }
 
-    uint8_t chunk[MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN];
-    for (int offset = 0; offset < frame.totalLength; offset += MAVLINK_MSG_TUNNEL_FIELD_PAYLOAD_LEN) {
-        const int chunkLength = mspSerialFrameCopyRange(&frame, offset, chunk, sizeof(chunk));
-        if (chunkLength <= 0) {
-            return false;
-        }
-        mavlinkSendTunnelReply(targetSystem, targetComponent, chunk, chunkLength);
-    }
+    pending->offset = 0;
+    pending->portIndex = ingressPortIndex;
+    pending->targetSystem = targetSystem;
+    pending->targetComponent = targetComponent;
+    pending->lastProgressMs = millis();
+    mavlinkFlushTunnelMspReply(ingressPortIndex);
     return true;
 }
 
@@ -94,11 +126,18 @@ static bool mavlinkProcessCompletedTunnelCommand(uint8_t ingressPortIndex)
     };
     uint8_t *replyPayloadHead = reply.buf.ptr;
 
+    // Clients wait for the full reply before the next request, so only pipelining clients or a second port hit this.
+    if (mavlinkTunnelMspReplyIsPending()) {
+        mspPort->c_state = MSP_IDLE;
+        return false;
+    }
+
     if (mspPort->cmdMSP == MSP_SET_PASSTHROUGH) {
         reply.cmd = MSP_SET_PASSTHROUGH;
         reply.result = MSP_RESULT_ERROR;
         mspPort->c_state = MSP_IDLE;
         mavlinkSendTunnelMspReply(
+            ingressPortIndex,
             mavlinkContext.recvMsg.sysid,
             mavlinkContext.recvMsg.compid,
             &reply,
@@ -120,6 +159,7 @@ static bool mavlinkProcessCompletedTunnelCommand(uint8_t ingressPortIndex)
 
     if (status != MSP_RESULT_NO_REPLY) {
         mavlinkSendTunnelMspReply(
+            ingressPortIndex,
             mavlinkContext.recvMsg.sysid,
             mavlinkContext.recvMsg.compid,
             &reply,
@@ -132,6 +172,11 @@ static bool mavlinkProcessCompletedTunnelCommand(uint8_t ingressPortIndex)
     }
 
     waitForSerialPortToFinishTransmitting(mavPortStates[ingressPortIndex].port);
+    // A reply left pending by a full TX ring would otherwise be lost to the reboot.
+    if (mavlinkTunnelMspReplyIsPending()) {
+        mavlinkFlushTunnelMspReply(ingressPortIndex);
+        waitForSerialPortToFinishTransmitting(mavPortStates[ingressPortIndex].port);
+    }
     mspPostProcessFn(mavPortStates[ingressPortIndex].port);
     return true;
 }

@@ -2,7 +2,7 @@
 
 Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harvest_enums.py`; rendered by `gen_docs.py`. Do not edit by hand.
 
-398 enums.
+403 enums.
 
 ---
 ## `ADCDevice`
@@ -160,12 +160,13 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 | `FLIGHT_LOG_FIELD_CONDITION_RC_DATA` | 56 | |
 | `FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND` | 57 | |
 | `FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW` | 58 | |
-| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL` | 59 | |
-| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH` | 60 | |
-| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW` | 61 | |
-| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 62 | |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY` | 59 | USE_DUAL_GYRO |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL` | 60 | |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH` | 61 | |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW` | 62 | |
+| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 63 | |
 | `FLIGHT_LOG_FIELD_CONDITION_FIRST` | 0 | |
-| `FLIGHT_LOG_FIELD_CONDITION_LAST` | 62 | |
+| `FLIGHT_LOG_FIELD_CONDITION_LAST` | 63 | |
 
 ---
 ## `FlightLogFieldEncoding`
@@ -1240,7 +1241,8 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 | `BOXAUTOSPEED` | 60 | |
 | `BOXTERRAINAGLHOLD` | 61 | |
 | `BOXINFLIGHTMENU` | 62 | |
-| `CHECKBOX_ITEM_COUNT` | 63 | |
+| `BOXTHRUSTREVERSE` | 63 | |
+| `CHECKBOX_ITEM_COUNT` | 64 | |
 
 ---
 ## `busIndex_e`
@@ -3037,6 +3039,7 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 | `LED_OVERLAY_INDICATOR` | 4 | |
 | `LED_OVERLAY_WARNING` | 5 | |
 | `LED_OVERLAY_STROBE` | 6 | |
+| `LED_OVERLAY_RAINBOW` | 7 | |
 
 ---
 ## `ledSpecialColorIds_e`
@@ -3552,6 +3555,7 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 | `PWM_TYPE_DSHOT150` | 4 | |
 | `PWM_TYPE_DSHOT300` | 5 | |
 | `PWM_TYPE_DSHOT600` | 6 | |
+| `PWM_TYPE_SRXL2` | 7 | |
 
 ---
 ## `motorStatus_e`
@@ -3688,6 +3692,17 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 | `FW_LAUNCH_DETECTED` | 5 | |
 | `FW_LAUNCH_ABORTED` | 10 | |
 | `FW_LAUNCH_FLYING` | 11 | |
+
+---
+## `navFwWpTurnMode_e`
+> From inav/src/main/navigation/navigation.h
+
+| Member | Value | Condition |
+|---|---:|---|
+| `NAV_FW_WP_TURN_DIRECT` | 0 | |
+| `NAV_FW_WP_TURN_COORD_FLY_BY` | 1 | |
+| `NAV_FW_WP_TURN_COORD_FLY_OVER` | 2 | |
+| `NAV_FW_WP_TURN_COORD_FLY_INTO` | 3 | |
 
 ---
 ## `navMcAltHoldThrottle_e`
@@ -5478,6 +5493,7 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 | `FUNCTION_MSP_OSD` | 33554432 | |
 | `FUNCTION_GIMBAL` | 67108864 | |
 | `FUNCTION_GIMBAL_HEADTRACKER` | 134217728 | |
+| `FUNCTION_ESC_SRXL2` | 536870912 | |
 
 ---
 ## `serialPortIdentifier_e`
@@ -5680,6 +5696,65 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 | `SOFTSERIAL2` | 1 | |
 
 ---
+## `srxl2CalPhase_e`
+> From inav/src/main/io/motor_srxl2.h
+
+| Member | Value | Condition |
+|---|---:|---|
+| `SRXL2_CAL_OFF` | 0 | |
+| `SRXL2_CAL_WAIT_BATTERY` | 1 | |
+| `SRXL2_CAL_SETTLE` | 2 | |
+| `SRXL2_CAL_LOW` | 3 | |
+| `SRXL2_CAL_HIGH_MANUAL` | 4 | |
+| `SRXL2_CAL_LOW_MANUAL` | 5 | |
+
+---
+## `srxl2CalResult_e`
+> From inav/src/main/io/motor_srxl2.h
+
+| Member | Value | Condition |
+|---|---:|---|
+| `SRXL2_CAL_ACCEPTED` | 0 | |
+| `SRXL2_CAL_REJECT_ARMED` | 1 | |
+| `SRXL2_CAL_REJECT_NO_PORT` | 2 | |
+| `SRXL2_CAL_REJECT_BATTERY_PRESENT` | 3 | |
+| `SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR` | 4 | |
+
+---
+## `srxl2State_e`
+> From inav/src/main/io/motor_srxl2.c
+
+| Member | Value | Condition |
+|---|---:|---|
+| `SRXL2_DISABLED` | 0 | |
+| `SRXL2_LISTENING` | 1 | |
+| `SRXL2_POLLING` | 2 | |
+| `SRXL2_FINALISING` | 3 | |
+| `SRXL2_RUNNING` | 4 | |
+
+---
+## `srxl2TelemetryField_e`
+> From inav/src/main/io/motor_srxl2.h
+
+| Member | Value | Condition |
+|---|---:|---|
+| `SRXL2_TELEM_FIELD_RPM` | 1 | |
+| `SRXL2_TELEM_FIELD_VOLTAGE` | 2 | |
+| `SRXL2_TELEM_FIELD_CURRENT` | 4 | |
+| `SRXL2_TELEM_FIELD_TEMP_FET` | 8 | |
+| `SRXL2_TELEM_FIELD_TEMP_BEC` | 16 | |
+
+---
+## `srxl2TelemetryRate_e`
+> From inav/src/main/io/motor_srxl2.h
+
+| Member | Value | Condition |
+|---|---:|---|
+| `SRXL2_TELEM_1HZ` | 0 | |
+| `SRXL2_TELEM_3HZ` | 1 | |
+| `SRXL2_TELEM_2HZ` | 2 | |
+
+---
 ## `stateFlags_t`
 > From inav/src/main/fc/runtime_config.h
 
@@ -5792,16 +5867,17 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 
 | Member | Value | Condition |
 |---|---:|---|
-| `timBlink` | 0 | |
-| `timLarson` | 1 | |
-| `timBattery` | 2 | |
-| `timRssi` | 3 | |
-| `timGps` | 4 | USE_GPS |
-| `timWarning` | 5 | |
-| `timIndicator` | 6 | |
-| `timAnimation` | 7 | USE_LED_ANIMATION |
-| `timRing` | 8 | |
-| `timTimerCount` | 9 | |
+| `timRainbow` | 0 | |
+| `timBlink` | 1 | |
+| `timLarson` | 2 | |
+| `timBattery` | 3 | |
+| `timRssi` | 4 | |
+| `timGps` | 5 | USE_GPS |
+| `timWarning` | 6 | |
+| `timIndicator` | 7 | |
+| `timAnimation` | 8 | USE_LED_ANIMATION |
+| `timRing` | 9 | |
+| `timTimerCount` | 10 | |
 
 ---
 ## `timerMode_e`
@@ -6165,16 +6241,6 @@ Harvested from INAV C source into `msp/schema/enums.yaml` by `msp/generator/harv
 | `DISPLAY_WIDGET_SIDEBAR_OPTION_REVERSE` | 2 | |
 | `DISPLAY_WIDGET_SIDEBAR_OPTION_UNLABELED` | 4 | |
 | `DISPLAY_WIDGET_SIDEBAR_OPTION_STATIC` | 8 | |
-
----
-## `wpFwTurnSmoothing_e`
-> From inav/src/main/navigation/navigation.h
-
-| Member | Value | Condition |
-|---|---:|---|
-| `WP_TURN_SMOOTHING_OFF` | 0 | |
-| `WP_TURN_SMOOTHING_ON` | 1 | |
-| `WP_TURN_SMOOTHING_CUT` | 2 | |
 
 ---
 ## `wpMissionPlannerStatus_e`

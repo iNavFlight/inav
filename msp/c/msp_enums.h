@@ -1,7 +1,7 @@
 #pragma once
 // Generated from the MSP YAML schema by msp/generator/gen_c.py (enums.yaml). Do not edit by hand.
 //
-// 59 of 398 enums are referenced by a payload; only those are emitted.
+// 59 of 403 enums are referenced by a payload; only those are emitted.
 
 #include <stdint.h>
 
@@ -529,6 +529,7 @@ typedef enum {
     PWM_TYPE_DSHOT150 = 4,
     PWM_TYPE_DSHOT300 = 5,
     PWM_TYPE_DSHOT600 = 6,
+    PWM_TYPE_SRXL2 = 7,
 } motorPwmProtocolTypes_e;
 
 // From inav/src/main/fc/fc_msp.c
@@ -855,6 +856,7 @@ typedef enum {
     FUNCTION_MSP_OSD = 33554432,
     FUNCTION_GIMBAL = 67108864,
     FUNCTION_GIMBAL_HEADTRACKER = 134217728,
+    FUNCTION_ESC_SRXL2 = 536870912,
 } serialPortFunction_e;
 
 // From inav/src/main/io/serial.h

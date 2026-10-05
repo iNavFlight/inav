@@ -65,7 +65,7 @@ class MSP_BOARD_INFO_reply_t(BaseModel):
     boardIdentifier: str = Field(max_length=4, description='4-character UPPER CASE board identifier (`TARGET_BOARD_IDENTIFIER`)')
     hardwareRevision: uint16 = Field(description='Hardware revision number. 0 if not detected (`USE_HARDWARE_REVISION_DETECTION`)')
     osdSupport: uint8 = Field(description='OSD chip type: 0=None, 2=Onboard (`USE_OSD`). INAV does not support slave OSD (1)')
-    commCapabilities: uint8 = Field(description='Bitmask: Communication capabilities: Bit 0=VCP support (`USE_VCP`), Bit 1=SoftSerial support (`USE_SOFTSERIAL1`/`2`)')
+    commCapabilities: uint8 = Field(description='Bitmask: Communication capabilities: Bit 0=VCP support (`USE_VCP`), Bit 1=SoftSerial support (`USE_SOFTSERIAL1`/`2`), Bit 2=compass orientation auto-detection during mag calibration (`USE_MAG_CALIBRATION_ORIENTATION`)')
     targetNameLength: uint8 = Field(description='Length of the target name string that follows')
     targetName: str = Field(description='Target name string (e.g., "MATEKF405"). Length given by previous field')
 
@@ -1185,7 +1185,7 @@ class MSP_RC_TUNING_reply_t(BaseModel):
     dynamicThrottlePID: uint8 = Field(description='Dynamic Throttle PID (TPA) value (`currentControlRateProfile->throttle.dynPID`)')
     throttleMid: uint8 = Field(description='Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`)')
     throttleExpo: uint8 = Field(description='Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`)')
-    tpaBreakpoint: uint16 = Field(description='Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`)')
+    tpaBreakpoint: uint16 = Field(description='Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`)')
     rcYawExpo: uint8 = Field(description='Yaw RC Expo (`currentControlRateProfile->stabilized.rcYawExpo8`)')
 
 
@@ -1570,7 +1570,7 @@ class MSP_SET_RC_TUNING_request_t(BaseModel):
     dynamicThrottlePID: uint8 = Field(description='Sets `currentControlRateProfile->throttle.dynPID` (constrained)')
     throttleMid: uint8 = Field(description='Sets `currentControlRateProfile->throttle.rcMid8`')
     throttleExpo: uint8 = Field(description='Sets `currentControlRateProfile->throttle.rcExpo8`')
-    tpaBreakpoint: uint16 = Field(description='Sets `currentControlRateProfile->throttle.pa_breakpoint`')
+    tpaBreakpoint: uint16 = Field(description='Sets `currentControlRateProfile->throttle.tpa_breakpoint`')
     rcYawExpo: uint8 | None = Field(default=None, description='(Optional) Sets `currentControlRateProfile->stabilized.rcYawExpo8`')
 
 
@@ -2321,7 +2321,7 @@ class MSP2_INAV_RATE_PROFILE_reply_t(BaseModel):
     throttleMid: uint8 = Field(description='Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`)')
     throttleExpo: uint8 = Field(description='Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`)')
     dynamicThrottlePID: uint8 = Field(description='TPA value (`currentControlRateProfile->throttle.dynPID`)')
-    tpaBreakpoint: uint16 = Field(description='TPA breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`)')
+    tpaBreakpoint: uint16 = Field(description='TPA breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`)')
     stabRcExpo: uint8 = Field(description='Stabilized Roll/Pitch Expo (`currentControlRateProfile->stabilized.rcExpo8`)')
     stabRcYawExpo: uint8 = Field(description='Stabilized Yaw Expo (`currentControlRateProfile->stabilized.rcYawExpo8`)')
     stabRollRate: uint8 = Field(description='Stabilized Roll Rate (`currentControlRateProfile->stabilized.rates[FD_ROLL]`)')
@@ -2344,7 +2344,7 @@ class MSP2_INAV_SET_RATE_PROFILE_request_t(BaseModel):
     throttleMid: uint8 = Field(description='Sets `currentControlRateProfile->throttle.rcMid8`')
     throttleExpo: uint8 = Field(description='Sets `currentControlRateProfile->throttle.rcExpo8`')
     dynamicThrottlePID: uint8 = Field(description='Sets `currentControlRateProfile->throttle.dynPID`')
-    tpaBreakpoint: uint16 = Field(description='Sets `currentControlRateProfile->throttle.pa_breakpoint`')
+    tpaBreakpoint: uint16 = Field(description='Sets `currentControlRateProfile->throttle.tpa_breakpoint`')
     stabRcExpo: uint8 = Field(description='Sets `currentControlRateProfile->stabilized.rcExpo8`')
     stabRcYawExpo: uint8 = Field(description='Sets `currentControlRateProfile->stabilized.rcYawExpo8`')
     stabRollRate: uint8 = Field(description='Sets `currentControlRateProfile->stabilized.rates[FD_ROLL]` (constrained)')
@@ -3763,6 +3763,40 @@ class MSP2_INAV_WIND_reply_t(BaseModel):
     flags: uint8 = Field(description='Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved.')
 
 
+MSP2_INAV_MAG_UNALIGNED: Final[int] = 8754
+
+class MSP2_INAV_MAG_UNALIGNED_reply_t(BaseModel):
+    """Reads the unaligned magnetometer vector."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    magADCUnaligned: list[int16] = Field(min_length=3, max_length=3, description='X, Y and Z components, rounded to signed 16-bit values.')
+
+
+MSP2_INAV_ESC_SRXL2_STATUS: Final[int] = 8755
+
+class MSP2_INAV_ESC_SRXL2_STATUS_reply_t(BaseModel):
+    """Reads SRXL2 ESC calibration and connection status."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    phase: uint8 = Field(description='Calibration phase (srxl2CalPhase_e).')
+    connected: uint8 = Field(description='1 when every opened ESC is connected; otherwise 0.')
+    lastResult: uint8 = Field(description='Last calibration start result (srxl2CalResult_e).')
+    portCount: uint8 = Field(description='Number of opened SRXL2 motor ports.')
+    motorCount: uint8 = Field(description='Number of motors in the current mixer.')
+
+
+MSP2_INAV_ESC_SRXL2_CALIBRATE: Final[int] = 8756
+
+class MSP2_INAV_ESC_SRXL2_CALIBRATE_request_t(BaseModel):
+    """Controls SRXL2 ESC throttle-range calibration."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    phase: uint8 = Field(description='Requested calibration action (srxl2CalPhase_e): 0, 1, 4 or 5.')
+
+
 MSP2_BETAFLIGHT_BIND: Final[int] = 12288
 
 MSP2_RX_BIND: Final[int] = 12289
@@ -4063,6 +4097,9 @@ MESSAGES: Final[dict[int, tuple]] = {
     MSP2_INAV_TIMESYNC: (None, MSP2_INAV_TIMESYNC_reply_t),
     MSP2_INAV_SET_AUX_RC: (MSP2_INAV_SET_AUX_RC_request_t, None),
     MSP2_INAV_WIND: (None, MSP2_INAV_WIND_reply_t),
+    MSP2_INAV_MAG_UNALIGNED: (None, MSP2_INAV_MAG_UNALIGNED_reply_t),
+    MSP2_INAV_ESC_SRXL2_STATUS: (None, MSP2_INAV_ESC_SRXL2_STATUS_reply_t),
+    MSP2_INAV_ESC_SRXL2_CALIBRATE: (MSP2_INAV_ESC_SRXL2_CALIBRATE_request_t, None),
     MSP2_BETAFLIGHT_BIND: (None, None),
     MSP2_RX_BIND: (MSP2_RX_BIND_request_t, MSP2_RX_BIND_reply_t),
 }

@@ -147,12 +147,13 @@ class FlightLogFieldCondition(IntEnum):
     FLIGHT_LOG_FIELD_CONDITION_RC_DATA = 56
     FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND = 57
     FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW = 58
-    FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL = 59
-    FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH = 60
-    FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW = 61
-    FLIGHT_LOG_FIELD_CONDITION_NEVER = 62
+    FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY = 59
+    FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL = 60
+    FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH = 61
+    FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW = 62
+    FLIGHT_LOG_FIELD_CONDITION_NEVER = 63
     FLIGHT_LOG_FIELD_CONDITION_FIRST = 0
-    FLIGHT_LOG_FIELD_CONDITION_LAST = 62
+    FLIGHT_LOG_FIELD_CONDITION_LAST = 63
 
 
 class FlightLogFieldEncoding(IntEnum):
@@ -1093,7 +1094,8 @@ class boxId_e(IntEnum):
     BOXAUTOSPEED = 60
     BOXTERRAINAGLHOLD = 61
     BOXINFLIGHTMENU = 62
-    CHECKBOX_ITEM_COUNT = 63
+    BOXTHRUSTREVERSE = 63
+    CHECKBOX_ITEM_COUNT = 64
 
 
 class busIndex_e(IntEnum):
@@ -2652,6 +2654,7 @@ class ledOverlayId_e(IntEnum):
     LED_OVERLAY_INDICATOR = 4
     LED_OVERLAY_WARNING = 5
     LED_OVERLAY_STROBE = 6
+    LED_OVERLAY_RAINBOW = 7
 
 
 class ledSpecialColorIds_e(IntEnum):
@@ -3115,6 +3118,7 @@ class motorPwmProtocolTypes_e(IntEnum):
     PWM_TYPE_DSHOT150 = 4
     PWM_TYPE_DSHOT300 = 5
     PWM_TYPE_DSHOT600 = 6
+    PWM_TYPE_SRXL2 = 7
 
 
 class motorStatus_e(IntEnum):
@@ -3225,6 +3229,15 @@ class navFwLaunchStatus_e(IntEnum):
     FW_LAUNCH_DETECTED = 5
     FW_LAUNCH_ABORTED = 10
     FW_LAUNCH_FLYING = 11
+
+
+class navFwWpTurnMode_e(IntEnum):
+    """From inav/src/main/navigation/navigation.h"""
+
+    NAV_FW_WP_TURN_DIRECT = 0
+    NAV_FW_WP_TURN_COORD_FLY_BY = 1
+    NAV_FW_WP_TURN_COORD_FLY_OVER = 2
+    NAV_FW_WP_TURN_COORD_FLY_INTO = 3
 
 
 class navMcAltHoldThrottle_e(IntEnum):
@@ -4797,6 +4810,7 @@ class serialPortFunction_e(IntEnum):
     FUNCTION_MSP_OSD = 33554432
     FUNCTION_GIMBAL = 67108864
     FUNCTION_GIMBAL_HEADTRACKER = 134217728
+    FUNCTION_ESC_SRXL2 = 536870912
 
 
 class serialPortIdentifier_e(IntEnum):
@@ -4967,6 +4981,55 @@ class softSerialPortIndex_e(IntEnum):
     SOFTSERIAL2 = 1
 
 
+class srxl2CalPhase_e(IntEnum):
+    """From inav/src/main/io/motor_srxl2.h"""
+
+    SRXL2_CAL_OFF = 0
+    SRXL2_CAL_WAIT_BATTERY = 1
+    SRXL2_CAL_SETTLE = 2
+    SRXL2_CAL_LOW = 3
+    SRXL2_CAL_HIGH_MANUAL = 4
+    SRXL2_CAL_LOW_MANUAL = 5
+
+
+class srxl2CalResult_e(IntEnum):
+    """From inav/src/main/io/motor_srxl2.h"""
+
+    SRXL2_CAL_ACCEPTED = 0
+    SRXL2_CAL_REJECT_ARMED = 1
+    SRXL2_CAL_REJECT_NO_PORT = 2
+    SRXL2_CAL_REJECT_BATTERY_PRESENT = 3
+    SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR = 4
+
+
+class srxl2State_e(IntEnum):
+    """From inav/src/main/io/motor_srxl2.c"""
+
+    SRXL2_DISABLED = 0
+    SRXL2_LISTENING = 1
+    SRXL2_POLLING = 2
+    SRXL2_FINALISING = 3
+    SRXL2_RUNNING = 4
+
+
+class srxl2TelemetryField_e(IntEnum):
+    """From inav/src/main/io/motor_srxl2.h"""
+
+    SRXL2_TELEM_FIELD_RPM = 1
+    SRXL2_TELEM_FIELD_VOLTAGE = 2
+    SRXL2_TELEM_FIELD_CURRENT = 4
+    SRXL2_TELEM_FIELD_TEMP_FET = 8
+    SRXL2_TELEM_FIELD_TEMP_BEC = 16
+
+
+class srxl2TelemetryRate_e(IntEnum):
+    """From inav/src/main/io/motor_srxl2.h"""
+
+    SRXL2_TELEM_1HZ = 0
+    SRXL2_TELEM_3HZ = 1
+    SRXL2_TELEM_2HZ = 2
+
+
 class stateFlags_t(IntEnum):
     """From inav/src/main/fc/runtime_config.h"""
 
@@ -5063,16 +5126,17 @@ class throttleStatus_e(IntEnum):
 class timId_e(IntEnum):
     """From inav/src/main/io/ledstrip.c"""
 
-    timBlink = 0
-    timLarson = 1
-    timBattery = 2
-    timRssi = 3
-    timGps = 4
-    timWarning = 5
-    timIndicator = 6
-    timAnimation = 7
-    timRing = 8
-    timTimerCount = 9
+    timRainbow = 0
+    timBlink = 1
+    timLarson = 2
+    timBattery = 3
+    timRssi = 4
+    timGps = 5
+    timWarning = 6
+    timIndicator = 7
+    timAnimation = 8
+    timRing = 9
+    timTimerCount = 10
 
 
 class timerMode_e(IntEnum):
@@ -5378,14 +5442,6 @@ class widgetSidebarOptions_t(IntEnum):
     DISPLAY_WIDGET_SIDEBAR_OPTION_REVERSE = 2
     DISPLAY_WIDGET_SIDEBAR_OPTION_UNLABELED = 4
     DISPLAY_WIDGET_SIDEBAR_OPTION_STATIC = 8
-
-
-class wpFwTurnSmoothing_e(IntEnum):
-    """From inav/src/main/navigation/navigation.h"""
-
-    WP_TURN_SMOOTHING_OFF = 0
-    WP_TURN_SMOOTHING_ON = 1
-    WP_TURN_SMOOTHING_CUT = 2
 
 
 class wpMissionPlannerStatus_e(IntEnum):

@@ -43,6 +43,9 @@
 #include "flight/mixer.h"
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
+#include "drivers/pwm_mapping.h"
+
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -156,7 +159,17 @@ escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
 
 escSensorData_t * escSensorGetData(void)
 {
-    if (!escSensorPort) {
+    /*
+     * Asks whether there is ESC telemetry, not whether a serial port is open. The
+     * two used to be the same thing, but a Smart ESC reports over the throttle wire
+     * itself, handled by the motor driver, so escSensorPort stays NULL while the
+     * data is perfectly good. Testing the port left the OSD, Blackbox, current
+     * estimation and the telemetry backends with nothing on such a board - and the
+     * OSD inconsistent with itself, since it checks the state flag and then asks
+     * here. For a conventional ESC the state is only set once the port has opened,
+     * so nothing changes there.
+     */
+    if (!STATE(ESC_SENSOR_ENABLED)) {
         return NULL;
     }
 
@@ -212,6 +225,30 @@ bool escSensorInitialize(void)
         return false;
     }
 
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * An SRXL2 ESC reports telemetry back over the same wire that carries its
+     * throttle, so there is no separate telemetry port to open. Taking that
+     * source here rather than anywhere else means every existing consumer -
+     * the RPM filter, OSD, Blackbox, current estimation - is fed without
+     * knowing where the numbers came from.
+     *
+     * esc_srxl2_telemetry can turn it off, which for a conventional ESC needs no
+     * setting at all - you leave the port unassigned. This wire has no port to
+     * leave unassigned, so saying no needs somewhere to say it.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        if (!motorConfig()->srxl2Telemetry) {
+            return false;
+        }
+        for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+            escSensorData[i].dataAge = ESC_DATA_INVALID;
+        }
+        ENABLE_STATE(ESC_SENSOR_ENABLED);
+        return true;
+    }
+#endif
+
     // FUNCTION_ESCSERIAL is shared between SERIALSHOT and ESC_SENSOR telemetry
     // They are mutually exclusive
     serialPortConfig_t * portConfig = findSerialPortConfig(FUNCTION_ESCSERIAL);
@@ -235,6 +272,54 @@ bool escSensorInitialize(void)
 
 void escSensorUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_MOTOR_SRXL2
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        /* One ESC per port, so escSensorData[i] belongs to the i-th assigned
+         * port. Motors past the last assigned port have no telemetry for the
+         * same reason they have no throttle, and are left invalid. */
+        const uint8_t count = MIN(srxl2MotorCount(), (uint8_t)MAX_SUPPORTED_MOTORS);
+
+        for (uint8_t i = 0; i < count; i++) {
+            srxl2EscTelemetry_t t;
+            if (srxl2MotorGetTelemetry(i, &t)) {
+                escSensorData[i].dataAge = 0;
+                /*
+                 * Only what the frame actually carried. An ESC that reports no
+                 * current sends a "no data" code, and copying that through as
+                 * 0.00 A would be indistinguishable from a motor at rest - which
+                 * is a reading the battery estimate would happily believe. Where
+                 * a field is absent the last known value is left in place and
+                 * ages out with the rest.
+                 */
+                if (t.fields & SRXL2_TELEM_FIELD_TEMP_FET) {
+                    escSensorData[i].temperature = t.temperatureFet / 10;   /* 0.1 degC -> degC */
+                }
+                if (t.fields & SRXL2_TELEM_FIELD_VOLTAGE) {
+                    escSensorData[i].voltage = t.voltage;                   /* both 0.01 V */
+                }
+                if (t.fields & SRXL2_TELEM_FIELD_CURRENT) {
+                    escSensorData[i].current = t.current;                   /* both 0.01 A */
+                }
+                /*
+                 * The wire carries electrical rpm; everything downstream expects
+                 * mechanical, which is what computeRpm() produces for the serial
+                 * backends. Same division, done here because our value is already
+                 * in rpm rather than the LSB units that function takes.
+                 */
+                if (t.fields & SRXL2_TELEM_FIELD_RPM) {
+                    const uint8_t poles = motorConfig()->motorPoleCount;
+                    escSensorData[i].rpm = poles ? (t.rpm / (poles / 2)) : 0;
+                }
+            } else if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
+                escSensorData[i].dataAge++;
+            }
+        }
+
+        escSensorDataNeedsUpdate = true;
+        return;
+    }
+#endif
+
     if (!escSensorPort) {
         return;
     }

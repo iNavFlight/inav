@@ -21,6 +21,7 @@
 
 typedef struct {
     IO_t io;
+    uint8_t motorIndex;     // index into the motor outputs this pin belongs to
 } escHardware_t;
 
 extern uint8_t selected_esc;

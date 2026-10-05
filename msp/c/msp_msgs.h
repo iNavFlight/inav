@@ -56,7 +56,7 @@ typedef struct MSP_PACKED {
     char boardIdentifier[4];  // 4-character UPPER CASE board identifier (`TARGET_BOARD_IDENTIFIER`)
     uint16_t hardwareRevision;  // Hardware revision number. 0 if not detected (`USE_HARDWARE_REVISION_DETECTION`)
     uint8_t osdSupport;  // OSD chip type: 0=None, 2=Onboard (`USE_OSD`). INAV does not support slave OSD (1)
-    uint8_t commCapabilities;  // Bitmask: Communication capabilities: Bit 0=VCP support (`USE_VCP`), Bit 1=SoftSerial support (`USE_SOFTSERIAL1`/`2`) | bitmask
+    uint8_t commCapabilities;  // Bitmask: Communication capabilities: Bit 0=VCP support (`USE_VCP`), Bit 1=SoftSerial support (`USE_SOFTSERIAL1`/`2`), Bit 2=compass orientation auto-detection during mag calibration (`USE_MAG_CALIBRATION_ORIENTATION`) | bitmask
     uint8_t targetNameLength;  // Length of the target name string that follows
     char targetName[];  // Target name string (e.g., "MATEKF405"). Length given by previous field
 } mspBoardInfoReply_t;
@@ -1115,7 +1115,7 @@ typedef struct MSP_PACKED {
     uint8_t dynamicThrottlePID;  // Dynamic Throttle PID (TPA) value (`currentControlRateProfile->throttle.dynPID`)
     uint8_t throttleMid;  // Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`)
     uint8_t throttleExpo;  // Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`)
-    uint16_t tpaBreakpoint;  // Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`)
+    uint16_t tpaBreakpoint;  // Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`)
     uint8_t rcYawExpo;  // Yaw RC Expo (`currentControlRateProfile->stabilized.rcYawExpo8`)
 } mspRcTuningReply_t;
 MSP_STATIC_ASSERT(sizeof(mspRcTuningReply_t) == 11, mspRcTuningReply_t_size);
@@ -1427,7 +1427,7 @@ typedef struct MSP_PACKED {
     uint8_t dynamicThrottlePID;  // Sets `currentControlRateProfile->throttle.dynPID` (constrained)
     uint8_t throttleMid;  // Sets `currentControlRateProfile->throttle.rcMid8`
     uint8_t throttleExpo;  // Sets `currentControlRateProfile->throttle.rcExpo8`
-    uint16_t tpaBreakpoint;  // Sets `currentControlRateProfile->throttle.pa_breakpoint`
+    uint16_t tpaBreakpoint;  // Sets `currentControlRateProfile->throttle.tpa_breakpoint`
     uint8_t rcYawExpo;  // (Optional) Sets `currentControlRateProfile->stabilized.rcYawExpo8` | OPTIONAL: may be absent from a shorter payload
 } mspSetRcTuningRequest_t;
 
@@ -1584,7 +1584,7 @@ MSP_STATIC_ASSERT(sizeof(mspSetServoMixRuleRequest_t) == 9, mspSetServoMixRuleRe
 
 // MSP_SET_PASSTHROUGH (MSPv1) id=245
 // Enables serial passthrough mode to peripherals like ESCs (BLHeli 4-way) or other serial devices.
-// Notes: Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough.
+// Notes: Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough. ESC 4-way passthrough will fail if the craft is armed: the reply carries `MSP_RESULT_ERROR` and the serial port is not handed over. Serial passthrough to another device is unaffected.
 typedef struct MSP_PACKED {
     uint8_t status;  // 1 if passthrough started successfully, 0 on error (e.g., port not found). For 4way, returns number of ESCs found
 } mspSetPassthroughReply_t;
@@ -2028,7 +2028,7 @@ typedef struct MSP_PACKED {
     uint8_t throttleMid;  // Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`)
     uint8_t throttleExpo;  // Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`)
     uint8_t dynamicThrottlePID;  // TPA value (`currentControlRateProfile->throttle.dynPID`)
-    uint16_t tpaBreakpoint;  // TPA breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`)
+    uint16_t tpaBreakpoint;  // TPA breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`)
     uint8_t stabRcExpo;  // Stabilized Roll/Pitch Expo (`currentControlRateProfile->stabilized.rcExpo8`)
     uint8_t stabRcYawExpo;  // Stabilized Yaw Expo (`currentControlRateProfile->stabilized.rcYawExpo8`)
     uint8_t stabRollRate;  // Stabilized Roll Rate (`currentControlRateProfile->stabilized.rates[FD_ROLL]`)
@@ -2049,7 +2049,7 @@ typedef struct MSP_PACKED {
     uint8_t throttleMid;  // Sets `currentControlRateProfile->throttle.rcMid8`
     uint8_t throttleExpo;  // Sets `currentControlRateProfile->throttle.rcExpo8`
     uint8_t dynamicThrottlePID;  // Sets `currentControlRateProfile->throttle.dynPID`
-    uint16_t tpaBreakpoint;  // Sets `currentControlRateProfile->throttle.pa_breakpoint`
+    uint16_t tpaBreakpoint;  // Sets `currentControlRateProfile->throttle.tpa_breakpoint`
     uint8_t stabRcExpo;  // Sets `currentControlRateProfile->stabilized.rcExpo8`
     uint8_t stabRcYawExpo;  // Sets `currentControlRateProfile->stabilized.rcYawExpo8`
     uint8_t stabRollRate;  // Sets `currentControlRateProfile->stabilized.rates[FD_ROLL]` (constrained)
@@ -3327,6 +3327,34 @@ typedef struct MSP_PACKED {
     uint8_t flags;  // Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved.
 } msp2InavWindReply_t;
 MSP_STATIC_ASSERT(sizeof(msp2InavWindReply_t) == 5, msp2InavWindReply_t_size);
+
+// MSP2_INAV_MAG_UNALIGNED (MSPv2) id=8754
+// Reads the unaligned magnetometer vector.
+// Notes: Returns rounded mag.magADCUnaligned values before board alignment. Returns three zeroes without USE_MAG.
+typedef struct MSP_PACKED {
+    int16_t magADCUnaligned[3];  // X, Y and Z components, rounded to signed 16-bit values.
+} msp2InavMagUnalignedReply_t;
+MSP_STATIC_ASSERT(sizeof(msp2InavMagUnalignedReply_t) == 6, msp2InavMagUnalignedReply_t_size);
+
+// MSP2_INAV_ESC_SRXL2_STATUS (MSPv2) id=8755
+// Reads SRXL2 ESC calibration and connection status.
+// Notes: Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.
+typedef struct MSP_PACKED {
+    uint8_t phase;  // Calibration phase (srxl2CalPhase_e).
+    uint8_t connected;  // 1 when every opened ESC is connected; otherwise 0.
+    uint8_t lastResult;  // Last calibration start result (srxl2CalResult_e).
+    uint8_t portCount;  // Number of opened SRXL2 motor ports.
+    uint8_t motorCount;  // Number of motors in the current mixer.
+} msp2InavEscSrxl2StatusReply_t;
+MSP_STATIC_ASSERT(sizeof(msp2InavEscSrxl2StatusReply_t) == 5, msp2InavEscSrxl2StatusReply_t_size);
+
+// MSP2_INAV_ESC_SRXL2_CALIBRATE (MSPv2) id=8756
+// Controls SRXL2 ESC throttle-range calibration.
+// Notes: Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
+typedef struct MSP_PACKED {
+    uint8_t phase;  // Requested calibration action (srxl2CalPhase_e): 0, 1, 4 or 5.
+} msp2InavEscSrxl2CalibrateRequest_t;
+MSP_STATIC_ASSERT(sizeof(msp2InavEscSrxl2CalibrateRequest_t) == 1, msp2InavEscSrxl2CalibrateRequest_t_size);
 
 // MSP2_RX_BIND (MSPv2) id=12289
 // Initiates binding for MSP receivers (mLRS).

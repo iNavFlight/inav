@@ -1229,7 +1229,7 @@ bool mavlinkHandleIncomingHeartbeat(void)
     // route table is full. A peer that finds no free slot gets no reconnect
     // snapshot at all: the broadcast path is edge-triggered on the arming
     // flags changing, so it stays silent while they hold steady. The table
-    // holds MAVLINK_MAX_ROUTES peers and is not expected to fill in practice.
+    // holds MAVLINK_MAX_ROUTES peers, enough for a GCS plus a few companions.
     mavlinkRouteEntry_t *route = mavlinkFindRoute(mavlinkContext.recvMsg.sysid, mavlinkContext.recvMsg.compid);
     if (route) {
         const timeMs_t nowMs = millis();

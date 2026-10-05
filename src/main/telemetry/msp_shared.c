@@ -125,6 +125,7 @@ bool handleMspFrame(uint8_t *const frameStart, const int payloadLength)
     }
 
     if (payloadLength < MIN_LENGTH_CHUNK) {
+        mspStarted = 0;
         return false;   // prevent analyzing garbage data
     }
 
@@ -135,14 +136,20 @@ bool handleMspFrame(uint8_t *const frameStart, const int payloadLength)
     lastRequestVersion = (status & TELEMETRY_MSP_VER_MASK) >> TELEMETRY_MSP_VER_SHIFT;
 
     if (lastRequestVersion > TELEMETRY_MSP_VERSION) {
+        mspStarted = 0;
         sendMspErrorResponse(TELEMETRY_MSP_VER_MISMATCH, 0);
         return true;
     }
 
     if (status & TELEMETRY_MSP_START_MASK) { // first packet in sequence
+        // A new start supersedes any partial request, even if its own header is malformed.
+        mspStarted = 0;
         uint16_t mspPayloadSize;
 
         if (lastRequestVersion == 1) { // MSPv1
+            if (payloadLength < MIN_LENGTH_REQUEST_V1) {
+                return false;   // prevent analyzing garbage data
+            }
 
             mspPayloadSize = frameStart[MSP_INDEX_SIZE_V1];
             requestPacket->cmd = frameStart[MSP_INDEX_ID_V1];

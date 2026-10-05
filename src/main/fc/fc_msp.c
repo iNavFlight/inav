@@ -98,6 +98,7 @@
 #include "io/rangefinder.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "io/serial_4way.h"
 #include "io/vtx.h"
@@ -229,11 +230,17 @@ static void mspSerialPassthroughFn(serialPort_t *serialPort)
 {
     serialPort_t *passthroughPort = mspFindPassthroughSerialPort();
     if (passthroughPort && serialPort) {
-        serialPassthrough(passthroughPort, serialPort, NULL, NULL);
+        // The port the request came in on goes first, as it does in the CLI. Both of the
+        // things serialPassthrough() does for whoever opened the session are done for its
+        // first port only: the +++ that ends the session is looked for there, and a USB
+        // host's line coding is mirrored onto the other port from there. Passed the other
+        // way round, a session opened over MSP could not be closed and could not raise the
+        // rate of the port it opened, which is what an SRXL2 ESC negotiates up to 400000
+        serialPassthrough(serialPort, passthroughPort, NULL, NULL);
     }
 }
 
-static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
+static mspResult_e mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
     const unsigned int dataSize = sbufBytesRemaining(src);  /* Payload size in Bytes */
 
@@ -261,6 +268,11 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
          break;
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
     case MSP_PASSTHROUGH_ESC_4WAY:
+        // entering the 4way interface stops the motor outputs, refuse while armed
+        if (ARMING_FLAG(ARMED)) {
+            return MSP_RESULT_ERROR;
+        }
+
         // get channel number
         // switch all motor lines HI
         // reply with the count of ESC found
@@ -276,6 +288,7 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
     }
 
     mspWriteReply(dst, &reply);
+    return MSP_RESULT_ACK;
 }
 
 static void mspRebootNormalFn(serialPort_t *serialPort)
@@ -344,7 +357,10 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
     reply.fsError = afatfs_getLastError();
     // Free space and total space in kilobytes
     reply.freeSpaceKB = afatfs_getContiguousFreeSpace() / 1024;
-    reply.totalSpaceKB = sdcard_getMetadata()->numBlocks / 2; // Block size is half a kilobyte
+    // NULL until a card driver has been bound, which is the normal state of a board whose
+    // blackbox does not use the SD card, and of SITL launched without --sdcard
+    const sdcardMetadata_t *metadata = sdcard_getMetadata();
+    reply.totalSpaceKB = metadata ? metadata->numBlocks / 2 : 0; // Block size is half a kilobyte
 #endif
     mspWriteReply(dst, &reply);
 }
@@ -371,7 +387,10 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
 
     // size will be lower than that requested if we reach end of volume
     const uint32_t flashfsSize = flashfsGetSize();
-    if (readLen > flashfsSize - address) {
+    if (address >= flashfsSize) {
+        // nothing left to read from this address
+        readLen = 0;
+    } else if (readLen > flashfsSize - address) {
         // truncate the request
         readLen = flashfsSize - address;
     }
@@ -379,9 +398,11 @@ static void serializeDataflashReadReply(sbuf_t *dst, uint32_t address, uint16_t 
     // Write address
     sbufWriteU32(dst, address);
 
-    // Read into streambuf directly
-    const int bytesRead = flashfsReadAbs(address, sbufPtr(dst), readLen);
-    sbufAdvance(dst, bytesRead);
+    if (readLen > 0) {
+        // Read into streambuf directly
+        const int bytesRead = flashfsReadAbs(address, sbufPtr(dst), readLen);
+        sbufAdvance(dst, bytesRead);
+    }
 }
 #endif
 
@@ -521,14 +542,19 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #else
         reply.osdSupport = 0;
 #endif
-        // Board communication capabilities (uint8)
+        // Board capabilities (uint8)
         // Bit 0: 1 iff the board has VCP
         // Bit 1: 1 iff the board supports software serial
+        // Bit 2: 1 iff the board auto-detects compass mounting orientation during
+        // magnetometer calibration (USE_MAG_CALIBRATION_ORIENTATION)
 #ifdef USE_VCP
         reply.commCapabilities |= 1 << 0;
 #endif
 #if defined(USE_SOFTSERIAL1) || defined(USE_SOFTSERIAL2)
         reply.commCapabilities |= 1 << 1;
+#endif
+#ifdef USE_MAG_CALIBRATION_ORIENTATION
+        reply.commCapabilities |= 1 << 2;
 #endif
         reply.targetNameLength = strlen(targetName);
 
@@ -948,7 +974,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 .dynamicThrottlePID = currentControlProfile->throttle.dynPID,
                 .throttleMid = currentControlProfile->throttle.rcMid8,
                 .throttleExpo = currentControlProfile->throttle.rcExpo8,
-                .tpaBreakpoint = currentControlProfile->throttle.pa_breakpoint,
+                .tpaBreakpoint = currentControlProfile->throttle.tpa_breakpoint,
                 .rcYawExpo = currentControlProfile->stabilized.rcYawExpo8,
             };
             mspWriteReply(dst, &reply);
@@ -961,7 +987,7 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 .throttleMid = currentControlProfile->throttle.rcMid8,
                 .throttleExpo = currentControlProfile->throttle.rcExpo8,
                 .dynamicThrottlePID = currentControlProfile->throttle.dynPID,
-                .tpaBreakpoint = currentControlProfile->throttle.pa_breakpoint,
+                .tpaBreakpoint = currentControlProfile->throttle.tpa_breakpoint,
 
                 .stabRcExpo = currentControlProfile->stabilized.rcExpo8,
                 .stabRcYawExpo = currentControlProfile->stabilized.rcYawExpo8,
@@ -1947,6 +1973,29 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         }
         break;
 
+#ifdef USE_MOTOR_SRXL2
+    case MSP2_INAV_ESC_SRXL2_STATUS:
+        {
+            msp2InavEscSrxl2StatusReply_t reply = {
+                .phase = srxl2MotorCalibrationPhase(),
+                .connected = srxl2MotorIsConnected() ? 1 : 0,
+                /* Why the last start was refused. MSP2_INAV_ESC_SRXL2_CALIBRATE is an IN
+                 * command and so has nowhere to answer; without this a caller sees only
+                 * that it failed, and can tell the operator nothing. */
+                .lastResult = srxl2MotorCalibrationLastResult(),
+                /* Ports opened, and motors the mixer wants. These are the two numbers
+                 * pwmInitMotors() compares to decide whether the board may arm, so
+                 * reporting both means a caller never has to infer either. In particular
+                 * MSP2_INAV_MIXER does NOT carry the model motor count - its last two
+                 * bytes are MAX_SUPPORTED_MOTORS and MAX_SUPPORTED_SERVOS, the ceilings. */
+                .portCount = srxl2MotorCount(),
+                .motorCount = getMotorCount(),
+            };
+            mspWriteReply(dst, &reply);
+        }
+        break;
+#endif
+
     case MSP2_INAV_WIND:
         {
             msp2InavWindReply_t reply = { .windSpeed = 0, .windAngle = 0, .flags = 0 };
@@ -1956,6 +2005,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 reply.windSpeed = getEstimatedHorizontalWindSpeed(&windAngle);
                 reply.windAngle = windAngle / 100;
                 reply.flags = 1;
+            }
+#endif
+            mspWriteReply(dst, &reply);
+        }
+        break;
+
+    case MSP2_INAV_MAG_UNALIGNED:
+        {
+            msp2InavMagUnalignedReply_t reply = { .magADCUnaligned = { 0, 0, 0 } };
+#ifdef USE_MAG
+            for (int i = 0; i < 3; i++) {
+                reply.magADCUnaligned[i] = (int16_t)lrintf(mag.magADCUnaligned[i]);
             }
 #endif
             mspWriteReply(dst, &reply);
@@ -2577,7 +2638,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentControlProfile_p->throttle.dynPID = MIN(pkt.dynamicThrottlePID, SETTING_TPA_RATE_MAX);
             currentControlProfile_p->throttle.rcMid8 = pkt.throttleMid;
             currentControlProfile_p->throttle.rcExpo8 = pkt.throttleExpo;
-            currentControlProfile_p->throttle.pa_breakpoint = pkt.tpaBreakpoint;
+            currentControlProfile_p->throttle.tpa_breakpoint = pkt.tpaBreakpoint;
 
             if (mspReadOptional(src, &pkt.rcYawExpo)) {
                 currentControlProfile_p->stabilized.rcYawExpo8 = pkt.rcYawExpo;
@@ -2600,7 +2661,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             currentControlProfile_p->throttle.rcMid8 = pkt.throttleMid;
             currentControlProfile_p->throttle.rcExpo8 = pkt.throttleExpo;
             currentControlProfile_p->throttle.dynPID = pkt.dynamicThrottlePID;
-            currentControlProfile_p->throttle.pa_breakpoint = pkt.tpaBreakpoint;
+            currentControlProfile_p->throttle.tpa_breakpoint = pkt.tpaBreakpoint;
 
             // stabilized
             currentControlProfile_p->stabilized.rcExpo8 = pkt.stabRcExpo;
@@ -3963,6 +4024,35 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
+#ifdef USE_MOTOR_SRXL2
+    case MSP2_INAV_ESC_SRXL2_CALIBRATE:
+        /*
+         * One of these phases commands full throttle with the aircraft disarmed,
+         * so the refusals live in the driver and are not re-implemented here: a
+         * caller that skipped them would otherwise be trusted.
+         */
+        {
+            msp2InavEscSrxl2CalibrateRequest_t pkt;
+            if (!mspReadRequest(src, &pkt, dataSize)) {
+                return MSP_RESULT_ERROR;
+            }
+            if (pkt.phase == SRXL2_CAL_OFF) {
+                srxl2MotorCalibrationAbort();
+            } else if (pkt.phase == SRXL2_CAL_WAIT_BATTERY) {
+                if (srxl2MotorCalibrationBegin() != SRXL2_CAL_ACCEPTED) {
+                    return MSP_RESULT_ERROR;
+                }
+            } else if (pkt.phase == SRXL2_CAL_HIGH_MANUAL || pkt.phase == SRXL2_CAL_LOW_MANUAL) {
+                if (srxl2MotorCalibrationManual(pkt.phase) != SRXL2_CAL_ACCEPTED) {
+                    return MSP_RESULT_ERROR;
+                }
+            } else {
+                return MSP_RESULT_ERROR;
+            }
+        }
+        break;
+#endif
+
     case MSP2_INAV_SELECT_MIXER_PROFILE:
         {
             msp2InavSelectMixerProfileRequest_t pkt;
@@ -5280,42 +5370,41 @@ bool mspFCProcessInOutCommand(uint16_t cmdMSP, sbuf_t *dst, sbuf_t *src, mspResu
 static mspResult_e mspProcessSensorCommand(uint16_t cmdMSP, sbuf_t *src)
 {
     int dataSize = sbufBytesRemaining(src);
-    UNUSED(dataSize);
 
     switch (cmdMSP) {
 #if defined(USE_RANGEFINDER_MSP)
         case MSP2_SENSOR_RANGEFINDER:
-            mspRangefinderReceiveNewData(sbufPtr(src));
+            mspRangefinderReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_OPFLOW_MSP)
         case MSP2_SENSOR_OPTIC_FLOW:
-            mspOpflowReceiveNewData(sbufPtr(src));
+            mspOpflowReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_GPS_PROTO_MSP)
         case MSP2_SENSOR_GPS:
-            mspGPSReceiveNewData(sbufPtr(src));
+            mspGPSReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_MAG_MSP)
         case MSP2_SENSOR_COMPASS:
-            mspMagReceiveNewData(sbufPtr(src));
+            mspMagReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_BARO_MSP)
         case MSP2_SENSOR_BAROMETER:
-            mspBaroReceiveNewData(sbufPtr(src));
+            mspBaroReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
 #if defined(USE_PITOT_MSP)
         case MSP2_SENSOR_AIRSPEED:
-            mspPitotmeterReceiveNewData(sbufPtr(src));
+            mspPitotmeterReceiveNewData(sbufPtr(src), dataSize);
             break;
 #endif
 
@@ -5347,8 +5436,7 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     } else if (mspFcProcessOutCommand(cmdMSP, dst, mspPostProcessFn)) {
         ret = MSP_RESULT_ACK;
     } else if (cmdMSP == MSP_SET_PASSTHROUGH) {
-        mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
-        ret = MSP_RESULT_ACK;
+        ret = mspFcSetPassthroughCommand(dst, src, mspPostProcessFn);
     } else if (cmdMSP == MSP_REBOOT) {
         if (!ARMING_FLAG(ARMED)) {
             ret = mspFcRebootCommand(src, mspPostProcessFn);

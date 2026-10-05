@@ -52,6 +52,7 @@ typedef enum {
 typedef struct mag_s {
     magDev_t dev;
     float magADC[XYZ_AXIS_COUNT];
+    float magADCUnaligned[XYZ_AXIS_COUNT]; // calibrated (zero/gain), but not alignment-rotated
 } mag_t;
 
 extern mag_t mag;
@@ -82,5 +83,6 @@ void compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
+bool compassIsCalibrating(void);
 
 #endif

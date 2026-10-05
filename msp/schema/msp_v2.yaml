@@ -110,7 +110,7 @@ messages:
         commCapabilities:
           type: uint8
           bitmask: true
-          description: 'Bitmask: Communication capabilities: Bit 0=VCP support (`USE_VCP`), Bit 1=SoftSerial support (`USE_SOFTSERIAL1`/`2`)'
+          description: 'Bitmask: Communication capabilities: Bit 0=VCP support (`USE_VCP`), Bit 1=SoftSerial support (`USE_SOFTSERIAL1`/`2`), Bit 2=compass orientation auto-detection during mag calibration (`USE_MAG_CALIBRATION_ORIENTATION`)'
 
         targetNameLength:
           type: uint8
@@ -3262,7 +3262,7 @@ messages:
 
         tpaBreakpoint:
           type: uint16
-          description: Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`)
+          description: Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`)
 
         rcYawExpo:
           type: uint8
@@ -4195,7 +4195,7 @@ messages:
 
         tpaBreakpoint:
           type: uint16
-          description: Sets `currentControlRateProfile->throttle.pa_breakpoint`
+          description: Sets `currentControlRateProfile->throttle.tpa_breakpoint`
 
         rcYawExpo:
           type: optional uint8
@@ -4729,7 +4729,7 @@ messages:
     mspv: 1
     group: v1
     description: Enables serial passthrough mode to peripherals like ESCs (BLHeli 4-way) or other serial devices.
-    notes: Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough.
+    notes: 'Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough. ESC 4-way passthrough will fail if the craft is armed: the reply carries `MSP_RESULT_ERROR` and the serial port is not handed over. Serial passthrough to another device is unaffected.'
     request: null
     reply:
       fields:
@@ -6188,7 +6188,7 @@ messages:
 
         tpaBreakpoint:
           type: uint16
-          description: TPA breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`)
+          description: TPA breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`)
 
         stabRcExpo:
           type: uint8
@@ -6254,7 +6254,7 @@ messages:
 
         tpaBreakpoint:
           type: uint16
-          description: Sets `currentControlRateProfile->throttle.pa_breakpoint`
+          description: Sets `currentControlRateProfile->throttle.tpa_breakpoint`
 
         stabRcExpo:
           type: uint8
@@ -9633,6 +9633,67 @@ messages:
         flags:
           type: uint8
           description: 'Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved.'
+
+  MSP2_INAV_MAG_UNALIGNED:
+    id: 8754
+    inav_version:
+      since: "10.0"
+    mspv: 2
+    group: inav
+    description: Reads the unaligned magnetometer vector.
+    notes: Returns rounded mag.magADCUnaligned values before board alignment. Returns three zeroes without USE_MAG.
+    request: null
+    reply:
+      fields:
+        magADCUnaligned:
+          type: int16[3]
+          description: X, Y and Z components, rounded to signed 16-bit values.
+
+  MSP2_INAV_ESC_SRXL2_STATUS:
+    id: 8755
+    inav_version:
+      since: "10.0"
+    mspv: 2
+    group: inav
+    description: Reads SRXL2 ESC calibration and connection status.
+    notes: Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.
+    request: null
+    reply:
+      fields:
+        phase:
+          type: uint8
+          description: Calibration phase (srxl2CalPhase_e).
+
+        connected:
+          type: uint8
+          description: 1 when every opened ESC is connected; otherwise 0.
+
+        lastResult:
+          type: uint8
+          description: Last calibration start result (srxl2CalResult_e).
+
+        portCount:
+          type: uint8
+          description: Number of opened SRXL2 motor ports.
+
+        motorCount:
+          type: uint8
+          description: Number of motors in the current mixer.
+
+  MSP2_INAV_ESC_SRXL2_CALIBRATE:
+    id: 8756
+    inav_version:
+      since: "10.0"
+    mspv: 2
+    group: inav
+    description: Controls SRXL2 ESC throttle-range calibration.
+    notes: 'Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.'
+    request:
+      fields:
+        phase:
+          type: uint8
+          description: 'Requested calibration action (srxl2CalPhase_e): 0, 1, 4 or 5.'
+    reply: null
 
   MSP2_BETAFLIGHT_BIND:
     id: 12288

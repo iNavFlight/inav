@@ -236,3 +236,38 @@ TEST(MathsUnittest, TestSensorScaleUnitTest)
 }
 */
 #endif
+
+TEST(MathsUnittest, TestPowfApprox)
+{
+    // Special cases handled exactly by short-circuit branches
+    EXPECT_FLOAT_EQ(powf_approx(2.0f, 0.0f), 1.0f);
+    EXPECT_FLOAT_EQ(powf_approx(2.0f, 1.0f), 2.0f);
+    EXPECT_FLOAT_EQ(powf_approx(3.0f, 2.0f), 9.0f);
+    EXPECT_NEAR(powf_approx(4.0f, 0.5f), 2.0f, 0.01f);
+
+    // General approximation via bit-manipulation: typical error is ~5-10%
+    // base < 1 with non-trivial exponent - the key regression case for base<1 where
+    // result_exp is negative and fractional (floorf fix ensures frac stays in [0,1))
+    EXPECT_NEAR(powf_approx(0.5f, 1.5f),  powf(0.5f, 1.5f),  powf(0.5f, 1.5f)  * 0.10f);
+    EXPECT_NEAR(powf_approx(0.7f, 1.5f),  powf(0.7f, 1.5f),  powf(0.7f, 1.5f)  * 0.10f);
+    EXPECT_NEAR(powf_approx(0.3f, 1.5f),  powf(0.3f, 1.5f),  powf(0.3f, 1.5f)  * 0.10f);
+
+    // base > 1 cases with non-trivial exponents
+    EXPECT_NEAR(powf_approx(2.0f, 1.5f),  powf(2.0f, 1.5f),  powf(2.0f, 1.5f)  * 0.10f);
+    EXPECT_NEAR(powf_approx(10.0f, 1.5f), powf(10.0f, 1.5f), powf(10.0f, 1.5f) * 0.10f);
+
+    // Short-circuit branches: exp==1.0f and exp==2.0f return exact values
+    EXPECT_FLOAT_EQ(powf_approx(0.015f, 1.0f), 0.015f);
+    EXPECT_FLOAT_EQ(powf_approx(60.0f, 2.0f),  3600.0f);
+    // Power-of-2 base with non-integer exponent: log2 is exact so result is close
+    EXPECT_NEAR(powf_approx(0.25f, 1.5f), powf(0.25f, 1.5f), powf(0.25f, 1.5f) * 0.01f);
+
+    // base <= 0 delegates to real powf()
+    EXPECT_FLOAT_EQ(powf_approx(0.0f, 2.0f), 0.0f);
+    EXPECT_FLOAT_EQ(powf_approx(-2.0f, 2.0f), 4.0f);
+    EXPECT_FLOAT_EQ(powf_approx(-2.0f, 3.0f), -8.0f);
+
+    // NaN inputs return 0 rather than propagating
+    EXPECT_FLOAT_EQ(powf_approx(NAN, 1.5f), 0.0f);
+    EXPECT_FLOAT_EQ(powf_approx(2.0f, NAN), 0.0f);
+}

@@ -61,8 +61,16 @@ USBD_HandleTypeDef USBD_Device;
 #endif
 
 #include "msc/usbd_storage.h"
+#include "usbd_msc_bot.h"
 
 #define DEBOUNCE_TIME_MS 20
+
+// SDIO DMA transfers straight into this buffer and cannot reach CCM
+#ifdef USE_SDCARD_SDIO
+uint8_t MSC_BOT_Data[MSC_MEDIA_PACKET] __attribute__((aligned(4)));
+#else
+FASTRAM uint8_t MSC_BOT_Data[MSC_MEDIA_PACKET];
+#endif
 
 #if defined(MSC_USE_BUTTON)
 static IO_t mscButton;

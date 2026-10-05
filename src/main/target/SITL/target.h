@@ -54,6 +54,11 @@
 #define USE_UART8
 
 #define SERIAL_PORT_COUNT 8
+
+// Opted in explicitly, as any target outside the H7 and AT32 rule in common.h would. Worth
+// having here because SITL puts each UART on a TCP port, so a simulated ESC can be attached
+// to the real driver and the whole path exercised without hardware
+#define USE_MOTOR_SRXL2
 #define SITL_SERIAL_TASK_US (500)
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP

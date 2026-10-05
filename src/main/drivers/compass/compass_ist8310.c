@@ -85,6 +85,8 @@
  */
 
 #define IST8310_REG_DATA 0x03
+#define IST8310_REG_STAT1 0x02
+#define IST8310_DRDY_MASK 0x01
 #define IST8310_REG_WHOAMI 0x00
 
 // I2C Contorl Register
@@ -126,13 +128,22 @@ static bool ist8310Init(magDev_t * mag)
 
 static bool ist8310Read(magDev_t * mag)
 {
+    uint8_t status = 0;
+
+    if (!busRead(mag->busDev, IST8310_REG_STAT1, &status)) {
+        return false;
+    }
+
+    // The IST8310 updates its data registers once per output-data period. Only read
+    // them once DRDY is set; a read racing an update would mix old and new samples
+    // across axes, corrupting the mag vector and calibration. When no fresh sample
+    // is ready, return success so the caller keeps the previous values.
+    if (!(status & IST8310_DRDY_MASK)) {
+        return true;
+    }
+
     uint8_t buf[6];
     uint8_t LSB2FSV = 3; // 3mG - 14 bit
-
-    // set magData to zero for case of failed read
-    mag->magADCRaw[X] = 0;
-    mag->magADCRaw[Y] = 0;
-    mag->magADCRaw[Z] = 0;
 
     bool ack = busReadBuf(mag->busDev, IST8310_REG_DATA, buf, 6);
     if (!ack) {

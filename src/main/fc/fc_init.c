@@ -117,6 +117,7 @@
 #include "io/osd.h"
 #include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
@@ -340,6 +341,19 @@ void init(void)
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
         featureClear(FEATURE_REVERSIBLE_MOTORS);
     }
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * A Spektrum Smart ESC reverses on a switch and goes on reading the throttle
+     * normally - Spektrum put it plainly: "flipping the designated switch reverses
+     * motor rotation, throttle will still control motor speed". Reversible motors
+     * means the other arrangement, where the stick centre is zero thrust, and
+     * enabling it here would hand the ESC roughly half throttle at the point the
+     * pilot expects the motor stopped. Reverse is the THRUST REVERSE mode instead.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        featureClear(FEATURE_REVERSIBLE_MOTORS);
+    }
+#endif
     if (!STATE(ALTITUDE_CONTROL)) {
         featureClear(FEATURE_AIRMODE);
     }
@@ -353,6 +367,21 @@ void init(void)
     }
 #else
     DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * SITL has no motor output layer - the simulator reads the mixer's motor[]
+     * array directly, so pwmMotorPreconfigure() never runs and nothing would open
+     * the SRXL2 ports. Open them here instead: SITL maps every UART onto a TCP
+     * port, so this is what lets a simulated ESC be attached to the real driver
+     * and the handshake, telemetry and calibration paths be exercised - and the
+     * Configurator show its ESC block - without any hardware.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2MotorInitialize();
+        srxl2MotorSetReverseChannel(motorConfig()->srxl2ReverseChannel);
+        srxl2MotorSetTelemetryRate(motorConfig()->srxl2TelemetryRate);
+    }
+#endif
 #endif
     systemState |= SYSTEM_STATE_MOTORS_READY;
 

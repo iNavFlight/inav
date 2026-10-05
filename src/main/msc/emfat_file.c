@@ -23,6 +23,7 @@
  */
 
 #include "platform.h"
+#include "build/build_config.h"
 #include "common/utils.h"
 #include "common/printf.h"
 
@@ -328,7 +329,16 @@ static const emfat_entry_t entriesPredefined[] =
 #define EMFAT_MAX_LOG_ENTRY 100
 #define EMFAT_MAX_ENTRY (PREDEFINED_ENTRY_COUNT + EMFAT_MAX_LOG_ENTRY + APPENDED_ENTRY_COUNT)
 
-static emfat_entry_t entries[EMFAT_MAX_ENTRY];
+// Written at every boot with flash blackbox, read only over USB in MSC mode; F4 and AT32 are
+// short of RAM and have room in FASTRAM (CCM / RAM1) for it
+#if defined(STM32F4) || defined(AT32F43x)
+#define EMFAT_DIR_STORAGE STATIC_FASTRAM
+#else
+#define EMFAT_DIR_STORAGE static
+#endif
+
+// One extra slot keeps the zero-name terminator inside the array when every entry is used
+EMFAT_DIR_STORAGE emfat_entry_t entries[EMFAT_MAX_ENTRY + 1];
 
 emfat_t emfat;
 static uint32_t cmaTime = CMA_TIME;
@@ -345,7 +355,7 @@ static void emfat_set_entry_cma(emfat_entry_t *entry)
 #ifdef USE_FLASHFS
 static void emfat_add_log(emfat_entry_t *entry, int number, uint32_t offset, uint32_t size)
 {
-    static char logNames[EMFAT_MAX_LOG_ENTRY][8+1+3];
+    EMFAT_DIR_STORAGE char logNames[EMFAT_MAX_LOG_ENTRY][8+1+3+1];
 
     tfp_sprintf(logNames[number], "INAV_%03d.BBL", number + 1);
     entry->name = logNames[number];
@@ -480,6 +490,10 @@ static int emfat_find_log(emfat_entry_t *entry, int maxCount, int flashfsUsedSpa
 
 void emfat_init_files(void)
 {
+#if defined(AT32F43x)
+    // A zero name terminates the entry list, and the AT32 startup does not zero .fastram_bss
+    memset(entries, 0, sizeof(entries));
+#endif
 #ifdef USE_FLASHFS
     int flashfsUsedSpace = 0;
     int entryIndex = PREDEFINED_ENTRY_COUNT;

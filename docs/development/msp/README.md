@@ -6,7 +6,7 @@
 
 Enum reference: [`enums.md`](enums.md). See also [`format.md`](format.md) and [`msp-message-routing-architecture.md`](msp-message-routing-architecture.md).
 
-278 messages.
+281 messages.
 
 ## Contents
 
@@ -286,6 +286,9 @@ Enum reference: [`enums.md`](enums.md). See also [`format.md`](format.md) and [`
 - [MSP2_INAV_TIMESYNC](#msp2_inav_timesync)
 - [MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)
 - [MSP2_INAV_WIND](#msp2_inav_wind)
+- [MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)
+- [MSP2_INAV_ESC_SRXL2_STATUS](#msp2_inav_esc_srxl2_status)
+- [MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)
 - [MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)
 - [MSP2_RX_BIND](#msp2_rx_bind)
 
@@ -368,7 +371,7 @@ Provides information about the specific hardware board and its capabilities.
 | boardIdentifier | `char[4]` |   | 4-character UPPER CASE board identifier (`TARGET_BOARD_IDENTIFIER`) |
 | hardwareRevision | `uint16` |   | Hardware revision number. 0 if not detected (`USE_HARDWARE_REVISION_DETECTION`) |
 | osdSupport | `uint8` |   | OSD chip type: 0=None, 2=Onboard (`USE_OSD`). INAV does not support slave OSD (1) |
-| commCapabilities | `uint8` | `bitmask`  | Bitmask: Communication capabilities: Bit 0=VCP support (`USE_VCP`), Bit 1=SoftSerial support (`USE_SOFTSERIAL1`/`2`) |
+| commCapabilities | `uint8` | `bitmask`  | Bitmask: Communication capabilities: Bit 0=VCP support (`USE_VCP`), Bit 1=SoftSerial support (`USE_SOFTSERIAL1`/`2`), Bit 2=compass orientation auto-detection during mag calibration (`USE_MAG_CALIBRATION_ORIENTATION`) |
 | targetNameLength | `uint8` |   | Length of the target name string that follows |
 | targetName | `char[]` |   | Target name string (e.g., "MATEKF405"). Length given by previous field |
 
@@ -2405,7 +2408,7 @@ Retrieves RC tuning parameters (rates, expos, TPA) for the current control rate 
 | dynamicThrottlePID | `uint8` |   | Dynamic Throttle PID (TPA) value (`currentControlRateProfile->throttle.dynPID`) |
 | throttleMid | `uint8` |   | Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`) |
 | throttleExpo | `uint8` |   | Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`) |
-| tpaBreakpoint | `uint16` |   | Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`) |
+| tpaBreakpoint | `uint16` |   | Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`) |
 | rcYawExpo | `uint8` |   | Yaw RC Expo (`currentControlRateProfile->stabilized.rcYawExpo8`) |
 
 ---
@@ -3044,7 +3047,7 @@ Sets RC tuning parameters (rates, expos, TPA) for the current control rate profi
 | dynamicThrottlePID | `uint8` |   | Sets `currentControlRateProfile->throttle.dynPID` (constrained) |
 | throttleMid | `uint8` |   | Sets `currentControlRateProfile->throttle.rcMid8` |
 | throttleExpo | `uint8` |   | Sets `currentControlRateProfile->throttle.rcExpo8` |
-| tpaBreakpoint | `uint16` |   | Sets `currentControlRateProfile->throttle.pa_breakpoint` |
+| tpaBreakpoint | `uint16` |   | Sets `currentControlRateProfile->throttle.tpa_breakpoint` |
 | rcYawExpo | `optional uint8` |   | (Optional) Sets `currentControlRateProfile->stabilized.rcYawExpo8` |
 
 *reply:* none
@@ -3440,7 +3443,7 @@ since INAV 1.0
 
 Enables serial passthrough mode to peripherals like ESCs (BLHeli 4-way) or other serial devices.
 
-> Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough.
+> Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough. ESC 4-way passthrough will fail if the craft is armed: the reply carries `MSP_RESULT_ERROR` and the serial port is not handed over. Serial passthrough to another device is unaffected.
 
 *request:* none
 
@@ -4330,7 +4333,7 @@ Retrieves the rates and expos for the current control rate profile, including bo
 | throttleMid | `uint8` |   | Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`) |
 | throttleExpo | `uint8` |   | Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`) |
 | dynamicThrottlePID | `uint8` |   | TPA value (`currentControlRateProfile->throttle.dynPID`) |
-| tpaBreakpoint | `uint16` |   | TPA breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`) |
+| tpaBreakpoint | `uint16` |   | TPA breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`) |
 | stabRcExpo | `uint8` |   | Stabilized Roll/Pitch Expo (`currentControlRateProfile->stabilized.rcExpo8`) |
 | stabRcYawExpo | `uint8` |   | Stabilized Yaw Expo (`currentControlRateProfile->stabilized.rcYawExpo8`) |
 | stabRollRate | `uint8` |   | Stabilized Roll Rate (`currentControlRateProfile->stabilized.rates[FD_ROLL]`) |
@@ -4360,7 +4363,7 @@ Sets the rates and expos for the current control rate profile (stabilized and ma
 | throttleMid | `uint8` |   | Sets `currentControlRateProfile->throttle.rcMid8` |
 | throttleExpo | `uint8` |   | Sets `currentControlRateProfile->throttle.rcExpo8` |
 | dynamicThrottlePID | `uint8` |   | Sets `currentControlRateProfile->throttle.dynPID` |
-| tpaBreakpoint | `uint16` |   | Sets `currentControlRateProfile->throttle.pa_breakpoint` |
+| tpaBreakpoint | `uint16` |   | Sets `currentControlRateProfile->throttle.tpa_breakpoint` |
 | stabRcExpo | `uint8` |   | Sets `currentControlRateProfile->stabilized.rcExpo8` |
 | stabRcYawExpo | `uint8` |   | Sets `currentControlRateProfile->stabilized.rcYawExpo8` |
 | stabRollRate | `uint8` |   | Sets `currentControlRateProfile->stabilized.rates[FD_ROLL]` (constrained) |
@@ -6674,6 +6677,67 @@ Retrieves the estimated horizontal wind speed and direction from the internal wi
 | windSpeed | `uint16` |  cm/s | Estimated horizontal wind speed (`getEstimatedHorizontalWindSpeed()`). 0 if unavailable. |
 | windAngle | `uint16` |  degrees | Estimated wind direction in degrees (0–359, 0 = North). Derived from centidegree value divided by 100. 0 if unavailable. |
 | flags | `uint8` |   | Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved. |
+
+---
+## MSP2_INAV_MAG_UNALIGNED
+
+id `0x2232` (8754) · MSPv2 · group `inav`
+
+since INAV 10.0
+
+Reads the unaligned magnetometer vector.
+
+> Returns rounded mag.magADCUnaligned values before board alignment. Returns three zeroes without USE_MAG.
+
+*request:* none
+
+*reply:*
+
+| Field | Type | Enum / flags | Description |
+|---|---|---|---|
+| magADCUnaligned | `int16[3]` |   | X, Y and Z components, rounded to signed 16-bit values. |
+
+---
+## MSP2_INAV_ESC_SRXL2_STATUS
+
+id `0x2233` (8755) · MSPv2 · group `inav`
+
+since INAV 10.0
+
+Reads SRXL2 ESC calibration and connection status.
+
+> Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.
+
+*request:* none
+
+*reply:*
+
+| Field | Type | Enum / flags | Description |
+|---|---|---|---|
+| phase | `uint8` |   | Calibration phase (srxl2CalPhase_e). |
+| connected | `uint8` |   | 1 when every opened ESC is connected; otherwise 0. |
+| lastResult | `uint8` |   | Last calibration start result (srxl2CalResult_e). |
+| portCount | `uint8` |   | Number of opened SRXL2 motor ports. |
+| motorCount | `uint8` |   | Number of motors in the current mixer. |
+
+---
+## MSP2_INAV_ESC_SRXL2_CALIBRATE
+
+id `0x2234` (8756) · MSPv2 · group `inav`
+
+since INAV 10.0
+
+Controls SRXL2 ESC throttle-range calibration.
+
+> Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
+
+*request:*
+
+| Field | Type | Enum / flags | Description |
+|---|---|---|---|
+| phase | `uint8` |   | Requested calibration action (srxl2CalPhase_e): 0, 1, 4 or 5. |
+
+*reply:* none
 
 ---
 ## MSP2_BETAFLIGHT_BIND

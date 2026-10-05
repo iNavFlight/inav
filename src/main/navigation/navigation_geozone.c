@@ -113,6 +113,7 @@ static geoZoneRuntimeConfig_t *nearestHorZone = NULL;
 static geoZoneRuntimeConfig_t *nearestInclusiveZone = NULL;
 static fpVector3_t avoidingPoint;
 static bool geozoneIsEnabled = false;
+static bool configIsInvalid = false;
 static fpVector3_t rthWaypoints[MAX_RTH_WAYPOINTS];
 static uint8_t rthWaypointIndex = 0;
 static int8_t rthWaypointCount = 0;
@@ -1606,70 +1607,104 @@ static void endFenceAction(void)
 static void geoZoneInit(void)
 {
     activeGeoZonesCount = 0;
-    uint8_t expectedVertices = 0, configuredVertices = 0;
+    configIsInvalid = false;
+    uint16_t expectedVertices = 0;
     for (uint8_t i = 0; i < MAX_GEOZONES_IN_CONFIG; i++)
     {
         if (geoZonesConfig(i)->vertexCount > 0) {
-            memcpy(&activeGeoZones[activeGeoZonesCount].config, geoZonesConfig(i), sizeof(geoZoneRuntimeConfig_t));
-            if (activeGeoZones[i].config.maxAltitude == 0) {
-                activeGeoZones[i].config.maxAltitude = INT32_MAX;
+            // Zones without vertices are skipped, so the packed index differs from the config index
+            geoZoneRuntimeConfig_t *zone = &activeGeoZones[activeGeoZonesCount];
+
+            zone->config = *geoZonesConfig(i);
+            zone->radius = 0;
+            zone->verticesLocal = NULL;
+
+            if (zone->config.maxAltitude == 0) {
+                zone->config.maxAltitude = INT32_MAX;
             }
 
-            if (activeGeoZones[i].config.isSealevelRef) {
-                
-                if (activeGeoZones[i].config.maxAltitude != 0) {
-                    activeGeoZones[i].config.maxAltitude -= GPS_home.alt;
+            if (zone->config.isSealevelRef) {
+
+                if (zone->config.maxAltitude != 0) {
+                    zone->config.maxAltitude -= GPS_home.alt;
                 }
-                
-                if (activeGeoZones[i].config.minAltitude != 0) {
-                    activeGeoZones[i].config.minAltitude -= GPS_home.alt;
+
+                if (zone->config.minAltitude != 0) {
+                    zone->config.minAltitude -= GPS_home.alt;
                 }
-            }
-            
-            activeGeoZones[i].isInfZone = activeGeoZones[i].config.maxAltitude == INT32_MAX && activeGeoZones[i].config.minAltitude == 0;
-            
-            if (!STATE(AIRPLANE) && activeGeoZones[i].config.fenceAction == GEOFENCE_ACTION_AVOID) {
-                activeGeoZones[i].config.fenceAction = GEOFENCE_ACTION_POS_HOLD;
             }
 
-            activeGeoZones[activeGeoZonesCount].enable = true;
+            zone->isInfZone = zone->config.maxAltitude == INT32_MAX && zone->config.minAltitude == 0;
+
+            if (!STATE(AIRPLANE) && zone->config.fenceAction == GEOFENCE_ACTION_AVOID) {
+                zone->config.fenceAction = GEOFENCE_ACTION_POS_HOLD;
+            }
+
+            zone->enable = true;
             activeGeoZonesCount++;
         }
         expectedVertices += geoZonesConfig(i)->vertexCount;
     }
     
-    if (activeGeoZonesCount > 0) {
+    // A record count can't tell a duplicate plus a missing vertex from a complete set, so track every slot
+    uint32_t slotSeen[(MAX_VERTICES_IN_CONFIG + 31) / 32] = { 0 };
+    // More declared vertices than storage slots can't be complete, and their offsets would run past verticesLocal
+    bool verticesAreComplete = expectedVertices <= MAX_VERTICES_IN_CONFIG;
+
+    if (activeGeoZonesCount > 0 && verticesAreComplete) {
         // Covert geozone vertices to local
         for (uint8_t i = 0; i < MAX_VERTICES_IN_CONFIG; i++)  {
             gpsLocation_t vertexLoc;
             fpVector3_t posLocal3;
 
-            if (geoZoneVertices(i)->zoneId >= 0 && geoZoneVertices(i)->zoneId < MAX_GEOZONES_IN_CONFIG && geoZoneVertices(i)->idx <= MAX_VERTICES_IN_CONFIG) {         
-                configuredVertices++;
-                if (geoZonesConfig(geoZoneVertices(i)->zoneId)->shape == GEOZONE_SHAPE_CIRCULAR && geoZoneVertices(i)->idx == 1) {
-                    activeGeoZones[geoZoneVertices(i)->zoneId].radius = geoZoneVertices(i)->lat;
-                    activeGeoZones[geoZoneVertices(i)->zoneId].config.vertexCount = 1;
+            const int8_t zoneId = geoZoneVertices(i)->zoneId;
+            if (zoneId >= 0 && zoneId < MAX_GEOZONES_IN_CONFIG && geoZoneVertices(i)->idx < geoZonesConfig(zoneId)->vertexCount) {
+                uint8_t zoneIdx = 0, vertexIdx = 0;
+                for (uint8_t j = 0; j < zoneId; j++) {
+                    if (geoZonesConfig(j)->vertexCount > 0) {
+                        vertexIdx += geoZonesConfig(j)->vertexCount;
+                        zoneIdx++;
+                    }
+                }
+                vertexIdx += geoZoneVertices(i)->idx;
+
+                if (slotSeen[vertexIdx / 32] & (1U << (vertexIdx % 32))) {
+                    verticesAreComplete = false;
+                }
+                slotSeen[vertexIdx / 32] |= 1U << (vertexIdx % 32);
+
+                if (geoZonesConfig(zoneId)->shape == GEOZONE_SHAPE_CIRCULAR && geoZoneVertices(i)->idx == 1) {
+                    activeGeoZones[zoneIdx].radius = geoZoneVertices(i)->lat;
+                    activeGeoZones[zoneIdx].config.vertexCount = 1;
                     continue;
                 }
-                
+
                 vertexLoc.lat = geoZoneVertices(i)->lat;
                 vertexLoc.lon = geoZoneVertices(i)->lon;
                 geoConvertGeodeticToLocal(&posLocal3, &posControl.gpsOrigin, &vertexLoc, GEO_ALT_ABSOLUTE);
-
-                uint8_t vertexIdx = 0;
-                for (uint8_t j = 0; j < geoZoneVertices(i)->zoneId; j++) {
-                    vertexIdx += activeGeoZones[j].config.vertexCount;
-                }
-                vertexIdx += geoZoneVertices(i)->idx;
 
                 verticesLocal[vertexIdx].x = posLocal3.x;
                 verticesLocal[vertexIdx].y = posLocal3.y;
 
                 if (geoZoneVertices(i)->idx == 0) {
-                    activeGeoZones[geoZoneVertices(i)->zoneId].verticesLocal = &verticesLocal[vertexIdx];
+                    activeGeoZones[zoneIdx].verticesLocal = &verticesLocal[vertexIdx];
                 }
             }
         }
+    }
+
+    for (uint8_t i = 0; i < expectedVertices && verticesAreComplete; i++) {
+        verticesAreComplete = (slotSeen[i / 32] & (1U << (i % 32))) != 0;
+    }
+
+    // Fences with missing or duplicate vertices can't be enforced, block arming instead of silently flying without them
+    if (!verticesAreComplete) {
+        configIsInvalid = true;
+        // Zones without vertices must not reach isInGeozone(), e.g. from geozoneUpdateMaxHomeAltitude()
+        activeGeoZonesCount = 0;
+        setTaskEnabled(TASK_GEOZONE, false);
+        geozoneIsEnabled = false;
+        return;
     }
 
     if (geoZoneConfig()->nearestSafeHomeAsInclusivZone && posControl.safehomeState.index >= 0)
@@ -1685,8 +1720,6 @@ static void geoZoneInit(void)
         activeGeoZones[activeGeoZonesCount].verticesLocal = (fpVector2_t*)&posControl.safehomeState.nearestSafeHome;
         activeGeoZones[activeGeoZonesCount].radius = navConfig()->general.safehome_max_distance;
         activeGeoZonesCount++;
-        expectedVertices++;
-        configuredVertices++;
     }
 
     updateCurrentZones();
@@ -1718,7 +1751,7 @@ static void geoZoneInit(void)
     }
 
     activeGeoZonesCount = newActiveZoneCount;
-    if (activeGeoZonesCount == 0 || expectedVertices != configuredVertices) {
+    if (activeGeoZonesCount == 0) {
         setTaskEnabled(TASK_GEOZONE, false);
         geozoneIsEnabled = false;
         return;
@@ -2071,9 +2104,19 @@ void geozoneUpdateMaxHomeAltitude(void) {
     }
 }
 
-// Avoid arming in NFZ 
+bool geozoneIsConfigInvalid(void)
+{
+    return isInitalised && configIsInvalid;
+}
+
+// Avoid arming in NFZ
 bool geozoneIsBlockingArming(void)
 {
+    // The configured zones could not be loaded, don't take off without the fences the user set up
+    if (geozoneIsConfigInvalid()) {
+        return true;
+    }
+
     // Do not generate arming flags unless we are sure about them
     if (!isInitalised || !geozoneIsEnabled || activeGeoZonesCount == 0)  {
         return false;
