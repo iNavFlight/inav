@@ -3257,8 +3257,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }
 
             displayPort_t *osdDisplayPort = osdGetDisplayPort();
-            if (osdDisplayPort) {
-                displayWriteFontCharacter(osdDisplayPort, addr, &chr);
+            if (!osdDisplayPort || displayWriteFontCharacter(osdDisplayPort, addr, &chr) < 0) {
+                return MSP_RESULT_ERROR;
             }
         } else {
             return MSP_RESULT_ERROR;
