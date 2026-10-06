@@ -31,6 +31,7 @@
 #include "common/utils.h"
 #include "drivers/io.h"
 #include "drivers/nvic.h"
+#include "drivers/time.h"
 
 #include "serial.h"
 #include "serial_uart.h"
@@ -66,17 +67,8 @@ __attribute__((weak)) void uartConfigurePinSwap(uartPort_t *uartPort)
     UNUSED(uartPort);
 }
 
-// Everything but HAL_UART_DeInit(), which also releases the pins: the line noise that leaves is
-// read as data by the device, and a u-blox went deaf for about a second after each baud change
-static void uartConfigure(uartPort_t *uartPort)
+static void uartReconfigure(uartPort_t *uartPort)
 {
-    // Reprogrammed in place, the port still has its interrupts on, and one taken while
-    // HAL_UART_Init() holds the handle would find the peripheral half written
-    if (uartPort->Handle.gState != HAL_UART_STATE_RESET) {
-        CLEAR_BIT(uartPort->USARTx->CR1, USART_CR1_PEIE | USART_CR1_RXNEIE | USART_CR1_TXEIE);
-        CLEAR_BIT(uartPort->USARTx->CR3, USART_CR3_EIE);
-    }
-
     /*RCC_PeriphCLKInitTypeDef RCC_PeriphClkInit;
     RCC_PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_USART3|
             RCC_PERIPHCLK_UART4|RCC_PERIPHCLK_UART5|RCC_PERIPHCLK_USART6|RCC_PERIPHCLK_UART7|RCC_PERIPHCLK_UART8;
@@ -90,6 +82,7 @@ static void uartConfigure(uartPort_t *uartPort)
     RCC_PeriphClkInit.Uart8ClockSelection = RCC_UART8CLKSOURCE_SYSCLK;
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);*/
 
+    HAL_UART_DeInit(&uartPort->Handle);
     uartPort->Handle.Init.BaudRate = uartPort->port.baudRate;
     uartPort->Handle.Init.WordLength = (uartPort->port.options & SERIAL_PARITY_EVEN) ? UART_WORDLENGTH_9B : UART_WORDLENGTH_8B;
     uartPort->Handle.Init.StopBits = (uartPort->port.options & SERIAL_STOPBITS_2) ? USART_STOPBITS_2 : USART_STOPBITS_1;
@@ -116,6 +109,10 @@ static void uartConfigure(uartPort_t *uartPort)
         HAL_UART_Init(&uartPort->Handle);
     }
 
+    // A byte or an error flag taken at the old rate would come out as data at the new one
+    __HAL_UART_CLEAR_FLAG(&uartPort->Handle, UART_CLEAR_PEF | UART_CLEAR_FEF | UART_CLEAR_NEF | UART_CLEAR_OREF);
+    __HAL_UART_SEND_REQ(&uartPort->Handle, UART_RXDATA_FLUSH_REQUEST);
+
     if (uartPort->port.mode & MODE_RX) {
         /* Enable the UART Parity Error Interrupt */
         SET_BIT(uartPort->USARTx->CR1, USART_CR1_PEIE);
@@ -133,12 +130,6 @@ static void uartConfigure(uartPort_t *uartPort)
         SET_BIT(uartPort->USARTx->CR1, USART_CR1_TXEIE);
     }
     return;
-}
-
-static void uartReconfigure(uartPort_t *uartPort)
-{
-    HAL_UART_DeInit(&uartPort->Handle);
-    uartConfigure(uartPort);
 }
 
 serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback, void *rxCallbackData, uint32_t baudRate, portMode_t mode, portOptions_t options)
@@ -201,8 +192,16 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
 void uartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     uartPort_t *uartPort = (uartPort_t *)instance;
+
+    // The ring buffer empties two frames before the line does, and the reconfigure would cut them
+    if ((uartPort->port.mode & MODE_TX) && uartPort->port.baudRate) {
+        const timeUs_t limit = micros() + 2 * 10 * 1000000 / uartPort->port.baudRate + 1;
+        while (!(uartPort->USARTx->ISR & USART_ISR_TC) && cmpTimeUs(limit, micros()) > 0) {
+        }
+    }
+
     uartPort->port.baudRate = baudRate;
-    uartConfigure(uartPort);
+    uartReconfigure(uartPort);
 }
 
 void uartSetMode(serialPort_t *instance, portMode_t mode)
