@@ -81,6 +81,7 @@ extern "C" {
     timeMs_t millis(void) { return fakeMillis; }
     timeUs_t micros(void) { return (timeUs_t)fakeMillis * 1000; }
     bool isEstimatedWindSpeedValid(void) { return windValid; }
+    bool busIsBusy(const busDevice_t *, bool *error) { *error = false; return false; }   // the fake device has no readStart, never reached
 
     static bool fakeStartGet(pitotDev_t *) { return true; }
     static void fakeCalculate(pitotDev_t *, float *pressure, float *temperature) {

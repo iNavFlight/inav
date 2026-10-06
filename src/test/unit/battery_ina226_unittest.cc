@@ -46,6 +46,15 @@ static busDevice_t fakeBusDevice;
 static uint16_t fakeRegisters[256];
 static bool fakeRegisterReadable[256];
 static uint32_t fakeFeatures;
+
+// Fake non-blocking bus (see ina226_unittest.cc): one transfer in flight, busy for one poll, then completed
+// into the caller's buffer or failed when the register is unreadable; the failure stays reported until
+// the next transfer is started, like the real I2C driver
+static bool fakeTransferPending;
+static bool fakeLastTransferFailed;
+static uint8_t fakeTransferReg;
+static uint8_t *fakeTransferData;
+static int fakeBusyPolls;
 static timeUs_t fakeTimeUs;
 
 extern "C" {
@@ -76,6 +85,12 @@ static void resetFakeBus(void)
     fakeBusDevice.busType = BUSTYPE_I2C;
     setFakeRegister(INA226_REG_MANUFACTURER_ID, 0x5449);
     setFakeRegister(INA226_REG_DIE_ID, 0x2260);
+
+    fakeTransferPending = false;
+    fakeLastTransferFailed = false;
+    fakeTransferReg = 0;
+    fakeTransferData = nullptr;
+    fakeBusyPolls = 0;
 }
 
 static void clearFakeRegister(uint8_t reg)
@@ -83,16 +98,20 @@ static void clearFakeRegister(uint8_t reg)
     fakeRegisterReadable[reg] = false;
 }
 
+// Each INA226 register takes two polls (start, complete) and the two registers alternate,
+// so a new value reaches the filters after a few rounds at the latest
+#define SETTLE_ROUNDS 12
+
 static void settleVoltage(void)
 {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < SETTLE_ROUNDS; i++) {
         batteryUpdate(10000000);
     }
 }
 
 static void settleCurrent(void)
 {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < SETTLE_ROUNDS; i++) {
         currentMeterUpdate(10000000);
     }
 }
@@ -168,6 +187,46 @@ extern "C" {
         data[0] = fakeRegisters[reg] >> 8;
         data[1] = fakeRegisters[reg] & 0xFF;
         return true;
+    }
+
+    bool busReadBufStart(const busDevice_t *busdev, uint8_t reg, uint8_t *data, uint8_t length)
+    {
+        EXPECT_EQ(&fakeBusDevice, busdev);
+        EXPECT_EQ(2, length);
+
+        if (fakeTransferPending) {
+            return false;
+        }
+
+        fakeTransferPending = true;
+        fakeLastTransferFailed = false;
+        fakeTransferReg = reg;
+        fakeTransferData = data;
+        fakeBusyPolls = 1;
+        return true;
+    }
+
+    bool busIsBusy(const busDevice_t *busdev, bool *error)
+    {
+        EXPECT_EQ(&fakeBusDevice, busdev);
+
+        if (fakeTransferPending && fakeBusyPolls-- > 0) {
+            *error = false;
+            return true;
+        }
+
+        if (fakeTransferPending) {
+            fakeTransferPending = false;
+            if (fakeRegisterReadable[fakeTransferReg]) {
+                fakeTransferData[0] = fakeRegisters[fakeTransferReg] >> 8;
+                fakeTransferData[1] = fakeRegisters[fakeTransferReg] & 0xFF;
+            } else {
+                fakeLastTransferFailed = true;
+            }
+        }
+
+        *error = fakeLastTransferFailed;
+        return false;
     }
 
     uint16_t adcGetChannel(uint8_t)
@@ -283,6 +342,8 @@ TEST(BatteryINA226, SamplesBatteryVoltageDirectlyFromIna226BusVoltage)
     resetBatteryTestState();
     setFakeRegister(INA226_REG_BUS_VOLTAGE, 9600);
 
+    settleCurrent();    // the current meter polls the INA226 too, the battery voltage itself stays untouched
+
     EXPECT_EQ(1200, getBatteryVoltageSample());
     EXPECT_EQ(0, getBatteryRawVoltage());
 }
@@ -302,6 +363,8 @@ TEST(BatteryINA226, SamplesCurrentDirectlyFromConfiguredIna226Shunt)
     resetBatteryTestState();
     batteryMetersConfigMutable()->ina226.shuntResistanceMicroOhm = 300;
     setFakeRegister(INA226_REG_SHUNT_VOLTAGE, 1200);
+
+    settleVoltage();    // the battery update polls the INA226 too, the amperage itself stays untouched
 
     EXPECT_EQ(1000, getAmperageSample());
     EXPECT_EQ(0, getAmperage());
@@ -324,6 +387,8 @@ TEST(BatteryINA226, IgnoresAdcVoltageOffsetForIna226Current)
     batteryMetersConfigMutable()->current.offset = 1234;
     batteryMetersConfigMutable()->ina226.shuntResistanceMicroOhm = 300;
     setFakeRegister(INA226_REG_SHUNT_VOLTAGE, 1200);
+
+    settleVoltage();    // refresh the cached reading without touching the amperage
 
     EXPECT_EQ(1000, getAmperageSample());
 
