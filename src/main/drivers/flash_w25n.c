@@ -141,6 +141,9 @@ static bool couldBeBusy = false;
 
 static timeMs_t timeoutAt = 0;
 
+// The page held in the device's internal data buffer, or UINT32_MAX if its contents are unknown
+static uint32_t currentPage = UINT32_MAX;
+
 static bool w25n_waitForReadyInternal(void);
 
 static void w25n_setTimeout(timeMs_t timeoutMillis)
@@ -216,9 +219,13 @@ static bool w25n_waitForReadyInternal(void)
     return true;
 }
 
+// 0 keeps the deadline the pending operation armed, like m25p16_waitForReady(); flashPartitionErase() passes 0
 bool w25n_waitForReady(timeMs_t timeoutMillis)
 {
-    w25n_setTimeout(timeoutMillis);
+    if (timeoutMillis > 0) {
+        w25n_setTimeout(timeoutMillis);
+    }
+
     return w25n_waitForReadyInternal();
 }
 
@@ -300,10 +307,17 @@ bool w25n_detect(uint32_t chipID)
  */
 void w25n_eraseSector(uint32_t address)
 {
-    w25n_waitForReadyInternal();
+    // One more deadline for an overrunning previous erase, then skip: a busy chip ignores write enable and erase
+    if (!w25n_waitForReadyInternal() && !w25n_waitForReady(W25N_TIMEOUT_BLOCK_ERASE_MS)) {
+        return;
+    }
+
     w25n_writeEnable();
     w25n_performCommandWithPageAddress(W25N_INSTRUCTION_BLOCK_ERASE, W25N_LINEAR_TO_PAGE(address));
     w25n_setTimeout(W25N_TIMEOUT_BLOCK_ERASE_MS);
+
+    // The data buffer may still hold a page of the block that is being erased
+    currentPage = UINT32_MAX;
 }
 
 // W25N does not support full chip erase.
@@ -313,6 +327,9 @@ void w25n_eraseCompletely(void)
     for (uint32_t block = 0; block < geometry.sectors; block++) {
         w25n_eraseSector(W25N_BLOCK_TO_LINEAR(block));
     }
+
+    // Fresh deadline, so a block that overran the armed one finishes before flashfs reads the result back
+    w25n_waitForReady(W25N_TIMEOUT_BLOCK_ERASE_MS);
 }
 
 static void w25n_programDataLoad(uint16_t columnAddress, const uint8_t *data, int length)
@@ -377,7 +394,6 @@ bool bufferDirty = false;
 bool isProgramming = false;
 static uint32_t programStartAddress;
 static uint32_t programLoadAddress;
-static uint32_t currentPage = UINT32_MAX;
 
 void w25n_pageProgramBegin(uint32_t address)
 {
