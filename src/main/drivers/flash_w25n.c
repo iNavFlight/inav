@@ -160,7 +160,8 @@ static void w25n_performOneByteCommand(uint8_t command)
 
 static void w25n_performCommandWithPageAddress(uint8_t command, uint32_t pageAddress)
 {
-    uint8_t cmd[4] = { command, 0, (pageAddress >> 8) & 0xff, (pageAddress >> 0) & 0xff};
+    // 2Gbit parts take a 17-bit page address; on the W25N01GV this byte is a dummy and stays zero
+    uint8_t cmd[4] = { command, (pageAddress >> 16) & 0xff, (pageAddress >> 8) & 0xff, (pageAddress >> 0) & 0xff};
     busTransfer(busDev, NULL, cmd, sizeof(cmd));
 }
 
