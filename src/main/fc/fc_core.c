@@ -308,15 +308,15 @@ static void updateArmingStatus(void)
 #ifdef USE_MOTOR_SRXL2
         /*
          * An SRXL2 ESC announces itself in the third of a second after it gains
-         * power, and is silent from then on: if that announcement is missed the
-         * link never forms, and the throttle reaches nothing. Arming meanwhile
-         * commands a motor that is not listening - the model looks armed, the
-         * telemetry looks sane, and the propeller does not turn.
+         * power: if that announcement is missed the link never forms, and the
+         * throttle reaches nothing. Arming meanwhile commands a motor that is not
+         * listening - the model looks armed, the telemetry looks sane, and the
+         * propeller does not turn.
          *
-         * Refuse to arm until the link is actually up. Where both come up on the
-         * same battery this costs about a second at power-up and is invisible;
-         * where it does not, it is the difference between finding out on the
-         * bench and finding out on the takeoff roll.
+         * Refuse to arm until the link is up and the ESC obeys the throttle, about
+         * 10 s after it powers up; where the link never forms, it is the
+         * difference between finding out on the bench and finding out on the
+         * takeoff roll.
          */
         escLinkMissing = (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2)
                          && !srxl2MotorIsConnected();
