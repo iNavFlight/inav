@@ -60,7 +60,8 @@ escFrameCounter_t * escSensorFrameCounter(uint8_t esc)
     return &escSensorFrames[esc];
 }
 
-void escSensorFrameWindowUpdate(timeMs_t currentTimeMs)
+// NOINLINE: escSensorUpdate() is inlined into the ITCM scheduler; this runs once per window
+void NOINLINE escSensorFrameWindowUpdate(timeMs_t currentTimeMs)
 {
     if (currentTimeMs - escFrameWindowStartMs < ESC_FRAME_WINDOW_MS) {
         return;

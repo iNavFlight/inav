@@ -1133,7 +1133,8 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
     return repeats;
 }
 
-static bool executeDShotCommands(void){
+// NOINLINE: pwmCompleteMotorUpdate() is inlined into the ITCM scheduler; commands are rare
+static bool NOINLINE executeDShotCommands(void){
     
     timeUs_t tNow = micros();
 
