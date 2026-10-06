@@ -138,6 +138,7 @@ extern "C" {
     bool navigationRequiresAutoThrottleMode(void) { return false; }
     bool navigationIsFlyingAutonomousMode(void) { return false; }
     bool isFixedwingAutoSpeedActive(void) { return false; }
+    bool navigationIsExecutingAnEmergencyLanding(void) { return false; }
     int16_t rxGetChannelValue(unsigned channelNumber) { (void)channelNumber; return 1500; }
 
     float getThrottleScale(float globalThrottleScale) { return globalThrottleScale; }
