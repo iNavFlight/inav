@@ -293,7 +293,7 @@ static const adjustmentConfig_t defaultAdjustmentConfigs[ADJUSTMENT_FUNCTION_COU
     }, {
         .adjustmentFunction = ADJUSTMENT_FW_TPA_TIME_CONSTANT,
         .mode = ADJUSTMENT_MODE_STEP,
-        .data = { .stepConfig = { .step = 5 }}
+        .data = { .stepConfig = { .step = 10 }}
     }, {
         .adjustmentFunction = ADJUSTMENT_FW_LEVEL_TRIM,
         .mode = ADJUSTMENT_MODE_STEP,
