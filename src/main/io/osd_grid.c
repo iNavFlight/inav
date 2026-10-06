@@ -300,7 +300,8 @@ static uint16_t osdUpdateSidebar(osd_sidebar_scroll_e scroll, osd_sidebar_t *sid
             break;
     }
     if (offset) {
-        decoration -= steps % SYM_AH_DECORATION_COUNT;
+        // Higher glyph codes draw the ticks lower, so the scale moves down as the value rises
+        decoration += steps % SYM_AH_DECORATION_COUNT;
         if (decoration > SYM_AH_DECORATION_MAX) {
             decoration -= SYM_AH_DECORATION_COUNT;
         } else if (decoration < SYM_AH_DECORATION_MIN) {
