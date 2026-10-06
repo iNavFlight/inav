@@ -179,7 +179,7 @@ void getTaskInfo(cfTaskId_e taskId, cfTaskInfo_t * taskInfo)
     taskInfo->maxExecutionTime = cfTasks[taskId].maxExecutionTime;
     taskInfo->totalExecutionTime = cfTasks[taskId].totalExecutionTime;
     taskInfo->averageExecutionTime = cfTasks[taskId].movingSumExecutionTime / TASK_MOVING_SUM_COUNT;
-    taskInfo->latestDeltaTime = cfTasks[taskId].taskLatestDeltaTime;
+    taskInfo->averageDeltaTime = cfTasks[taskId].movingSumDeltaTime / TASK_MOVING_SUM_COUNT;
 }
 
 void rescheduleTask(cfTaskId_e taskId, timeDelta_t newPeriodUs)
@@ -324,6 +324,7 @@ void FAST_CODE NOINLINE scheduler(void)
     if (selectedTask) {
         // Found a task that should be run
         selectedTask->taskLatestDeltaTime = (timeDelta_t)(currentTimeUs - selectedTask->lastExecutedAt);
+        selectedTask->movingSumDeltaTime += selectedTask->taskLatestDeltaTime - selectedTask->movingSumDeltaTime / TASK_MOVING_SUM_COUNT;
         selectedTask->lastExecutedAt = currentTimeUs;
         selectedTask->dynamicPriority = 0;
 
