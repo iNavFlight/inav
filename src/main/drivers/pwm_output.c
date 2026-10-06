@@ -1121,6 +1121,7 @@ static int getDShotCommandRepeats(dshotCommands_e cmd) {
     int repeats = 1;
 
     switch (cmd) {
+        case DSHOT_CMD_EXTENDED_TELEMETRY_ENABLE:
         case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
         case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
             repeats = 10;

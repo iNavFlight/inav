@@ -957,7 +957,7 @@ Enable bidirectional DShot telemetry on motor outputs. Required for RPM filterin
 
 ### dshot_edt_enabled
 
-Enable extended DShot telemetry decoding (temperature, voltage, current in addition to eRPM)
+Enable extended DShot telemetry (temperature, voltage, current in addition to eRPM). The ESC is asked for it on every arm, so the values appear after the first arm
 
 | Default | Min | Max |
 | --- | --- | --- |
