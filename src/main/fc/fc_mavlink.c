@@ -288,16 +288,38 @@ static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
     }
 }
 
+// Same steps as ArduPilot's GCS_MAVLINK::handle_radio_status(), so radios tuned for it behave alike
+static void mavlinkHandleRadioTxbuf(uint8_t txbuf)
+{
+    // Above 100 is not a percentage; 0 is a full buffer, not a missing value
+    if (txbuf > 100) {
+        mavActivePort->txbuffValid = false;
+        mavActivePort->txbuffFree = 100;
+        mavActivePort->streamSlowdownMs = 0;
+        return;
+    }
+
+    mavActivePort->txbuffValid = true;
+    mavActivePort->txbuffFree = txbuf;
+    mavActivePort->lastTxbuffReportUs = (uint32_t)mavActivePort->lastRxFrameUs;
+
+    uint16_t slowdownMs = mavActivePort->streamSlowdownMs;
+    if (txbuf < 20 && slowdownMs < MAVLINK_STREAM_SLOWDOWN_MAX_MS) {
+        slowdownMs += 60;
+    } else if (txbuf < 50 && slowdownMs < MAVLINK_STREAM_SLOWDOWN_MAX_MS) {
+        slowdownMs += 20;
+    } else if (txbuf > 95 && slowdownMs > 200) {
+        slowdownMs -= 40;
+    } else if (txbuf > 90 && slowdownMs > 0) {
+        slowdownMs = slowdownMs > 20 ? slowdownMs - 20 : 0;
+    }
+    mavActivePort->streamSlowdownMs = slowdownMs;
+}
+
 static bool handleIncoming_RADIO_STATUS(void) {
     mavlink_radio_status_t msg;
     mavlink_msg_radio_status_decode(&mavlinkContext.recvMsg, &msg);
-    if (msg.txbuf > 0) {
-        mavActivePort->txbuffValid = true;
-        mavActivePort->txbuffFree = msg.txbuf;
-    } else {
-        mavActivePort->txbuffValid = false;
-        mavActivePort->txbuffFree = 100;
-    }
+    mavlinkHandleRadioTxbuf(msg.txbuf);
 
     if (rxConfig()->receiverType == RX_TYPE_SERIAL &&
         rxConfig()->serialrx_provider == SERIALRX_MAVLINK) {
@@ -416,13 +438,7 @@ static bool handleIncoming_MLRS_RADIO_LINK_FLOW_CONTROL(uint8_t ingressPortIndex
     flowControl->valid = true;
     flowControl->packet = msg;
 
-    if (msg.txbuf <= 100) {
-        mavActivePort->txbuffValid = true;
-        mavActivePort->txbuffFree = msg.txbuf;
-    } else {
-        mavActivePort->txbuffValid = false;
-        mavActivePort->txbuffFree = 100;
-    }
+    mavlinkHandleRadioTxbuf(msg.txbuf);
 
     return true;
 }
