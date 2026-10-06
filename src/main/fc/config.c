@@ -415,7 +415,7 @@ void processSaveConfigAndNotify(void)
     writeEEPROM();
     readEEPROM();
     resumeRxSignal();
-    beeperConfirmationBeeps(1);
+    beeper(BEEPER_ACTION_SUCCESS);
 #ifdef USE_OSD
     osdShowEEPROMSavedNotification();
 #endif

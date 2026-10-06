@@ -136,11 +136,14 @@
 #define SRXL2_LINK_TIMEOUT_MS       500
 
 // How long after the link comes up before the ESC will actually turn the motor. An Avian
-// announces itself within 300 ms of gaining power but then plays its startup tones for about
-// five seconds, and only drives the motor once the last of them has sounded. Timed on the
-// bench against the tones. Arming waits for this rather than for the handshake alone, which
-// costs nothing: nobody arms that soon after connecting the battery
-#define SRXL2_READY_DELAY_MS        6500
+// links within 350 ms of gaining power but obeys the throttle only once its startup tones are
+// over: it ignored a throttle sent from 6.9 s until about 9.2 s after power. Arming waits for this
+// rather than for the handshake alone: nobody arms that soon after connecting the battery
+#define SRXL2_READY_DELAY_MS        10000
+
+// Unfed this long, an Avian drops the link (it announces itself again about 185 ms after its last
+// frame), and one still starting starts over
+#define SRXL2_STARVED_MS            150
 
 // Calibration phases end themselves: the high one has to outlast a person reaching for a
 // battery lead, the low one only the ESC's tones. Neither may persist, one is full throttle
@@ -211,7 +214,9 @@ typedef struct {
     uint8_t   deviceId;                 /* 0 until discovered */
     uint8_t   baudSupported;
     uint8_t   pollId;           /* offset from SRXL2_ESC_ID_FIRST, while polling */
-    timeMs_t  runningSinceMs;   /* when the link came up, for SRXL2_READY_DELAY_MS */
+    timeMs_t  runningSinceMs;   /* link up or last announcement, for SRXL2_READY_DELAY_MS */
+    timeMs_t  gapStartMs;       /* our last frame before a gap of ours, and the first after it, */
+    timeMs_t  gapEndMs;         /* to tell why the ESC announced itself */
     timeMs_t  lastKeepaliveMs;  /* last handshake answered to a running ESC */
     uint8_t   agreedBaudBits;
     bool      baudSwitchPending;        /* waiting for TX to drain */
@@ -416,6 +421,18 @@ static void srxl2HandleHandshake(srxl2Esc_t *e, const uint8_t *buf)
     // never reaches its first control frame. A slave that genuinely reset is not missed,
     // since it comes back at 115200 and the link timeout drops us to POLLING to find it
     if (e->state == SRXL2_FINALISING || e->state == SRXL2_RUNNING) {
+        if (e->state == SRXL2_RUNNING && e->deviceId == src) {
+            // It announces itself only after losing its power or its frames. Fed all along, it lost its
+            // power and starts over; answering a gap of ours, which it can do after our frames are
+            // back, it starts over only if it was still starting when the gap began
+            const timeMs_t now = millis();
+            const bool inGap = now - e->lastControlMs >= SRXL2_STARVED_MS;
+            const bool fed = !inGap && now - e->gapEndMs >= SRXL2_LINK_TIMEOUT_MS;
+            const timeMs_t gapStartMs = inGap ? e->lastControlMs : e->gapStartMs;
+            if (fed || (timeDelta_t)(gapStartMs - e->runningSinceMs) < SRXL2_READY_DELAY_MS) {
+                e->runningSinceMs = now;
+            }
+        }
         /* Still answer a running ESC, so it knows the master is there - but say
          * nothing mid-negotiation, where another broadcast is what causes the
          * loop. */
@@ -936,6 +953,10 @@ static void srxl2ProcessEsc(srxl2Esc_t *e, timeMs_t now)
 
     case SRXL2_RUNNING:
         if (now - e->lastControlMs >= SRXL2_CONTROL_INTERVAL_MS) {
+            if (now - e->lastControlMs >= SRXL2_STARVED_MS) {
+                e->gapStartMs = e->lastControlMs;
+                e->gapEndMs = now;
+            }
             e->lastControlMs = now;
             srxl2SendControlData(e);
         }

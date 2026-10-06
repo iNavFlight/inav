@@ -372,9 +372,12 @@ seconds with no telemetry requested at all. What stops the motor is the absence
 of control frames - the current falls to the ESC's own 58 mA within about half a
 second - and it takes the throttle back up by itself when frames return, with no
 re-arm and no power cycle. So a silent ESC keeps being commanded, and only the
-telemetry goes stale. Where ESC and board come up together the block clears in about a
-second and is never seen; where it does not clear, the throttle would have done
-nothing anyway.
+telemetry goes stale. Once the ESC links, the block stays for 10 more seconds, and the
+OSD's hardware warning with it: an Avian obeys the throttle only about 9 seconds after it
+powers up, when its startup tones are over. An ESC that announces itself again while the
+board was feeding it, as one powered again does, is counted from there; after a pause in the
+board's own frames, only one still starting is. Where the block does not clear, the throttle
+would have done nothing anyway.
 
 ## Settings
 
