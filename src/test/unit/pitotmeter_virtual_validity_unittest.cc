@@ -100,7 +100,8 @@ protected:
     }
 
     bool airspeedValid() {
-        pitotUpdate();   // virtual pitot: sets lastSeenHealthyMs, refreshes validity cache
+        bool newSampleReady;
+        pitotUpdate(&newSampleReady);   // virtual pitot: sets lastSeenHealthyMs, refreshes validity cache
         return pitotGetValidForAirspeed();
     }
 };

@@ -226,12 +226,14 @@ void taskUpdatePitot(timeUs_t currentTimeUs)
     }
 
     // A non-blocking read asks to be revisited shortly, otherwise the regular period is restored
-    const uint32_t newDeadline = pitotUpdate();
+    bool newSampleReady = false;
+    const uint32_t newDeadline = pitotUpdate(&newSampleReady);
     if (newDeadline != 0) {
         rescheduleTask(TASK_SELF, newDeadline);
     }
 
-    if ( pitotIsHealthy()) {
+    // Feed the estimator only when the airspeed was recomputed, not on a retry round
+    if (newSampleReady && pitotIsHealthy()) {
         updatePositionEstimator_PitotTopic(currentTimeUs);
     }
 }

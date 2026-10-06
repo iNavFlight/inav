@@ -405,7 +405,7 @@ static float getVirtualAirspeedEstimate(void)
     return pidProfile()->fixedWingReferenceAirspeed; //float cm/s
 }
 
-uint32_t pitotUpdate(void)
+uint32_t pitotUpdate(bool *newSampleReady)
 {
     pitotRetrySoon = false;
 
@@ -429,6 +429,9 @@ uint32_t pitotUpdate(void)
 
     // Check pitot airspeed validity and cache result for external use
     pitotAirspeedValidCached = isPitotAirspeedValid();
+
+    // A retry round leaves the airspeed untouched, nothing new for the consumers
+    *newSampleReady = !pitotRetrySoon;
 
     return pitotRetrySoon ? PITOT_READ_RETRY_US : PITOT_UPDATE_PERIOD_US;
 }

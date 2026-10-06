@@ -97,7 +97,7 @@ static float pressureForCmS(float cmS) {
 
 class FailedHardwarePitotValidity : public ::testing::Test {
 protected:
-    void tick() { fakeMillis += 20; pitotUpdate(); }
+    void tick() { fakeMillis += 20; bool newSampleReady; pitotUpdate(&newSampleReady); }
 
     void SetUp() override {
         memset(&gpsSol, 0, sizeof(gpsSol));

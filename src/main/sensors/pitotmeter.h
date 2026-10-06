@@ -72,7 +72,7 @@ extern pitot_t pitot;
 bool pitotInit(void);
 bool pitotIsCalibrationComplete(void);
 void pitotStartCalibration(void);
-uint32_t pitotUpdate(void);   // returns the delay until the next call
+uint32_t pitotUpdate(bool *newSampleReady);   // returns the delay until the next call, *newSampleReady is set when airspeed was recomputed
 float getAirspeedEstimate(void);
 bool pitotIsHealthy(void);
 bool pitotGetValidForAirspeed(void);
