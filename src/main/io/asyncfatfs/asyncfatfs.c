@@ -437,7 +437,7 @@ typedef struct afatfs_t {
     } initState;
 #endif
 
-#ifdef STM32H7
+#if defined(STM32H7) || defined(STM32F7)
     uint8_t *cache;
 #else
     uint8_t cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS];
@@ -487,7 +487,8 @@ typedef struct afatfs_t {
     uint32_t rootDirectorySectors; // Zero on FAT32, for FAT16 the number of sectors that the root directory occupies
 } afatfs_t;
 
-#ifdef STM32H7
+#if defined(STM32H7) || defined(STM32F7)
+// SD DMA with the D-cache on: cache maintenance works on whole 32-byte lines
 static uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
 #endif
 
@@ -3675,7 +3676,7 @@ bool afatfs_isCurrentDirRoot(void)
 
 void afatfs_init(void)
 {
-#ifdef STM32H7
+#if defined(STM32H7) || defined(STM32F7)
     afatfs.cache = afatfs_cache;
 #endif
     afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_INITIALIZATION;
