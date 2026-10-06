@@ -715,14 +715,14 @@ void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr)
     max7456Unlock();
 }
 
-void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
+bool max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
 {
     uint8_t spiBuff[(sizeof(chr->data) * 2 + 2) * 2];
     int bufPtr = 0;
 
     // Check if device is available
     if (state.dev == NULL) {
-        return;
+        return false;
     }
 
     max7456Lock();
@@ -766,6 +766,7 @@ void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr)
      */
 
     max7456Unlock();
+    return true;
 }
 
 
