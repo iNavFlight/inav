@@ -190,6 +190,9 @@ static void i2cPollPending(I2CDevice device)
     // I2C_ERR_TIMEOUT means the transfer is still running, anything else means it finished
     if (state->handle.error_code != I2C_OK || i2c_wait_end(&state->handle, 0) != I2C_ERR_TIMEOUT) {
         i2cStats.lastTransferUs = micros() - state->startUs;
+        if (state->handle.error_code != I2C_OK) {
+            i2cErrorCount++;    // keep the "I2C Errors" count of status / MSP meaningful for non-blocking transfers
+        }
         i2cAddrResultSet(&state->addrResults, state->addr, state->handle.error_code != I2C_OK);
         state->pending = false;
     }

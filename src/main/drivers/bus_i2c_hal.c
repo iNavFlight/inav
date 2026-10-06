@@ -168,6 +168,9 @@ static void i2cTransferFinished(I2C_HandleTypeDef *hi2c, bool error)
 
     i2cStats.lastTransferUs = microsISR() - state->startUs;
     state->error = error;
+    if (error) {
+        i2cErrorCount++;        // keep the "I2C Errors" count of status / MSP meaningful for non-blocking transfers
+    }
     i2cAddrResultSet(&state->addrResults, state->addr, error);
     state->busy = false;
 }

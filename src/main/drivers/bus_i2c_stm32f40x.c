@@ -468,6 +468,7 @@ static void i2cErrorHandler(I2CDevice device)
 
     if (SR1Register & (I2C_SR1_BERR | I2C_SR1_ARLO | I2C_SR1_AF | I2C_SR1_OVR)) {
         state->error = true;
+        i2cErrorCount++;        // keep the "I2C Errors" count of status / MSP meaningful for non-blocking transfers
     }
 
     // If AF, BERR or ARLO, abandon the current job
