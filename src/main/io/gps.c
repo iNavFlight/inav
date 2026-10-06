@@ -614,8 +614,8 @@ bool gpsUpdate(void)
         // Call GPS protocol thread
         gpsProviders[gpsState.gpsConfig->provider].protocol();
 
-        // Check for GPS timeout
-        if ((millis() - gpsState.lastMessageMs) > gpsState.baseTimeoutMs) {
+        // Check for GPS timeout: the protocol may ask for longer, never for less than the base
+        if ((millis() - gpsState.lastMessageMs) > MAX(gpsState.timeoutMs, gpsState.baseTimeoutMs)) {
             sensorsClear(SENSOR_GPS);
             DISABLE_STATE(GPS_FIX);
             gpsSol.fixType = GPS_NO_FIX;
