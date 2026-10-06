@@ -4,6 +4,10 @@ set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/main")
 
 # Keep these alphabetically sorted by test name
 
+set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY depends
+    "drivers/accgyro/accgyro_lsm6dxx.c")
+set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY definitions USE_IMU_LSM6DXX)
+
 set_property(SOURCE adsb_unittest.cc PROPERTY depends "io/adsb.c" "common/maths.c")
 set_property(SOURCE adsb_unittest.cc PROPERTY definitions USE_ADSB MAX_ADSB_VEHICLES=5 ADSB_LIMIT_CM=6400000)
 set_property(SOURCE adsb_unittest.cc PROPERTY extra_includes "../../lib/main/MAVLink")
@@ -44,6 +48,9 @@ set_property(SOURCE sensor_gyro_unittest.cc PROPERTY depends
 
 set_property(SOURCE telemetry_hott_unittest.cc PROPERTY depends
     "telemetry/hott.c" "common/gps_conversion.c" "common/string_light.c")
+
+set_property(SOURCE telemetry_msp_shared_unittest.cc PROPERTY depends
+    "telemetry/msp_shared.c" "common/streambuf.c")
 
 set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
@@ -154,13 +161,32 @@ set_property(SOURCE gps_ublox_unittest.cc PROPERTY definitions GPS_UBLOX_UNIT_TE
 set_property(SOURCE gps_null_port_unittest.cc PROPERTY depends "io/gps.c")
 set_property(SOURCE gps_null_port_unittest.cc PROPERTY definitions GPS_NULL_PORT_UNIT_TEST USE_GPS_PROTO_UBLOX)
 
+set_property(SOURCE gps_heartbeat_unittest.cc PROPERTY depends "io/gps.c")
+set_property(SOURCE gps_heartbeat_unittest.cc PROPERTY definitions GPS_NULL_PORT_UNIT_TEST USE_GPS_PROTO_UBLOX)
+
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY depends
+    "flight/mixer.c" "sensors/battery.c" "common/maths.c" "common/filter.c" "common/lulu.c")
+set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY definitions USE_ADC)
+
+set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY depends
+    "common/maths.c" "common/filter.c" "common/lulu.c")
+# pid.c is #included by the access shim so the test can see its file-static state
+set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY extra_sources
+    "../test/unit/pid_apa_iterm_update_access.c")
+
 set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE navigation_vtol_mission_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE vtol_mc_protection_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+
+set_property(SOURCE pid_apa_fallback_filter_unittest.cc PROPERTY depends
+    "common/maths.c" "common/filter.c" "common/lulu.c")
+# pid.c is #included by the access shim so the test can see its file-static state
+set_property(SOURCE pid_apa_fallback_filter_unittest.cc PROPERTY extra_sources
+    "../test/unit/pid_apa_fallback_filter_access.c")
 
 set_property(SOURCE terrain_unittest.cc PROPERTY depends "common/crc.c" "common/streambuf.c" "terrain/terrain_utils.c" "terrain/terrain_location.c" "drivers/time.c")
 set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
@@ -180,6 +206,12 @@ set_property(SOURCE mavlink_unittest.cc PROPERTY extra_sources
 set_property(SOURCE mavlink_unittest.cc PROPERTY definitions USE_TELEMETRY USE_TELEMETRY_MAVLINK USE_MAVLINK_MSP_TUNNEL)
 set_property(SOURCE mavlink_unittest.cc PROPERTY extra_includes
     "../../lib/main/MAVLink")
+
+set_property(SOURCE pitotmeter_virtual_validity_unittest.cc PROPERTY depends "sensors/pitotmeter.c" "common/maths.c" "common/filter.c" "common/calibration.c" "common/lulu.c")
+set_property(SOURCE pitotmeter_virtual_validity_unittest.cc PROPERTY definitions USE_PITOT USE_PITOT_VIRTUAL USE_WIND_ESTIMATOR USE_GPS)
+
+set_property(SOURCE pitotmeter_failed_hw_validity_unittest.cc PROPERTY depends "sensors/pitotmeter.c" "common/maths.c" "common/filter.c" "common/calibration.c" "common/lulu.c")
+set_property(SOURCE pitotmeter_failed_hw_validity_unittest.cc PROPERTY definitions USE_PITOT USE_PITOT_VIRTUAL USE_WIND_ESTIMATOR USE_GPS)
 
 set_property(SOURCE servos_swap_roll_yaw_unittest.cc PROPERTY depends
     "flight/servos.c" "common/maths.c" "common/filter.c" "common/lulu.c" "programming/logic_condition.c")
