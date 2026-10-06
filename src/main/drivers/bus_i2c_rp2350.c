@@ -104,8 +104,10 @@ typedef struct {
     uint8_t    *data;
     uint8_t     len;
     volatile uint8_t transferred;
+    uint8_t     addr;           // 7-bit address of the current / last non-blocking transfer
     timeUs_t    startUs;        // start time, used to detect a transfer that never completes
     uint8_t     txByte;         // data of a non-blocking single byte write, must outlive the call
+    i2cAddrResults_t addrResults;   // outcome per slave address, survives i2cInit()
 } rp2350_i2c_state_t;
 
 static rp2350_i2c_state_t i2cState[I2CDEV_COUNT];
@@ -162,6 +164,7 @@ static void i2cFinishTransfer(rp2350_i2c_state_t *state, i2c_hw_t *hw, bool erro
         i2cStats.errorIrqs++;
     }
     i2cStats.lastTransferUs = micros() - state->startUs;
+    i2cAddrResultSet(&state->addrResults, state->addr, error);
     state->xferState = I2C_XFER_IDLE;
 }
 
@@ -311,10 +314,28 @@ void i2cInit(I2CDevice device)
     i2cState[device].initialised = true;
 }
 
+// Reset a transfer that did not complete and record the failure for its owner. Returns true while a transfer is on the bus.
+static bool i2cPollTransfer(I2CDevice device)
+{
+    rp2350_i2c_state_t *state = &i2cState[device];
+
+    if (state->xferState != I2C_XFER_IDLE && cmpTimeUs(micros(), state->startUs) >= I2C_TIMEOUT) {
+        // No STOP_DET within the timeout, the transfer is stuck - reset the controller
+        i2c_get_hw(state->hw)->intr_mask = 0;
+        state->xferState = I2C_XFER_IDLE;
+        i2cErrorCount++;
+        i2cInit(device);
+        state->error = true;
+        i2cAddrResultSet(&state->addrResults, state->addr, true);
+    }
+
+    return state->xferState != I2C_XFER_IDLE;
+}
+
 // Block until no non-blocking transfer is in progress
 static void i2cWaitForIdle(I2CDevice device)
 {
-    while (i2cBusy(device, NULL)) {
+    while (i2cPollTransfer(device)) {
     }
 }
 
@@ -340,7 +361,7 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool
         return false;   // writes are not refilled, they must fit the FIFO
     }
 
-    if (i2cBusy(device, NULL) || (hw->status & I2C_IC_STATUS_ACTIVITY_BITS)) {
+    if (i2cPollTransfer(device) || (hw->status & I2C_IC_STATUS_ACTIVITY_BITS)) {
         return false;   // previous transfer still on the bus
     }
 
@@ -352,6 +373,7 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool
     state->len = len;
     state->transferred = 0;
     state->error = false;
+    state->addr = addr_;
     state->startUs = callStartUs;
 
     hw->enable = 0;
@@ -401,7 +423,7 @@ bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t 
 
 bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, bool allowRawAccess)
 {
-    if (device < 0 || device >= I2CDEV_COUNT || i2cBusy(device, NULL)) {
+    if (device < 0 || device >= I2CDEV_COUNT || i2cPollTransfer(device)) {
         return false;   // don't touch txByte while it may still be going out
     }
 
@@ -481,7 +503,7 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len,
     return true;
 }
 
-bool i2cBusy(I2CDevice device, bool *error)
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
 {
     if (device < 0 || device >= I2CDEV_COUNT) {
         if (error) {
@@ -492,22 +514,16 @@ bool i2cBusy(I2CDevice device, bool *error)
 
     rp2350_i2c_state_t *state = &i2cState[device];
 
-    if (state->xferState != I2C_XFER_IDLE && cmpTimeUs(micros(), state->startUs) >= I2C_TIMEOUT) {
-        // No STOP_DET within the timeout, the transfer is stuck - reset the controller
-        i2c_get_hw(state->hw)->intr_mask = 0;
-        state->xferState = I2C_XFER_IDLE;
-        i2cErrorCount++;
-        i2cInit(device);
-        state->error = true;
-    }
+    // Only the owner of the transfer on the bus is pending, everybody else gets the outcome of their own last transfer
+    const bool pending = i2cPollTransfer(device) && state->addr == addr_;
 
     if (error) {
-        *error = state->error;
+        *error = !pending && i2cAddrResultFailed(&state->addrResults, addr_);
     }
 
     i2cDebugPublish();
 
-    return state->xferState != I2C_XFER_IDLE;
+    return pending;
 }
 
 uint16_t i2cGetErrorCounter(void)

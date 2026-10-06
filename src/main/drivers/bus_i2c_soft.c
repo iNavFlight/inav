@@ -306,9 +306,10 @@ bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, 
     return i2cWrite(device, addr_, reg_, data, allowRawAccess);
 }
 
-bool i2cBusy(I2CDevice device, bool *error)
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
 {
     UNUSED(device);
+    UNUSED(addr_);
     if (error) {
         *error = false;
     }

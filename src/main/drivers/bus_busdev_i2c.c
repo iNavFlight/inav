@@ -73,6 +73,6 @@ bool i2cBusWriteBufferStart(const busDevice_t * dev, uint8_t reg, const uint8_t 
 
 bool i2cBusBusy(const busDevice_t *dev, bool *error)
 {
-    return i2cBusy(dev->busdev.i2c.i2cBus, error);
+    return i2cBusy(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, error);
 }
 #endif

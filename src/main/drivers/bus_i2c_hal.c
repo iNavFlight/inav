@@ -109,8 +109,10 @@ typedef struct {
     // Interrupt driven transfer started by i2cReadStart() / i2cWriteStart(), finished by the HAL callbacks below
     volatile bool busy;
     volatile bool error;
+    uint8_t addr;               // 7-bit address of the current / last non-blocking transfer
     timeUs_t startUs;           // start time, used to detect a transfer that never completes
     uint8_t txByte;             // data of a non-blocking single byte write, must outlive the call
+    i2cAddrResults_t addrResults;   // outcome per slave address, survives i2cInit()
 } i2cState_t;
 
 static i2cState_t i2cState[I2CDEV_COUNT];
@@ -166,6 +168,7 @@ static void i2cTransferFinished(I2C_HandleTypeDef *hi2c, bool error)
 
     i2cStats.lastTransferUs = microsISR() - state->startUs;
     state->error = error;
+    i2cAddrResultSet(&state->addrResults, state->addr, error);
     state->busy = false;
 }
 
@@ -256,6 +259,16 @@ static bool i2cHandleHardwareFailure(I2CDevice device)
     return false;
 }
 
+// Reset the peripheral after a transfer that did not complete and record the failure for the transfer's owner
+static void i2cRecoverStuckTransfer(I2CDevice device)
+{
+    i2cState_t * state = &(i2cState[device]);
+
+    i2cHandleHardwareFailure(device);
+    state->error = true;
+    i2cAddrResultSet(&state->addrResults, state->addr, true);
+}
+
 // Block until no interrupt driven transfer is in progress. Returns false if a stuck transfer had to be aborted.
 static bool i2cWaitForIdle(I2CDevice device)
 {
@@ -264,7 +277,8 @@ static bool i2cWaitForIdle(I2CDevice device)
 
     while (state->busy) {
         if (cmpTimeUs(micros(), startUs) >= I2C_TIMEOUT) {
-            return i2cHandleHardwareFailure(device);
+            i2cRecoverStuckTransfer(device);
+            return false;
         }
     }
 
@@ -289,6 +303,7 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool
     i2cStats.eventIrqs = 0;
 
     state->error = false;
+    state->addr = addr_;
     state->startUs = callStartUs;
     state->busy = true;
 
@@ -354,7 +369,7 @@ bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, 
     return i2cStartTransfer(device, addr_, reg_, allowRawAccess, false, 1, &i2cState[device].txByte);
 }
 
-bool i2cBusy(I2CDevice device, bool *error)
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
 {
     if (device == I2CINVALID || device >= I2CDEV_COUNT) {
         if (error) {
@@ -367,17 +382,19 @@ bool i2cBusy(I2CDevice device, bool *error)
 
     if (state->busy && cmpTimeUs(micros(), state->startUs) >= I2C_TIMEOUT) {
         // No completion callback within the timeout, the transfer is stuck - reset the peripheral
-        i2cHandleHardwareFailure(device);
-        state->error = true;
+        i2cRecoverStuckTransfer(device);
     }
 
+    // Only the owner of the transfer on the bus is pending, everybody else gets the outcome of their own last transfer
+    const bool pending = state->busy && state->addr == addr_;
+
     if (error) {
-        *error = state->error;
+        *error = !pending && i2cAddrResultFailed(&state->addrResults, addr_);
     }
 
     i2cDebugPublish();
 
-    return state->busy;
+    return pending;
 }
 
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)

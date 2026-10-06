@@ -135,6 +135,10 @@ static i2cDevice_t i2cHardwareMap[] = {
 
 static i2cBusState_t busState[ARRAYLEN(i2cHardwareMap)];
 
+// Per address outcome of the last transfer. Kept outside busState so that the reset in i2cInit() does not wipe the
+// results of the other devices on the bus
+static i2cAddrResults_t busAddrResults[ARRAYLEN(i2cHardwareMap)];
+
 static void i2cUnstick(IO_t scl, IO_t sda);
 static void i2cEventHandler(I2CDevice device);
 static void i2cErrorHandler(I2CDevice device);
@@ -337,6 +341,16 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr, uint8_t reg, bool a
     return true;
 }
 
+// Reset the peripheral after a transfer that did not complete and record the failure for the transfer's owner
+static void i2cRecoverStuckTransfer(I2CDevice device)
+{
+    const uint8_t stuckAddr = busState[device].addr >> 1;      // i2cInit() clears the state
+
+    i2cHandleHardwareFailure(device);
+    busState[device].error = true;
+    i2cAddrResultSet(&busAddrResults[device], stuckAddr, true);
+}
+
 // Block until the bus is idle. Returns false if the transfer in progress had to be aborted.
 static bool i2cWaitForIdle(I2CDevice device)
 {
@@ -345,14 +359,15 @@ static bool i2cWaitForIdle(I2CDevice device)
 
     while (state->busy) {
         if (cmpTimeUs(micros(), startUs) >= I2C_TIMEOUT) {
-            return i2cHandleHardwareFailure(device);
+            i2cRecoverStuckTransfer(device);
+            return false;
         }
     }
 
     return true;
 }
 
-bool i2cBusy(I2CDevice device, bool *error)
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
 {
     if (!i2cIsValidDevice(device)) {
         if (error) {
@@ -365,17 +380,19 @@ bool i2cBusy(I2CDevice device, bool *error)
 
     if (state->busy && cmpTimeUs(micros(), state->startUs) >= I2C_TIMEOUT) {
         // No completion interrupt within the timeout, the transfer is stuck - reset the peripheral
-        i2cHandleHardwareFailure(device);
-        state->error = true;
+        i2cRecoverStuckTransfer(device);
     }
 
+    // Only the owner of the transfer on the bus is pending, everybody else gets the outcome of their own last transfer
+    const bool pending = state->busy && (state->addr >> 1) == addr_;
+
     if (error) {
-        *error = state->error;
+        *error = !pending && i2cAddrResultFailed(&busAddrResults[device], addr_);
     }
 
     i2cDebugPublish();
 
-    return state->busy;
+    return pending;
 }
 
 bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf, bool allowRawAccess)
@@ -445,6 +462,7 @@ static void i2cErrorHandler(I2CDevice device)
     i2cBusState_t *state = &busState[device];
 
     const uint32_t SR1Register = I2Cx->SR1;
+    const uint8_t addr = state->addr >> 1;                                      // the owner, a reset below would clear it
 
     i2cStats.errorIrqs++;
 
@@ -474,6 +492,7 @@ static void i2cErrorHandler(I2CDevice device)
     // generating START and the transfer would only fail through the timeout
     I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF, DISABLE);
     I2Cx->SR1 &= ~(I2C_SR1_BERR | I2C_SR1_ARLO | I2C_SR1_AF | I2C_SR1_OVR);     // reset all the error bits to clear the interrupt
+    i2cAddrResultSet(&busAddrResults[device], addr, state->error);
     state->busy = false;
 }
 
@@ -556,8 +575,7 @@ static void i2cEventHandlerBody(I2CDevice device)
         }
         // we must wait for the start to clear, otherwise we get constant BTF
         if (!i2cWaitBitRelease(I2Cx, I2C_CR1_START)) {
-            i2cHandleHardwareFailure(device);
-            state->error = true;
+            i2cRecoverStuckTransfer(device);
             return;
         }
     }
@@ -597,6 +615,7 @@ static void i2cEventHandlerBody(I2CDevice device)
         state->subaddressSent = false;                                          // reset this here
         I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR, DISABLE);                   // bus is inactive, disable interrupts to prevent BTF
         i2cStats.lastTransferUs = microsISR() - i2cStats.startUs;
+        i2cAddrResultSet(&busAddrResults[device], state->addr >> 1, false);
         state->busy = false;
     }
 }

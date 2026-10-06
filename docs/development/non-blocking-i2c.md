@@ -26,7 +26,7 @@ Every platform implements the same `drivers/bus_i2c.h` API:
 |---|---|
 | `i2cRead()`, `i2cWrite()`, `i2cWriteBuffer()` | Blocking, unchanged for callers. They first wait for a pending non-blocking transfer, so drivers that were not converted keep working on a shared bus. |
 | `i2cReadStart()`, `i2cWriteStart()` | Start a transfer and return at once. `false` means nothing was started (bus busy or start failed), try again later. |
-| `i2cBusy(device, &error)` | `true` while a non-blocking transfer runs. `error` reports the outcome of the last transfer. A transfer that never completes is reset after `I2C_TIMEOUT`. |
+| `i2cBusy(device, addr, &error)` | `true` while the given slave's non-blocking transfer runs. `error` reports the outcome of that slave's last completed transfer; the result is kept per address, so another device using the bus in between does not overwrite it. A transfer that never completes is reset after `I2C_TIMEOUT` and reported as failed to its owner. |
 
 | Platform | Implementation |
 |---|---|
@@ -47,7 +47,7 @@ valid until `i2cBusy()` reports idle, so drivers use static buffers.
 | `busReadBufStart(dev, reg, buf, len)` | Non-blocking register read. On SPI the read completes inside the call. |
 | `busWriteStart(dev, reg, data)` | Non-blocking single register write. |
 | `busWriteBufStart(dev, reg, buf, len)` | Non-blocking multi-byte write, the buffer must stay valid until the bus is idle. A zero length sends the register byte alone. |
-| `busIsBusy(dev, &error)` | Poll for completion. The error flag is per bus, not per device: if another device's transfer failed in between, a driver may discard one good sample. |
+| `busIsBusy(dev, &error)` | Poll for completion of this device's transfer: `true` while it is on the bus, otherwise `error` carries its outcome. Another device's transfer on the same bus does not affect the result. |
 | `busReadStepResult_e` | `BUS_READ_STEP_BUSY` (nothing started), `BUS_READ_STEP_NEXT` (intermediate transfer started), `BUS_READ_STEP_LAST` (final transfer started). Used by sensors whose sample needs several transfers. |
 
 Raw access (`reg == 0xFF` with `DEVFLAGS_USE_RAW_REGISTERS`) works the same
@@ -174,8 +174,6 @@ The average execution time is what matters.
 
 * No bus arbitration queue: a device that finds the bus busy retries 1 ms
   later. Fine at the 10 to 60 Hz rates these sensors use.
-* `busIsBusy()` reports the error of the last transfer on the bus, not of a
-  particular device.
 * Initialisation and detection of every driver, the DS2482 data register
   read and the VL53L1X register helpers used at init still block. They are
   safe because the blocking calls wait for a pending transfer first.

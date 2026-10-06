@@ -93,8 +93,10 @@ typedef struct {
     // Interrupt driven transfer started by i2cReadStart() / i2cWriteStart(). The i2c_application layer finishes it
     // from the interrupt handlers: handle.status becomes I2C_END, or handle.error_code reports the failure.
     bool pending;
+    uint8_t addr;               // 7-bit address of the current / last non-blocking transfer
     timeUs_t startUs;           // start time, used to detect a transfer that never completes
     uint8_t txByte;             // data of a non-blocking single byte write, must outlive the call
+    i2cAddrResults_t addrResults;   // outcome per slave address, survives i2cInit()
 } i2cState_t;
 
 static i2cState_t i2cState[I2CDEV_COUNT];
@@ -188,12 +190,14 @@ static void i2cPollPending(I2CDevice device)
     // I2C_ERR_TIMEOUT means the transfer is still running, anything else means it finished
     if (state->handle.error_code != I2C_OK || i2c_wait_end(&state->handle, 0) != I2C_ERR_TIMEOUT) {
         i2cStats.lastTransferUs = micros() - state->startUs;
+        i2cAddrResultSet(&state->addrResults, state->addr, state->handle.error_code != I2C_OK);
         state->pending = false;
     }
     else if (cmpTimeUs(micros(), state->startUs) >= I2C_TIMEOUT) {
         // No completion within the timeout, the transfer is stuck - reset the peripheral
         i2cHandleHardwareFailure(device);
         state->handle.error_code = I2C_ERR_TIMEOUT;
+        i2cAddrResultSet(&state->addrResults, state->addr, true);
     }
 }
 
@@ -268,6 +272,7 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool
         return i2cHandleHardwareFailure(device);
     }
 
+    state->addr = addr_;
     state->startUs = callStartUs;
     state->pending = true;
 
@@ -301,7 +306,7 @@ bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, 
     return i2cStartTransfer(device, addr_, reg_, allowRawAccess, false, 1, &i2cState[device].txByte);
 }
 
-bool i2cBusy(I2CDevice device, bool *error)
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
 {
     if (device == I2CINVALID || device >= I2CDEV_COUNT) {
         if (error) {
@@ -314,13 +319,16 @@ bool i2cBusy(I2CDevice device, bool *error)
 
     i2cPollPending(device);
 
+    // Only the owner of the transfer on the bus is pending, everybody else gets the outcome of their own last transfer
+    const bool pending = state->pending && state->addr == addr_;
+
     if (error) {
-        *error = state->handle.error_code != I2C_OK;
+        *error = !pending && i2cAddrResultFailed(&state->addrResults, addr_);
     }
 
     i2cDebugPublish();
 
-    return state->pending;
+    return pending;
 }
 
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
