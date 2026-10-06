@@ -245,6 +245,7 @@ STATIC_UNIT_TESTED uint8_t crsfFrameStatus(rxRuntimeConfig_t *rxRuntimeConfig)
 
             rxLinkStatistics.uplinkRSSI = -1* (linkStats->activeAntenna ? linkStats->uplinkRSSIAnt2 : linkStats->uplinkRSSIAnt1);
             rxLinkStatistics.uplinkLQ = linkStats->uplinkLQ;
+            rxLinkStatistics.downlinkLQ = linkStats->downlinkLQ;
             rxLinkStatistics.uplinkSNR = linkStats->uplinkSNR;
             rxLinkStatistics.rfMode = linkStats->rfMode;
             rxLinkStatistics.uplinkTXPower = crsfTxPowerStatesmW[crsftxpowerindex];
