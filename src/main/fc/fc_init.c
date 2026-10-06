@@ -199,6 +199,20 @@ void flashLedsAndBeep(void)
     LED1_OFF;
 }
 
+#if defined(USE_GPS) || defined(USE_MAG)
+// A Smart ESC powered during these waits would otherwise stay deaf until its power is cycled
+static void initDelay(timeMs_t ms)
+{
+#if defined(USE_MOTOR_SRXL2) && !defined(SITL_BUILD) && !defined(BRUSHED_MOTORS)
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2MotorServiceFor(ms);
+        return;
+    }
+#endif
+    delay(ms);
+}
+#endif
+
 void init(void)
 {
 #if defined(USE_FLASHFS)
@@ -281,6 +295,19 @@ void init(void)
     }
 #endif
 
+    timerInit();  // timer must be initialized before any channel is allocated
+
+    serialInit(feature(FEATURE_SOFTSERIAL));
+
+#if defined(USE_MOTOR_SRXL2) && !defined(SITL_BUILD) && !defined(BRUSHED_MOTORS)
+    // Ahead of the USB wait, which outlasts the announcement of a Smart ESC powered with the board
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2MotorSetReverseChannel(motorConfig()->srxl2ReverseChannel);
+        srxl2MotorSetTelemetryRate(motorConfig()->srxl2TelemetryRate);
+        srxl2MotorAwaitLink();
+    }
+#endif
+
 #ifdef USE_VCP
     // Early initialize USB hardware.
 #if defined(USE_USB_MSC)
@@ -298,11 +325,6 @@ void init(void)
     usbVcpInitHardware();
 #endif
 #endif
-
-    timerInit();  // timer must be initialized before any channel is allocated
-
-    serialInit(feature(FEATURE_SOFTSERIAL));
-
 
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
@@ -532,7 +554,7 @@ void init(void)
 #endif
 
 #if defined(USE_GPS) || defined(USE_MAG)
-    delay(500);
+    initDelay(500);
 
     /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
     if (!isMPUSoftReset()) {
@@ -542,7 +564,7 @@ void init(void)
         for (int i = 0; i < 5; i++) {
             LED1_TOGGLE;
             LED0_TOGGLE;
-            delay(100);
+            initDelay(100);
         }
 
         LED0_OFF;
