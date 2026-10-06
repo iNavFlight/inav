@@ -276,6 +276,43 @@ void spiTimeoutUserCallback(SPI_TypeDef *instance)
     spiHardwareMap[device].errorCount++;
 }
 
+// The peripheral's registers, from a reset: at init, and again after an aborted transfer that left
+// bytes queued on F7, where only a reset empties the transmit FIFO
+static void spiConfigure(spiDevice_t *spi)
+{
+    LL_SPI_Disable(spi->dev);
+    LL_SPI_DeInit(spi->dev);
+
+    LL_SPI_InitTypeDef init =
+    {
+        .TransferDirection = SPI_DIRECTION_2LINES,
+        .Mode = SPI_MODE_MASTER,
+        .DataWidth = SPI_DATASIZE_8BIT,
+        .ClockPolarity = spi->leadingEdge ? SPI_POLARITY_LOW : SPI_POLARITY_HIGH,
+        .ClockPhase = spi->leadingEdge ? SPI_PHASE_1EDGE : SPI_PHASE_2EDGE,
+        .NSS = SPI_NSS_SOFT,
+        .BaudRate = SPI_BAUDRATEPRESCALER_8,
+        .BitOrder = SPI_FIRSTBIT_MSB,
+        .CRCPoly = 7,
+        .CRCCalculation = SPI_CRCCALCULATION_DISABLE,
+    };
+
+#if defined(STM32H7)
+    // Prevent glitching when SPI is disabled
+    LL_SPI_EnableGPIOControl(spi->dev);
+
+    LL_SPI_SetFIFOThreshold(spi->dev, LL_SPI_FIFO_TH_01DATA);
+    LL_SPI_Init(spi->dev, &init);
+#else
+    LL_SPI_SetRxFIFOThreshold(spi->dev, SPI_RXFIFO_THRESHOLD_QF);
+
+    LL_SPI_Init(spi->dev, &init);
+    LL_SPI_Enable(spi->dev);
+
+    SET_BIT(spi->dev->CR2, SPI_RXFIFO_THRESHOLD);
+#endif
+}
+
 bool spiInitDevice(SPIDevice device, bool leadingEdge)
 {
     spiDevice_t *spi = &(spiHardwareMap[device]);
@@ -310,37 +347,8 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge)
         IOConfigGPIO(IOGetByTag(spi->nss), SPI_IO_CS_CFG);
     }
 
-    LL_SPI_Disable(spi->dev);
-    LL_SPI_DeInit(spi->dev);
-
-    LL_SPI_InitTypeDef init =
-    {
-        .TransferDirection = SPI_DIRECTION_2LINES,
-        .Mode = SPI_MODE_MASTER,
-        .DataWidth = SPI_DATASIZE_8BIT,
-        .ClockPolarity = leadingEdge ? SPI_POLARITY_LOW : SPI_POLARITY_HIGH,
-        .ClockPhase = leadingEdge ? SPI_PHASE_1EDGE : SPI_PHASE_2EDGE,
-        .NSS = SPI_NSS_SOFT,
-        .BaudRate = SPI_BAUDRATEPRESCALER_8,
-        .BitOrder = SPI_FIRSTBIT_MSB,
-        .CRCPoly = 7,
-        .CRCCalculation = SPI_CRCCALCULATION_DISABLE,
-    };
-
-#if defined(STM32H7)
-    // Prevent glitching when SPI is disabled
-    LL_SPI_EnableGPIOControl(spi->dev);
-
-    LL_SPI_SetFIFOThreshold(spi->dev, LL_SPI_FIFO_TH_01DATA);
-    LL_SPI_Init(spi->dev, &init);
-#else
-    LL_SPI_SetRxFIFOThreshold(spi->dev, SPI_RXFIFO_THRESHOLD_QF);
-
-    LL_SPI_Init(spi->dev, &init);
-    LL_SPI_Enable(spi->dev);
-
-    SET_BIT(spi->dev->CR2, SPI_RXFIFO_THRESHOLD);
-#endif
+    spi->leadingEdge = leadingEdge;
+    spiConfigure(spi);
 
     if (spi->nss) {
         IOHi(IOGetByTag(spi->nss));
@@ -399,6 +407,14 @@ static void spiTransferAbort(SPI_TypeDef *instance)
     const timeUs_t start = micros();
     while ((LL_SPI_GetTxFIFOLevel(instance) != LL_SPI_TX_FIFO_EMPTY || LL_SPI_IsActiveFlag_BSY(instance))
         && cmpTimeUs(micros(), start) < 1000) {
+    }
+    if (LL_SPI_GetTxFIFOLevel(instance) != LL_SPI_TX_FIFO_EMPTY || LL_SPI_IsActiveFlag_BSY(instance)) {
+        // Still queued: only a reset empties the F7 transmit FIFO. The prescaler is the device's, set by
+        // spiSetSpeed() once at its init, so it is carried over
+        spiDevice_t *spi = &spiHardwareMap[spiDeviceByInstance(instance)];
+        const uint32_t prescaler = LL_SPI_GetBaudRatePrescaler(instance);
+        spiConfigure(spi);
+        LL_SPI_SetBaudRatePrescaler(instance, prescaler);
     }
     for (int n = 0; n < 8 && LL_SPI_GetRxFIFOLevel(instance) != LL_SPI_RX_FIFO_EMPTY; n++) {
         (void)LL_SPI_ReceiveData8(instance);
