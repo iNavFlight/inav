@@ -69,6 +69,7 @@ typedef enum {
  * clear; `valid` says only that a frame arrived and is recent. */
 typedef struct {
     uint32_t rpm;               /* electrical rpm */
+    uint32_t lastUpdateMs;
     uint16_t voltage;           /* 0.01 V */
     uint16_t current;           /* 0.01 A */
     int16_t  temperatureFet;    /* 0.1 degC */
@@ -77,7 +78,6 @@ typedef struct {
     uint16_t voltageBec;        /* 0.01 V */
     uint8_t  throttlePercent;   /* 0..100 */
     uint8_t  powerPercent;      /* 0..100 */
-    uint32_t lastUpdateMs;
     uint8_t  fields;            /* srxl2TelemetryField_e bits actually reported */
     bool     valid;
 } srxl2EscTelemetry_t;
@@ -144,6 +144,19 @@ srxl2CalResult_e srxl2MotorCalibrationLastResult(void);
  * no silent degradation to PWM, because the pin is not a timer output.
  */
 bool srxl2MotorInitialize(void);
+
+/*
+ * Open the ports and link the ESCs powered with the board, which only listen in their
+ * first moments. Returns once each has replied or has stayed silent long enough to be
+ * absent, and 700 ms after reset at the latest. For init, ahead of its long waits.
+ */
+void srxl2MotorAwaitLink(void);
+
+/*
+ * Keep the ESCs answered for ms milliseconds, in place of one of init's fixed waits: an ESC
+ * powered during it would otherwise stay deaf. A link under way is let finish, up to 700 ms more.
+ */
+void srxl2MotorServiceFor(uint32_t ms);
 
 /*
  * Stage one motor value. Takes microseconds on INAV's usual 1000..2000 scale
