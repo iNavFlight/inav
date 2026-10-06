@@ -19,3 +19,4 @@ bool mavlinkPortTxBufferIsValid(uint8_t portIndex);
 uint8_t mavlinkPortTxBufferFree(uint8_t portIndex);
 void mavlinkSetActivePortContext(uint8_t portIndex);
 void mavlinkSendMessage(void);
+bool mavlinkSendMessageToPortIfRoom(uint8_t portIndex);
