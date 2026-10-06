@@ -51,7 +51,7 @@ typedef enum {
 void max7456Init(const videoSystem_e videoSystem);
 void max7456Update(void);
 void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr);
-void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr);
+bool max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr);
 uint16_t max7456GetScreenSize(void);
 uint8_t max7456GetRowsCount(void);
 void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);

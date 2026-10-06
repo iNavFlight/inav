@@ -815,7 +815,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return feature(FEATURE_VBAT);
 
     case FLIGHT_LOG_FIELD_CONDITION_AMPERAGE:
-        return feature(FEATURE_CURRENT_METER) && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC;
+        return isAmperageConfigured();
 
     case FLIGHT_LOG_FIELD_CONDITION_SURFACE:
 #ifdef USE_RANGEFINDER
@@ -940,8 +940,11 @@ static void blackboxSetState(BlackboxState newState)
     blackboxState = newState;
 
 #ifdef USE_DUAL_GYRO
-    // The second gyro is read only for the log, so only while there is one
-    gyroSetSecondaryLogging(newState > BLACKBOX_STATE_STOPPED);
+    // The second gyro is read only for the log, so only while frames are being written.
+    // Every other state above STOPPED, the headers, a log paused from the switch, and
+    // the shutdown, writes no main frame, so a reading taken there goes nowhere and the
+    // transaction on the bus is spent for nothing
+    gyroSetSecondaryLogging(newState == BLACKBOX_STATE_RUNNING);
 #endif
 }
 
@@ -2094,7 +2097,7 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("thr_mid", "%d",                         currentControlProfile->throttle.rcMid8);
         BLACKBOX_PRINT_HEADER_LINE("thr_expo", "%d",                        currentControlProfile->throttle.rcExpo8);
         BLACKBOX_PRINT_HEADER_LINE("tpa_rate", "%d",                        currentControlProfile->throttle.dynPID);
-        BLACKBOX_PRINT_HEADER_LINE("tpa_breakpoint", "%d",                  currentControlProfile->throttle.pa_breakpoint);
+        BLACKBOX_PRINT_HEADER_LINE("tpa_breakpoint", "%d",                  currentControlProfile->throttle.tpa_breakpoint);
         BLACKBOX_PRINT_HEADER_LINE("rates", "%d,%d,%d",                     currentControlProfile->stabilized.rates[ROLL],
                                                                             currentControlProfile->stabilized.rates[PITCH],
                                                                             currentControlProfile->stabilized.rates[YAW]);

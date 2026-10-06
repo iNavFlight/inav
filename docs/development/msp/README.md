@@ -471,6 +471,9 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8744 - MSP2_INAV_TIMESYNC](#msp2_inav_timesync)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [8753 - MSP2_INAV_WIND](#msp2_inav_wind)  
+[8754 - MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)  
+[8755 - MSP2_INAV_ESC_SRXL2_STATUS](#msp2_inav_esc_srxl2_status)  
+[8756 - MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -1521,7 +1524,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 
-**Notes:** Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`.
+**Notes:** Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`. Returns error if no OSD display port is active, the display port cannot store font characters (e.g. MSP DisplayPort), or the OSD device is not available.
 
 ## <a id="msp_vtx_config"></a>`MSP_VTX_CONFIG (88 / 0x58)`
 **Description:** Retrieves the current VTX (Video Transmitter) configuration and capabilities.  
@@ -2004,7 +2007,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `dynamicThrottlePID` | `uint8_t` | 1 | Dynamic Throttle PID (TPA) value (`currentControlRateProfile->throttle.dynPID`) |
 | `throttleMid` | `uint8_t` | 1 | Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`) |
 | `throttleExpo` | `uint8_t` | 1 | Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`) |
-| `tpaBreakpoint` | `uint16_t` | 2 | Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`) |
+| `tpaBreakpoint` | `uint16_t` | 2 | Throttle PID Attenuation (TPA) breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`) |
 | `rcYawExpo` | `uint8_t` | 1 | Yaw RC Expo (`currentControlRateProfile->stabilized.rcYawExpo8`) |
 
 **Notes:** Superseded by `MSP2_INAV_RATE_PROFILE` which includes manual rates/expos.
@@ -2438,7 +2441,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `dynamicThrottlePID` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.dynPID` (constrained) |
 | `throttleMid` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.rcMid8` |
 | `throttleExpo` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.rcExpo8` |
-| `tpaBreakpoint` | `uint16_t` | 2 | Sets `currentControlRateProfile->throttle.pa_breakpoint` |
+| `tpaBreakpoint` | `uint16_t` | 2 | Sets `currentControlRateProfile->throttle.tpa_breakpoint` |
 | `rcYawExpo` | `uint8_t` | 1 | (Optional) Sets `currentControlRateProfile->stabilized.rcYawExpo8` |
 
 **Reply Payload:** **None**  
@@ -2712,7 +2715,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 |---|---|---|---|
 | `status` | `uint8_t` | 1 | 1 if passthrough started successfully, 0 on error (e.g., port not found). For 4way, returns number of ESCs found |
 
-**Notes:** Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough.
+**Notes:** Accepts 0 bytes (defaults to ESC 4-way) or up to 2 bytes for mode/argument. If successful, sets `mspPostProcessFn` to the appropriate handler (`mspSerialPassthroughFn` or `esc4wayProcess`). This handler takes over the serial port after the reply is sent. Requires `USE_SERIAL_4WAY_BLHELI_INTERFACE` for ESC passthrough. ESC 4-way passthrough will fail if the craft is armed: the reply carries `MSP_RESULT_ERROR` and the serial port is not handed over. Serial passthrough to another device is unaffected.
 
 ## <a id="msp_rtc"></a>`MSP_RTC (246 / 0xf6)`
 **Description:** Retrieves the current Real-Time Clock time.  
@@ -3336,7 +3339,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `throttleMid` | `uint8_t` | 1 | Throttle Midpoint (`currentControlRateProfile->throttle.rcMid8`) |
 | `throttleExpo` | `uint8_t` | 1 | Throttle Expo (`currentControlRateProfile->throttle.rcExpo8`) |
 | `dynamicThrottlePID` | `uint8_t` | 1 | TPA value (`currentControlRateProfile->throttle.dynPID`) |
-| `tpaBreakpoint` | `uint16_t` | 2 | TPA breakpoint (`currentControlRateProfile->throttle.pa_breakpoint`) |
+| `tpaBreakpoint` | `uint16_t` | 2 | TPA breakpoint (`currentControlRateProfile->throttle.tpa_breakpoint`) |
 | `stabRcExpo` | `uint8_t` | 1 | Stabilized Roll/Pitch Expo (`currentControlRateProfile->stabilized.rcExpo8`) |
 | `stabRcYawExpo` | `uint8_t` | 1 | Stabilized Yaw Expo (`currentControlRateProfile->stabilized.rcYawExpo8`) |
 | `stabRollRate` | `uint8_t` | 1 | Stabilized Roll Rate (`currentControlRateProfile->stabilized.rates[FD_ROLL]`) |
@@ -3357,7 +3360,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `throttleMid` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.rcMid8` |
 | `throttleExpo` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.rcExpo8` |
 | `dynamicThrottlePID` | `uint8_t` | 1 | Sets `currentControlRateProfile->throttle.dynPID` |
-| `tpaBreakpoint` | `uint16_t` | 2 | Sets `currentControlRateProfile->throttle.pa_breakpoint` |
+| `tpaBreakpoint` | `uint16_t` | 2 | Sets `currentControlRateProfile->throttle.tpa_breakpoint` |
 | `stabRcExpo` | `uint8_t` | 1 | Sets `currentControlRateProfile->stabilized.rcExpo8` |
 | `stabRcYawExpo` | `uint8_t` | 1 | Sets `currentControlRateProfile->stabilized.rcYawExpo8` |
 | `stabRollRate` | `uint8_t` | 1 | Sets `currentControlRateProfile->stabilized.rates[FD_ROLL]` (constrained) |
@@ -5001,6 +5004,46 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `flags` | `uint8_t` | 1 | - | Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved. |
 
 **Notes:** Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.
+
+## <a id="msp2_inav_mag_unaligned"></a>`MSP2_INAV_MAG_UNALIGNED (8754 / 0x2232)`
+**Description:** Reads the unaligned magnetometer vector.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `magADCUnaligned` | `int16_t[3]` | 6 | X, Y and Z components, rounded to signed 16-bit values. |
+
+**Notes:** Returns rounded mag.magADCUnaligned values before board alignment. Returns three zeroes without USE_MAG.
+
+## <a id="msp2_inav_esc_srxl2_status"></a>`MSP2_INAV_ESC_SRXL2_STATUS (8755 / 0x2233)`
+**Description:** Reads SRXL2 ESC calibration and connection status.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `phase` | `uint8_t` | 1 | Calibration phase (srxl2CalPhase_e). |
+| `connected` | `uint8_t` | 1 | 1 when every opened ESC is connected; otherwise 0. |
+| `lastResult` | `uint8_t` | 1 | Last calibration start result (srxl2CalResult_e). |
+| `portCount` | `uint8_t` | 1 | Number of opened SRXL2 motor ports. |
+| `motorCount` | `uint8_t` | 1 | Number of motors in the current mixer. |
+
+**Notes:** Requires USE_MOTOR_SRXL2. Counts report opened motor ports and the current mixer motor count, not hardware capacity.
+
+## <a id="msp2_inav_esc_srxl2_calibrate"></a>`MSP2_INAV_ESC_SRXL2_CALIBRATE (8756 / 0x2234)`
+**Description:** Controls SRXL2 ESC throttle-range calibration.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `phase` | `uint8_t` | 1 | Requested calibration action (srxl2CalPhase_e): 0, 1, 4 or 5. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
