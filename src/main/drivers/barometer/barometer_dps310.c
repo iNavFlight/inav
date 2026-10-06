@@ -361,6 +361,7 @@ static bool baroDetectWithDevices(baroDev_t *baro, devHardwareType_e firstDevHw,
     for (int index = 0; index < devHwCount; index++) {
         candidates[index] = busDeviceInit(BUSTYPE_ANY, firstDevHw + index, 0, OWNER_BARO);
         if (candidates[index]) {
+            busSetSpeed(candidates[index], BUS_SPEED_STANDARD);    // both chips top out at 10 MHz on SPI, no-op on I2C
             candidateCount++;
         }
     }
