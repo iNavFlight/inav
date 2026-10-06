@@ -456,7 +456,7 @@ static void i2cErrorHandler(I2CDevice device)
     if (SR1Register & (I2C_SR1_BERR | I2C_SR1_ARLO | I2C_SR1_AF)) {
         (void)I2Cx->SR2;                                                        // read second status register to clear ADDR if it is set (note that BTF will not be set after a NACK)
         I2C_ITConfig(I2Cx, I2C_IT_BUF, DISABLE);                                // disable the RXNE/TXE interrupt - prevent the ISR tailchaining onto the ER (hopefully)
-        if (!(SR1Register & I2C_SR1_ARLO) && !(I2Cx->CR1 & I2C_CR1_STOP)) {     // if we dont have an ARLO error, ensure sending of a stop
+        if (!(SR1Register & I2C_SR1_ARLO) && !(I2Cx->CR1 & I2C_CR1_STOP)) {     // if we dont have an ARLO error, ensure sending of a stop (after ARLO the hardware has already released the bus)
             if (I2Cx->CR1 & I2C_CR1_START) {                                    // We are currently trying to send a start, this is very bad as start, stop will hang the peripheral
                 i2cWaitBitRelease(I2Cx, I2C_CR1_START);                         // wait for any start to finish sending
                 I2C_GenerateSTOP(I2Cx, ENABLE);                                 // send stop to finalise bus transaction
@@ -466,11 +466,13 @@ static void i2cErrorHandler(I2CDevice device)
             }
             else {
                 I2C_GenerateSTOP(I2Cx, ENABLE);                                 // stop to free up the bus
-                I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR, DISABLE);           // Disable EVT and ERR interrupts while bus inactive
             }
         }
     }
 
+    // The bus is idle on every path out of here. Leaving EVT enabled would make the next i2cStartTransfer() skip
+    // generating START and the transfer would only fail through the timeout
+    I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF, DISABLE);
     I2Cx->SR1 &= ~(I2C_SR1_BERR | I2C_SR1_ARLO | I2C_SR1_AF | I2C_SR1_OVR);     // reset all the error bits to clear the interrupt
     state->busy = false;
 }
