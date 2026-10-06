@@ -120,7 +120,8 @@ as `pr-test-builds.yml`** (secrets available even for fork PRs).
 
 #### `pr-branch-suggestion.yml` - Branch Targeting Suggestion
 **Triggers:** PRs targeting master branch
-**Purpose:** Suggests using maintenance-9.x or maintenance-10.x instead
+**Purpose:** Suggests using maintenance-10.x (backward-compatible) or
+maintenance-11.x (breaking compatibility) instead
 
 #### `non-code-change.yaml` - Non-Code Change Detection
 **Triggers:** Pull requests
