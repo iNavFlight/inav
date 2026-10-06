@@ -133,7 +133,8 @@
 #define ADC_CHANNEL_3_PIN           PC0
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_3 // pin labelled "BAT+" on the "EXT" port
-//BEC ADC is ADC_CHN_2
+#define BEC_ADC_CHANNEL             ADC_CHN_2
+#define VBEC_SCALE_DEFAULT          850  // Rotorflight's scale / divider, 850 / 100
 //BUS ADC is ADC_CHN_1
 
 #define VBAT_SCALE_DEFAULT          1898
@@ -158,6 +159,9 @@
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+
+// The connector labelled ESC is UART4's TX, so a Smart ESC there needs only UART4 assigned to it in Ports
+#define USE_MOTOR_SRXL2
 #define USE_SMARTPORT_MASTER // no internal current sensor, enable SMARTPORT_MASTER so external ones can be used
 
 #define USE_DSHOT_DMAR

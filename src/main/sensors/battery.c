@@ -80,8 +80,6 @@ static ina226Dev_t ina226Dev;
 static bool ina226Detected = false;
 #endif
 
-#define ADCVREF 3300                            // in mV (3300 = 3.3V)
-
 #define VBATT_CELL_FULL_MAX_DIFF 10             // Max difference with cell max voltage for the battery to be considered full (10mV steps)
 #define VBATT_PRESENT_THRESHOLD 220             // Minimum voltage to consider battery present
 #define VBATT_STABLE_DELAY 40                   // Delay after connecting battery to begin monitoring
