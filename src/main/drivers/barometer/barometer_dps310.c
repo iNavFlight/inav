@@ -361,35 +361,55 @@ static bool deviceCalculate(baroDev_t *baro, int32_t *pressure, int32_t *tempera
 
 
 #define DETECTION_MAX_RETRY_COUNT   5
+#define DPS310_ADDRESS_COUNT        2
+
 static bool deviceDetect(busDevice_t * busDev)
 {
-    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT; retry++) {
-        delay(100);
+    bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
 
-        bool ack = busReadBuf(busDev, DPS310_REG_ID, chipId, 1);
-
-        if (ack && (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID)) {
-            return true;
-        }
-    };
-
-    return false;
+    return ack && (chipId[0] == DPS310_ID_REV_AND_PROD_ID || chipId[0] == SPL07_003_CHIP_ID);
 }
 
 bool baroDPS310Detect(baroDev_t *baro)
 {
-    baro->busDev = busDeviceInit(BUSTYPE_ANY, DEVHW_DPS310, 0, OWNER_BARO);
-    if (baro->busDev == NULL) {
-        return false;
+    busDevice_t * candidates[DPS310_ADDRESS_COUNT];
+    int candidateCount = 0;
+
+    for (int index = 0; index < DPS310_ADDRESS_COUNT; index++) {
+        candidates[index] = busDeviceInit(BUSTYPE_ANY, DEVHW_DPS310_0 + index, 0, OWNER_BARO);
+        if (candidates[index]) {
+            candidateCount++;
+        }
     }
 
-    if (!deviceDetect(baro->busDev)) {
-        busDeviceDeInit(baro->busDev);
-        return false;
+    baro->busDev = NULL;
+
+    // Both addresses share one retry window: a late chip keeps the full window and 0x77 adds no boot delay
+    for (int retry = 0; retry < DETECTION_MAX_RETRY_COUNT && candidateCount > 0 && !baro->busDev; retry++) {
+        delay(100);
+
+        for (int index = 0; index < DPS310_ADDRESS_COUNT && !baro->busDev; index++) {
+            if (!candidates[index] || !deviceDetect(candidates[index])) {
+                continue;
+            }
+
+            if (deviceConfigure(candidates[index])) {
+                baro->busDev = candidates[index];
+            } else {
+                busDeviceDeInit(candidates[index]);
+                candidates[index] = NULL;
+                candidateCount--;
+            }
+        }
     }
 
-    if (!deviceConfigure(baro->busDev)) {
-        busDeviceDeInit(baro->busDev);
+    for (int index = 0; index < DPS310_ADDRESS_COUNT; index++) {
+        if (candidates[index] && candidates[index] != baro->busDev) {
+            busDeviceDeInit(candidates[index]);
+        }
+    }
+
+    if (!baro->busDev) {
         return false;
     }
 
