@@ -227,8 +227,11 @@ SECTIONS
         PROVIDE( __HeapLimit = __StackLimit );
     } > RAM
 
-    /* Stack limit — checked by SDK malloc/sbrk for heap/stack collision */
+    /* Stack limit — checked by SDK malloc/sbrk for heap/stack collision.
+       That check only guards heap growth via malloc; it does nothing if
+       .bss alone already reaches __StackLimit before any allocation. */
     __StackLimit = __StackTop - _Min_Stack_Size;
+    ASSERT(_ebss <= __StackLimit, "RP2350: .bss overlaps the reserved stack region - reduce .bss or free RAM headroom (see inav#12034)")
 
     /* Scratch memory for multicore */
     .scratch_x :
