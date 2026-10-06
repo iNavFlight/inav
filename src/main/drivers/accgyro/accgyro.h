@@ -36,6 +36,20 @@ typedef struct {
     uint8_t gyroConfigValues[2];
 } gyroFilterAndRateConfig_t;
 
+// Two reads' worth of FIFO samples (gyro_fifo_samples up to 4) plus margin: the interrupt brings
+// them at the sensor's rate, the task only follows on average
+#define GYRO_SAMPLE_QUEUE_LENGTH 16
+
+// Whether a driver that can reads its gyro on the data-ready interrupt (gyro_data_ready)
+typedef enum {
+    GYRO_DEV_DATA_READY_OFF = 0,
+    GYRO_DEV_DATA_READY_WHERE_TESTED,   // where the driver turns it on for AUTO
+    GYRO_DEV_DATA_READY_ON,
+} gyroDevDataReady_e;
+
+struct gyroDataReadyDriver_s;
+struct gyroDataReady_s;
+
 typedef struct gyroDev_s {
     busDevice_t * busDev;
     sensorGyroInitFuncPtr initFn;                       // initialize function
@@ -52,6 +66,20 @@ typedef struct gyroDev_s {
     volatile bool dataReady;
     uint32_t sampleRateIntervalUs;                      // Gyro driver should set this to actual sampling rate as signaled by IRQ
     sensor_align_e gyroAlign;
+#if defined(USE_SPI_DATA_READY)
+    // Set by gyro.c before initFn
+    gyroDevDataReady_e readOnDataReady;
+    bool readOnDataReadyWithAcc;
+    uint8_t dataReadyFifoSamples;                       // samples per interrupt through the IMU's FIFO, 0 for none
+    // Set by a driver that can (accgyro_data_ready.h); started at the end of init
+    const struct gyroDataReadyDriver_s *dataReadyDriver;
+    // Set once reading on data-ready: readFn then returns false when no sample came, not a failure
+    struct gyroDataReady_s *dataReadyState;
+    // Filled by the interrupt (head), emptied one per readFn call by the gyro task (tail)
+    int16_t sampleQueue[GYRO_SAMPLE_QUEUE_LENGTH][XYZ_AXIS_COUNT];
+    volatile uint8_t sampleQueueHead;
+    uint8_t sampleQueueTail;
+#endif
 } gyroDev_t;
 
 typedef struct accDev_s {
@@ -66,3 +94,31 @@ typedef struct accDev_s {
 
 const gyroFilterAndRateConfig_t * chooseGyroConfig(uint8_t desiredLpf, uint16_t desiredRateHz, const gyroFilterAndRateConfig_t * configs, int count);
 bool gyroCheckDataReady(struct gyroDev_s *gyro);
+
+#if defined(USE_SPI_DATA_READY)
+bool gyroSampleQueuePush(gyroDev_t *gyro, int16_t x, int16_t y, int16_t z);
+bool gyroSampleQueuePop(gyroDev_t *gyro);
+
+static inline bool gyroSamplePending(const gyroDev_t *gyro)
+{
+    return gyro->sampleQueueTail != gyro->sampleQueueHead;
+}
+
+// On data-ready no new sample since the last read is not a failed read
+static inline bool gyroReadsOnDataReady(const gyroDev_t *gyro)
+{
+    return gyro->dataReadyState != NULL;
+}
+#else
+static inline bool gyroSamplePending(const gyroDev_t *gyro)
+{
+    (void)gyro;
+    return false;
+}
+
+static inline bool gyroReadsOnDataReady(const gyroDev_t *gyro)
+{
+    (void)gyro;
+    return false;
+}
+#endif
