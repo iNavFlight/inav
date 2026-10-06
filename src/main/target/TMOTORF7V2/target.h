@@ -70,6 +70,7 @@
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_CS_PIN         PA4
+#define ICM42605_EXTI_PIN       PC4
 #define ICM42605_SPI_BUS        BUS_SPI1
 
 // OSD -- SPI2

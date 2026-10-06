@@ -35,6 +35,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_icm42605.h"
+#include "drivers/accgyro/accgyro_data_ready.h"
 
 #if defined(USE_IMU_ICM42605)
 
@@ -158,6 +159,34 @@ static void setUserBank(const busDevice_t *dev, const uint8_t user_bank)
     busWrite(dev, ICM426XX_RA_REG_BANK_SEL, user_bank & 7);
 }
 
+#if defined(USE_SPI_DATA_READY)
+static bool icm42605GyroRead(gyroDev_t *gyro);
+
+// From TEMP_DATA1: temperature, accelerometer X, Y, Z, gyro X, Y, Z, big-endian
+static void icm426xxDataReadyParse(const uint8_t *data, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp)
+{
+    if (withAccAndTemp) {
+        *temp = int16_val_big_endian(data, 0);
+        acc[X] = int16_val_big_endian(data, 1);
+        acc[Y] = int16_val_big_endian(data, 2);
+        acc[Z] = int16_val_big_endian(data, 3);
+        data += 8;
+    }
+    gyro[X] = int16_val_big_endian(data, 0);
+    gyro[Y] = int16_val_big_endian(data, 1);
+    gyro[Z] = int16_val_big_endian(data, 2);
+}
+
+static const gyroDataReadyDriver_t icm426xxDataReady = {
+    .withAccAndTemp = { ICM42605_RA_TEMP_DATA1 | 0x80, 14 },
+    .gyroOnly = { ICM42605_RA_GYRO_DATA_X1 | 0x80, 6 },
+    .hasTemp = true,
+    .parse = icm426xxDataReadyParse,
+    .registerRead = icm42605GyroRead,
+    .tested = true,
+};
+#endif
+
 static void icm42605AccInit(accDev_t *acc)
 {
     acc->acc_1G = 512 * 4;
@@ -165,6 +194,17 @@ static void icm42605AccInit(accDev_t *acc)
 
 static bool icm42605AccRead(accDev_t *acc)
 {
+#if defined(USE_SPI_DATA_READY)
+    // The read on data-ready brought the accelerometer too
+    int16_t v[XYZ_AXIS_COUNT];
+    if (gyroDataReadyAcc(acc->busDev, v)) {
+        acc->ADCRaw[X] = v[X];
+        acc->ADCRaw[Y] = v[Y];
+        acc->ADCRaw[Z] = v[Z];
+        return true;
+    }
+#endif
+
     uint8_t data[6];
 
     const bool ack = busReadBuf(acc->busDev, ICM42605_RA_ACCEL_DATA_X1, data, 6);
@@ -283,6 +323,10 @@ static void icm42605AccAndGyroInit(gyroDev_t *gyro)
     delay(15);
 
     busSetSpeed(dev, BUS_SPEED_FAST);
+
+#if defined(USE_SPI_DATA_READY)
+    gyro->dataReadyDriver = &icm426xxDataReady;
+#endif
 }
 
 static bool icm42605DeviceDetect(busDevice_t * dev)
@@ -337,6 +381,14 @@ static bool icm42605GyroRead(gyroDev_t *gyro)
 
 static bool icm42605ReadTemperature(gyroDev_t *gyro, int16_t * temp)
 {
+#if defined(USE_SPI_DATA_READY)
+    int16_t raw;
+    if (gyroDataReadyTemperature(gyro->busDev, &raw)) {
+        *temp = (raw / 13.248) + 250; // as below, degC*10
+        return true;
+    }
+#endif
+
     uint8_t data[2];
 
     const bool ack = busReadBuf(gyro->busDev, ICM42605_RA_TEMP_DATA1, data, 2);

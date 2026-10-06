@@ -54,7 +54,10 @@
     #endif
 
     #if defined(USE_IMU_ICM42605)
-        BUSDEV_REGISTER_SPI(busdev_icm42605,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    NONE,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
+        #if !defined(ICM42605_EXTI_PIN)
+            #define ICM42605_EXTI_PIN NONE
+        #endif
+        BUSDEV_REGISTER_SPI(busdev_icm42605,    DEVHW_ICM42605,     ICM42605_SPI_BUS,   ICM42605_CS_PIN,    ICM42605_EXTI_PIN,  DEVFLAGS_NONE,  IMU_ICM42605_ALIGN);
     #endif
 
     #if defined(USE_IMU_BMI160)
