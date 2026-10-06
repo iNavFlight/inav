@@ -468,11 +468,11 @@ Max Antigravity gain. `1` means Antigravity is disabled, `2` means Iterm is allo
 
 ### apa_pow
 
-Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. Scales P/D/FF with airspeed (I-term scaled less aggressively). Gains range from 30% (high speed) to 150% (low speed). Set to 0 to disable and use throttle-based attenuation. Recommended: 120 for aircraft with validated pitot sensor.
+Use airspeed instead of throttle position for PID attenuation if airspeed is available on fixedwing. Scales P/D/FF with airspeed (I-term scaled less aggressively). Gains range from 30% (high speed) to 150% (low speed). Set to 0 to disable and use throttle-based attenuation. Falls back to throttle-based attenuation (TPA) when no valid airspeed is available. Set `fw_reference_airspeed` to the aircraft's tuned cruise airspeed.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 0 | 0 | 200 |
+| 115 | 0 | 200 |
 
 ---
 
@@ -7305,7 +7305,7 @@ Throttle PID attenuation also reduces influence on YAW for multi-rotor, Should b
 
 ### tpa_pitch_compensation
 
-Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains) when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Leave it at 0 if you do not use TPA or if airspeed based attenuation (`apa_pow`) is active.
+Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed when no airspeed sensor is fitted. Positive values will attenuate PID gains when pitching down, and decrease it when pitching up, since diving increases airspeed and climbing reduces it. Only used when throttle-based TPA is in effect (`apa_pow` is 0 or no valid airspeed is available). Leave it at 0 if you do not use TPA.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7315,7 +7315,7 @@ Fixed wing only. Pitch angle based bias for TPA. Used as a proxy for airspeed wh
 
 ### tpa_rate
 
-Throttle based PID attenuation(TPA) reduces influence of PDFF on ROLL and PITCH of multi-rotor, PIDFF on ROLL,PITCH,YAW OF fixed_wing as throttle increases. On multirotor, For every 1% throttle after the TPA breakpoint, P is reduced by the TPA rate. for fixedwing modifies PIDFF. See **PID Attenuation and scaling** Wiki for full details.
+Throttle PID attenuation (TPA) changes affect of PDFF on ROLL and PITCH of multi-rotor or PIDFF on ROLL, PITCH and YAW of fixed_wing as throttle changes. On multirotor PDFF is reduced by the TPA rate for every 1% throttle increase after the TPA breakpoint (Note: tpa_rate is limited to max of 100 for multirotor). For fixed wing it modifies PIDFF with additional pitch related throttle compensation if tpa_pitch_compensation set. See **PID Attenuation and scaling** Wiki for full details.
 
 | Default | Min | Max |
 | --- | --- | --- |
