@@ -1302,16 +1302,23 @@ static int16_t tpaPitchThrottleAdjustment(void)
     /* Applies correction to throttle input for throttle based tpa to compensate for speed decrease in climb or increase during descent.
      * +ve correction during descent, -ve correction during climb.
      * e.g. +ve correction during descent increases tpa throttle input attenuating PIDS for increased speed during descent */
-
-    int16_t tpaThrottleAdjustment = 0;
-
+ 
     const uint8_t tpaPitchCompensationValue = currentControlProfile->throttle.tpa_pitch_compensation;
-
-    if (currentControlProfile->throttle.fixedWingTauMs && tpaPitchCompensationValue) {
+    int16_t tpaThrottleAdjustment = 0;
+    
+    if (tpaPitchCompensationValue) {
         tpaThrottleAdjustment = constrain(tpaPitchCompensationValue * RADIANS_TO_DEGREES(-HeadVecEFFiltered.z), -PWM_RANGE_MIN, PWM_RANGE_MIN);
     }
 
     return tpaThrottleAdjustment;
+}
+
+static void resetFixedWingTpaFilterToThrottle(uint16_t throttle)
+{
+    if (currentControlProfile->throttle.fixedWingTauMs > 0) {
+        const uint16_t throttleIdleValue = getThrottleIdleValue();
+        pt1FilterReset(&fixedWingTpaFilter, constrain(throttle + tpaPitchThrottleAdjustment(), throttleIdleValue + 1, getMaxThrottle()));
+    }
 }
 
 static float calculateFixedWingTPAFactor(uint16_t throttle)
@@ -1326,7 +1333,10 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
     if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(AUTO_TUNE) && dynamicPID && tpaBreakpoint > throttleIdleValue) {
         // throttleIdleValue + 1 to avoid div zero
         uint16_t pitchThrottleSpeedFactor = constrain(throttle + tpaPitchThrottleAdjustment(), throttleIdleValue + 1, getMaxThrottle());
-        pitchThrottleSpeedFactor = pt1FilterApply(&fixedWingTpaFilter, pitchThrottleSpeedFactor);
+
+        if (currentControlProfile->throttle.fixedWingTauMs) {
+            pitchThrottleSpeedFactor = pt1FilterApply(&fixedWingTpaFilter, pitchThrottleSpeedFactor);
+        }
 
         // Calculate TPA according to throttle with compensation for pitch attitude
         tpaFactor = 0.5f + 0.5f * ((tpaBreakpoint - throttleIdleValue) / (float)(pitchThrottleSpeedFactor - throttleIdleValue));
@@ -1361,6 +1371,7 @@ void schedulePidGainsUpdate(void)
 void updatePIDCoefficients(void)
 {
     STATIC_FASTRAM float tpaFactorprev=-1.0f;
+    STATIC_FASTRAM float iTermFactorprev=-1.0f;
 
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
@@ -1376,13 +1387,21 @@ void updatePIDCoefficients(void)
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
 
+    STATIC_FASTRAM bool fixedWingApaActivePrev = false;
+
     float tpaFactor = 1.0f;
     float iTermFactor = 1.0f;  // Separate factor for I-term scaling
     if (usedPidControllerType == PID_TYPE_PIFF) { // Fixed wing TPA calculation
         if (currentControlProfile->throttle.apa_pow > 0 && pitotGetValidForAirspeed()) {
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
             iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
+            fixedWingApaActivePrev = true;
         } else {
+            // The throttle TPA filter is not fed while APA is active, so restart it from the current throttle
+            if (fixedWingApaActivePrev) {
+                resetFixedWingTpaFilterToThrottle(rcCommand[THROTTLE]);
+                fixedWingApaActivePrev = false;
+            }
             tpaFactor = calculateFixedWingTPAFactor(rcCommand[THROTTLE]);
             iTermFactor = tpaFactor;  // Use same factor for throttle-based TPA
         }
@@ -1391,10 +1410,11 @@ void updatePIDCoefficients(void)
         iTermFactor = tpaFactor;  // Multirotor uses same factor
     }
 
-    if (tpaFactor != tpaFactorprev) {
+    if (tpaFactor != tpaFactorprev || iTermFactor != iTermFactorprev) {
         pidGainsUpdateRequired = true;
     }
     tpaFactorprev = tpaFactor;
+    iTermFactorprev = iTermFactor;
 
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {

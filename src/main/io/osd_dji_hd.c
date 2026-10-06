@@ -519,6 +519,11 @@ static char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("MOTOR BEEPER ACTIVE");
             // Cases without message
         case ARMING_DISABLED_GEOZONE:
+#ifdef USE_GEOZONE
+            if (geozoneIsConfigInvalid()) {
+                return OSD_MESSAGE_STR("GEOZONE CONFIG ERR");
+            }
+#endif
             return OSD_MESSAGE_STR("NO FLY ZONE");
         case ARMING_DISABLED_LANDING_DETECTED:
             FALLTHROUGH;
