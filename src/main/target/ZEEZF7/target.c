@@ -26,7 +26,7 @@
 #include "drivers/sensor.h"
 
 timerHardware_t timerHardware[] = {
-#ifdef ZEEZF7V3
+#if defined ZEEZF72020V3 || defined ZEEZF73030V3
     DEF_TIM(TIM4, CH2,  PB7, TIM_USE_OUTPUT_AUTO, 0, 0), // S1
     DEF_TIM(TIM4, CH1,  PB6, TIM_USE_OUTPUT_AUTO, 0, 0), // S2
     DEF_TIM(TIM3, CH1,  PB4, TIM_USE_OUTPUT_AUTO, 0, 0), // S3

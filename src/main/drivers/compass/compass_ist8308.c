@@ -45,6 +45,8 @@
 #define IST8308_REG_WHOAMI                              0x00
 #define     IST8308_CHIP_ID                             0x08
 
+#define IST8308_REG_STAT1                               0x10
+#define     IST8308_DRDY_MASK                           0x01
 #define IST8308_REG_DATA                                0x11    // XYZ High&Low
 
 
@@ -109,15 +111,24 @@ static bool ist8308Read(magDev_t * mag)
 {
     const float LSB2FSV = 1.5; // 1.5mG
 
+    uint8_t status = 0;
+
+    if (!busRead(mag->busDev, IST8308_REG_STAT1, &status)) {
+        return false;
+    }
+
+    // The IST8308 updates its data registers once per output-data period. Only read
+    // them once DRDY is set; a read racing an update would mix old and new samples
+    // across axes, corrupting the mag vector and calibration. When no fresh sample
+    // is ready, return success so the caller keeps the previous values.
+    if (!(status & IST8308_DRDY_MASK)) {
+        return true;
+    }
+
     uint8_t buf[6];
 
     bool ack = busReadBuf(mag->busDev, IST8308_REG_DATA, buf, 6);
     if (!ack) {
-        // set magData to zero for case of failed read
-        mag->magADCRaw[X] = 0;
-        mag->magADCRaw[Y] = 0;
-        mag->magADCRaw[Z] = 0;
-
         return false;
     }
 
