@@ -897,11 +897,16 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             _step++;
             _ck_b += (_ck_a += data);       // checksum byte
             _payload_length |= (uint16_t)(data << 8);
-            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE ) {
-                // we can't receive the whole packet, just log the error and start searching for the next packet.
-                gpsStats.errors++;
-                _step = 0;
-                break;
+            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE) {
+                // Multi-band receivers send more NAV-SIG/NAV-SAT records than fit: keep the first ones, checksum all
+                const bool truncatable = (_class == CLASS_NAV) &&
+                                         (_msg_id == MSG_NAV_SIG || _msg_id == MSG_NAV_SAT) &&
+                                         (_payload_length <= UBLOX_MAX_ACCEPTED_PAYLOAD_SIZE);
+                if (!truncatable) {
+                    gpsStats.errors++;
+                    _step = 0;
+                    break;
+                }
             }
             // prepare to receive payload
             _payload_counter = 0;
@@ -913,6 +918,16 @@ static bool gpsNewFrameUBLOX(uint8_t data)
             _ck_b += (_ck_a += data);       // checksum byte
             if (_payload_counter < MAX_UBLOX_PAYLOAD_SIZE) {
                 _buffer.bytes[_payload_counter] = data;
+            }
+            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE && _payload_counter == 7) {
+                // A corrupt length would swallow the following frames: it must match the record count at byte 5
+                const uint16_t recordSize = (_msg_id == MSG_NAV_SIG) ? sizeof(ubx_nav_sig_info) : sizeof(ubx_nav_svinfo_channel);
+                const uint16_t expectedLength = 8 + _buffer.bytes[5] * recordSize;
+                if (_payload_length != expectedLength) {
+                    gpsStats.errors++;
+                    _step = 0;
+                    break;
+                }
             }
             // NOTE: check counter BEFORE increasing so that a payload_size of 65535 is correctly handled.  This can happen if garbage data is received.
             if (_payload_counter ==  _payload_length - 1) {
@@ -940,6 +955,11 @@ static bool gpsNewFrameUBLOX(uint8_t data)
 
             if (_skip_packet) {
                 break;
+            }
+
+            // Handlers must not look past the truncated payload
+            if (_payload_length > MAX_UBLOX_PAYLOAD_SIZE) {
+                _payload_length = MAX_UBLOX_PAYLOAD_SIZE;
             }
 
             if (gpsParseFrameUBLOX()) {
