@@ -61,6 +61,10 @@ MODEBOXES = { # Key = permanentID
     66: {"boxName": "GIMBAL LEVEL ROLL",   "boxEnum": "BOXGIMBALRLOCK",      "boxId": 57},
     67: {"boxName": "GIMBAL CENTER",       "boxEnum": "BOXGIMBALCENTER",     "boxId": 58},
     68: {"boxName": "GIMBAL HEADTRACKER",  "boxEnum": "BOXGIMBALHTRK",       "boxId": 59},
+    69: {"boxName": "AUTO SPEED",          "boxEnum": "BOXAUTOSPEED",        "boxId": 60},
+    70: {"boxName": "TERRAIN AGL HOLD",    "boxEnum": "BOXTERRAINAGLHOLD",   "boxId": 61},
+    71: {"boxName": "IN FLIGHT MENU",      "boxEnum": "BOXINFLIGHTMENU",     "boxId": 62},
+    72: {"boxName": "THRUST REVERSE",      "boxEnum": "BOXTHRUSTREVERSE",    "boxId": 63},
 }
 
 class BoxEnum(enum.IntEnum):
@@ -123,3 +127,7 @@ class BoxEnum(enum.IntEnum):
     BOXGIMBALRLOCK = 66
     BOXGIMBALCENTER = 67
     BOXGIMBALHTRK = 68
+    BOXAUTOSPEED = 69
+    BOXTERRAINAGLHOLD = 70
+    BOXINFLIGHTMENU = 71
+    BOXTHRUSTREVERSE = 72
