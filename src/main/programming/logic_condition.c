@@ -768,7 +768,7 @@ static int logicConditionGetROIOperandValue(int operand)
                 const float groundDistanceCm = calculateDistanceToDestination(&roiLocal);
                 const float altitudeDiffCm = roiLocal.z - posvel->pos.z;
                 if (groundDistanceCm > 0.0f) {
-                    return RADIANS_TO_DEGREES(atan2_approx(altitudeDiffCm, groundDistanceCm));
+                    return RADIANS_TO_CENTIDEGREES(atan2_approx(altitudeDiffCm, groundDistanceCm));
                 }
             }
             return 0;
