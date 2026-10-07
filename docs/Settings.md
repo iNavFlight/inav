@@ -7293,6 +7293,16 @@ Can be used in ANGLE and HORIZON mode and will automatically boost throttle when
 
 ---
 
+### thrust_linear
+
+Multirotor only, ported from Betaflight 2026.6. A propeller's thrust grows faster than linearly with the motor command, so the quad responds less to the same correction at low throttle. This raises low motor outputs and lowers the throttle before the mix by the inverse amount, so hover stays where it was (within 8 us up to 50, about 23 us at 70 and 80 us at 100, at worst near 15 % throttle). The value is about ArduPilot's `MOT_THST_EXPO` times 100. Only the motors get the change: OSD, telemetry and servos show the throttle that was asked for. 0 disables it. Above about 70 check `nav_mc_hover_thr` again. Betaflight allows up to 150, but its formulas drive the throttle negative above 100 and stop being monotonic from about 130. Off on VTOL setups (any mixer profile that is not a multirotor), with reversible motors and with the logic-condition throttle override.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
+
+---
+
 ### tpa_breakpoint
 
 See tpa_rate.

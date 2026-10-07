@@ -52,6 +52,7 @@
 #include "flight/mixer_transition_logic.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
+#include "flight/thrust_linear.h"
 
 #include "navigation/navigation.h"
 
@@ -103,6 +104,7 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
 #endif
     .throttleBoost = SETTING_THROTTLE_BOOST_DEFAULT,
     .throttleBoostCutoff = SETTING_THROTTLE_BOOST_CUTOFF_DEFAULT,
+    .thrustLinear = SETTING_THRUST_LINEAR_DEFAULT,
 );
 PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
 
@@ -691,10 +693,50 @@ static int applyThrottleBoost(int throttle, float dT)
     return constrain(throttle + lrintf(motorConfig()->throttleBoost * 0.1f * throttleHpf), throttleRangeMin, throttleRangeMax);
 }
 
+static EXTENDED_FASTRAM float thrustLinear;     // 0 when off
+
+// A VTOL switching it in flight would step the motors, so it stays off on any setup with a non-multirotor profile
+static bool isThrustLinearizationAllowed(void)
+{
+    for (int i = 0; i < MAX_MIXER_PROFILE_COUNT; i++) {
+        if (!isMultirotorTypePlatform(mixerConfigByIndex(i)->platformType)) {
+            return false;
+        }
+    }
+    return STATE(MULTIROTOR) && !feature(FEATURE_REVERSIBLE_MOTORS)
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        && !LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE)
+#endif
+        ;
+}
+
+static int compensateThrustLinearization(int throttle)
+{
+    thrustLinear = 0.0f;
+    if (!motorConfig()->thrustLinear || !isThrustLinearizationAllowed()) {
+        return throttle;
+    }
+
+    thrustLinear = motorConfig()->thrustLinear / 100.0f;
+    const float range = throttleRangeMax - throttleRangeMin;
+    return throttleRangeMin + lrintf(range * thrustLinearCompensate((throttle - throttleRangeMin) / range, thrustLinear));
+}
+
+static NOINLINE int applyThrustLinearization(int motorOutput)
+{
+    // Not in Betaflight: at or below idle nothing changes, so the failsafe clamp to min_command is not pushed further
+    if (motorOutput <= throttleRangeMin) {
+        return motorOutput;
+    }
+
+    const float range = throttleRangeMax - throttleRangeMin;
+    return throttleRangeMin + lrintf(range * thrustLinearCurve((motorOutput - throttleRangeMin) / range, thrustLinear));
+}
+
 // Out of line: mixTable() is FAST_CODE and ITCM is nearly full on some F7 targets
 static NOINLINE void updateMotorThrottle(float dT)
 {
-    motorThrottleCommand = applyThrottleBoost(mixerThrottleCommand, dT);
+    motorThrottleCommand = compensateThrustLinearization(applyThrottleBoost(mixerThrottleCommand, dT));
 }
 
 void FAST_CODE mixTable(float dT)
@@ -930,6 +972,9 @@ void FAST_CODE mixTable(float dT)
             motor[i] = constrain(motorThrottle, throttleRangeMin, throttleRangeMax);
         } else {
             motor[i] = rpyMix[i] + constrain(motorThrottle, throttleMin, throttleMax);
+            if (thrustLinear) {
+                motor[i] = applyThrustLinearization(motor[i]);
+            }
         }
 
         if (failsafeIsActive()) {

@@ -123,6 +123,7 @@ typedef struct motorConfig_s {
 #endif
     uint8_t throttleBoost;                  // must default to 0: it can land in the old tail padding, stored as zero
     uint8_t throttleBoostCutoff;            // Hz
+    uint8_t thrustLinear;                   // must default to 0: it can land in the old tail padding, stored as zero
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
