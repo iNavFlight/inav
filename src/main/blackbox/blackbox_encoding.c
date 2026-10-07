@@ -327,13 +327,7 @@ void blackboxWriteTag8_4S16(int32_t *values)
     }
 }
 
-/**
- * Write `valueCount` fields from `values` to the Blackbox using signed variable byte encoding. A 1-byte header is
- * written first which specifies which fields are non-zero (so this encoding is compact when most fields are zero).
- *
- * valueCount must be 8 or less.
- */
-void blackboxWriteTag8_8SVB(int32_t *values, int valueCount)
+static void blackboxWriteTag8_8SVBGroup(int32_t *values, int valueCount)
 {
     uint8_t header;
 
@@ -363,6 +357,21 @@ void blackboxWriteTag8_8SVB(int32_t *values, int valueCount)
             }
         }
     }
+}
+
+/**
+ * Write `valueCount` fields from `values` to the Blackbox using signed variable byte encoding. A 1-byte header is
+ * written first which specifies which fields are non-zero (so this encoding is compact when most fields are zero).
+ */
+void blackboxWriteTag8_8SVB(int32_t *values, int valueCount)
+{
+    // Decoders read a run of these fields as groups of 8, and a lone last field as a plain signed VB
+    while (valueCount > 8) {
+        blackboxWriteTag8_8SVBGroup(values, 8);
+        values += 8;
+        valueCount -= 8;
+    }
+    blackboxWriteTag8_8SVBGroup(values, valueCount);
 }
 
 /** Write unsigned integer **/
