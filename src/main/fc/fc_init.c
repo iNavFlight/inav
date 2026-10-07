@@ -432,13 +432,24 @@ void init(void)
 
 #ifdef USE_USB_MSC
     /* MSC mode will start after init, but will not allow scheduler to run,
-     * so there is no bottleneck in reading and writing data
+     * so there is no bottleneck in reading and writing data.
+     *
+     * mscWaitForButton() (drivers/usb_msc_*.c) only ever returns via
+     * NVIC_SystemReset(), so nothing in the branch below ever runs twice in
+     * one power cycle - that's what makes FASTRAM_MSC_ONLY (build/build_config.h)
+     * safe. Keep every MSC-only write (the explicit zero, the emfat scan)
+     * inside this branch, after the mode decision, or that guarantee breaks.
      */
     mscInit();
+
+    if (mscCheckBoot() || mscCheckButton()) {
+#ifdef FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO
+        mscZeroOnlyRegion();
+#endif
 #if defined(USE_FLASHFS)
-        // If the blackbox device is onboard flash, then initialize and scan
-        // it to identify the log files *before* starting the USB device to
-        // prevent timeouts of the mass storage device.
+        // Scan onboard flash to build the emfat log directory before starting
+        // the USB device, to avoid mass-storage timeouts. Normal boots never
+        // reach here, so they skip this scan entirely.
         if (blackboxConfig()->device == BLACKBOX_DEVICE_FLASH) {
             // Must initialise the device to read _anything_
             if (!flashDeviceInitialized) {
@@ -447,8 +458,6 @@ void init(void)
             emfat_init_files();
         }
 #endif
-
-    if (mscCheckBoot() || mscCheckButton()) {
         if (mscStart() == 0) {
              mscWaitForButton();
         } else {
