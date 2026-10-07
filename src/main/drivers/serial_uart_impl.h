@@ -138,6 +138,15 @@ static inline bool uartTxDmaRunning(const uartPort_t *s)
 {
     return s->txDma != NULL;
 }
+
+#if defined(STM32F7) || defined(STM32H7)
+// The stream reads RAM, and a buffer a feature swaps in (MSP DisplayPort, gimbal) can still have its bytes in the D-cache
+static inline void uartTxDmaCleanCache(const volatile uint8_t *data, uint32_t count)
+{
+    const uint32_t start = (uint32_t)data & ~31U;  // this CMSIS does not align to the 32 byte line
+    SCB_CleanDCache_by_Addr((uint32_t *)start, (uint32_t)data + count - start);
+}
+#endif
 #else
 static inline bool uartTxDmaStart(uartPort_t *s) { (void)s; return false; }
 static inline void uartTxDmaStop(uartPort_t *s) { (void)s; }

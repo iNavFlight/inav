@@ -521,8 +521,8 @@ void uartStartTxDMA(uartPort_t *s)
             s->txDmaCount = count;
             LL_DMA_SetMemoryAddress(s->txDma->dma, stream, (uint32_t)&s->port.txBuffer[tail]);
             LL_DMA_SetDataLength(s->txDma->dma, stream, count);
-            // The bytes are in the ring before the stream goes to read them
-            __DSB();
+            // Also orders the writes to the ring before the stream starts
+            uartTxDmaCleanCache(&s->port.txBuffer[tail], count);
             LL_DMA_EnableStream(s->txDma->dma, stream);
         }
     }
