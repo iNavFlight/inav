@@ -660,13 +660,15 @@ static int getReversibleMotorsThrottleDeadband(void)
 // The throttle the motors get; mixerThrottleCommand stays the one OSD, telemetry and servos show
 static EXTENDED_FASTRAM int motorThrottleCommand;
 
-#define THROTTLE_BOOST_RESTART_MS 100
+// Longer than any mixer period, so a gap this long means the mixer skipped the boost at least once
+#define THROTTLE_BOOST_RESTART_US 20000
 
 // Betaflight's throttle boost: a high-passed copy of the throttle on top of it, so the motors follow quick moves sooner
 static int applyThrottleBoost(int throttle, float dT)
 {
     static pt1Filter_t throttleLpf;
-    static timeMs_t lastBoostMs;
+    static timeUs_t lastBoostUs;
+    static uint8_t boostCutoff;
 
     // A cutoff of 0 would freeze the low-pass and turn the boost into a constant offset
     if (!motorConfig()->throttleBoost || !motorConfig()->throttleBoostCutoff || !STATE(MULTIROTOR) || isMixerTransitionMixing
@@ -675,17 +677,18 @@ static int applyThrottleBoost(int throttle, float dT)
         || LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE)
 #endif
         ) {
-        lastBoostMs = 0;
+        lastBoostUs = 0;
         return throttle;
     }
 
     // mixTable() does not get here while disarmed or with the motors stopped: restart from the current throttle
-    const timeMs_t nowMs = millis();
-    if (nowMs - lastBoostMs > THROTTLE_BOOST_RESTART_MS) {
-        pt1FilterInit(&throttleLpf, motorConfig()->throttleBoostCutoff, dT);
+    const timeUs_t nowUs = micros();
+    if (nowUs - lastBoostUs > THROTTLE_BOOST_RESTART_US || boostCutoff != motorConfig()->throttleBoostCutoff) {
+        boostCutoff = motorConfig()->throttleBoostCutoff;
+        pt1FilterInit(&throttleLpf, boostCutoff, dT);
         pt1FilterReset(&throttleLpf, throttle);
     }
-    lastBoostMs = nowMs;
+    lastBoostUs = nowUs;
 
     const float throttleHpf = throttle - pt1FilterApply3(&throttleLpf, throttle, dT);
     return constrain(throttle + lrintf(motorConfig()->throttleBoost * 0.1f * throttleHpf), throttleRangeMin, throttleRangeMax);
