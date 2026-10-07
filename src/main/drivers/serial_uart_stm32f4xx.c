@@ -269,12 +269,13 @@ bool uartRxDmaStart(uartPort_t *s)
     uartRxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || uartRxDmaTag[device] == DMA_NONE || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
         return false;
     }
 
-    const DMA_t dma = dmaGetByTag(uartRxDmaTag[device]);
-    if (!dma || !uartDmaStreamAvailable(dma, device)) {
+    const dmaTag_t tag = uartDmaPick(uartRxDmaTag[device], uartRxDmaCandidates, device, &s->port, uartTxDmaOf(s));
+    const DMA_t dma = dmaGetByTag(tag);
+    if (!dma) {
         return false;
     }
 
@@ -283,7 +284,7 @@ bool uartRxDmaStart(uartPort_t *s)
 
     DMA_InitTypeDef init;
     DMA_StructInit(&init);
-    init.DMA_Channel = DMATAG_GET_CHANNEL(uartRxDmaTag[device]) << 25;    // DMA_Channel_n is n in CHSEL
+    init.DMA_Channel = DMATAG_GET_CHANNEL(tag) << 25;    // DMA_Channel_n is n in CHSEL
     init.DMA_PeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
     init.DMA_Memory0BaseAddr = (uint32_t)s->port.rxBuffer;
     init.DMA_DIR = DMA_DIR_PeripheralToMemory;
@@ -394,12 +395,13 @@ bool uartTxDmaStart(uartPort_t *s)
     uartTxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || uartTxDmaTag[device] == DMA_NONE || !(s->port.mode & MODE_TX)) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_TX)) {
         return false;
     }
 
-    const DMA_t dma = dmaGetByTag(uartTxDmaTag[device]);
-    if (!dma || !uartDmaStreamAvailable(dma, device)) {
+    const dmaTag_t tag = uartDmaPick(uartTxDmaTag[device], uartTxDmaCandidates, device, &s->port, uartRxDmaOf(s));
+    const DMA_t dma = dmaGetByTag(tag);
+    if (!dma) {
         return false;
     }
 #ifdef USE_UART_RX_DMA
@@ -415,7 +417,7 @@ bool uartTxDmaStart(uartPort_t *s)
 
     DMA_InitTypeDef init;
     DMA_StructInit(&init);
-    init.DMA_Channel = DMATAG_GET_CHANNEL(uartTxDmaTag[device]) << 25;    // DMA_Channel_n is n in CHSEL
+    init.DMA_Channel = DMATAG_GET_CHANNEL(tag) << 25;    // DMA_Channel_n is n in CHSEL
     init.DMA_PeripheralBaseAddr = (uint32_t)&s->USARTx->DR;
     init.DMA_Memory0BaseAddr = (uint32_t)s->port.txBuffer;
     init.DMA_DIR = DMA_DIR_MemoryToPeripheral;

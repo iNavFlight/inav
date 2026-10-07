@@ -34,7 +34,8 @@ extern const struct serialPortVTable uartVTable[];
 #if defined(STM32F4) || defined(STM32F7)
 // Fixed streams and channel per UART receiver and transmitter (reference manual request
 // tables): a target naming another gets a build error instead of a silent port
-#define UART_DMA_IS(tag, dma, stream, channel)     (DMATAG_GET_DMA(tag) == (dma) && DMATAG_GET_STREAM(tag) == (stream) && DMATAG_GET_CHANNEL(tag) == (channel))
+#define UART_DMA_IS(tag, dma, stream, channel)     ((tag) == DMA_TAG_AUTO || (tag) == DMA_NONE || \
+    (DMATAG_GET_DMA(tag) == (dma) && DMATAG_GET_STREAM(tag) == (stream) && DMATAG_GET_CHANNEL(tag) == (channel)))
 #ifdef UART1_RX_DMA
 STATIC_ASSERT(UART_DMA_IS(UART1_RX_DMA, 2, 2, 4) || UART_DMA_IS(UART1_RX_DMA, 2, 5, 4), UART1_RX_DMA_is_DMA2_stream_2_or_5_channel_4);
 #endif
@@ -92,6 +93,177 @@ static inline bool uartDmaStreamAvailable(DMA_t dma, UARTDevice_e device)
         return false;
     }
     return dmaGetOwner(dma) == OWNER_FREE || (dmaGetOwner(dma) == OWNER_SERIAL && dma->resourceIndex == RESOURCE_INDEX(device));
+}
+
+#ifdef USE_UART_RX_DMA
+#define uartRxDmaOf(s)      ((s)->rxDma)
+#else
+#define uartRxDmaOf(s)      ((DMA_t)NULL)
+#endif
+#ifdef USE_UART_TX_DMA
+#define uartTxDmaOf(s)      ((s)->txDma)
+#else
+#define uartTxDmaOf(s)      ((DMA_t)NULL)
+#endif
+
+// Streams tried, in order, for a port whose target names none (DMA_TAG_AUTO)
+#if defined(STM32F4) || defined(STM32F7)
+#define UART_DMA_CANDIDATES 2
+static const dmaTag_t uartRxDmaCandidates[UARTDEV_MAX][UART_DMA_CANDIDATES] = {
+    [UARTDEV_1] = { DMA_TAG(2, 2, 4), DMA_TAG(2, 5, 4) },
+    [UARTDEV_2] = { DMA_TAG(1, 5, 4) },
+    [UARTDEV_3] = { DMA_TAG(1, 1, 4) },
+    [UARTDEV_4] = { DMA_TAG(1, 2, 4) },
+    [UARTDEV_5] = { DMA_TAG(1, 0, 4) },
+    [UARTDEV_6] = { DMA_TAG(2, 1, 5), DMA_TAG(2, 2, 5) },
+    [UARTDEV_7] = { DMA_TAG(1, 3, 5) },
+    [UARTDEV_8] = { DMA_TAG(1, 6, 5) },
+};
+static const dmaTag_t uartTxDmaCandidates[UARTDEV_MAX][UART_DMA_CANDIDATES] = {
+    [UARTDEV_1] = { DMA_TAG(2, 7, 4) },
+    [UARTDEV_2] = { DMA_TAG(1, 6, 4) },
+    [UARTDEV_3] = { DMA_TAG(1, 3, 4), DMA_TAG(1, 4, 7) },
+    [UARTDEV_4] = { DMA_TAG(1, 4, 4) },
+    [UARTDEV_5] = { DMA_TAG(1, 7, 4) },
+    [UARTDEV_6] = { DMA_TAG(2, 6, 5), DMA_TAG(2, 7, 5) },
+    [UARTDEV_7] = { DMA_TAG(1, 1, 5) },
+    [UARTDEV_8] = { DMA_TAG(1, 0, 5) },
+};
+#define uartDmaCandidate(table, device, i)      ((table)[device][i])
+#elif defined(STM32H7)
+// The DMAMUX routes any UART to any stream; DMA2 streams 0-2 are the ADCs'
+#define UART_DMA_CANDIDATES 13
+static const dmaTag_t uartDmaStreams[UART_DMA_CANDIDATES] = {
+    DMA_TAG(1, 0, 0), DMA_TAG(1, 1, 0), DMA_TAG(1, 2, 0), DMA_TAG(1, 3, 0), DMA_TAG(1, 4, 0), DMA_TAG(1, 5, 0),
+    DMA_TAG(1, 6, 0), DMA_TAG(1, 7, 0), DMA_TAG(2, 3, 0), DMA_TAG(2, 4, 0), DMA_TAG(2, 5, 0), DMA_TAG(2, 6, 0),
+    DMA_TAG(2, 7, 0),
+};
+#define uartDmaCandidate(table, device, i)      (uartDmaStreams[i])
+#elif defined(AT32F43x)
+// The DMAMUX routes any UART to any channel; the ADC's is excluded below
+#define UART_DMA_CANDIDATES 14
+static const dmaTag_t uartDmaStreams[UART_DMA_CANDIDATES] = {
+    DMA_TAG(1, 1, 0), DMA_TAG(1, 2, 0), DMA_TAG(1, 3, 0), DMA_TAG(1, 4, 0), DMA_TAG(1, 5, 0), DMA_TAG(1, 6, 0),
+    DMA_TAG(1, 7, 0), DMA_TAG(2, 1, 0), DMA_TAG(2, 2, 0), DMA_TAG(2, 3, 0), DMA_TAG(2, 4, 0), DMA_TAG(2, 5, 0),
+    DMA_TAG(2, 6, 0), DMA_TAG(2, 7, 0),
+};
+#define uartDmaCandidate(table, device, i)      (uartDmaStreams[i])
+#endif
+
+// Streams claimed after the first serial ports open: the SD card would give up on a taken one, the AT32 ADC takes it anyway
+static inline bool uartDmaStreamUsedElsewhere(DMA_t dma)
+{
+#if (defined(STM32F4) || defined(STM32F7)) && defined(USE_SDCARD_SDIO)
+#ifdef SDCARD_SDIO_DMA
+    if (dma == dmaGetByTag(SDCARD_SDIO_DMA)) {
+        return true;
+    }
+#else
+    if (dma == dmaGetByTag(DMA_TAG(2, 3, 0)) || dma == dmaGetByTag(DMA_TAG(2, 6, 0))) {
+        return true;
+    }
+#endif
+#endif
+#if defined(AT32F43x)
+#ifdef ADC1_DMA_STREAM
+    if (dma == dmaGetByRef(ADC1_DMA_STREAM)) {
+#else
+    if (dma == dmaGetByRef(DMA2_CHANNEL1)) {
+#endif
+        return true;
+    }
+#endif
+    UNUSED(dma);
+    return false;
+}
+
+// Streams a target names for some port: an automatic pick leaves them alone, whichever port opens first
+static const dmaTag_t uartNamedDmaTags[] = {
+#if defined(UART1_RX_DMA) && (UART1_RX_DMA != DMA_TAG_AUTO) && (UART1_RX_DMA != DMA_NONE)
+    UART1_RX_DMA,
+#endif
+#if defined(UART1_TX_DMA) && (UART1_TX_DMA != DMA_TAG_AUTO) && (UART1_TX_DMA != DMA_NONE)
+    UART1_TX_DMA,
+#endif
+#if defined(UART2_RX_DMA) && (UART2_RX_DMA != DMA_TAG_AUTO) && (UART2_RX_DMA != DMA_NONE)
+    UART2_RX_DMA,
+#endif
+#if defined(UART2_TX_DMA) && (UART2_TX_DMA != DMA_TAG_AUTO) && (UART2_TX_DMA != DMA_NONE)
+    UART2_TX_DMA,
+#endif
+#if defined(UART3_RX_DMA) && (UART3_RX_DMA != DMA_TAG_AUTO) && (UART3_RX_DMA != DMA_NONE)
+    UART3_RX_DMA,
+#endif
+#if defined(UART3_TX_DMA) && (UART3_TX_DMA != DMA_TAG_AUTO) && (UART3_TX_DMA != DMA_NONE)
+    UART3_TX_DMA,
+#endif
+#if defined(UART4_RX_DMA) && (UART4_RX_DMA != DMA_TAG_AUTO) && (UART4_RX_DMA != DMA_NONE)
+    UART4_RX_DMA,
+#endif
+#if defined(UART4_TX_DMA) && (UART4_TX_DMA != DMA_TAG_AUTO) && (UART4_TX_DMA != DMA_NONE)
+    UART4_TX_DMA,
+#endif
+#if defined(UART5_RX_DMA) && (UART5_RX_DMA != DMA_TAG_AUTO) && (UART5_RX_DMA != DMA_NONE)
+    UART5_RX_DMA,
+#endif
+#if defined(UART5_TX_DMA) && (UART5_TX_DMA != DMA_TAG_AUTO) && (UART5_TX_DMA != DMA_NONE)
+    UART5_TX_DMA,
+#endif
+#if defined(UART6_RX_DMA) && (UART6_RX_DMA != DMA_TAG_AUTO) && (UART6_RX_DMA != DMA_NONE)
+    UART6_RX_DMA,
+#endif
+#if defined(UART6_TX_DMA) && (UART6_TX_DMA != DMA_TAG_AUTO) && (UART6_TX_DMA != DMA_NONE)
+    UART6_TX_DMA,
+#endif
+#if defined(UART7_RX_DMA) && (UART7_RX_DMA != DMA_TAG_AUTO) && (UART7_RX_DMA != DMA_NONE)
+    UART7_RX_DMA,
+#endif
+#if defined(UART7_TX_DMA) && (UART7_TX_DMA != DMA_TAG_AUTO) && (UART7_TX_DMA != DMA_NONE)
+    UART7_TX_DMA,
+#endif
+#if defined(UART8_RX_DMA) && (UART8_RX_DMA != DMA_TAG_AUTO) && (UART8_RX_DMA != DMA_NONE)
+    UART8_RX_DMA,
+#endif
+#if defined(UART8_TX_DMA) && (UART8_TX_DMA != DMA_TAG_AUTO) && (UART8_TX_DMA != DMA_NONE)
+    UART8_TX_DMA,
+#endif
+    DMA_NONE,
+};
+
+static inline bool uartDmaStreamNamed(DMA_t dma)
+{
+    for (unsigned i = 0; i < ARRAYLEN(uartNamedDmaTags); i++) {
+        if (uartNamedDmaTags[i] != DMA_NONE && dma == dmaGetByTag(uartNamedDmaTags[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// The named stream, else the first free candidate; receivers and half-duplex links were never measured on DMA
+static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[UART_DMA_CANDIDATES], UARTDevice_e device,
+                                   const serialPort_t *port, DMA_t otherDirection)
+{
+    if (named != DMA_TAG_AUTO) {
+        const DMA_t dma = dmaGetByTag(named);
+        return (named != DMA_NONE && dma && uartDmaStreamAvailable(dma, device)) ? named : DMA_NONE;
+    }
+    if (port->rxCallback || (port->options & SERIAL_BIDIR)) {
+        return DMA_NONE;
+    }
+    // Its own streams first: none is ever given back, so a port reopened at runtime would collect them
+    for (int pass = 0; pass < 2; pass++) {
+        for (int i = 0; i < UART_DMA_CANDIDATES; i++) {
+            const dmaTag_t tag = uartDmaCandidate(candidates, device, i);
+            const DMA_t dma = dmaGetByTag(tag);
+            if (tag != DMA_NONE && dma && dma != otherDirection && !uartDmaStreamUsedElsewhere(dma) && !uartDmaStreamNamed(dma) &&
+                uartDmaStreamAvailable(dma, device) && (pass || dmaGetOwner(dma) == OWNER_SERIAL)) {
+                return tag;
+            }
+        }
+    }
+    UNUSED(candidates);
+    return DMA_NONE;
 }
 #endif
 

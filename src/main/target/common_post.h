@@ -185,8 +185,59 @@ extern uint8_t __config_end;
 #endif
 #endif
 
-// Only where the target names a stream (UARTx_RX_DMA): which one is free depends on the
-// board, as the timers, the ADC and the SD card share them
+// A port with no stream named gets a free one at runtime; DMA_NONE keeps it on the interrupt
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)
+#if defined(USE_UART1) && !defined(UART1_RX_DMA)
+#define UART1_RX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART1) && !defined(UART1_TX_DMA)
+#define UART1_TX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART2) && !defined(UART2_RX_DMA)
+#define UART2_RX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART2) && !defined(UART2_TX_DMA)
+#define UART2_TX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART3) && !defined(UART3_RX_DMA)
+#define UART3_RX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART3) && !defined(UART3_TX_DMA)
+#define UART3_TX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART4) && !defined(UART4_RX_DMA)
+#define UART4_RX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART4) && !defined(UART4_TX_DMA)
+#define UART4_TX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART5) && !defined(UART5_RX_DMA)
+#define UART5_RX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART5) && !defined(UART5_TX_DMA)
+#define UART5_TX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART6) && !defined(UART6_RX_DMA)
+#define UART6_RX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART6) && !defined(UART6_TX_DMA)
+#define UART6_TX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART7) && !defined(UART7_RX_DMA)
+#define UART7_RX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART7) && !defined(UART7_TX_DMA)
+#define UART7_TX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART8) && !defined(UART8_RX_DMA)
+#define UART8_RX_DMA DMA_TAG_AUTO
+#endif
+#if defined(USE_UART8) && !defined(UART8_TX_DMA)
+#define UART8_TX_DMA DMA_TAG_AUTO
+#endif
+#endif
+
+// Which stream is free depends on the board: the timers, the ADC and the SD card share them
 #if defined(UART1_RX_DMA) || defined(UART2_RX_DMA) || defined(UART3_RX_DMA) || defined(UART4_RX_DMA) || \
     defined(UART5_RX_DMA) || defined(UART6_RX_DMA) || defined(UART7_RX_DMA) || defined(UART8_RX_DMA)
 #define USE_UART_RX_DMA

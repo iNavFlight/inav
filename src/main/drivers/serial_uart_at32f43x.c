@@ -417,12 +417,13 @@ bool uartRxDmaStart(uartPort_t *s)
     uartRxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || uartRxDmaConfig[device].tag == DMA_NONE || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
         return false;
     }
 
-    const DMA_t dma = dmaGetByTag(uartRxDmaConfig[device].tag);
-    if (!dma || !uartDmaStreamAvailable(dma, device)) {
+    const dmaTag_t tag = uartDmaPick(uartRxDmaConfig[device].tag, NULL, device, &s->port, uartTxDmaOf(s));
+    const DMA_t dma = dmaGetByTag(tag);
+    if (!dma) {
         return false;
     }
 
@@ -548,12 +549,13 @@ bool uartTxDmaStart(uartPort_t *s)
     uartTxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || uartTxDmaConfig[device].tag == DMA_NONE || !(s->port.mode & MODE_TX)) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_TX)) {
         return false;
     }
 
-    const DMA_t dma = dmaGetByTag(uartTxDmaConfig[device].tag);
-    if (!dma || !uartDmaStreamAvailable(dma, device)) {
+    const dmaTag_t tag = uartDmaPick(uartTxDmaConfig[device].tag, NULL, device, &s->port, uartRxDmaOf(s));
+    const DMA_t dma = dmaGetByTag(tag);
+    if (!dma) {
         return false;
     }
 #ifdef USE_UART_RX_DMA

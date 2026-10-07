@@ -249,3 +249,373 @@ TEST(UartDmaStreamSourceSync, AvailableMatchesMirror)
 {
     EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedAvailable));
 }
+
+/*
+ * uartDmaPick() (serial_uart_impl.h): the stream a port starts on. Mirrored on plain tags: a stream is "unavailable"
+ * when uartDmaStreamAvailable() would refuse it, "used elsewhere" when it is the SD card's (or the AT32 ADC's).
+ */
+namespace {
+
+const uint32_t TAG_NONE = 0;
+const uint32_t TAG_AUTO = 0xFFFF0000U;
+
+uint32_t tag(int dma, int stream, int channel)
+{
+    return ((dma & 0x03) << 12) | ((stream & 0x0F) << 8) | (channel & 0xFF);
+}
+
+// dmaGetByTag() matches controller and stream; a tag with no controller has no stream
+int streamOf(uint32_t t)
+{
+    return ((t >> 12) & 0x03) ? (int)((t >> 8) & 0x3F) : -1;
+}
+
+struct dmaWorld_t {
+    int unavailable[4];
+    int usedElsewhere[2];
+    int named[2];           // streams a target names for some port
+    int own[2];             // streams this port took before, at an earlier opening
+};
+
+bool listed(const int *list, int count, int stream)
+{
+    for (int i = 0; i < count; i++) {
+        if (list[i] == stream) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const uint32_t rxCandidates[8][2] = {
+    { tag(2, 2, 4), tag(2, 5, 4) }, { tag(1, 5, 4) }, { tag(1, 1, 4) }, { tag(1, 2, 4) },
+    { tag(1, 0, 4) }, { tag(2, 1, 5), tag(2, 2, 5) }, { tag(1, 3, 5) }, { tag(1, 6, 5) },
+};
+const uint32_t txCandidates[8][2] = {
+    { tag(2, 7, 4) }, { tag(1, 6, 4) }, { tag(1, 3, 4), tag(1, 4, 7) }, { tag(1, 4, 4) },
+    { tag(1, 7, 4) }, { tag(2, 6, 5), tag(2, 7, 5) }, { tag(1, 1, 5) }, { tag(1, 0, 5) },
+};
+
+// Mirror of uartDmaPick() for F4/F7
+uint32_t pick(uint32_t named, const uint32_t (*candidates)[2], int device, bool rxCallback, bool halfDuplex,
+              int otherDirection, const dmaWorld_t &w)
+{
+    if (named != TAG_AUTO) {
+        const int dma = streamOf(named);
+        return (named != TAG_NONE && dma >= 0 && !listed(w.unavailable, 4, dma)) ? named : TAG_NONE;
+    }
+    if (rxCallback || halfDuplex) {
+        return TAG_NONE;
+    }
+    for (int pass = 0; pass < 2; pass++) {
+        for (int i = 0; i < 2; i++) {
+            const uint32_t t = candidates[device][i];
+            const int dma = streamOf(t);
+            if (t != TAG_NONE && dma >= 0 && dma != otherDirection && !listed(w.usedElsewhere, 2, dma) && !listed(w.named, 2, dma) &&
+                !listed(w.unavailable, 4, dma) && (pass || listed(w.own, 2, dma))) {
+                return t;
+            }
+        }
+    }
+    return TAG_NONE;
+}
+
+const dmaWorld_t freeWorld = { { -1, -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+
+int s(int dma, int stream)
+{
+    return streamOf(tag(dma, stream, 0));
+}
+
+} // namespace
+
+TEST(UartDmaPick, NamedStreamIsUsedOnlyWhenFree)
+{
+    EXPECT_EQ(tag(1, 5, 4), pick(tag(1, 5, 4), rxCandidates, 1, false, false, -1, freeWorld));
+    const dmaWorld_t taken = { { s(1, 5), -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+    EXPECT_EQ(TAG_NONE, pick(tag(1, 5, 4), rxCandidates, 1, false, false, -1, taken));
+    EXPECT_EQ(TAG_NONE, pick(TAG_NONE, rxCandidates, 1, false, false, -1, freeWorld));
+}
+
+TEST(UartDmaPick, NamedStreamAlsoServesReceiversAndHalfDuplex)
+{
+    EXPECT_EQ(tag(1, 6, 4), pick(tag(1, 6, 4), txCandidates, 1, true, true, -1, freeWorld));
+}
+
+TEST(UartDmaPick, AutoLeavesReceiversAndHalfDuplexOnTheInterrupt)
+{
+    EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, rxCandidates, 0, true, false, -1, freeWorld));
+    EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, txCandidates, 0, false, true, -1, freeWorld));
+}
+
+TEST(UartDmaPick, AutoTakesTheFirstFreeCandidate)
+{
+    EXPECT_EQ(tag(2, 2, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, freeWorld));
+    const dmaWorld_t firstTaken = { { s(2, 2), -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+    EXPECT_EQ(tag(2, 5, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, firstTaken));
+    const dmaWorld_t bothTaken = { { s(2, 2), s(2, 5), -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+    EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, rxCandidates, 0, false, false, -1, bothTaken));
+}
+
+TEST(UartDmaPick, AutoNeverTakesAnEmptySecondCandidate)
+{
+    const dmaWorld_t taken = { { s(1, 5), -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+    EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, rxCandidates, 1, false, false, -1, taken));
+}
+
+TEST(UartDmaPick, AutoNeverTakesAStreamAnotherPortNames)
+{
+    // UART6 names DMA2 stream 2 for its receiver: UART1 moves on to stream 5 even when it opens first
+    const dmaWorld_t named = { { -1, -1, -1, -1 }, { -1, -1 }, { s(2, 2), -1 }, { -1, -1 } };
+    EXPECT_EQ(tag(2, 5, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, named));
+}
+
+TEST(UartDmaPick, AutoSkipsTheOtherDirectionAndTheSdCard)
+{
+    EXPECT_EQ(tag(2, 7, 5), pick(TAG_AUTO, txCandidates, 5, false, false, s(2, 6), freeWorld));
+    const dmaWorld_t sdcard = { { -1, -1, -1, -1 }, { s(2, 6), -1 }, { -1, -1 }, { -1, -1 } };
+    EXPECT_EQ(tag(2, 7, 5), pick(TAG_AUTO, txCandidates, 5, false, false, -1, sdcard));
+}
+
+TEST(UartDmaPick, AutoReopenedPortTakesBackItsOwnStream)
+{
+    // UART1 got stream 5 while 2 was busy; reopened with 2 free, it keeps 5 rather than holding both
+    const dmaWorld_t ownsSecond = { { -1, -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { s(2, 5), -1 } };
+    EXPECT_EQ(tag(2, 5, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, ownsSecond));
+}
+
+TEST(UartDmaPick, AutoOwnStreamStillYieldsToTheOtherDirectionAndReservations)
+{
+    // UART6 owns both send streams, its receiver now runs on one of them: the sender takes the other
+    const dmaWorld_t ownsBoth = { { -1, -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { s(2, 6), s(2, 7) } };
+    EXPECT_EQ(tag(2, 7, 5), pick(TAG_AUTO, txCandidates, 5, false, false, s(2, 6), ownsBoth));
+    // A stream it owned that is now reserved is passed over for a free one
+    const dmaWorld_t ownReserved = { { s(2, 2), -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { s(2, 2), -1 } };
+    EXPECT_EQ(tag(2, 5, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, ownReserved));
+}
+
+namespace {
+
+const char *expectedPick = R"(
+static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[UART_DMA_CANDIDATES], UARTDevice_e device,
+                                   const serialPort_t *port, DMA_t otherDirection)
+{
+    if (named != DMA_TAG_AUTO) {
+        const DMA_t dma = dmaGetByTag(named);
+        return (named != DMA_NONE && dma && uartDmaStreamAvailable(dma, device)) ? named : DMA_NONE;
+    }
+    if (port->rxCallback || (port->options & SERIAL_BIDIR)) {
+        return DMA_NONE;
+    }
+    for (int pass = 0; pass < 2; pass++) {
+        for (int i = 0; i < UART_DMA_CANDIDATES; i++) {
+            const dmaTag_t tag = uartDmaCandidate(candidates, device, i);
+            const DMA_t dma = dmaGetByTag(tag);
+            if (tag != DMA_NONE && dma && dma != otherDirection && !uartDmaStreamUsedElsewhere(dma) && !uartDmaStreamNamed(dma) &&
+                uartDmaStreamAvailable(dma, device) && (pass || dmaGetOwner(dma) == OWNER_SERIAL)) {
+                return tag;
+            }
+        }
+    }
+    UNUSED(candidates);
+    return DMA_NONE;
+}
+)";
+
+const char *expectedCandidates = R"(
+static const dmaTag_t uartRxDmaCandidates[UARTDEV_MAX][UART_DMA_CANDIDATES] = {
+    [UARTDEV_1] = { DMA_TAG(2, 2, 4), DMA_TAG(2, 5, 4) },
+    [UARTDEV_2] = { DMA_TAG(1, 5, 4) },
+    [UARTDEV_3] = { DMA_TAG(1, 1, 4) },
+    [UARTDEV_4] = { DMA_TAG(1, 2, 4) },
+    [UARTDEV_5] = { DMA_TAG(1, 0, 4) },
+    [UARTDEV_6] = { DMA_TAG(2, 1, 5), DMA_TAG(2, 2, 5) },
+    [UARTDEV_7] = { DMA_TAG(1, 3, 5) },
+    [UARTDEV_8] = { DMA_TAG(1, 6, 5) },
+};
+static const dmaTag_t uartTxDmaCandidates[UARTDEV_MAX][UART_DMA_CANDIDATES] = {
+    [UARTDEV_1] = { DMA_TAG(2, 7, 4) },
+    [UARTDEV_2] = { DMA_TAG(1, 6, 4) },
+    [UARTDEV_3] = { DMA_TAG(1, 3, 4), DMA_TAG(1, 4, 7) },
+    [UARTDEV_4] = { DMA_TAG(1, 4, 4) },
+    [UARTDEV_5] = { DMA_TAG(1, 7, 4) },
+    [UARTDEV_6] = { DMA_TAG(2, 6, 5), DMA_TAG(2, 7, 5) },
+    [UARTDEV_7] = { DMA_TAG(1, 1, 5) },
+    [UARTDEV_8] = { DMA_TAG(1, 0, 5) },
+};
+)";
+
+// Not mirrored: checked so that a change to them shows up here
+const char *expectedStreamList = R"(
+static const dmaTag_t uartDmaStreams[UART_DMA_CANDIDATES] = {
+    DMA_TAG(1, 0, 0), DMA_TAG(1, 1, 0), DMA_TAG(1, 2, 0), DMA_TAG(1, 3, 0), DMA_TAG(1, 4, 0), DMA_TAG(1, 5, 0),
+    DMA_TAG(1, 6, 0), DMA_TAG(1, 7, 0), DMA_TAG(2, 3, 0), DMA_TAG(2, 4, 0), DMA_TAG(2, 5, 0), DMA_TAG(2, 6, 0),
+    DMA_TAG(2, 7, 0),
+};
+)";
+
+const char *expectedNamed = R"(
+static inline bool uartDmaStreamNamed(DMA_t dma)
+{
+    for (unsigned i = 0; i < ARRAYLEN(uartNamedDmaTags); i++) {
+        if (uartNamedDmaTags[i] != DMA_NONE && dma == dmaGetByTag(uartNamedDmaTags[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+)";
+
+} // namespace
+
+TEST(UartDmaStreamSourceSync, H7StreamListMatches)
+{
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedStreamList));
+}
+
+TEST(UartDmaStreamSourceSync, NamedMatches)
+{
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedNamed));
+}
+
+TEST(UartDmaStreamSourceSync, PickMatchesMirror)
+{
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedPick));
+}
+
+TEST(UartDmaStreamSourceSync, CandidateTablesMatchMirror)
+{
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedCandidates));
+}
+
+namespace {
+
+const char *expectedUsedElsewhere = R"(
+static inline bool uartDmaStreamUsedElsewhere(DMA_t dma)
+{
+#if (defined(STM32F4) || defined(STM32F7)) && defined(USE_SDCARD_SDIO)
+#ifdef SDCARD_SDIO_DMA
+    if (dma == dmaGetByTag(SDCARD_SDIO_DMA)) {
+        return true;
+    }
+#else
+    if (dma == dmaGetByTag(DMA_TAG(2, 3, 0)) || dma == dmaGetByTag(DMA_TAG(2, 6, 0))) {
+        return true;
+    }
+#endif
+#endif
+#if defined(AT32F43x)
+#ifdef ADC1_DMA_STREAM
+    if (dma == dmaGetByRef(ADC1_DMA_STREAM)) {
+#else
+    if (dma == dmaGetByRef(DMA2_CHANNEL1)) {
+#endif
+        return true;
+    }
+#endif
+    UNUSED(dma);
+    return false;
+}
+)";
+
+const char *expectedAt32StreamList = R"(
+static const dmaTag_t uartDmaStreams[UART_DMA_CANDIDATES] = {
+    DMA_TAG(1, 1, 0), DMA_TAG(1, 2, 0), DMA_TAG(1, 3, 0), DMA_TAG(1, 4, 0), DMA_TAG(1, 5, 0), DMA_TAG(1, 6, 0),
+    DMA_TAG(1, 7, 0), DMA_TAG(2, 1, 0), DMA_TAG(2, 2, 0), DMA_TAG(2, 3, 0), DMA_TAG(2, 4, 0), DMA_TAG(2, 5, 0),
+    DMA_TAG(2, 6, 0), DMA_TAG(2, 7, 0),
+};
+)";
+
+// Built rather than pasted, so a UART or a direction left out shows up
+std::string streamName(int uart, const char *direction)
+{
+    return "UART" + std::to_string(uart) + "_" + direction + "_DMA";
+}
+
+std::string expectedNamedList()
+{
+    std::string text = "static const dmaTag_t uartNamedDmaTags[] = {\n";
+    for (int uart = 1; uart <= 8; uart++) {
+        for (const char *direction : { "RX", "TX" }) {
+            const std::string name = streamName(uart, direction);
+            text += "#if defined(" + name + ") && (" + name + " != DMA_TAG_AUTO) && (" + name + " != DMA_NONE)\n    " + name + ",\n#endif\n";
+        }
+    }
+    return text + "    DMA_NONE,\n};\n";   // keeps the array from being empty
+}
+
+std::string expectedAutoDefaults()
+{
+    std::string text = "#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)\n";
+    for (int uart = 1; uart <= 8; uart++) {
+        for (const char *direction : { "RX", "TX" }) {
+            const std::string name = streamName(uart, direction);
+            text += "#if defined(USE_UART" + std::to_string(uart) + ") && !defined(" + name + ")\n#define " + name + " DMA_TAG_AUTO\n#endif\n";
+        }
+    }
+    return text + "#endif\n";
+}
+
+// The first uartDmaPick() call after the anchor must be the expected one: catches a direction given the other's table
+::testing::AssertionResult livePickAfter(const char *relativePath, const char *anchor, const char *call)
+{
+    std::string thisFile = __FILE__;
+    const size_t slash = thisFile.find_last_of("/\\");
+    const std::string path = (slash == std::string::npos ? std::string(".") : thisFile.substr(0, slash))
+        + "/../../main/drivers/" + relativePath;
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        return ::testing::AssertionFailure() << "cannot open " << path;
+    }
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    const std::string text = normalize(buffer.str());
+    const size_t at = text.find(normalize(anchor));
+    if (at == std::string::npos) {
+        return ::testing::AssertionFailure() << relativePath << ": no " << anchor;
+    }
+    const size_t next = text.find("uartDmaPick(", at);
+    const std::string expected = normalize(call);
+    if (next == std::string::npos || text.compare(next, expected.size(), expected) != 0) {
+        return ::testing::AssertionFailure() << relativePath << ": " << anchor << " no longer calls " << call;
+    }
+    return ::testing::AssertionSuccess();
+}
+
+} // namespace
+
+TEST(UartDmaStreamSourceSync, UsedElsewhereMatches)
+{
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedUsedElsewhere));
+}
+
+TEST(UartDmaStreamSourceSync, At32StreamListMatches)
+{
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedAt32StreamList));
+}
+
+TEST(UartDmaStreamSourceSync, NamedListHasEveryPortAndDirection)
+{
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedNamedList().c_str()));
+}
+
+TEST(UartDmaStreamSourceSync, EveryPortAndDirectionDefaultsToAuto)
+{
+    EXPECT_TRUE(liveSourceContains("../target/common_post.h", expectedAutoDefaults().c_str()));
+}
+
+TEST(UartDmaStreamSourceSync, EachDirectionPicksFromItsOwnTable)
+{
+    const char *rxTables = "uartDmaPick(uartRxDmaTag[device], uartRxDmaCandidates, device, &s->port, uartTxDmaOf(s))";
+    const char *txTables = "uartDmaPick(uartTxDmaTag[device], uartTxDmaCandidates, device, &s->port, uartRxDmaOf(s))";
+    const char *rxConfig = "uartDmaPick(uartRxDmaConfig[device].tag, NULL, device, &s->port, uartTxDmaOf(s))";
+    const char *txConfig = "uartDmaPick(uartTxDmaConfig[device].tag, NULL, device, &s->port, uartRxDmaOf(s))";
+    for (const char *driver : { "serial_uart_stm32f4xx.c", "serial_uart_stm32f7xx.c" }) {
+        EXPECT_TRUE(livePickAfter(driver, "bool uartRxDmaStart(uartPort_t *s)", rxTables));
+        EXPECT_TRUE(livePickAfter(driver, "bool uartTxDmaStart(uartPort_t *s)", txTables));
+    }
+    for (const char *driver : { "serial_uart_stm32h7xx.c", "serial_uart_at32f43x.c" }) {
+        EXPECT_TRUE(livePickAfter(driver, "bool uartRxDmaStart(uartPort_t *s)", rxConfig));
+        EXPECT_TRUE(livePickAfter(driver, "bool uartTxDmaStart(uartPort_t *s)", txConfig));
+    }
+}

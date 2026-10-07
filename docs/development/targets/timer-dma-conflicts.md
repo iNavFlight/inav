@@ -152,15 +152,14 @@ STM32H7 uses DMAMUX which eliminates most DMA conflicts:
 
 ## UART Receive Through DMA
 
-A UART can receive through a DMA stream instead of taking an interrupt for every byte.
-A target turns this on per port, by naming a stream for it in `target.h`:
+A UART can receive through a DMA stream instead of taking an interrupt for every byte. On
+F4, F7, H7 and AT32F43x every UART does so where a stream is free: the firmware picks one
+when the port opens. A target can name the stream instead, or keep a port on the interrupt:
 
 ```c
 #define UART2_RX_DMA            DMA_TAG(2, 5, 0)    // DMA2 stream 5
+#define UART3_RX_DMA            DMA_NONE            // always the byte interrupt
 ```
-
-A port without `UARTx_RX_DMA` behaves exactly as before, and a target that names none
-builds exactly as before.
 
 **What it changes.** The stream writes into the port's receive ring by itself, so a busy
 port no longer costs an interrupt per byte, and bytes that arrive while interrupts are
@@ -171,7 +170,9 @@ of a percent of the CPU; relatively it is larger on a slower MCU with a busy por
 **Which ports use it.** Those whose owner reads through the ring: GPS, MSP, telemetry and
 the like. Serial receivers (CRSF, SBUS, IBUS, GHST, SRXL2, ...) take each byte through a
 callback as it lands, because they find their frames by timing, so their port stays on the
-interrupt even when the target names a stream for it.
+interrupt even when the target names a stream for it. Half-duplex ports (IBUS telemetry and
+an SRXL2 ESC always; SmartPort, HoTT, VTX control and others when set to half-duplex) get no
+stream unless the target names one.
 
 ### Choosing the stream
 
@@ -192,6 +193,12 @@ build fails if the tag names any other:
 **H7 and AT32F43x.** The DMAMUX connects any UART to any stream (channel, on the AT32),
 so only the controller and the stream matter; leave the last field 0.
 
+**Picked at runtime.** A port with no stream named takes the first free one among its
+candidates: on F4 and F7 the streams in the table, in order; on H7 every stream except
+DMA2 streams 0 to 2 (the ADCs); on AT32F43x every channel except the ADC's. It skips the
+streams a target names for any port, the SD card's, and its own other direction's. A named
+stream is used if it is free, and otherwise the port stays on the interrupt.
+
 **The stream has to be free on that board.** The streams are shared, so this is a
 property of the target rather than of the MCU:
 
@@ -207,21 +214,24 @@ property of the target rather than of the MCU:
   boot: after changing the motor protocol, the mixer, the output modes or the LED strip
   feature, a port gets or gives back its stream at the next reboot. On an H7 the `dmavar` of
   `DEF_TIM()` is the stream: 0 to 7 are DMA1 streams 0 to 7, 8 to 15 are DMA2 streams 0 to 7.
-- *The ADC* is not checked, so avoid its stream: on F4 and AT32 `ADC1_DMA_STREAM` where the
+- *The ADC* is not checked against a named stream, so avoid its stream (the runtime pick
+  does): on F4 and AT32 `ADC1_DMA_STREAM` where the
   target sets it, otherwise DMA2 stream 0 and DMA2 channel 1; DMA2 stream 0 on F7; DMA2
   stream 0, 1 or 2 on H7, for `ADC_INSTANCE` ADC1, ADC2 or ADC3.
-- *The SD card* on F4 and F7 SDIO uses DMA2 stream 3 or 6 (`SDCARD_SDIO_DMA`) and is not
-  checked against the serial ports either: if a UART takes that stream first, the card is
-  left unused.
+- *The SD card* on F4 and F7 SDIO uses DMA2 stream 3 or 6 (`SDCARD_SDIO_DMA`). The runtime
+  pick avoids it; a named stream is not checked against it, and if a UART takes it first the
+  card is left unused.
 - *Two UARTs* cannot share one; the second keeps its interrupt.
 
-On an H7 the ring of a port receiving through DMA moves to D2 SRAM, where the data cache
-does not reach: 256 bytes per port named.
+On F7 and H7 the ring of every port that may receive through DMA (all but those set to
+`DMA_NONE`) goes in `DMA_RAM`: on an H7 that is D2 SRAM, where the data cache does not
+reach, and on an F7 ordinary RAM, or the uncached region set aside for DMA once the data
+cache is on.
 
 ## UART Transmit Through DMA
 
-The same for sending: `UARTx_TX_DMA` names the stream that empties the port's transmit
-ring.
+The same for sending: every UART sends through a free stream, picked as above, unless
+`UARTx_TX_DMA` names one or is set to `DMA_NONE`.
 
 ```c
 #define UART2_TX_DMA            DMA_TAG(2, 7, 0)    // DMA2 stream 7
@@ -250,7 +260,7 @@ blackbox, MAVLink, MSP DisplayPort.
 
 On H7 and AT32F43x any free stream (channel) will do, and the rules for a free one are the
 ones above. A port's transmit stream has to be a different one from its receive stream,
-and on an H7 its transmit ring moves to D2 SRAM as well.
+and on an H7 its transmit ring moves to D2 SRAM as well, unless set to `DMA_NONE`.
 
 ## Related Documentation
 

@@ -293,54 +293,54 @@ static const dmaTag_t uartRxDmaTag[UARTDEV_MAX] = {
 };
 
 // In DMA_RAM, which stays uncached once the D-cache is on: from the cache the CPU would not see what the stream wrote
-#ifdef UART1_RX_DMA
+#if defined(UART1_RX_DMA) && (UART1_RX_DMA != DMA_NONE)
 static DMA_RAM uint8_t uart1RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
-#ifdef UART2_RX_DMA
+#if defined(UART2_RX_DMA) && (UART2_RX_DMA != DMA_NONE)
 static DMA_RAM uint8_t uart2RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
-#ifdef UART3_RX_DMA
+#if defined(UART3_RX_DMA) && (UART3_RX_DMA != DMA_NONE)
 static DMA_RAM uint8_t uart3RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
-#ifdef UART4_RX_DMA
+#if defined(UART4_RX_DMA) && (UART4_RX_DMA != DMA_NONE)
 static DMA_RAM uint8_t uart4RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
-#ifdef UART5_RX_DMA
+#if defined(UART5_RX_DMA) && (UART5_RX_DMA != DMA_NONE)
 static DMA_RAM uint8_t uart5RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
-#ifdef UART6_RX_DMA
+#if defined(UART6_RX_DMA) && (UART6_RX_DMA != DMA_NONE)
 static DMA_RAM uint8_t uart6RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
-#ifdef UART7_RX_DMA
+#if defined(UART7_RX_DMA) && (UART7_RX_DMA != DMA_NONE)
 static DMA_RAM uint8_t uart7RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
-#ifdef UART8_RX_DMA
+#if defined(UART8_RX_DMA) && (UART8_RX_DMA != DMA_NONE)
 static DMA_RAM uint8_t uart8RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
 
 static volatile uint8_t * const uartRxDmaBuffer[UARTDEV_MAX] = {
-#ifdef UART1_RX_DMA
+#if defined(UART1_RX_DMA) && (UART1_RX_DMA != DMA_NONE)
     [UARTDEV_1] = uart1RxDmaBuffer,
 #endif
-#ifdef UART2_RX_DMA
+#if defined(UART2_RX_DMA) && (UART2_RX_DMA != DMA_NONE)
     [UARTDEV_2] = uart2RxDmaBuffer,
 #endif
-#ifdef UART3_RX_DMA
+#if defined(UART3_RX_DMA) && (UART3_RX_DMA != DMA_NONE)
     [UARTDEV_3] = uart3RxDmaBuffer,
 #endif
-#ifdef UART4_RX_DMA
+#if defined(UART4_RX_DMA) && (UART4_RX_DMA != DMA_NONE)
     [UARTDEV_4] = uart4RxDmaBuffer,
 #endif
-#ifdef UART5_RX_DMA
+#if defined(UART5_RX_DMA) && (UART5_RX_DMA != DMA_NONE)
     [UARTDEV_5] = uart5RxDmaBuffer,
 #endif
-#ifdef UART6_RX_DMA
+#if defined(UART6_RX_DMA) && (UART6_RX_DMA != DMA_NONE)
     [UARTDEV_6] = uart6RxDmaBuffer,
 #endif
-#ifdef UART7_RX_DMA
+#if defined(UART7_RX_DMA) && (UART7_RX_DMA != DMA_NONE)
     [UARTDEV_7] = uart7RxDmaBuffer,
 #endif
-#ifdef UART8_RX_DMA
+#if defined(UART8_RX_DMA) && (UART8_RX_DMA != DMA_NONE)
     [UARTDEV_8] = uart8RxDmaBuffer,
 #endif
 };
@@ -362,23 +362,24 @@ bool uartRxDmaStart(uartPort_t *s)
     uartRxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || uartRxDmaTag[device] == DMA_NONE || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
         return false;
     }
 
-    const DMA_t dma = dmaGetByTag(uartRxDmaTag[device]);
-    if (!dma || !uartDmaStreamAvailable(dma, device)) {
+    const dmaTag_t tag = uartDmaPick(uartRxDmaTag[device], uartRxDmaCandidates, device, &s->port, uartTxDmaOf(s));
+    const DMA_t dma = dmaGetByTag(tag);
+    if (!dma) {
         return false;
     }
 
     dmaInit(dma, OWNER_SERIAL, RESOURCE_INDEX(device));
 
-    const uint32_t stream = DMATAG_GET_STREAM(uartRxDmaTag[device]);
+    const uint32_t stream = DMATAG_GET_STREAM(tag);
     LL_DMA_DeInit(dma->dma, stream);
 
     LL_DMA_InitTypeDef init;
     LL_DMA_StructInit(&init);
-    init.Channel = DMATAG_GET_CHANNEL(uartRxDmaTag[device]) << DMA_SxCR_CHSEL_Pos;    // LL_DMA_CHANNEL_n is n in CHSEL
+    init.Channel = DMATAG_GET_CHANNEL(tag) << DMA_SxCR_CHSEL_Pos;    // LL_DMA_CHANNEL_n is n in CHSEL
     init.PeriphOrM2MSrcAddress = (uint32_t)&s->USARTx->RDR;
     init.MemoryOrM2MDstAddress = (uint32_t)s->port.rxBuffer;
     init.Direction = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
@@ -494,12 +495,13 @@ bool uartTxDmaStart(uartPort_t *s)
     uartTxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || uartTxDmaTag[device] == DMA_NONE || !(s->port.mode & MODE_TX)) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_TX)) {
         return false;
     }
 
-    const DMA_t dma = dmaGetByTag(uartTxDmaTag[device]);
-    if (!dma || !uartDmaStreamAvailable(dma, device)) {
+    const dmaTag_t tag = uartDmaPick(uartTxDmaTag[device], uartTxDmaCandidates, device, &s->port, uartRxDmaOf(s));
+    const DMA_t dma = dmaGetByTag(tag);
+    if (!dma) {
         return false;
     }
 #ifdef USE_UART_RX_DMA
@@ -512,12 +514,12 @@ bool uartTxDmaStart(uartPort_t *s)
     dmaInit(dma, OWNER_SERIAL, RESOURCE_INDEX(device));
     dmaSetHandler(dma, uartTxDmaHandler, NVIC_PRIO_SERIALUART, (uint32_t)s);
 
-    const uint32_t stream = DMATAG_GET_STREAM(uartTxDmaTag[device]);
+    const uint32_t stream = DMATAG_GET_STREAM(tag);
     LL_DMA_DeInit(dma->dma, stream);
 
     LL_DMA_InitTypeDef init;
     LL_DMA_StructInit(&init);
-    init.Channel = DMATAG_GET_CHANNEL(uartTxDmaTag[device]) << DMA_SxCR_CHSEL_Pos;    // LL_DMA_CHANNEL_n is n in CHSEL
+    init.Channel = DMATAG_GET_CHANNEL(tag) << DMA_SxCR_CHSEL_Pos;    // LL_DMA_CHANNEL_n is n in CHSEL
     init.PeriphOrM2MSrcAddress = (uint32_t)&s->USARTx->TDR;
     init.MemoryOrM2MDstAddress = (uint32_t)s->port.txBuffer;
     init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
