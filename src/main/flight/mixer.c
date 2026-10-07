@@ -101,6 +101,8 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .srxl2TelemetryRate = SETTING_ESC_SRXL2_TELEMETRY_RATE_DEFAULT,
     .srxl2Telemetry = SETTING_ESC_SRXL2_TELEMETRY_DEFAULT,
 #endif
+    .throttleBoost = SETTING_THROTTLE_BOOST_DEFAULT,
+    .throttleBoostCutoff = SETTING_THROTTLE_BOOST_CUTOFF_DEFAULT,
 );
 PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
 
@@ -655,6 +657,46 @@ static int getReversibleMotorsThrottleDeadband(void)
     return ifMotorstopFeatureEnabled() ? reversibleMotorsConfig()->neutral : directionValue;
 }
 
+// The throttle the motors get; mixerThrottleCommand stays the one OSD, telemetry and servos show
+static EXTENDED_FASTRAM int motorThrottleCommand;
+
+#define THROTTLE_BOOST_RESTART_MS 100
+
+// Betaflight's throttle boost: a high-passed copy of the throttle on top of it, so the motors follow quick moves sooner
+static int applyThrottleBoost(int throttle, float dT)
+{
+    static pt1Filter_t throttleLpf;
+    static timeMs_t lastBoostMs;
+
+    // A cutoff of 0 would freeze the low-pass and turn the boost into a constant offset
+    if (!motorConfig()->throttleBoost || !motorConfig()->throttleBoostCutoff || !STATE(MULTIROTOR) || isMixerTransitionMixing
+        || feature(FEATURE_REVERSIBLE_MOTORS) || navigationRequiresAutoThrottleMode()
+#ifdef USE_PROGRAMMING_FRAMEWORK
+        || LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE)
+#endif
+        ) {
+        lastBoostMs = 0;
+        return throttle;
+    }
+
+    // mixTable() does not get here while disarmed or with the motors stopped: restart from the current throttle
+    const timeMs_t nowMs = millis();
+    if (nowMs - lastBoostMs > THROTTLE_BOOST_RESTART_MS) {
+        pt1FilterInit(&throttleLpf, motorConfig()->throttleBoostCutoff, dT);
+        pt1FilterReset(&throttleLpf, throttle);
+    }
+    lastBoostMs = nowMs;
+
+    const float throttleHpf = throttle - pt1FilterApply3(&throttleLpf, throttle, dT);
+    return constrain(throttle + lrintf(motorConfig()->throttleBoost * 0.1f * throttleHpf), throttleRangeMin, throttleRangeMax);
+}
+
+// Out of line: mixTable() is FAST_CODE and ITCM is nearly full on some F7 targets
+static NOINLINE void updateMotorThrottle(float dT)
+{
+    motorThrottleCommand = applyThrottleBoost(mixerThrottleCommand, dT);
+}
+
 void FAST_CODE mixTable(float dT)
 {
     static float lastMixerThrottleCommand = 1000.0f;
@@ -827,6 +869,8 @@ void FAST_CODE mixTable(float dT)
         }
     }
 
+    updateMotorThrottle(dT);
+
     #define THROTTLE_CLIPPING_FACTOR    0.33f
     motorMixRange = (float)rpyMixRange / (float)throttleRange;
     if (motorMixRange > 1.0f) {
@@ -851,7 +895,7 @@ void FAST_CODE mixTable(float dT)
     const bool fwEmergencyLanding = STATE(AIRPLANE) && !isMixerTransitionMixing && navigationIsExecutingAnEmergencyLanding();
 
     for (int i = 0; i < motorCount; i++) {
-        float motorThrottle = mixerThrottleCommand * currentMixer[i].throttle;
+        float motorThrottle = motorThrottleCommand * currentMixer[i].throttle;
 #ifdef USE_AUTO_TRANSITION
         const motorMixer_t *targetMixer = autoTransition.active ? &autoTransition.targetMotorMixer[i] : NULL;
         const bool currentMotorActive = currentMixer[i].throttle > 0.0f;

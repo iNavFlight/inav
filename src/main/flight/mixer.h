@@ -121,6 +121,8 @@ typedef struct motorConfig_s {
     uint8_t srxl2Telemetry;                 // read ESC telemetry off the SRXL2 link
     uint8_t srxl2TelemetryRate;             // how often to ask the ESC for telemetry, as srxl2TelemetryRate_e
 #endif
+    uint8_t throttleBoost;                  // must default to 0: it can land in the old tail padding, stored as zero
+    uint8_t throttleBoostCutoff;            // Hz
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);

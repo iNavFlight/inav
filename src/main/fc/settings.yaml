@@ -902,6 +902,18 @@ groups:
         min: 4
         max: 255
         default_value: 14
+      - name: throttle_boost
+        description: "Multirotor only, ported from Betaflight. Adds a high-pass filtered copy of the throttle to it, so the motors follow quick throttle moves sooner. The boost is this value divided by 10 times the difference between the throttle and its low-pass filtered value. 0 disables it; Betaflight uses 5 by default. Only the motors get the boost: OSD, telemetry and servos show the throttle that was asked for. Not applied while navigation controls the throttle, during a VTOL transition, with reversible motors or with the logic-condition throttle override."
+        default_value: 0
+        field: throttleBoost
+        min: 0
+        max: 100
+      - name: throttle_boost_cutoff
+        description: "Cutoff of the low-pass filter used by `throttle_boost` [Hz]. A higher cutoff makes each boost shorter."
+        default_value: 15
+        field: throttleBoostCutoff
+        min: 5
+        max: 50
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t
