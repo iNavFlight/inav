@@ -2166,7 +2166,7 @@ static void mspFcNavROIOutCommand(sbuf_t *dst)
 
 static mspResult_e mspFcNavROIInCommand(sbuf_t *src)
 {
-    if (sbufBytesRemaining(src) != 19) {
+    if (sbufBytesRemaining(src) < 19) {
         return MSP_RESULT_ERROR;
     }
 

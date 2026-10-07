@@ -12012,7 +12012,7 @@
                 ]
             },
             "reply": null,
-            "notes": "Expects exactly 19 bytes.",
+            "notes": "Expects at least 19 bytes; trailing bytes are ignored.",
             "description": "Sets or clears the active navigation ROI."
         },
         "MSP2_INAV_GOTO_ROI": {
