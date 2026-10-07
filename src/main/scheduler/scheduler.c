@@ -198,7 +198,9 @@ void setTaskEnabled(cfTaskId_e taskId, bool enabled)
     if (taskId == TASK_SELF || taskId < TASK_COUNT) {
         cfTask_t *task = taskId == TASK_SELF ? currentTask : &cfTasks[taskId];
         if (enabled && task->taskFunc) {
-            queueAdd(task);
+            if (queueAdd(task)) {
+                task->movingSumDeltaTime = 0;
+            }
         } else {
             queueRemove(task);
         }
@@ -324,7 +326,12 @@ void FAST_CODE NOINLINE scheduler(void)
     if (selectedTask) {
         // Found a task that should be run
         selectedTask->taskLatestDeltaTime = (timeDelta_t)(currentTimeUs - selectedTask->lastExecutedAt);
-        selectedTask->movingSumDeltaTime += selectedTask->taskLatestDeltaTime - selectedTask->movingSumDeltaTime / TASK_MOVING_SUM_COUNT;
+        if (selectedTask->movingSumDeltaTime) {
+            selectedTask->movingSumDeltaTime += selectedTask->taskLatestDeltaTime - selectedTask->movingSumDeltaTime / TASK_MOVING_SUM_COUNT;
+        } else {
+            // The first interval since the task was enabled also spans the time it was off
+            selectedTask->movingSumDeltaTime = selectedTask->desiredPeriod * TASK_MOVING_SUM_COUNT;
+        }
         selectedTask->lastExecutedAt = currentTimeUs;
         selectedTask->dynamicPriority = 0;
 
