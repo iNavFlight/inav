@@ -24,17 +24,21 @@ jobs:
           python-version: "3.x"
       - name: Install PyYAML
         run: pip install pyyaml
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
       - name: Regenerate the MSP library from the schema
         run: ./msp/build.sh generate
       # The schema (msp/schema/msp_v2.yaml) is the only hand-authored input.
       # enums.yaml/constants.yaml are harvested from src/main, and the C/Python/
-      # Arduino libraries and docs are generated. All of that is committed, so a
+      # JS/Arduino libraries and docs are generated. All of that is committed, so a
       # stale commit means someone edited the schema or a source enum/#define
       # without regenerating.
       - name: Check the generated files are in sync
         run: |
           if ! git diff --exit-code -- msp/schema/enums.yaml msp/schema/constants.yaml \
-                 msp/c msp/python msp/arduino docs/development/msp/README.md docs/development/msp/enums.md
+                 msp/c msp/python msp/js msp/arduino docs/development/msp/README.md docs/development/msp/enums.md
           then
             echo "::error::MSP generated files are stale. Run: ./msp/build.sh generate"
             exit 1

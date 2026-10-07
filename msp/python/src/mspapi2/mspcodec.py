@@ -229,6 +229,8 @@ def _encode(fields: list, values: Mapping[str, Any], name: str) -> bytes:
                 raise MSPPackError(
                     f"{name}.{field['name']}: expected {field['count']} items, got {len(value)}")
             parts.append(struct.pack("<" + _scalar_fmt(field), *value))
+        elif field["code"] in "fd":
+            parts.append(struct.pack("<" + field["code"], float(value)))
         else:
             parts.append(struct.pack("<" + field["code"], int(value)))
     return b"".join(parts)

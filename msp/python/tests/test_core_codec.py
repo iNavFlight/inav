@@ -16,6 +16,11 @@ class CodecTest(unittest.TestCase):
     def test_empty_variable_character_array_decodes(self) -> None:
         self.assertEqual(self.codec.unpack_reply(InavMSP.MSP_NAME, b""), {"craftName": ""})
 
+    def test_float_field_keeps_its_fraction(self) -> None:
+        values = {"instance": 0, "timeMs": 0, "pressurePa": 101325.75, "temp": 0}
+        payload = self.codec.pack_request(InavMSP.MSP2_SENSOR_BAROMETER, values)
+        self.assertEqual(self.codec.unpack_request(InavMSP.MSP2_SENSOR_BAROMETER, payload)["pressurePa"], 101325.75)
+
     def test_variable_request_round_trip(self) -> None:
         values = {
             "definitionByte": 0x63,

@@ -1,0 +1,12 @@
+// Generated from the MSP YAML schema by msp/generator/gen_js.py. Do not edit by hand.
+//
+// Every payload is resolved here at generation time. The runtime codec
+// (msp/js/mspcodec.js) reads this table; it never parses a schema.
+
+export const MESSAGES = Object.freeze(@MESSAGES@);
+
+// Message codes by name.
+export const MSP_CODES = Object.freeze(Object.fromEntries(
+    Object.values(MESSAGES).map((message) => [message.name, message.code])));
+
+export const BY_CODE = new Map(Object.values(MESSAGES).map((message) => [message.code, message]));
