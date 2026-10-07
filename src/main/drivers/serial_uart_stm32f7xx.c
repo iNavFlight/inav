@@ -353,7 +353,7 @@ static void uartRxDmaStop(uartPort_t *s)
     }
 }
 
-// USART_CR3_DMAR is set in uartReconfigure(): the HAL clears CR3 whenever it reprograms the port
+// USART_CR3_DMAR is set again in uartReconfigure(): the HAL clears CR3 whenever it reprograms the port
 bool uartRxDmaStart(uartPort_t *s)
 {
     uartRxDmaStop(s);
@@ -390,6 +390,8 @@ bool uartRxDmaStart(uartPort_t *s)
     init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
     LL_DMA_Init(dma->dma, stream, &init);
     LL_DMA_EnableStream(dma->dma, stream);
+    // Restarted on a new ring (serialSetRxBuffer) the port gets no reprogramming to set it
+    SET_BIT(s->USARTx->CR3, USART_CR3_DMAR);
 
     s->port.rxBufferHead = s->port.rxBufferTail = 0;
     s->rxDma = dma;
