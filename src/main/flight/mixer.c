@@ -706,6 +706,12 @@ static bool isThrustLinearizationAllowed(void)
             return false;
         }
     }
+    // INAV scales the absolute command by the weight: with any other weight this is not the curve's inverse
+    for (int i = 0; i < motorCount; i++) {
+        if (currentMixer[i].throttle != 1.0f) {
+            return false;
+        }
+    }
     return STATE(MULTIROTOR) && !feature(FEATURE_REVERSIBLE_MOTORS)
 #ifdef USE_PROGRAMMING_FRAMEWORK
         && !LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_THROTTLE)
