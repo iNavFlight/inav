@@ -279,6 +279,59 @@ static const dmaTag_t uartRxDmaTag[UARTDEV_MAX] = {
 #endif
 };
 
+// In DMA_RAM, which stays uncached once the D-cache is on: from the cache the CPU would not see what the stream wrote
+#ifdef UART1_RX_DMA
+static DMA_RAM uint8_t uart1RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART2_RX_DMA
+static DMA_RAM uint8_t uart2RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART3_RX_DMA
+static DMA_RAM uint8_t uart3RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART4_RX_DMA
+static DMA_RAM uint8_t uart4RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART5_RX_DMA
+static DMA_RAM uint8_t uart5RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART6_RX_DMA
+static DMA_RAM uint8_t uart6RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART7_RX_DMA
+static DMA_RAM uint8_t uart7RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART8_RX_DMA
+static DMA_RAM uint8_t uart8RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+
+static volatile uint8_t * const uartRxDmaBuffer[UARTDEV_MAX] = {
+#ifdef UART1_RX_DMA
+    [UARTDEV_1] = uart1RxDmaBuffer,
+#endif
+#ifdef UART2_RX_DMA
+    [UARTDEV_2] = uart2RxDmaBuffer,
+#endif
+#ifdef UART3_RX_DMA
+    [UARTDEV_3] = uart3RxDmaBuffer,
+#endif
+#ifdef UART4_RX_DMA
+    [UARTDEV_4] = uart4RxDmaBuffer,
+#endif
+#ifdef UART5_RX_DMA
+    [UARTDEV_5] = uart5RxDmaBuffer,
+#endif
+#ifdef UART6_RX_DMA
+    [UARTDEV_6] = uart6RxDmaBuffer,
+#endif
+#ifdef UART7_RX_DMA
+    [UARTDEV_7] = uart7RxDmaBuffer,
+#endif
+#ifdef UART8_RX_DMA
+    [UARTDEV_8] = uart8RxDmaBuffer,
+#endif
+};
+
 static UARTDevice_e uartDeviceOf(const uartPort_t *s)
 {
     for (int device = 0; device < UARTDEV_MAX; device++) {
@@ -445,6 +498,11 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
     s->port.baudRate = baudRate;
 
     s->port.rxBuffer = uart->rxBuffer;
+#ifdef USE_UART_RX_DMA
+    if (uartRxDmaBuffer[device]) {
+        s->port.rxBuffer = uartRxDmaBuffer[device];
+    }
+#endif
     s->port.txBuffer = uart->txBuffer;
     s->port.rxBufferSize = sizeof(uart->rxBuffer);
     s->port.txBufferSize = sizeof(uart->txBuffer);
