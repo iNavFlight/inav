@@ -332,14 +332,6 @@ i2cAsyncState_e i2cAsyncState(I2CDevice device, uint8_t addr_)
     const i2cState_t *state = &i2cState[device];
     return state->asyncAddr == addr_ ? state->asyncState : I2C_ASYNC_IDLE;
 }
-
-// From the realtime callbacks: out of line, or LTO pulls it into scheduler(), which is in ITCM
-void NOINLINE i2cAsyncPoll(void)
-{
-    for (unsigned i = 0; i < ARRAYLEN(i2cState); i++) {
-        i2cAsyncUpdate(i);
-    }
-}
 #else
 static void i2cAsyncUpdate(I2CDevice device)
 {

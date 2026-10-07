@@ -86,7 +86,12 @@ typedef enum {
 #ifdef USE_I2C_ASYNC
 bool i2cReadAsync(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t *buf, bool allowRawAccess);
 i2cAsyncState_e i2cAsyncState(I2CDevice device, uint8_t addr_);
+#ifdef USE_HAL_DRIVER
+// HAL interrupts carry a read to its end and the reader notices it, so F7 and H7 have nothing to step
+static inline void i2cAsyncPoll(void) {}
+#else
 void i2cAsyncPoll(void);
+#endif
 #endif
 
 uint16_t i2cGetErrorCounter(void);

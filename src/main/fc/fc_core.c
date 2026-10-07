@@ -1110,6 +1110,7 @@ void taskRunRealtimeCallbacks(timeUs_t currentTimeUs)
 #endif
 
 #ifdef USE_I2C_ASYNC
+    // F4 and AT32 step their asynchronous I2C reads from here
     i2cAsyncPoll();
 #endif
 
