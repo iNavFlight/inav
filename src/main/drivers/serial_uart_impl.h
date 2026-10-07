@@ -28,6 +28,7 @@ extern const struct serialPortVTable uartVTable[];
 #if defined(USE_UART_RX_DMA) || defined(USE_UART_TX_DMA)
 #include "common/utils.h"
 #include "drivers/dma.h"
+#include "drivers/pwm_mapping.h"
 #include "drivers/timer.h"
 
 #if defined(STM32F4) || defined(STM32F7)
@@ -84,14 +85,11 @@ STATIC_ASSERT(UART_DMA_IS(UART8_TX_DMA, 1, 0, 5), UART8_TX_DMA_is_DMA1_stream_0_
 #endif
 #endif
 
-// Free, or this UART's own from an earlier open. Streams mapped to timer outputs stay theirs
-// even before they claim them, since serial ports open first
+// Free, or this UART's own from an earlier open, and not one a timer output claims later in init
 static inline bool uartDmaStreamAvailable(DMA_t dma, UARTDevice_e device)
 {
-    for (int i = 0; i < timerHardwareCount; i++) {
-        if (dmaGetByTag(timerHardware[i].dmaTag) == dma) {
-            return false;
-        }
+    if (pwmIsDmaStreamReserved(dma)) {
+        return false;
     }
     return dmaGetOwner(dma) == OWNER_FREE || (dmaGetOwner(dma) == OWNER_SERIAL && dma->resourceIndex == RESOURCE_INDEX(device));
 }

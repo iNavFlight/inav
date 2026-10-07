@@ -195,13 +195,24 @@ so only the controller and the stream matter; leave the last field 0.
 **The stream has to be free on that board.** The streams are shared, so this is a
 property of the target rather than of the MCU:
 
-- *Timer outputs.* A stream any `DEF_TIM()` entry in `target.c` is mapped to is refused at
-  runtime, and the port stays on the interrupt: MSP ports open before the motors do, and a
-  motor is not going to lose DSHOT to a serial port. On an H7 the `dmavar` of `DEF_TIM()` is
-  the stream: 0 to 7 are DMA1 streams 0 to 7, 8 to 15 are DMA2 streams 0 to 7.
+- *Timer outputs.* A stream a timer output will use is refused, and the port stays on the
+  interrupt, so a motor never loses DSHOT to a serial port:
+  - with the motors on DSHOT, every output's stream until the motors start, and afterwards the
+    streams the motors took. Ports opened before the motors (MSP, DJI HD OSD, SmartPort
+    master, LOG) therefore get no output's stream on a DSHOT board;
+  - the LED strip's pad, when that feature is on.
+
+  Outputs that end up as servos or unused, and every output except the LED strip's when the
+  motors are not on DSHOT, leave their streams to the serial ports. This is decided at each
+  boot: after changing the motor protocol, the mixer, the output modes or the LED strip
+  feature, a port gets or gives back its stream at the next reboot. On an H7 the `dmavar` of
+  `DEF_TIM()` is the stream: 0 to 7 are DMA1 streams 0 to 7, 8 to 15 are DMA2 streams 0 to 7.
 - *The ADC* is not checked, so avoid its stream: on F4 and AT32 `ADC1_DMA_STREAM` where the
   target sets it, otherwise DMA2 stream 0 and DMA2 channel 1; DMA2 stream 0 on F7; DMA2
   stream 0, 1 or 2 on H7, for `ADC_INSTANCE` ADC1, ADC2 or ADC3.
+- *The SD card* on F4 and F7 SDIO uses DMA2 stream 3 or 6 (`SDCARD_SDIO_DMA`) and is not
+  checked against the serial ports either: if a UART takes that stream first, the card is
+  left unused.
 - *Two UARTs* cannot share one; the second keeps its interrupt.
 
 On an H7 the ring of a port receiving through DMA moves to D2 SRAM, where the data cache
