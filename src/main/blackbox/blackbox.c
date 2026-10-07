@@ -1471,13 +1471,13 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.escRPM);
     blackboxWriteSignedVB(slowHistory.escTemperature);
 #endif
-#ifdef USE_TERRAIN
-    blackboxWriteSignedVB(slowHistory.terrainAGL);
-    blackboxWriteSignedVB(slowHistory.terrainAMSL);
-#endif
 
 #ifdef USE_DRONECAN
     blackboxWriteUnsignedVB(slowHistory.droneCANBusOffCount);
+#endif
+#ifdef USE_TERRAIN
+    blackboxWriteSignedVB(slowHistory.terrainAGL);
+    blackboxWriteSignedVB(slowHistory.terrainAMSL);
 #endif
 
     blackboxSlowFrameIterationTimer = 0;
