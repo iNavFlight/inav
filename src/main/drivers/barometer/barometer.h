@@ -23,13 +23,24 @@ struct baroDev_s;
 typedef bool (*baroOpFuncPtr)(struct baroDev_s * baro);
 typedef bool (*baroCalculateFuncPtr)(struct baroDev_s * baro, int32_t *pressure, int32_t *temperature);
 
+/*
+ * Measurement cycle driven by baroUpdate(): start_ut -> (ut_delay) -> read_ut -> get_ut -> start_up -> (up_delay) -> read_up -> get_up -> calculate
+ *
+ * A driver may leave any hook NULL. The optional read_* hooks start a non-blocking bus transfer and must return false
+ * when the bus is busy; the matching get_* then only parses the received buffer once the bus reports idle and returns
+ * false if the sample is not usable (the phase is restarted). Drivers without read_* hooks do their blocking bus access
+ * inside get_*. A delay of 0 keeps the current task period.
+ */
 typedef struct baroDev_s {
     busDevice_t * busDev;
+    bool combined_read;         // get_up delivers temperature as well, the temperature phase is skipped
     uint16_t ut_delay;
     uint16_t up_delay;
     baroOpFuncPtr start_ut;
+    baroOpFuncPtr read_ut;
     baroOpFuncPtr get_ut;
     baroOpFuncPtr start_up;
+    baroOpFuncPtr read_up;
     baroOpFuncPtr get_up;
     baroCalculateFuncPtr calculate;
 } baroDev_t;

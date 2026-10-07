@@ -216,13 +216,30 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len,
     return true;
 }
 
-bool i2cBusy(I2CDevice device, bool *error)
+// Non-blocking transfers are not implemented for this platform yet - complete them synchronously
+bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess)
+{
+    return i2cRead(device, addr_, reg, len, buf, allowRawAccess);
+}
+
+bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
+{
+    return i2cWriteBuffer(device, addr_, reg_, len_, data, allowRawAccess);
+}
+
+bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess)
+{
+    return i2cWrite(device, addr_, reg, data, allowRawAccess);
+}
+
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
 {
     UNUSED(device);
+    UNUSED(addr_);
     if (error) {
         *error = false;
     }
-    /* Blocking implementation — transfers complete before returning */
+    /* Blocking implementation - transfers complete before returning */
     return false;
 }
 

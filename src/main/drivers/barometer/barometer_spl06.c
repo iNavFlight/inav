@@ -83,44 +83,50 @@ static int32_t spl06_raw_value_scale_factor(uint8_t oversampling_rate)
     }
 }
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t spl06_temperature_data[SPL06_TEMPERATURE_LEN];
+static uint8_t spl06_pressure_data[SPL06_PRESSURE_LEN];
+
+static int32_t spl06_raw_from_bytes(const uint8_t *data)
+{
+    return (int32_t)((data[0] & 0x80 ? 0xFF000000 : 0) | (((uint32_t)(data[0])) << 16) | (((uint32_t)(data[1])) << 8) | ((uint32_t)data[2]));
+}
+
+// Command mode: each phase triggers one measurement, waits for it and reads the three result bytes
 static bool spl06_start_temperature_measurement(baroDev_t * baro)
 {
-    return busWrite(baro->busDev, SPL06_MODE_AND_STATUS_REG, SPL06_MEAS_TEMPERATURE);
+    return busWriteStart(baro->busDev, SPL06_MODE_AND_STATUS_REG, SPL06_MEAS_TEMPERATURE);
+}
+
+static bool spl06_start_read_temperature(baroDev_t * baro)
+{
+    return busReadBufStart(baro->busDev, SPL06_TEMPERATURE_START_REG, spl06_temperature_data, SPL06_TEMPERATURE_LEN);
 }
 
 static bool spl06_read_temperature(baroDev_t * baro)
 {
-    uint8_t data[SPL06_TEMPERATURE_LEN];
-    int32_t spl06_temperature;
+    UNUSED(baro);
 
-    bool ack = busReadBuf(baro->busDev, SPL06_TEMPERATURE_START_REG, data, SPL06_TEMPERATURE_LEN);
-
-    if (ack) {
-        spl06_temperature = (int32_t)((data[0] & 0x80 ? 0xFF000000 : 0) | (((uint32_t)(data[0])) << 16) | (((uint32_t)(data[1])) << 8) | ((uint32_t)data[2]));
-        spl06_temperature_raw = spl06_temperature;
-    }
-
-    return ack;
+    spl06_temperature_raw = spl06_raw_from_bytes(spl06_temperature_data);
+    return true;
 }
 
 static bool spl06_start_pressure_measurement(baroDev_t * baro)
 {
-    return busWrite(baro->busDev, SPL06_MODE_AND_STATUS_REG, SPL06_MEAS_PRESSURE);
+    return busWriteStart(baro->busDev, SPL06_MODE_AND_STATUS_REG, SPL06_MEAS_PRESSURE);
+}
+
+static bool spl06_start_read_pressure(baroDev_t * baro)
+{
+    return busReadBufStart(baro->busDev, SPL06_PRESSURE_START_REG, spl06_pressure_data, SPL06_PRESSURE_LEN);
 }
 
 static bool spl06_read_pressure(baroDev_t * baro)
 {
-    uint8_t data[SPL06_PRESSURE_LEN];
-    int32_t spl06_pressure;
+    UNUSED(baro);
 
-    bool ack = busReadBuf(baro->busDev, SPL06_PRESSURE_START_REG, data, SPL06_PRESSURE_LEN);
-
-    if (ack) {
-        spl06_pressure = (int32_t)((data[0] & 0x80 ? 0xFF000000 : 0) | (((uint32_t)(data[0])) << 16) | (((uint32_t)(data[1])) << 8) | ((uint32_t)data[2]));
-        spl06_pressure_raw = spl06_pressure;
-    }
-
-    return ack;
+    spl06_pressure_raw = spl06_raw_from_bytes(spl06_pressure_data);
+    return true;
 }
 
 // Returns temperature in degrees centigrade
@@ -239,12 +245,17 @@ bool spl06Detect(baroDev_t *baro)
         return false;
     }
 
+    // Command mode: temperature and pressure are measured and read in turn
+    baro->combined_read = false;
+
     baro->ut_delay = SPL06_MEASUREMENT_TIME(SPL06_TEMPERATURE_OVERSAMPLING) * 1000;
-    baro->get_ut = spl06_read_temperature;
     baro->start_ut = spl06_start_temperature_measurement;
+    baro->read_ut = spl06_start_read_temperature;
+    baro->get_ut = spl06_read_temperature;
 
     baro->up_delay = SPL06_MEASUREMENT_TIME(SPL06_PRESSURE_OVERSAMPLING) * 1000;
     baro->start_up = spl06_start_pressure_measurement;
+    baro->read_up = spl06_start_read_pressure;
     baro->get_up = spl06_read_pressure;
 
     baro->calculate = spl06_calculate;

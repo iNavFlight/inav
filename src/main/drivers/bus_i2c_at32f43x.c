@@ -19,6 +19,9 @@
 #include <stdint.h>
 
 #include <platform.h>
+
+#include "common/maths.h"
+#include "build/debug.h"
 #include "io_impl.h"
 #include "drivers/io.h"
 #include "drivers/time.h"
@@ -88,9 +91,51 @@ static volatile uint16_t i2cErrorCount = 0;
 typedef struct {
     bool initialised;
     i2c_handle_type handle;
+
+    // Interrupt driven transfer started by i2cReadStart() / i2cWriteStart(). The i2c_application layer finishes it
+    // from the interrupt handlers: handle.status becomes I2C_END, or handle.error_code reports the failure.
+    bool pending;
+    uint8_t addr;               // 7-bit address of the current / last non-blocking transfer
+    timeUs_t startUs;           // start time of the transfer, for the debug statistics
+    uint16_t lastPcount;        // bytes left at the previous look, a change means the transfer moves
+    uint32_t stuckUs;           // time looked at without progress, a long gap between looks counts as I2C_STUCK_LOOK_GAP_US
+    timeUs_t lookUs;            // time of the previous look
+    uint8_t txByte;             // data of a non-blocking single byte write, must outlive the call
+    i2cAddrResults_t addrResults;   // outcome per slave address, survives i2cInit()
 } i2cState_t;
 
 static i2cState_t i2cState[I2CDEV_COUNT];
+
+// Transfer statistics shown with debug_mode = I2C, shared by all buses
+typedef struct {
+    uint16_t    eventIrqs;      // interrupts during the current / last transfer
+    uint16_t    errorIrqs;      // error interrupts / aborted transfers since boot
+    uint16_t    lastTransferUs; // start to completion of the last non-blocking transfer
+    uint16_t    startCallUs;    // time spent in the last i2cStartTransfer() call
+} i2cDebugStats_t;
+
+static i2cDebugStats_t i2cStats;
+
+static void i2cDebugPublish(void)
+{
+    DEBUG_SET(DEBUG_I2C, 0, i2cStats.eventIrqs);
+    DEBUG_SET(DEBUG_I2C, 1, i2cStats.errorIrqs);
+    DEBUG_SET(DEBUG_I2C, 2, i2cStats.lastTransferUs);
+    DEBUG_SET(DEBUG_I2C, 5, i2cErrorCount);
+    DEBUG_SET(DEBUG_I2C, 7, i2cStats.startCallUs);
+}
+
+static void i2cEventIrq(I2CDevice device)
+{
+    i2cStats.eventIrqs++;
+    i2c_evt_irq_handler(&i2cState[device].handle);
+}
+
+static void i2cErrorIrq(I2CDevice device)
+{
+    i2cStats.errorIrqs++;
+    i2c_err_irq_handler(&i2cState[device].handle);
+}
 
 void i2cSetSpeed(uint8_t speed)
 {
@@ -102,40 +147,221 @@ void i2cSetSpeed(uint8_t speed)
 //I2C1_ERR_IRQHandler
 void I2C1_ERR_IRQHandler(void)
 {
-    i2c_err_irq_handler(&i2cState[I2CDEV_1].handle);
+    i2cErrorIrq(I2CDEV_1);
 }
 
 void I2C1_EVT_IRQHandler(void)
 {
-    i2c_evt_irq_handler(&i2cState[I2CDEV_1].handle);
+    i2cEventIrq(I2CDEV_1);
 }
 
 void I2C2_ERR_IRQHandler(void)
 {
-    i2c_err_irq_handler(&i2cState[I2CDEV_2].handle);
+    i2cErrorIrq(I2CDEV_2);
 }
 
 void I2C2_EVT_IRQHandler(void)
 {
-    i2c_evt_irq_handler(&i2cState[I2CDEV_2].handle);
+    i2cEventIrq(I2CDEV_2);
 }
 
 void I2C3_ERR_IRQHandler(void)
 {
-    i2c_err_irq_handler(&i2cState[I2CDEV_3].handle);
+    i2cErrorIrq(I2CDEV_3);
 }
 
 void I2C3_EVT_IRQHandler(void)
 {
-    i2c_evt_irq_handler(&i2cState[I2CDEV_3].handle);
+    i2cEventIrq(I2CDEV_3);
 }
 
 static bool i2cHandleHardwareFailure(I2CDevice device)
 {
-    (void)device;
     i2cErrorCount++;
     i2cInit(device);
     return false;
+}
+
+// A transfer is stuck when it made no progress for I2C_TIMEOUT while being looked at. A gap between two looks longer
+// than I2C_STUCK_LOOK_GAP_US counts as that much only: a main loop that was busy elsewhere for a while (a settings save)
+// does not make the transfer stuck, the interrupts carry it on however seldom somebody looks
+#define I2C_STUCK_LOOK_GAP_US   1000
+
+static bool i2cTransferStuck(i2cState_t * state)
+{
+    const timeUs_t now = micros();
+    const uint16_t pcount = state->handle.pcount;
+
+    if (pcount != state->lastPcount) {
+        state->lastPcount = pcount;
+        state->stuckUs = 0;
+    }
+    else {
+        state->stuckUs += MIN((uint32_t)cmpTimeUs(now, state->lookUs), (uint32_t)I2C_STUCK_LOOK_GAP_US);
+    }
+    state->lookUs = now;
+
+    return state->stuckUs >= I2C_TIMEOUT;
+}
+
+// Pick up the outcome of a pending interrupt driven transfer and reset a stuck one
+static void i2cPollPending(I2CDevice device)
+{
+    i2cState_t * state = &(i2cState[device]);
+
+    if (!state->pending) {
+        return;
+    }
+
+    // The end-of-transfer status is private to i2c_application.c, i2c_wait_end() with a zero timeout only probes it:
+    // I2C_ERR_TIMEOUT means the transfer is still running, anything else means it finished
+    if (state->handle.error_code != I2C_OK || i2c_wait_end(&state->handle, 0) != I2C_ERR_TIMEOUT) {
+        i2cStats.lastTransferUs = micros() - state->startUs;
+        if (state->handle.error_code != I2C_OK) {
+            i2cErrorCount++;    // keep the "I2C Errors" count of status / MSP meaningful for non-blocking transfers
+        }
+        i2cAddrResultSet(&state->addrResults, state->addr, state->handle.error_code != I2C_OK);
+        state->pending = false;
+    }
+    else if (i2cTransferStuck(state)) {
+        // No progress within the timeout, the transfer is stuck - reset the peripheral
+        i2cHandleHardwareFailure(device);
+        state->handle.error_code = I2C_ERR_TIMEOUT;
+        i2cAddrResultSet(&state->addrResults, state->addr, true);
+    }
+}
+
+// Block until no interrupt driven transfer is in progress
+static void i2cWaitForIdle(I2CDevice device)
+{
+    do {
+        i2cPollPending(device);
+    } while (i2cState[device].pending);
+}
+
+/*
+ * Start an interrupt driven transfer. The i2c_application layer sends the slave and register address synchronously
+ * (a few tens of microseconds), the data phase runs from the interrupt handlers.
+ * Returns false if the bus is busy or the transfer could not be started.
+ */
+static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool allowRawAccess, bool reading, uint8_t len, uint8_t *buf)
+{
+    if (device == I2CINVALID || device >= I2CDEV_COUNT)
+        return false;
+
+    i2cState_t * state = &(i2cState[device]);
+
+    if (!state->initialised)
+        return false;
+
+    if (reading && len == 0)
+        return false;
+
+    i2cPollPending(device);
+    if (state->pending)
+        return false;
+
+    const timeUs_t callStartUs = micros();
+    i2cStats.eventIrqs = 0;
+
+    i2c_status_type status;
+
+    if (reading) {
+        if (reg_ == 0xFF && allowRawAccess) {
+            status = i2c_master_receive_int(&state->handle, addr_ << 1, buf, len, I2C_DEFAULT_TIMEOUT);
+        }
+        else {
+            status = i2c_memory_read_int(&state->handle, I2C_MEM_ADDR_WIDIH_8, addr_ << 1, reg_, buf, len, I2C_DEFAULT_TIMEOUT);
+        }
+    }
+    else if (len == 0) {
+        if (reg_ == 0xFF && allowRawAccess) {
+            return false;   // nothing to send
+        }
+        // Register byte alone, sent as a plain one byte transfer
+        state->txByte = reg_;
+        status = i2c_master_transmit_int(&state->handle, addr_ << 1, &state->txByte, 1, I2C_DEFAULT_TIMEOUT);
+    }
+    else {
+        if (reg_ == 0xFF && allowRawAccess) {
+            status = i2c_master_transmit_int(&state->handle, addr_ << 1, buf, len, I2C_DEFAULT_TIMEOUT);
+        }
+        else {
+            status = i2c_memory_write_int(&state->handle, I2C_MEM_ADDR_WIDIH_8, addr_ << 1, reg_, buf, len, I2C_DEFAULT_TIMEOUT);
+        }
+    }
+
+    if (status == I2C_ERR_STEP_1) {
+        return false;   // bus still busy, try again later
+    }
+
+    if (status != I2C_OK) {
+        /* wait for the stop flag to be set and clear it */
+        i2c_wait_flag(&state->handle, I2C_STOPF_FLAG, I2C_EVENT_CHECK_NONE, I2C_DEFAULT_TIMEOUT);
+        i2c_flag_clear(state->handle.i2cx, I2C_STOPF_FLAG);
+        return i2cHandleHardwareFailure(device);
+    }
+
+    state->addr = addr_;
+    state->startUs = callStartUs;
+    state->lastPcount = state->handle.pcount;
+    state->stuckUs = 0;
+    state->lookUs = callStartUs;
+    state->pending = true;
+
+    i2cStats.startCallUs = micros() - callStartUs;
+    i2cDebugPublish();
+
+    return true;
+}
+
+bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf, bool allowRawAccess)
+{
+    return i2cStartTransfer(device, addr_, reg_, allowRawAccess, true, len, buf);
+}
+
+bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
+{
+    // the platform API takes a non-const buffer, the data is only read
+    return i2cStartTransfer(device, addr_, reg_, allowRawAccess, false, len_, (uint8_t *)data);
+}
+
+bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, bool allowRawAccess)
+{
+    if (device == I2CINVALID || device >= I2CDEV_COUNT)
+        return false;
+
+    i2cPollPending(device);
+    if (i2cState[device].pending)
+        return false;   // don't touch txByte while it may still be going out
+
+    i2cState[device].txByte = data;
+    return i2cStartTransfer(device, addr_, reg_, allowRawAccess, false, 1, &i2cState[device].txByte);
+}
+
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
+{
+    if (device == I2CINVALID || device >= I2CDEV_COUNT) {
+        if (error) {
+            *error = true;
+        }
+        return false;
+    }
+
+    i2cState_t * state = &(i2cState[device]);
+
+    i2cPollPending(device);
+
+    // Only the owner of the transfer on the bus is pending, everybody else gets the outcome of their own last transfer
+    const bool pending = state->pending && state->addr == addr_;
+
+    if (error) {
+        *error = !pending && i2cAddrResultFailed(&state->addrResults, addr_);
+    }
+
+    i2cDebugPublish();
+
+    return pending;
 }
 
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
@@ -147,7 +373,10 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_,
 
     if (!state->initialised)
         return false;
- 
+
+    // Let a non-blocking transfer of another device finish first
+    i2cWaitForIdle(device);
+
     i2c_status_type status;
 
     if ((reg_ == 0xFF || len_ == 0) && allowRawAccess) {
@@ -200,7 +429,9 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t
     if (!state->initialised)
         return false;
 
-    //HAL_StatusTypeDef status;
+    // Let a non-blocking transfer of another device finish first
+    i2cWaitForIdle(device);
+
     i2c_status_type status;
     if (reg_ == 0xFF && allowRawAccess) { 
         status = i2c_master_receive(&state->handle, addr_ << 1,buf, len, I2C_DEFAULT_TIMEOUT);
@@ -416,7 +647,8 @@ void i2cInit(I2CDevice device)
     nvic_irq_enable(hardware->ev_irq, NVIC_PRIO_I2C_EV,0);
 
     i2c_enable(pHandle->i2cx, TRUE);
-     
+
+    state->pending = false;
     state->initialised = true;
 }
 
@@ -463,27 +695,5 @@ static void i2cUnstick(IO_t scl, IO_t sda)
     IOHi(sda); // Set bus sda high
 }
 
-bool i2cBusy(I2CDevice device, bool *error)
-{
-    if (device == I2CINVALID)
-        return true;
-
-    i2cState_t * state = &(i2cState[device]);
-    
-    if (error) {
-        *error = state->handle.error_code==I2C_OK?false:true;
-    }
-    
-    if(state->handle.error_code ==I2C_OK){
-        
-    	   if (i2c_flag_get(state->handle.i2cx, I2C_BUSYF_FLAG) == SET)
-    	   {
-    		   return true;
-    	   }
-    	   return false;
-    }
-
-   return true;
-}
 
 #endif
