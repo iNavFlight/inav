@@ -600,7 +600,6 @@ SD_Error_t SD_CheckRead(void) {
 SD_Error_t SD_WriteBlocks_DMA(uint64_t WriteAddress, uint32_t *buffer, uint32_t BlockSize, uint32_t NumberOfBlocks)
 {
     SD_Error_t ErrorState = SD_OK;
-    SD_Handle.TXCplt = 1;
 
     if (BlockSize != 512) {
         return SD_ERROR; // unsupported.
@@ -621,7 +620,10 @@ SD_Error_t SD_WriteBlocks_DMA(uint64_t WriteAddress, uint32_t *buffer, uint32_t 
         }
     }
 #endif
+    // Busy only once a transfer really starts: a rejected write must not leave the card reported busy
+    SD_Handle.TXCplt = 1;
     if (HAL_SD_WriteBlocks_DMA(&hsd, (uint8_t *)buffer, WriteAddress, NumberOfBlocks) != HAL_OK) {
+        SD_Handle.TXCplt = 0;
         return SD_ERROR;
     }
 
