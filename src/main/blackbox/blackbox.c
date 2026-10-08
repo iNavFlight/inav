@@ -2155,6 +2155,7 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_rate", "%d",                  getEscUpdateFrequency());
         BLACKBOX_PRINT_HEADER_LINE("throttle_boost", "%d",                  motorConfig()->throttleBoost);
         BLACKBOX_PRINT_HEADER_LINE("throttle_boost_cutoff", "%d",           motorConfig()->throttleBoostCutoff);
+        BLACKBOX_PRINT_HEADER_LINE("thrust_linear", "%d",                   motorConfig()->thrustLinear);
         BLACKBOX_PRINT_HEADER_LINE("debug_mode", "%d",                      systemConfig()->debug_mode);
         BLACKBOX_PRINT_HEADER_LINE("features", "%d",                        featureConfig()->enabledFeatures);
         BLACKBOX_PRINT_HEADER_LINE("waypoints", "%d,%d",                    getWaypointCount(),isWaypointListValid());
