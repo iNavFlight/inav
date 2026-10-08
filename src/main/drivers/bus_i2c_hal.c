@@ -115,6 +115,8 @@ typedef struct {
     uint16_t lastXferCount;     // bytes left at the previous look, a change means the transfer moves
     uint32_t stuckUs;           // time looked at without progress, a long gap between looks counts as I2C_STUCK_LOOK_GAP_US
     timeUs_t lookUs;            // time of the previous look
+    uint32_t heldUs;            // time starts were refused with the bus busy and nothing of ours in flight
+    timeUs_t heldLookUs;        // time of the previous refused start
     uint8_t txByte;             // data of a non-blocking single byte write, must outlive the call
     i2cAddrResults_t addrResults;   // outcome per slave address, survives i2cInit()
 } i2cState_t;
@@ -298,6 +300,24 @@ static bool i2cTransferStuck(i2cState_t * state)
     return state->stuckUs >= I2C_TIMEOUT;
 }
 
+// The bus is held when starts keep being refused as busy for I2C_TIMEOUT with no transfer of ours in flight: a slave
+// holding a line, or a BUSY flag that stayed set. Measured like a stuck transfer, a long gap between two refused starts
+// counts as I2C_STUCK_LOOK_GAP_US only
+static bool i2cBusHeld(i2cState_t * state)
+{
+    const timeUs_t now = micros();
+
+    state->heldUs += MIN((uint32_t)cmpTimeUs(now, state->heldLookUs), (uint32_t)I2C_STUCK_LOOK_GAP_US);
+    state->heldLookUs = now;
+
+    if (state->heldUs < I2C_TIMEOUT) {
+        return false;
+    }
+
+    state->heldUs = 0;
+    return true;
+}
+
 // Block until no interrupt driven transfer is in progress. Returns false if a stuck transfer had to be aborted.
 static bool i2cWaitForIdle(I2CDevice device)
 {
@@ -366,11 +386,19 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool
     if (status != HAL_OK) {
         state->busy = false;
         if (status == HAL_BUSY) {
-            return false;   // HAL is still finishing the previous transfer (STOP in progress), try again later
+            // The HAL is still finishing the previous transfer (STOP in progress), or the bus is held: a BUSY flag that
+            // stays set with nothing of ours in flight is cleared by a reset only, the stuck check never sees it
+            if (i2cBusHeld(state)) {
+                i2cHandleHardwareFailure(device);
+                i2cAddrResultSet(&state->addrResults, addr_, true);
+            }
+            return false;   // try again later
         }
         return i2cHandleHardwareFailure(device);
     }
 
+    state->heldUs = 0;
+    state->heldLookUs = callStartUs;
     state->lastXferCount = state->handle.XferCount;
     state->stuckUs = 0;
     state->lookUs = callStartUs;

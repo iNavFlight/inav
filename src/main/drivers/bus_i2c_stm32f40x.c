@@ -22,6 +22,11 @@
  * i2cReadStart()/i2cWriteStart() return immediately and the caller polls
  * i2cBusy(). A blocking call issued while a non-blocking transfer is in
  * progress waits for it to finish first, so the two can share a bus.
+ *
+ * The handlers never reinitialise the peripheral: an unstick clocks the bus
+ * for up to a few ms and the I2C interrupts sit above the motor timers. A
+ * transfer the handlers have to give up on flags the bus for a reset that
+ * the next i2cBusy() or start call performs from task context.
  */
 
 #include <stdbool.h>
@@ -83,6 +88,7 @@ typedef struct i2cBusState_s {
     bool            initialized;
     volatile bool   busy;           // transfer in progress
     volatile bool   error;          // last transfer failed (NACK, bus error, arbitration lost, overrun or timeout)
+    volatile bool   needsReset;     // a handler gave up on a transfer, i2cServiceReset() has to reinitialise the peripheral
     uint16_t        lastProgress;   // byte index and subaddress phase at the previous look, a change means the transfer moves
     uint32_t        stuckUs;        // time looked at without progress, a long gap between looks counts as I2C_STUCK_LOOK_GAP_US
     timeUs_t        lookUs;         // time of the previous look
@@ -208,6 +214,27 @@ static bool i2cWaitBitRelease(I2C_TypeDef *I2Cx, uint32_t cr1Mask)
     return true;
 }
 
+// Reinitialise the peripheral after a handler gave up on a transfer. Runs from task context before the bus is looked
+// at or used again, so the waits and the unstick never hold off the higher priority interrupts
+static void i2cServiceReset(I2CDevice device)
+{
+    i2cBusState_t *state = &busState[device];
+
+    if (!state->needsReset) {
+        return;
+    }
+
+    I2C_TypeDef *I2Cx = i2cHardwareMap[device].dev;
+
+    // Finish the bus cycle the handler left behind: a pending START must go out before a STOP is requested, both set at
+    // once hang the peripheral. On a held bus the waits time out and the reset below sorts the peripheral out anyway
+    i2cWaitBitRelease(I2Cx, I2C_CR1_START);
+    I2C_GenerateSTOP(I2Cx, ENABLE);
+    i2cWaitBitRelease(I2Cx, I2C_CR1_STOP);
+
+    i2cHandleHardwareFailure(device);                                           // i2cInit() clears needsReset with the rest of the state
+}
+
 void i2cSetSpeed(uint8_t speed)
 {
     for (unsigned int i = 0; i < ARRAYLEN(i2cHardwareMap); i++) {
@@ -327,6 +354,8 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr, uint8_t reg, bool a
     i2cBusState_t *state = &busState[device];
     I2C_TypeDef *I2Cx = i2cHardwareMap[device].dev;
 
+    i2cServiceReset(device);
+
     if (!state->initialized || state->busy) {
         return false;
     }
@@ -409,6 +438,8 @@ bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
     }
 
     i2cBusState_t *state = &busState[device];
+
+    i2cServiceReset(device);
 
     if (state->busy && i2cTransferStuck(state)) {
         // No progress within the timeout, the transfer is stuck - reset the peripheral
@@ -509,11 +540,7 @@ static void i2cErrorHandler(I2CDevice device)
         I2C_ITConfig(I2Cx, I2C_IT_BUF, DISABLE);                                // disable the RXNE/TXE interrupt - prevent the ISR tailchaining onto the ER (hopefully)
         if (!(SR1Register & I2C_SR1_ARLO) && !(I2Cx->CR1 & I2C_CR1_STOP)) {     // if we dont have an ARLO error, ensure sending of a stop (after ARLO the hardware has already released the bus)
             if (I2Cx->CR1 & I2C_CR1_START) {                                    // We are currently trying to send a start, this is very bad as start, stop will hang the peripheral
-                i2cWaitBitRelease(I2Cx, I2C_CR1_START);                         // wait for any start to finish sending
-                I2C_GenerateSTOP(I2Cx, ENABLE);                                 // send stop to finalise bus transaction
-                i2cWaitBitRelease(I2Cx, I2C_CR1_STOP);                          // wait for stop to finish sending
-                i2cHandleHardwareFailure(device);                               // reset and configure the hardware
-                state->error = true;                                            // the reset cleared the state, the transfer still failed
+                state->needsReset = true;                                       // waiting for the START here can take a while on a held bus: i2cServiceReset() finishes the cycle and resets the peripheral from task context
             }
             else {
                 I2C_GenerateSTOP(I2Cx, ENABLE);                                 // stop to free up the bus
@@ -608,7 +635,14 @@ static void i2cEventHandlerBody(I2CDevice device)
         }
         // we must wait for the start to clear, otherwise we get constant BTF
         if (!i2cWaitBitRelease(I2Cx, I2C_CR1_START)) {
-            i2cRecoverStuckTransfer(device);
+            // The repeated START did not go out, the bus is held. Give the transfer up here and leave the reset to
+            // i2cServiceReset(), an unstick is too long for a handler
+            I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF, DISABLE);
+            i2cErrorCount++;
+            state->error = true;
+            state->needsReset = true;
+            i2cAddrResultSet(&busAddrResults[device], state->addr >> 1, true);
+            state->busy = false;
             return;
         }
     }

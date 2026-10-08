@@ -100,6 +100,8 @@ typedef struct {
     uint16_t lastPcount;        // bytes left at the previous look, a change means the transfer moves
     uint32_t stuckUs;           // time looked at without progress, a long gap between looks counts as I2C_STUCK_LOOK_GAP_US
     timeUs_t lookUs;            // time of the previous look
+    uint32_t heldUs;            // time starts were refused with the bus busy and nothing of ours in flight
+    timeUs_t heldLookUs;        // time of the previous refused start
     uint8_t txByte;             // data of a non-blocking single byte write, must outlive the call
     i2cAddrResults_t addrResults;   // outcome per slave address, survives i2cInit()
 } i2cState_t;
@@ -204,6 +206,24 @@ static bool i2cTransferStuck(i2cState_t * state)
     return state->stuckUs >= I2C_TIMEOUT;
 }
 
+// The bus is held when starts keep being refused as busy for I2C_TIMEOUT with no transfer of ours in flight: a slave
+// holding a line, or a BUSYF flag that stayed set. Measured like a stuck transfer, a long gap between two refused starts
+// counts as I2C_STUCK_LOOK_GAP_US only
+static bool i2cBusHeld(i2cState_t * state)
+{
+    const timeUs_t now = micros();
+
+    state->heldUs += MIN((uint32_t)cmpTimeUs(now, state->heldLookUs), (uint32_t)I2C_STUCK_LOOK_GAP_US);
+    state->heldLookUs = now;
+
+    if (state->heldUs < I2C_TIMEOUT) {
+        return false;
+    }
+
+    state->heldUs = 0;
+    return true;
+}
+
 // Pick up the outcome of a pending interrupt driven transfer and reset a stuck one
 static void i2cPollPending(I2CDevice device)
 {
@@ -242,7 +262,8 @@ static void i2cWaitForIdle(I2CDevice device)
 /*
  * Start an interrupt driven transfer. The i2c_application layer sends the slave and register address synchronously
  * (a few tens of microseconds), the data phase runs from the interrupt handlers.
- * Returns false if the bus is busy or the transfer could not be started.
+ * Returns false if the bus is busy or the transfer could not be started. A NACK during the address phase is a finished,
+ * failed transfer: true is returned and i2cBusy() reports the failure, like for a NACK in the data phase.
  */
 static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool allowRawAccess, bool reading, uint8_t len, uint8_t *buf)
 {
@@ -292,16 +313,38 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool
     }
 
     if (status == I2C_ERR_STEP_1) {
-        return false;   // bus still busy, try again later
+        // Bus busy with nothing of ours in flight: the previous STOP may still be going out. A bus that stays busy is
+        // held by a slave or a confused peripheral and only a reset clears it, the stuck check never sees it
+        if (i2cBusHeld(state)) {
+            i2cHandleHardwareFailure(device);
+            i2cAddrResultSet(&state->addrResults, addr_, true);
+        }
+        return false;   // try again later
     }
 
     if (status != I2C_OK) {
-        /* wait for the stop flag to be set and clear it */
+        /* the hardware has sent a STOP, wait for the stop flag and clear it */
         i2c_wait_flag(&state->handle, I2C_STOPF_FLAG, I2C_EVENT_CHECK_NONE, I2C_DEFAULT_TIMEOUT);
         i2c_flag_clear(state->handle.i2cx, I2C_STOPF_FLAG);
+
+        if (state->handle.error_code == I2C_ERR_ACKFAIL) {
+            // The slave did not answer its address or the register byte. The peripheral is fine after a NACK, so no
+            // reset: record the failure for the owner and let it find out from i2cBusy(). An unplugged sensor would
+            // otherwise cost a reinit and an unstick on every retry
+            i2c_reset_ctrl2_register(&state->handle);
+            i2cErrorCount++;
+            i2cStats.lastTransferUs = micros() - callStartUs;
+            i2cAddrResultSet(&state->addrResults, addr_, true);
+            state->heldUs = 0;
+            state->heldLookUs = callStartUs;
+            return true;
+        }
+
         return i2cHandleHardwareFailure(device);
     }
 
+    state->heldUs = 0;
+    state->heldLookUs = callStartUs;
     state->addr = addr_;
     state->startUs = callStartUs;
     state->lastPcount = state->handle.pcount;
@@ -649,6 +692,7 @@ void i2cInit(I2CDevice device)
     i2c_enable(pHandle->i2cx, TRUE);
 
     state->pending = false;
+    state->heldUs = 0;
     state->initialised = true;
 }
 
