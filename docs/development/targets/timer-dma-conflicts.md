@@ -168,9 +168,11 @@ not change. On an H7 at 480 MHz the saving measured around 240 cycles per byte, 
 of a percent of the CPU; relatively it is larger on a slower MCU with a busy port.
 
 **Which ports use it.** Those whose owner reads through the ring: GPS, MSP, telemetry and
-the like. Serial receivers (CRSF, SBUS, IBUS, GHST, SRXL2, ...) take each byte through a
-callback as it lands, because they find their frames by timing, so their port stays on the
-interrupt even when the target names a stream for it. Half-duplex ports (IBUS telemetry and
+the like, and CRSF and SBUS receivers that are not half duplex: they find their frames by
+timing, so the stream hands each frame to their callback in one go when the line goes idle,
+every byte timed back from the end of the burst. The other serial receivers (IBUS, GHST,
+SRXL2, ...), and CRSF or SBUS in half duplex, take each byte as it lands, so their port stays
+on the interrupt even when the target names a stream for it. Half-duplex ports (IBUS telemetry and
 an SRXL2 ESC always; SmartPort, HoTT, VTX control and others when set to half-duplex) get no
 stream unless the target names one.
 
