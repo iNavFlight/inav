@@ -343,6 +343,23 @@ board was feeding it, as one powered again does, is counted from there; after a 
 board's own frames, only one still starting is. Where the block does not clear, the throttle
 would have done nothing anyway.
 
+## Exactly 20 % throttle
+
+An Avian brought up to exactly 20.0 % from below, or from a stop, and held there for about two
+seconds treats the next increase as a failed start, even an increase of one microsecond: the
+motor stops and stays stopped, whatever the throttle, until the throttle returns to zero. It
+behaves like the ESC's start-up protection, *"If the throttle is more than 20%, the throttle
+stick must be moved back to the bottom position before the ESC will allow a restart"*, but on a
+motor that was already running. Measured on a 70 A with the propeller off, it happens with soft
+and normal start-up, with the brake disabled or on reverse, and in reverse; it does not happen at
+19.9 % or 20.1 %, nor when 20 % is reached from above.
+
+With the endpoints INAV's own calibration stores (see above), 1200 us is the only motor value
+that lands on that step, and it is also the default `nav_fw_min_thr`, so INAV sends it as
+1199 us (19.9 %). An ESC calibrated to other endpoints, from a transmitter for instance, has its
+20 % elsewhere: that case was not measured and is not covered, so calibrate it from INAV. Over PWM,
+in 5 % and 10 us steps, the same ESC never stopped.
+
 ## Settings
 
 | Setting | Meaning |

@@ -161,6 +161,9 @@
 #define SRXL2_CAL_HIGH_US           2000
 #define SRXL2_CAL_LOW_US            1000
 
+// An Avian calibrated to these endpoints and held on its 20.0 % step stops on the next rise until throttle 0
+#define SRXL2_AVIAN_TRAP_US         (SRXL2_CAL_LOW_US + (SRXL2_CAL_HIGH_US - SRXL2_CAL_LOW_US) / 5)
+
 // Channel value scaling, the exact inverse of what rx/srxl2.c applies when it decodes:
 // us = 988 + (value >> 6). 1500 us lands on 0x8000, which the specification calls Servo
 // Center, and the shift leaves the low two bits clear as it requires. It deliberately stops
@@ -663,6 +666,9 @@ void srxl2MotorUpdate(uint8_t index, uint16_t value)
     }
     /* Staging only. The wire is driven at its own rate from srxl2MotorProcess(),
      * not at whatever rate the mixer happens to run. */
+    if (value == SRXL2_AVIAN_TRAP_US) {
+        value = SRXL2_AVIAN_TRAP_US - 1;    // the only microsecond on that step
+    }
     esc[index].channelValue[SRXL2_CHANNEL_THROTTLE] = srxl2UsToValue(value);
 }
 
