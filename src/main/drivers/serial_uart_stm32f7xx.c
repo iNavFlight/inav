@@ -360,6 +360,7 @@ void uartRxDmaStop(uartPort_t *s)
         LL_DMA_DisableStream(s->rxDma->dma, stream);
         while (LL_DMA_IsEnabledStream(s->rxDma->dma, stream));
         DMA_CLEAR_FLAG(s->rxDma, UART_RX_DMA_FLAGS);
+        uartDmaRelease(s->rxDma);
         s->rxDma = NULL;
         s->port.rxBursts = false;
     }
@@ -471,6 +472,7 @@ void uartTxDmaStop(uartPort_t *s)
         LL_DMA_DisableStream(s->txDma->dma, stream);
         while (LL_DMA_IsEnabledStream(s->txDma->dma, stream));
         DMA_CLEAR_FLAG(s->txDma, UART_TX_DMA_FLAGS);
+        uartDmaRelease(s->txDma);
         s->txDma = NULL;
         s->txDmaCount = 0;
     }

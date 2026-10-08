@@ -265,6 +265,7 @@ void uartRxDmaStop(uartPort_t *s)
         DMA_Cmd(s->rxDma->ref, DISABLE);
         while (DMA_GetCmdStatus(s->rxDma->ref) != DISABLE);
         DMA_CLEAR_FLAG(s->rxDma, UART_RX_DMA_FLAGS);
+        uartDmaRelease(s->rxDma);
         s->rxDma = NULL;
         s->port.rxBursts = false;
     }
@@ -371,6 +372,7 @@ void uartTxDmaStop(uartPort_t *s)
         DMA_Cmd(s->txDma->ref, DISABLE);
         while (DMA_GetCmdStatus(s->txDma->ref) != DISABLE);
         DMA_CLEAR_FLAG(s->txDma, UART_TX_DMA_FLAGS);
+        uartDmaRelease(s->txDma);
         s->txDma = NULL;
         s->txDmaCount = 0;
     }

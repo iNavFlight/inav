@@ -87,13 +87,16 @@ STATIC_ASSERT(UART_DMA_IS(UART8_TX_DMA, 1, 0, 5), UART8_TX_DMA_is_DMA1_stream_0_
 #endif
 #endif
 
-// Free, or this UART's own from an earlier open, and not one a timer output claims later in init
-static inline bool uartDmaStreamAvailable(DMA_t dma, UARTDevice_e device)
+// Every stop gives its stream back, so a port holds only the streams it runs on
+#define uartDmaRelease(dma)     dmaInit((dma), OWNER_FREE, 0)
+
+// Free, and not one a timer output claims later in init
+static inline bool uartDmaStreamAvailable(DMA_t dma)
 {
     if (pwmIsDmaStreamReserved(dma)) {
         return false;
     }
-    return dmaGetOwner(dma) == OWNER_FREE || (dmaGetOwner(dma) == OWNER_SERIAL && dma->resourceIndex == RESOURCE_INDEX(device));
+    return dmaGetOwner(dma) == OWNER_FREE;
 }
 
 #ifdef USE_UART_RX_DMA
@@ -250,20 +253,17 @@ static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[
 {
     if (named != DMA_TAG_AUTO) {
         const DMA_t dma = dmaGetByTag(named);
-        return (named != DMA_NONE && dma && uartDmaStreamAvailable(dma, device)) ? named : DMA_NONE;
+        return (named != DMA_NONE && dma && uartDmaStreamAvailable(dma)) ? named : DMA_NONE;
     }
     if ((port->rxCallback && !uartRxTakesBursts(port)) || (port->options & SERIAL_BIDIR)) {
         return DMA_NONE;
     }
-    // Its own streams first: none is ever given back, so a port reopened at runtime would collect them
-    for (int pass = 0; pass < 2; pass++) {
-        for (int i = 0; i < UART_DMA_CANDIDATES; i++) {
-            const dmaTag_t tag = uartDmaCandidate(candidates, device, i);
-            const DMA_t dma = dmaGetByTag(tag);
-            if (tag != DMA_NONE && dma && dma != otherDirection && !uartDmaStreamUsedElsewhere(dma) && !uartDmaStreamNamed(dma) &&
-                uartDmaStreamAvailable(dma, device) && (pass || dmaGetOwner(dma) == OWNER_SERIAL)) {
-                return tag;
-            }
+    for (int i = 0; i < UART_DMA_CANDIDATES; i++) {
+        const dmaTag_t tag = uartDmaCandidate(candidates, device, i);
+        const DMA_t dma = dmaGetByTag(tag);
+        if (tag != DMA_NONE && dma && dma != otherDirection && !uartDmaStreamUsedElsewhere(dma) && !uartDmaStreamNamed(dma) &&
+            uartDmaStreamAvailable(dma)) {
+            return tag;
         }
     }
     UNUSED(candidates);
@@ -275,7 +275,7 @@ static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[
 // False leaves the port on the byte interrupt: no stream named or free, no RX, or an
 // rxCallback that wants each byte as it lands
 bool uartRxDmaStart(uartPort_t *s);
-// Stops the stream and its interrupts: for a port about to be reset
+// Stops the stream and its interrupts and gives it back: for a port about to be reset or closed
 void uartRxDmaStop(uartPort_t *s);
 
 #define uartRxDmaRefused(s)     ((s)->port.rxCallback && !uartRxTakesBursts(&(s)->port))
@@ -342,7 +342,7 @@ static inline uint32_t uartRxBufferHead(const uartPort_t *s) { return s->port.rx
 #ifdef USE_UART_TX_DMA
 // False leaves the port on the byte interrupt: no stream named or free, or no TX
 bool uartTxDmaStart(uartPort_t *s);
-// Stops the stream, dropping any transfer on its way: for a port about to be reset
+// Stops the stream, dropping any transfer on its way, and gives it back: for a port about to be reset or closed
 void uartTxDmaStop(uartPort_t *s);
 // Sends what is queued, unless a transfer is already on its way: its end starts the next
 void uartStartTxDMA(uartPort_t *s);
@@ -366,6 +366,13 @@ static inline void uartTxDmaStop(uartPort_t *s) { (void)s; }
 static inline void uartStartTxDMA(uartPort_t *s) { (void)s; }
 static inline bool uartTxDmaRunning(const uartPort_t *s) { (void)s; return false; }
 #endif
+
+// What a closed port had still to send or had received is dropped, as reopening it would
+static inline void uartRelease(serialPort_t *instance)
+{
+    uartTxDmaStop((uartPort_t *)instance);
+    uartRxDmaStop((uartPort_t *)instance);
+}
 
 // A stream keeps writing where it was started, so it is started again on the new ring
 static inline void uartSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size)

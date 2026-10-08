@@ -165,3 +165,10 @@ void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_
         instance->rxBufferTail = 0;
     }
 }
+
+void serialRelease(serialPort_t *instance)
+{
+    if (instance->vTable->release) {
+        instance->vTable->release(instance);
+    }
+}
