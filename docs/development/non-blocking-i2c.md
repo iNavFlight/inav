@@ -181,7 +181,7 @@ Drivers for other buses (SPI gyros, MSP, fake sensors) need no change.
 
 ## Debugging
 
-`set debug_mode = I2C`, then `debug` in the CLI:
+`set debug_mode = I2C`, then `showdebug` in the CLI:
 
 | Field | Meaning |
 |---|---|
