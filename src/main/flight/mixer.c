@@ -35,6 +35,7 @@
 #include "config/config_reset.h"
 
 #include "drivers/pwm_output.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/time.h"
 
@@ -76,6 +77,30 @@ static EXTENDED_FASTRAM int throttleDeadbandLow = 0;
 static EXTENDED_FASTRAM int throttleDeadbandHigh = 0;
 static EXTENDED_FASTRAM int throttleRangeMin = 0;
 static EXTENDED_FASTRAM int throttleRangeMax = 0;
+#ifdef USE_DSHOT_BIDIR
+#define DYNAMIC_IDLE_HZ_LPF 150
+// Decoded replies in the last 1 s window to start, and to keep going; fewer than DYNAMIC_IDLE_MIN_REPLIES is no link
+#define DYNAMIC_IDLE_ENTER_PERCENT 80
+#define DYNAMIC_IDLE_LEAVE_PERCENT 50
+#define DYNAMIC_IDLE_MIN_REPLIES 100
+static EXTENDED_FASTRAM bool dynamicIdleOn;
+static EXTENDED_FASTRAM bool dynamicIdleWasOn;
+static EXTENDED_FASTRAM bool dynamicIdleLinkOk;
+static EXTENDED_FASTRAM bool dynamicIdleThrottleRaised;
+static EXTENDED_FASTRAM float dynamicIdleI;
+static EXTENDED_FASTRAM float dynamicIdleLastHz;
+static EXTENDED_FASTRAM pt1Filter_t dynamicIdleHzLpf;
+
+static inline bool isDynamicIdleOn(void)
+{
+    return dynamicIdleOn;
+}
+#else
+static inline bool isDynamicIdleOn(void)
+{
+    return false;
+}
+#endif
 static EXTENDED_FASTRAM int8_t motorYawMultiplier = 1;
 static EXTENDED_FASTRAM float throttleRateLimit = 0.0f;
 
@@ -102,6 +127,13 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .srxl2ReverseChannel = SETTING_ESC_SRXL2_REVERSE_CHANNEL_DEFAULT,
     .srxl2TelemetryRate = SETTING_ESC_SRXL2_TELEMETRY_RATE_DEFAULT,
     .srxl2Telemetry = SETTING_ESC_SRXL2_TELEMETRY_DEFAULT,
+#endif
+#ifdef USE_DSHOT_BIDIR
+    .dynamicIdleMinRpm = SETTING_DYNAMIC_IDLE_MIN_RPM_DEFAULT,
+    .dynamicIdlePGain = SETTING_DYNAMIC_IDLE_P_GAIN_DEFAULT,
+    .dynamicIdleIGain = SETTING_DYNAMIC_IDLE_I_GAIN_DEFAULT,
+    .dynamicIdleDGain = SETTING_DYNAMIC_IDLE_D_GAIN_DEFAULT,
+    .dynamicIdleMaxIncrease = SETTING_DYNAMIC_IDLE_MAX_INCREASE_DEFAULT,
 #endif
 );
 PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
@@ -458,6 +490,106 @@ static uint16_t handleOutputScaling(
 }
 #endif
 #ifdef USE_DSHOT
+#ifdef USE_DSHOT_BIDIR
+// Betaflight's dynamic idle; returns the raise of the low end as a fraction of the motor range
+static float dynamicIdleIncrease(float minHz, float dT)
+{
+    // Before the throttle has passed the airmode threshold once since arming, no higher than the static idle
+    if (rcCommand[THROTTLE] > rcControlsConfig()->airmodeThrottleThreshold) {
+        dynamicIdleThrottleRaised = true;
+    }
+    const float maxIncrease = dynamicIdleThrottleRaised ? motorConfig()->dynamicIdleMaxIncrease * 0.001f : currentBatteryProfile->motor.throttleIdle * 0.01f;
+
+    float error = motorConfig()->dynamicIdleMinRpm / 60.0f - minHz;
+    // D on a smoothed copy of the speed, about 20 ms behind
+    const float smoothedHz = dynamicIdleLastHz + 40.0f * dT * (minHz - dynamicIdleLastHz);
+    const float d = (dynamicIdleLastHz - smoothedHz) * motorConfig()->dynamicIdleDGain * 0.0000003f / dT;
+    dynamicIdleLastHz = smoothedHz;
+    const float p = error * motorConfig()->dynamicIdlePGain * 0.00015f;
+    // I rises fast and falls slowly
+    error = MAX(-0.1f, error);
+    dynamicIdleI = constrainf(dynamicIdleI + error * motorConfig()->dynamicIdleIGain * 0.01f * dT, 0.0f, maxIncrease);
+    const float increase = constrainf(p + dynamicIdleI + d, 0.0f, maxIncrease);
+
+    DEBUG_SET(DEBUG_DYN_IDLE, 0, MAX(-1000, lrintf(p * 10000)));
+    DEBUG_SET(DEBUG_DYN_IDLE, 1, lrintf(dynamicIdleI * 10000));
+    DEBUG_SET(DEBUG_DYN_IDLE, 2, lrintf(d * 10000));
+    DEBUG_SET(DEBUG_DYN_IDLE, 3, lrintf(minHz * 10.0f));
+
+    return increase;
+}
+
+// Out of line, mixTable() is FAST_CODE
+static NOINLINE bool applyDynamicIdle(float dT)
+{
+    if (!motorConfig()->dynamicIdleMinRpm || !STATE(MULTIROTOR) || !isMotorProtocolDigital() || !isDshotTelemetryActive()) {
+        return false;
+    }
+
+    // A motor whose replies stop decoding keeps its last RPM: the static idle unless most of every motor's replies decode
+    const uint8_t minDecoded = dynamicIdleLinkOk ? DYNAMIC_IDLE_LEAVE_PERCENT : DYNAMIC_IDLE_ENTER_PERCENT;
+    float minHz = 1e6f;
+    for (int i = 0; i < motorCount; i++) {
+        // A motor this profile keeps stopped, such as a VTOL pusher, would read 0 Hz
+        if (currentMixer[i].throttle <= 0.0f) {
+            continue;
+        }
+        const escFrameCounter_t *frames = escSensorFrameCounter(i);
+        if (frames->lastWindowTotal < DYNAMIC_IDLE_MIN_REPLIES || frames->lastWindowSuccess < minDecoded) {
+            dynamicIdleLinkOk = false;
+            return false;
+        }
+        minHz = MIN(minHz, getMotorFrequencyHz(i));
+    }
+    if (minHz == 1e6f) {
+        return false;
+    }
+    dynamicIdleLinkOk = true;
+
+    // Back after a pause (link, profile, override): smoothing and D start from the speed now, not from before it
+    if (!dynamicIdleWasOn) {
+        pt1FilterReset(&dynamicIdleHzLpf, minHz);
+        dynamicIdleLastHz = minHz;
+    }
+    // getMotorFrequencyHz() is the raw last eRPM; Betaflight smooths each motor at 150 Hz before the minimum
+    minHz = pt1FilterApply3(&dynamicIdleHzLpf, minHz, dT);
+
+    // The throttle starts at the static idle: spread it over the range above the dynamic one, never below 1 %
+    const int range = throttleRangeMax - motorConfig()->mincommand;
+    const float throttle = MAX((mixerThrottleCommand - throttleIdleValue) / (float)(throttleRangeMax - throttleIdleValue), 0.01f);
+    throttleRangeMin = MIN(motorConfig()->mincommand + 1 + lrintf(dynamicIdleIncrease(minHz, dT) * range), throttleRangeMax - 1);
+    mixerThrottleCommand = throttleRangeMin + throttle * (throttleRangeMax - throttleRangeMin);
+    return true;
+}
+
+// At low stick without airmode the mixer is skipped and the motors idle: the dynamic idle sets that idle too
+static NOINLINE void applyDynamicIdleWhenStopped(float dT)
+{
+    if (getMotorStatus() != MOTOR_STOPPED_USER || motorValueWhenStopped != throttleIdleValue || feature(FEATURE_REVERSIBLE_MOTORS)) {
+        return;
+    }
+    mixerThrottleCommand = throttleIdleValue;
+    throttleRangeMax = getMaxThrottle();
+    if (applyDynamicIdle(dT)) {
+        dynamicIdleOn = true;
+        for (int i = 0; i < motorCount; i++) {
+            if (currentMixer[i].throttle > 0.0f) {
+                motor[i] = lrintf(mixerThrottleCommand);
+            }
+        }
+    }
+}
+
+static NOINLINE void dynamicIdleReset(void)
+{
+    dynamicIdleThrottleRaised = false;
+    dynamicIdleLinkOk = false;
+    dynamicIdleI = 0.0f;
+    dynamicIdleLastHz = 0.0f;
+    pt1FilterInit(&dynamicIdleHzLpf, DYNAMIC_IDLE_HZ_LPF, 0.0f);
+}
+#endif
+
 static void applyTurtleModeToMotors(void) {
 
     if (ARMING_FLAG(ARMED)) {
@@ -568,12 +700,12 @@ void FAST_CODE writeMotors(void)
             }
             else {
                 // While disarmed only the mixer stop value means motor off, so the
-                // motor test can drive a motor below the configured idle. Armed
-                // behaviour is unchanged: there the configured idle stays the
-                // threshold, so failsafe and turtle mode are not affected.
+                // motor test can drive a motor below the configured idle. Armed,
+                // the configured idle stays the threshold, except under dynamic
+                // idle, whose low end can be below it.
                 motorValue = handleOutputScaling(
                     motor[i],
-                    ARMING_FLAG(ARMED) ? throttleIdleValue : (motorZeroCommand + 1),
+                    (ARMING_FLAG(ARMED) && !isDynamicIdleOn()) ? throttleIdleValue : (motorZeroCommand + 1),
                     DSHOT_DISARM_COMMAND,
                     motorConfig()->mincommand,
                     getMaxThrottle(),
@@ -660,6 +792,10 @@ static int getReversibleMotorsThrottleDeadband(void)
 void FAST_CODE mixTable(float dT)
 {
     static float lastMixerThrottleCommand = 1000.0f;
+#ifdef USE_DSHOT_BIDIR
+    dynamicIdleWasOn = dynamicIdleOn;
+    dynamicIdleOn = false;
+#endif
 #ifdef USE_DSHOT
     if (FLIGHT_MODE(TURTLE_MODE)) {
         applyTurtleModeToMotors();
@@ -676,6 +812,13 @@ void FAST_CODE mixTable(float dT)
         for (int i = 0; i < motorCount; i++) {
             motor[i] = isDisarmed ? motor_disarmed[i] : motorValueWhenStopped;
         }
+#ifdef USE_DSHOT_BIDIR
+        if (isDisarmed) {
+            dynamicIdleReset();
+        } else {
+            applyDynamicIdleWhenStopped(dT);
+        }
+#endif
         mixerThrottleCommand = motor[0];
         lastMixerThrottleCommand = mixerThrottleCommand;
         return;
@@ -792,6 +935,9 @@ void FAST_CODE mixTable(float dT)
         mixerThrottleCommand = rcCommand[THROTTLE];
         throttleRangeMin = throttleIdleValue;
         throttleRangeMax = getMaxThrottle();
+#ifdef USE_DSHOT_BIDIR
+        dynamicIdleOn = applyDynamicIdle(dT);
+#endif
 
         // Throttle scaling to limit max throttle when battery is full
 #ifdef USE_PROGRAMMING_FRAMEWORK
@@ -956,7 +1102,9 @@ int16_t getThrottlePercent(bool useScaled)
     int16_t thr = constrain(mixerThrottleCommand, PWM_RANGE_MIN, PWM_RANGE_MAX);
 
     if (useScaled) {
-       thr = (thr - throttleIdleValue) * 100 / (getMaxThrottle() - throttleIdleValue);
+        // Under dynamic idle the command is spread over the range above its moving low end
+        const int low = isDynamicIdleOn() ? throttleRangeMin : throttleIdleValue;
+        thr = (thr - low) * 100 / (getMaxThrottle() - low);
     } else {
         thr = (rxGetChannelValue(THROTTLE) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
     }

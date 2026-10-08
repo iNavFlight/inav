@@ -123,6 +123,12 @@ typedef struct motorConfig_s {
     uint8_t srxl2Telemetry;                 // read ESC telemetry off the SRXL2 link
     uint8_t srxl2TelemetryRate;             // how often to ask the ESC for telemetry, as srxl2TelemetryRate_e
 #endif
+    // On every target, so turning USE_DSHOT_BIDIR on or off never moves the fields stored after these
+    uint16_t dynamicIdleMinRpm;             // Slowest motor speed the dynamic idle keeps, 0 = off
+    uint8_t dynamicIdlePGain;
+    uint8_t dynamicIdleIGain;
+    uint8_t dynamicIdleDGain;
+    uint8_t dynamicIdleMaxIncrease;         // Largest idle raise, in 0.1 % of the motor range
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);

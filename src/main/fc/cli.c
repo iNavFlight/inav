@@ -239,7 +239,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "ESC",
     "FW_TURN",
     "MAG",
-    "RPM_FILTER"
+    "RPM_FILTER",
+    "DYN_IDLE"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status

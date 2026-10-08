@@ -195,6 +195,7 @@ Available debug modes include:
 - `ALTITUDE` - Altitude estimation debugging
 - `MAG` - Raw, uncalibrated magnetometer samples (useful for external compass calibration)
 - `RPM_FILTER` - Per-motor RPM as seen by the RPM filter, motors 1-8 in `debug[0]`-`debug[7]` (needs the RPM filter enabled, so bidirectional DShot or ESC telemetry)
+- `DYN_IDLE` - Dynamic idle (`dynamic_idle_min_rpm`): P, I and D in `debug[0]`-`debug[2]` (0.0001 of the motor range), the slowest motor's frequency in `debug[3]` (0.1 Hz)
 - And 20+ other modes for specific subsystems
 
 To use debug mode logging:
