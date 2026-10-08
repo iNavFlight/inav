@@ -263,6 +263,7 @@ static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[
         }
     }
     UNUSED(candidates);
+    UNUSED(device);
     return DMA_NONE;
 }
 #endif
