@@ -223,6 +223,9 @@ static void mspSerialPassthroughFn(serialPort_t *serialPort)
 {
     serialPort_t *passthroughPort = mspFindPassthroughSerialPort();
     if (passthroughPort && serialPort) {
+        // As in the CLI: a receiver's callback would take the bytes the session is passing on
+        passthroughPort->rxCallback = NULL;
+
         // The port the request came in on goes first, as it does in the CLI. Both of the
         // things serialPassthrough() does for whoever opened the session are done for its
         // first port only: the +++ that ends the session is looked for there, and a USB

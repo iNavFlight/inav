@@ -22,6 +22,7 @@
 #include "build/atomic.h"
 
 #include "drivers/nvic.h"
+#include "drivers/time.h"
 
 extern const struct serialPortVTable uartVTable[];
 
@@ -240,7 +241,10 @@ static inline bool uartDmaStreamNamed(DMA_t dma)
     return false;
 }
 
-// The named stream, else the first free candidate; receivers and half-duplex links were never measured on DMA
+// A receiver that takes its bytes in bursts, on a port that is not half duplex
+#define uartRxTakesBursts(port)     (((port)->options & (SERIAL_RX_BURSTS | SERIAL_BIDIR)) == SERIAL_RX_BURSTS)
+
+// The named stream, else the first free candidate; byte-wise receivers and half-duplex links were never measured on DMA
 static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[UART_DMA_CANDIDATES], UARTDevice_e device,
                                    const serialPort_t *port, DMA_t otherDirection)
 {
@@ -248,7 +252,7 @@ static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[
         const DMA_t dma = dmaGetByTag(named);
         return (named != DMA_NONE && dma && uartDmaStreamAvailable(dma, device)) ? named : DMA_NONE;
     }
-    if (port->rxCallback || (port->options & SERIAL_BIDIR)) {
+    if ((port->rxCallback && !uartRxTakesBursts(port)) || (port->options & SERIAL_BIDIR)) {
         return DMA_NONE;
     }
     // Its own streams first: none is ever given back, so a port reopened at runtime would collect them
@@ -271,6 +275,10 @@ static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[
 // False leaves the port on the byte interrupt: no stream named or free, no RX, or an
 // rxCallback that wants each byte as it lands
 bool uartRxDmaStart(uartPort_t *s);
+// Stops the stream and its interrupts: for a port about to be reset
+void uartRxDmaStop(uartPort_t *s);
+
+#define uartRxDmaRefused(s)     ((s)->port.rxCallback && !uartRxTakesBursts(&(s)->port))
 
 static inline bool uartRxDmaRunning(const uartPort_t *s)
 {
@@ -290,8 +298,43 @@ static inline uint32_t uartRxBufferHead(const uartPort_t *s)
     }
     return s->port.rxBufferHead;
 }
+
+// Start bit, 8 data bits, parity and stop bits
+static inline uint32_t uartCharNs(const uartPort_t *s)
+{
+    const uint32_t bits = 10 + ((s->port.options & SERIAL_PARITY_EVEN) ? 1 : 0) + ((s->port.options & SERIAL_STOPBITS_2) ? 1 : 0);
+    return bits * (1000000000U / s->port.baudRate);
+}
+
+// Hands rxCallback what the stream wrote since the last call. The newest byte ended at lastEndUs and
+// the others are timed back from it a character apart: a gap of a character would have ended the burst
+static inline void uartRxDmaDeliver(uartPort_t *s, timeUs_t lastEndUs)
+{
+    // A passthrough drops the callback and reads the ring itself, as on the byte interrupt
+    if (!s->port.rxCallback) {
+        return;
+    }
+
+    const uint32_t size = s->port.rxBufferSize;
+    const uint32_t charNs = uartCharNs(s);
+    uint32_t tail = s->port.rxBufferTail;
+
+    for (uint32_t left = (uartRxBufferHead(s) + size - tail) % size; left > 0; left--) {
+        s->port.rxByteTimeUs = lastEndUs - ((left - 1) * charNs) / 1000;
+        s->port.rxCallback(s->port.rxBuffer[tail], s->port.rxCallbackData);
+        tail = (tail + 1) % size;
+    }
+    s->port.rxBufferTail = tail;
+}
+
+// The UART flags idle one character after the last stop bit
+static inline void uartRxDmaIdle(uartPort_t *s)
+{
+    uartRxDmaDeliver(s, microsISR() - uartCharNs(s) / 1000);
+}
 #else
 static inline bool uartRxDmaStart(uartPort_t *s) { (void)s; return false; }
+static inline void uartRxDmaStop(uartPort_t *s) { (void)s; }
 static inline bool uartRxDmaRunning(const uartPort_t *s) { (void)s; return false; }
 static inline uint32_t uartRxBufferHead(const uartPort_t *s) { return s->port.rxBufferHead; }
 #endif
@@ -329,14 +372,15 @@ static inline void uartSetRxBuffer(serialPort_t *instance, volatile uint8_t *buf
 {
     uartPort_t *s = (uartPort_t *)instance;
 
+    // Restarted in the same block: an idle or half ring interrupt in between would read the new ring with the old count
     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
         s->port.rxBuffer = buffer;
         s->port.rxBufferSize = size;
         s->port.rxBufferHead = 0;
         s->port.rxBufferTail = 0;
-    }
-    if (uartRxDmaRunning(s)) {
-        uartRxDmaStart(s);
+        if (uartRxDmaRunning(s)) {
+            uartRxDmaStart(s);
+        }
     }
 }
 

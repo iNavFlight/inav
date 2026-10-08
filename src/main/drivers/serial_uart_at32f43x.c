@@ -403,13 +403,26 @@ static const uartRxDmaConfig_t uartRxDmaConfig[UARTDEV_MAX] = {
 #endif
 };
 
-static void uartRxDmaStop(uartPort_t *s)
+#define UART_RX_DMA_FLAGS   (DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_DMEIF)
+
+void uartRxDmaStop(uartPort_t *s)
 {
     if (s->rxDma) {
         usart_dma_receiver_enable(s->USARTx, FALSE);
+        usart_interrupt_enable(s->USARTx, USART_IDLE_INT, FALSE);
+        dma_interrupt_enable(s->rxDma->ref, DMA_FDT_INT | DMA_HDT_INT, FALSE);
         dma_channel_enable(s->rxDma->ref, FALSE);
+        DMA_CLEAR_FLAG(s->rxDma, UART_RX_DMA_FLAGS);
         s->rxDma = NULL;
+        s->port.rxBursts = false;
     }
+}
+
+// Half and full ring: a burst longer than half the ring is handed over before the stream overwrites it
+static void uartRxDmaHandler(DMA_t dma)
+{
+    DMA_CLEAR_FLAG(dma, UART_RX_DMA_FLAGS);
+    uartRxDmaDeliver((uartPort_t *)dma->userParam, microsISR());
 }
 
 bool uartRxDmaStart(uartPort_t *s)
@@ -417,7 +430,7 @@ bool uartRxDmaStart(uartPort_t *s)
     uartRxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || uartRxDmaRefused(s)) {
         return false;
     }
 
@@ -444,10 +457,20 @@ bool uartRxDmaStart(uartPort_t *s)
     init.priority = DMA_PRIORITY_MEDIUM;
     dma_init(dma->ref, &init);
     dmaMuxEnable(dma, uartRxDmaConfig[device].request);
-    dma_channel_enable(dma->ref, TRUE);
 
     s->port.rxBufferHead = s->port.rxBufferTail = 0;
     s->rxDma = dma;
+
+    if (s->port.rxCallback) {
+        // The UART's priority, so the two never hand bytes over at once
+        dmaSetHandler(dma, uartRxDmaHandler, NVIC_PRIO_SERIALUART, (uint32_t)s);
+        DMA_CLEAR_FLAG(dma, UART_RX_DMA_FLAGS);
+        dma_interrupt_enable(dma->ref, DMA_FDT_INT | DMA_HDT_INT, TRUE);
+        s->port.rxBursts = true;
+        usart_interrupt_enable(s->USARTx, USART_IDLE_INT, TRUE);
+    }
+
+    dma_channel_enable(dma->ref, TRUE);
 
     usart_interrupt_enable(s->USARTx, USART_RDBF_INT, FALSE);
     usart_dma_receiver_enable(s->USARTx, TRUE);
@@ -596,6 +619,14 @@ bool uartTxDmaStart(uartPort_t *s)
 
 void uartIrqHandler(uartPort_t *s)
 {
+#ifdef USE_UART_RX_DMA
+    // Clearing the flag reads dt: after a character of silence the stream has already taken the last byte
+    if (s->USARTx->ctrl1_bit.idleien && usart_flag_get(s->USARTx, USART_IDLEF_FLAG) == SET) {
+        uartClearIdleFlag(s);
+        uartRxDmaIdle(s);
+    }
+#endif
+
     // With RX on DMA the interrupt still fires for TX: an RX byte is the stream's to take
     if (usart_flag_get(s->USARTx, USART_RDBF_FLAG) == SET && !uartRxDmaRunning(s)) {
         if (s->port.rxCallback) {

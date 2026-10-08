@@ -135,8 +135,9 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
         return (serialPort_t *)s;
     }
 
-    // A transfer still on its way would go on reading the ring about to be reset
+    // Streams still running would go on with the rings about to be reset, and a receiver's with the old callback
     uartTxDmaStop(s);
+    uartRxDmaStop(s);
 
     // common serial initialisation code should move to serialPort::init()
     s->port.rxBufferHead = s->port.rxBufferTail = 0;

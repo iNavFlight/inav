@@ -23,6 +23,7 @@
 #include "build/atomic.h"
 
 #include "drivers/nvic.h"
+#include "drivers/time.h"
 
 #include "serial.h"
 
@@ -136,6 +137,12 @@ bool serialIsIdle(serialPort_t *instance)
         return instance->vTable->isIdle(instance);
     else
         return false;
+}
+
+// For an rxCallback; the port can still be NULL to a receiver whose first burst lands before openSerialPort() returns
+timeUs_t serialRxByteTimeUs(const serialPort_t *instance)
+{
+    return (instance && instance->rxBursts) ? instance->rxByteTimeUs : microsISR();
 }
 
 // Swaps in a larger receive buffer; what the old one held is dropped

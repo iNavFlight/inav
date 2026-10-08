@@ -141,7 +141,7 @@ STATIC_UNIT_TESTED void crsfDataReceive(uint16_t c, void *rxCallbackData)
     UNUSED(rxCallbackData);
 
     static uint8_t crsfFramePosition = 0;
-    const timeUs_t currentTimeUs = microsISR();
+    const timeUs_t currentTimeUs = serialRxByteTimeUs(serialPort);
 
 #ifdef DEBUG_CRSF_PACKETS
     debug[2] = now - crsfFrameStartAt;
@@ -335,7 +335,7 @@ bool crsfRxInit(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig)
         NULL,
         CRSF_BAUDRATE,
         CRSF_PORT_MODE,
-        CRSF_PORT_OPTIONS | (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
+        CRSF_PORT_OPTIONS | SERIAL_RX_BURSTS | (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
 
     return serialPort != NULL;

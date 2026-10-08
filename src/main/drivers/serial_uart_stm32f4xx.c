@@ -254,14 +254,27 @@ static const dmaTag_t uartRxDmaTag[UARTDEV_MAX] = {
 #endif
 };
 
-static void uartRxDmaStop(uartPort_t *s)
+#define UART_RX_DMA_FLAGS   (DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_TEIF | DMA_IT_DMEIF | DMA_IT_FEIF)
+
+void uartRxDmaStop(uartPort_t *s)
 {
     if (s->rxDma) {
         USART_DMACmd(s->USARTx, USART_DMAReq_Rx, DISABLE);
+        USART_ITConfig(s->USARTx, USART_IT_IDLE, DISABLE);
+        DMA_ITConfig(s->rxDma->ref, DMA_IT_HT | DMA_IT_TC, DISABLE);
         DMA_Cmd(s->rxDma->ref, DISABLE);
         while (DMA_GetCmdStatus(s->rxDma->ref) != DISABLE);
+        DMA_CLEAR_FLAG(s->rxDma, UART_RX_DMA_FLAGS);
         s->rxDma = NULL;
+        s->port.rxBursts = false;
     }
+}
+
+// Half and full ring: a burst longer than half the ring is handed over before the stream overwrites it
+static void uartRxDmaHandler(DMA_t dma)
+{
+    DMA_CLEAR_FLAG(dma, UART_RX_DMA_FLAGS);
+    uartRxDmaDeliver((uartPort_t *)dma->userParam, microsISR());
 }
 
 bool uartRxDmaStart(uartPort_t *s)
@@ -269,7 +282,7 @@ bool uartRxDmaStart(uartPort_t *s)
     uartRxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || uartRxDmaRefused(s)) {
         return false;
     }
 
@@ -298,10 +311,20 @@ bool uartRxDmaStart(uartPort_t *s)
     // No FIFO: a byte is in the ring as soon as the count says so
     init.DMA_FIFOMode = DMA_FIFOMode_Disable;
     DMA_Init(dma->ref, &init);
-    DMA_Cmd(dma->ref, ENABLE);
 
     s->port.rxBufferHead = s->port.rxBufferTail = 0;
     s->rxDma = dma;
+
+    if (s->port.rxCallback) {
+        // The UART's priority, so the two never hand bytes over at once
+        dmaSetHandler(dma, uartRxDmaHandler, NVIC_PRIO_SERIALUART, (uint32_t)s);
+        DMA_CLEAR_FLAG(dma, UART_RX_DMA_FLAGS);
+        DMA_ITConfig(dma->ref, DMA_IT_HT | DMA_IT_TC, ENABLE);
+        s->port.rxBursts = true;
+        USART_ITConfig(s->USARTx, USART_IT_IDLE, ENABLE);
+    }
+
+    DMA_Cmd(dma->ref, ENABLE);
 
     USART_ITConfig(s->USARTx, USART_IT_RXNE, DISABLE);
     USART_DMACmd(s->USARTx, USART_DMAReq_Rx, ENABLE);
@@ -443,6 +466,14 @@ bool uartTxDmaStart(uartPort_t *s)
 
 void uartIrqHandler(uartPort_t *s)
 {
+#ifdef USE_UART_RX_DMA
+    // Clearing the flag reads DR: after a character of silence the stream has already taken the last byte
+    if (USART_GetITStatus(s->USARTx, USART_IT_IDLE) == SET) {
+        uartClearIdleFlag(s);
+        uartRxDmaIdle(s);
+    }
+#endif
+
     if (USART_GetITStatus(s->USARTx, USART_IT_RXNE) == SET) {
         if (s->port.rxCallback) {
             s->port.rxCallback(s->USARTx->DR, s->port.rxCallbackData);

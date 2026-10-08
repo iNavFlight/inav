@@ -371,15 +371,29 @@ static const uartRxDmaConfig_t uartRxDmaConfig[UARTDEV_MAX] = {
 #endif
 };
 
-static void uartRxDmaStop(uartPort_t *s)
+#define UART_RX_DMA_FLAGS   (DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_TEIF | DMA_IT_DMEIF | DMA_IT_FEIF)
+
+void uartRxDmaStop(uartPort_t *s)
 {
     if (s->rxDma) {
         const uint32_t stream = DMATAG_GET_STREAM(s->rxDma->tag);  // LL_DMA_STREAM_n is n
         CLEAR_BIT(s->USARTx->CR3, USART_CR3_DMAR);
+        CLEAR_BIT(s->USARTx->CR1, USART_CR1_IDLEIE);
+        LL_DMA_DisableIT_HT(s->rxDma->dma, stream);
+        LL_DMA_DisableIT_TC(s->rxDma->dma, stream);
         LL_DMA_DisableStream(s->rxDma->dma, stream);
         while (LL_DMA_IsEnabledStream(s->rxDma->dma, stream));
+        DMA_CLEAR_FLAG(s->rxDma, UART_RX_DMA_FLAGS);
         s->rxDma = NULL;
+        s->port.rxBursts = false;
     }
+}
+
+// Half and full ring: a burst longer than half the ring is handed over before the stream overwrites it
+static void uartRxDmaHandler(DMA_t dma)
+{
+    DMA_CLEAR_FLAG(dma, UART_RX_DMA_FLAGS);
+    uartRxDmaDeliver((uartPort_t *)dma->userParam, microsISR());
 }
 
 // USART_CR3_DMAR is set again in uartReconfigure(): the HAL clears CR3 whenever it reprograms the port
@@ -388,7 +402,7 @@ bool uartRxDmaStart(uartPort_t *s)
     uartRxDmaStop(s);
 
     const UARTDevice_e device = uartDeviceOf(s);
-    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || uartRxDmaRefused(s)) {
         return false;
     }
 
@@ -419,12 +433,23 @@ bool uartRxDmaStart(uartPort_t *s)
     // No FIFO: a byte is in the ring as soon as the count says so
     init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
     LL_DMA_Init(dma->dma, stream, &init);
-    LL_DMA_EnableStream(dma->dma, stream);
-    // Restarted on a new ring (serialSetRxBuffer) the port gets no reprogramming to set it
-    SET_BIT(s->USARTx->CR3, USART_CR3_DMAR);
 
     s->port.rxBufferHead = s->port.rxBufferTail = 0;
     s->rxDma = dma;
+
+    if (s->port.rxCallback) {
+        // The UART's priority, so the two never hand bytes over at once
+        dmaSetHandler(dma, uartRxDmaHandler, NVIC_PRIO_SERIALUART, (uint32_t)s);
+        DMA_CLEAR_FLAG(dma, UART_RX_DMA_FLAGS);
+        LL_DMA_EnableIT_HT(dma->dma, stream);
+        LL_DMA_EnableIT_TC(dma->dma, stream);
+        s->port.rxBursts = true;
+        SET_BIT(s->USARTx->CR1, USART_CR1_IDLEIE);
+    }
+
+    LL_DMA_EnableStream(dma->dma, stream);
+    // Restarted on a new ring (serialSetRxBuffer) the port gets no reprogramming to set it
+    SET_BIT(s->USARTx->CR3, USART_CR3_DMAR);
     return true;
 }
 #endif
@@ -602,6 +627,15 @@ bool uartTxDmaStart(uartPort_t *s)
 void uartIrqHandler(uartPort_t *s)
 {
     UART_HandleTypeDef *huart = &s->Handle;
+
+#ifdef USE_UART_RX_DMA
+    // End of a burst on a receiver that takes them; elsewhere the flag is left to serialIsIdle()
+    if (READ_BIT(huart->Instance->CR1, USART_CR1_IDLEIE) && __HAL_UART_GET_FLAG(huart, UART_FLAG_IDLE)) {
+        __HAL_UART_CLEAR_IDLEFLAG(huart);
+        uartRxDmaIdle(s);
+    }
+#endif
+
     /* UART in mode Receiver ---------------------------------------------------*/
     // With RX on DMA the interrupt still fires for TX: an RX byte is the stream's to take
     if ((__HAL_UART_GET_IT(huart, UART_IT_RXNE) != RESET) && !uartRxDmaRunning(s)) {

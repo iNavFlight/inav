@@ -296,15 +296,15 @@ const uint32_t txCandidates[8][2] = {
     { tag(1, 7, 4) }, { tag(2, 6, 5), tag(2, 7, 5) }, { tag(1, 1, 5) }, { tag(1, 0, 5) },
 };
 
-// Mirror of uartDmaPick() for F4/F7
+// Mirror of uartDmaPick() for F4/F7; bursts is SERIAL_RX_BURSTS
 uint32_t pick(uint32_t named, const uint32_t (*candidates)[2], int device, bool rxCallback, bool halfDuplex,
-              int otherDirection, const dmaWorld_t &w)
+              int otherDirection, const dmaWorld_t &w, bool bursts = false)
 {
     if (named != TAG_AUTO) {
         const int dma = streamOf(named);
         return (named != TAG_NONE && dma >= 0 && !listed(w.unavailable, 4, dma)) ? named : TAG_NONE;
     }
-    if (rxCallback || halfDuplex) {
+    if ((rxCallback && !(bursts && !halfDuplex)) || halfDuplex) {
         return TAG_NONE;
     }
     for (int pass = 0; pass < 2; pass++) {
@@ -346,6 +346,17 @@ TEST(UartDmaPick, AutoLeavesReceiversAndHalfDuplexOnTheInterrupt)
 {
     EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, rxCandidates, 0, true, false, -1, freeWorld));
     EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, txCandidates, 0, false, true, -1, freeWorld));
+}
+
+TEST(UartDmaPick, AutoGivesAReceiverTakingBurstsAStream)
+{
+    EXPECT_EQ(tag(2, 2, 4), pick(TAG_AUTO, rxCandidates, 0, true, false, -1, freeWorld, true));
+    EXPECT_EQ(tag(2, 7, 4), pick(TAG_AUTO, txCandidates, 0, true, false, -1, freeWorld, true));
+}
+
+TEST(UartDmaPick, AutoLeavesAHalfDuplexReceiverOnTheInterruptEvenTakingBursts)
+{
+    EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, rxCandidates, 0, true, true, -1, freeWorld, true));
 }
 
 TEST(UartDmaPick, AutoTakesTheFirstFreeCandidate)
@@ -404,7 +415,7 @@ static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[
         const DMA_t dma = dmaGetByTag(named);
         return (named != DMA_NONE && dma && uartDmaStreamAvailable(dma, device)) ? named : DMA_NONE;
     }
-    if (port->rxCallback || (port->options & SERIAL_BIDIR)) {
+    if ((port->rxCallback && !uartRxTakesBursts(port)) || (port->options & SERIAL_BIDIR)) {
         return DMA_NONE;
     }
     for (int pass = 0; pass < 2; pass++) {
@@ -445,6 +456,10 @@ static const dmaTag_t uartTxDmaCandidates[UARTDEV_MAX][UART_DMA_CANDIDATES] = {
 };
 )";
 
+const char *expectedTakesBursts = R"(
+#define uartRxTakesBursts(port)     (((port)->options & (SERIAL_RX_BURSTS | SERIAL_BIDIR)) == SERIAL_RX_BURSTS)
+)";
+
 // Not mirrored: checked so that a change to them shows up here
 const char *expectedStreamList = R"(
 static const dmaTag_t uartDmaStreams[UART_DMA_CANDIDATES] = {
@@ -481,6 +496,7 @@ TEST(UartDmaStreamSourceSync, NamedMatches)
 TEST(UartDmaStreamSourceSync, PickMatchesMirror)
 {
     EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedPick));
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedTakesBursts));
 }
 
 TEST(UartDmaStreamSourceSync, CandidateTablesMatchMirror)
@@ -618,4 +634,115 @@ TEST(UartDmaStreamSourceSync, EachDirectionPicksFromItsOwnTable)
         EXPECT_TRUE(livePickAfter(driver, "bool uartRxDmaStart(uartPort_t *s)", rxConfig));
         EXPECT_TRUE(livePickAfter(driver, "bool uartTxDmaStart(uartPort_t *s)", txConfig));
     }
+}
+
+/*
+ * uartCharNs() and uartRxDmaDeliver() (serial_uart_impl.h): which bytes a burst hands over, and the time each is given.
+ * Mirrored on a plain ring; the source check below keeps the mirror honest.
+ */
+namespace {
+
+uint32_t charNs(uint32_t baudRate, bool parityEven, bool stopBits2)
+{
+    const uint32_t bits = 10 + (parityEven ? 1 : 0) + (stopBits2 ? 1 : 0);
+    return bits * (1000000000U / baudRate);
+}
+
+struct handed_t {
+    uint8_t byte;
+    uint32_t timeUs;
+};
+
+// Mirror of uartRxDmaDeliver(): appends what the callback would get to out, returns the new tail
+uint32_t deliver(const uint8_t *ring, uint32_t size, uint32_t tail, uint32_t head, uint32_t lastEndUs, uint32_t cns,
+                 handed_t *out, uint32_t *count)
+{
+    for (uint32_t left = (head + size - tail) % size; left > 0; left--) {
+        out[*count].timeUs = lastEndUs - ((left - 1) * cns) / 1000;
+        out[*count].byte = ring[tail];
+        (*count)++;
+        tail = (tail + 1) % size;
+    }
+    return tail;
+}
+
+const char *expectedCharNs = R"(
+static inline uint32_t uartCharNs(const uartPort_t *s)
+{
+    const uint32_t bits = 10 + ((s->port.options & SERIAL_PARITY_EVEN) ? 1 : 0) + ((s->port.options & SERIAL_STOPBITS_2) ? 1 : 0);
+    return bits * (1000000000U / s->port.baudRate);
+}
+)";
+
+const char *expectedDeliver = R"(
+    const uint32_t size = s->port.rxBufferSize;
+    const uint32_t charNs = uartCharNs(s);
+    uint32_t tail = s->port.rxBufferTail;
+
+    for (uint32_t left = (uartRxBufferHead(s) + size - tail) % size; left > 0; left--) {
+        s->port.rxByteTimeUs = lastEndUs - ((left - 1) * charNs) / 1000;
+        s->port.rxCallback(s->port.rxBuffer[tail], s->port.rxCallbackData);
+        tail = (tail + 1) % size;
+    }
+    s->port.rxBufferTail = tail;
+)";
+
+} // namespace
+
+TEST(UartRxDmaDeliver, CharacterTimesOfCrsfAndSbus)
+{
+    EXPECT_EQ(23800U, charNs(420000, false, false));    // 8N1, 23.8 us
+    EXPECT_EQ(120000U, charNs(100000, true, true));     // 8E2, 120 us
+}
+
+TEST(UartRxDmaDeliver, BurstIsTimedBackFromItsEnd)
+{
+    uint8_t ring[256];
+    for (int i = 0; i < 256; i++) {
+        ring[i] = (uint8_t)i;
+    }
+    handed_t out[256];
+    uint32_t count = 0;
+
+    // A 26 byte CRSF frame at 420000 baud, its last byte ending at 10000 us
+    EXPECT_EQ(26U, deliver(ring, 256, 0, 26, 10000, charNs(420000, false, false), out, &count));
+    ASSERT_EQ(26U, count);
+    EXPECT_EQ(0, out[0].byte);
+    EXPECT_EQ(10000U - 595U, out[0].timeUs);            // 25 characters before the last
+    EXPECT_EQ(10000U - 23U, out[24].timeUs);
+    EXPECT_EQ(10000U, out[25].timeUs);
+}
+
+TEST(UartRxDmaDeliver, BurstWrapsRoundTheRing)
+{
+    uint8_t ring[256];
+    for (int i = 0; i < 256; i++) {
+        ring[i] = (uint8_t)i;
+    }
+    handed_t out[256];
+    uint32_t count = 0;
+
+    EXPECT_EQ(4U, deliver(ring, 256, 250, 4, 5000, charNs(100000, true, true), out, &count));
+    ASSERT_EQ(10U, count);
+    EXPECT_EQ(250, out[0].byte);
+    EXPECT_EQ(255, out[5].byte);
+    EXPECT_EQ(0, out[6].byte);
+    EXPECT_EQ(3, out[9].byte);
+    EXPECT_EQ(5000U - 9U * 120U, out[0].timeUs);
+}
+
+TEST(UartRxDmaDeliver, NothingNewHandsNothing)
+{
+    uint8_t ring[256] = { 0 };
+    handed_t out[1];
+    uint32_t count = 0;
+
+    EXPECT_EQ(17U, deliver(ring, 256, 17, 17, 5000, charNs(420000, false, false), out, &count));
+    EXPECT_EQ(0U, count);
+}
+
+TEST(UartDmaStreamSourceSync, DeliverMatchesMirror)
+{
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedCharNs));
+    EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedDeliver));
 }

@@ -109,8 +109,11 @@ static void uartReconfigure(uartPort_t *uartPort)
     }
 
     if ((uartPort->port.mode & MODE_RX) && uartRxDmaRunning(uartPort)) {
-        /* The de-init cleared the DMA request */
+        /* The de-init cleared the DMA request, and the idle interrupt of a receiver taking bursts */
         SET_BIT(uartPort->USARTx->CR3, USART_CR3_DMAR);
+        if (uartPort->port.rxBursts) {
+            SET_BIT(uartPort->USARTx->CR1, USART_CR1_IDLEIE);
+        }
     }
     else if (uartPort->port.mode & MODE_RX) {
         /* Enable the UART Parity Error Interrupt */
@@ -177,8 +180,9 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
     }
 
 
-    // A transfer still on its way would go on reading the ring about to be reset
+    // Streams still running would go on with the rings about to be reset, and a receiver's with the old callback
     uartTxDmaStop(s);
+    uartRxDmaStop(s);
 
     // common serial initialisation code should move to serialPort::init()
     s->port.rxBufferHead = s->port.rxBufferTail = 0;
