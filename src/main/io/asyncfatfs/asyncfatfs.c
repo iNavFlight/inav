@@ -598,7 +598,8 @@ bool afatfs_isIdle(void)
 #endif
 
 #ifdef USE_BLACKBOX_SDCARD_SPLIT
-    if (afatfs.refill.phase != AFATFS_REFILL_IDLE) {
+    // The search for the next block only reads the FAT, so terrain can read its files meanwhile
+    if (afatfs.refill.phase != AFATFS_REFILL_IDLE && afatfs.refill.phase != AFATFS_REFILL_BLOCK_SEARCH) {
         return false;
     }
 #endif
