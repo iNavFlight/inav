@@ -292,7 +292,8 @@ static const dmaTag_t uartRxDmaTag[UARTDEV_MAX] = {
 #endif
 };
 
-// In DMA_RAM, which stays uncached once the D-cache is on: from the cache the CPU would not see what the stream wrote
+// Only with the D-cache on, which leaves DMA_RAM uncached: from the cache the CPU would not see what the stream wrote
+#ifdef DMA_RAM_UNCACHED
 #ifdef UART1_RX_DMA
 static DMA_RAM uint8_t uart1RxDmaBuffer[UART_RX_BUFFER_SIZE];
 #endif
@@ -344,6 +345,7 @@ static volatile uint8_t * const uartRxDmaBuffer[UARTDEV_MAX] = {
     [UARTDEV_8] = uart8RxDmaBuffer,
 #endif
 };
+#endif
 
 static void uartRxDmaStop(uartPort_t *s)
 {
@@ -641,7 +643,7 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
     s->port.baudRate = baudRate;
 
     s->port.rxBuffer = uart->rxBuffer;
-#ifdef USE_UART_RX_DMA
+#if defined(USE_UART_RX_DMA) && defined(DMA_RAM_UNCACHED)
     if (uartRxDmaBuffer[device]) {
         s->port.rxBuffer = uartRxDmaBuffer[device];
     }
