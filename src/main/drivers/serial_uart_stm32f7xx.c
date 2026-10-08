@@ -292,6 +292,59 @@ static const dmaTag_t uartRxDmaTag[UARTDEV_MAX] = {
 #endif
 };
 
+// In DMA_RAM, which stays uncached once the D-cache is on: from the cache the CPU would not see what the stream wrote
+#ifdef UART1_RX_DMA
+static DMA_RAM uint8_t uart1RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART2_RX_DMA
+static DMA_RAM uint8_t uart2RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART3_RX_DMA
+static DMA_RAM uint8_t uart3RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART4_RX_DMA
+static DMA_RAM uint8_t uart4RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART5_RX_DMA
+static DMA_RAM uint8_t uart5RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART6_RX_DMA
+static DMA_RAM uint8_t uart6RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART7_RX_DMA
+static DMA_RAM uint8_t uart7RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#ifdef UART8_RX_DMA
+static DMA_RAM uint8_t uart8RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+
+static volatile uint8_t * const uartRxDmaBuffer[UARTDEV_MAX] = {
+#ifdef UART1_RX_DMA
+    [UARTDEV_1] = uart1RxDmaBuffer,
+#endif
+#ifdef UART2_RX_DMA
+    [UARTDEV_2] = uart2RxDmaBuffer,
+#endif
+#ifdef UART3_RX_DMA
+    [UARTDEV_3] = uart3RxDmaBuffer,
+#endif
+#ifdef UART4_RX_DMA
+    [UARTDEV_4] = uart4RxDmaBuffer,
+#endif
+#ifdef UART5_RX_DMA
+    [UARTDEV_5] = uart5RxDmaBuffer,
+#endif
+#ifdef UART6_RX_DMA
+    [UARTDEV_6] = uart6RxDmaBuffer,
+#endif
+#ifdef UART7_RX_DMA
+    [UARTDEV_7] = uart7RxDmaBuffer,
+#endif
+#ifdef UART8_RX_DMA
+    [UARTDEV_8] = uart8RxDmaBuffer,
+#endif
+};
+
 static void uartRxDmaStop(uartPort_t *s)
 {
     if (s->rxDma) {
@@ -303,7 +356,7 @@ static void uartRxDmaStop(uartPort_t *s)
     }
 }
 
-// USART_CR3_DMAR is set in uartReconfigure(): the HAL clears CR3 whenever it reprograms the port
+// USART_CR3_DMAR is set again in uartReconfigure(): the HAL clears CR3 whenever it reprograms the port
 bool uartRxDmaStart(uartPort_t *s)
 {
     uartRxDmaStop(s);
@@ -340,6 +393,8 @@ bool uartRxDmaStart(uartPort_t *s)
     init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
     LL_DMA_Init(dma->dma, stream, &init);
     LL_DMA_EnableStream(dma->dma, stream);
+    // Restarted on a new ring (serialSetRxBuffer) the port gets no reprogramming to set it
+    SET_BIT(s->USARTx->CR3, USART_CR3_DMAR);
 
     s->port.rxBufferHead = s->port.rxBufferTail = 0;
     s->rxDma = dma;
@@ -586,6 +641,11 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
     s->port.baudRate = baudRate;
 
     s->port.rxBuffer = uart->rxBuffer;
+#ifdef USE_UART_RX_DMA
+    if (uartRxDmaBuffer[device]) {
+        s->port.rxBuffer = uartRxDmaBuffer[device];
+    }
+#endif
     s->port.txBuffer = uart->txBuffer;
     s->port.rxBufferSize = sizeof(uart->rxBuffer);
     s->port.txBufferSize = sizeof(uart->txBuffer);
