@@ -112,7 +112,10 @@ it with the same stuck detection, then runs as before.
 start_ut -> (ut_delay) -> read_ut -> get_ut -> start_up -> (up_delay) -> read_up -> get_up -> calculate
 ```
 
-* `start_*` triggers a measurement, usually a `busWriteStart()`.
+* `start_*` triggers a measurement, usually a `busWriteStart()`. The
+  matching `read_*` is only called once that write is over; a write that
+  failed (NACK, bus error) restarts the phase, since the sensor's data
+  registers would still hold the previous conversion.
 * `read_*` starts the data transfer with `busReadBufStart()` and returns
   `false` when the bus is busy.
 * `get_*` only parses the static buffer and returns `false` when the sample

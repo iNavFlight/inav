@@ -288,9 +288,11 @@ uint32_t baroUpdate(bool *newSampleReady)
 
 #ifdef USE_SIMULATOR
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-        // Pressure and temperature are injected over MSP, keep publishing them at the sensor's pace
+        // Pressure and temperature are injected over MSP, keep publishing them at the sensor's pace. The two delays
+        // together are one measurement cycle; up_delay alone is a 1 ms scheduler step for some drivers (DPS310).
+        // Without a physical sensor both are 0 and the task keeps its default period
         *newSampleReady = true;
-        return dev->up_delay;
+        return dev->ut_delay + dev->up_delay;
     }
 #endif
 
@@ -307,6 +309,17 @@ uint32_t baroUpdate(bool *newSampleReady)
 
             case BARO_STATE_TEMPERATURE_READ:
                 if (dev->read_ut) {
+                    // The start_ut write has to have reached the sensor, otherwise the data registers still hold the
+                    // previous conversion and a successful read would publish it as a new sample
+                    if (dev->start_ut && dev->busDev) {
+                        if (busIsBusy(dev->busDev, &busError)) {
+                            return BARO_STATE_STEP_DELAY_US;    // trigger write still in progress
+                        }
+                        if (busError) {
+                            state = BARO_STATE_TEMPERATURE_START;   // trigger write failed, redo the phase
+                            break;
+                        }
+                    }
                     if (!dev->read_ut(dev)) {
                         return BARO_STATE_STEP_DELAY_US;    // bus is busy, try again shortly
                     }
@@ -341,6 +354,15 @@ uint32_t baroUpdate(bool *newSampleReady)
 
             case BARO_STATE_PRESSURE_READ:
                 if (dev->read_up) {
+                    if (dev->start_up && dev->busDev) {
+                        if (busIsBusy(dev->busDev, &busError)) {
+                            return BARO_STATE_STEP_DELAY_US;    // trigger write still in progress
+                        }
+                        if (busError) {
+                            state = BARO_STATE_PRESSURE_START;  // trigger write failed, redo the phase
+                            break;
+                        }
+                    }
                     if (!dev->read_up(dev)) {
                         return BARO_STATE_STEP_DELAY_US;    // bus is busy, try again shortly
                     }
