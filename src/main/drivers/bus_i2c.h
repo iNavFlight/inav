@@ -71,7 +71,7 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t*
 
 // Non-blocking transfers: start returns immediately (false if the bus is busy or the transfer could not be started),
 // completion and the result are polled with i2cBusy(). Platforms without an asynchronous driver complete the
-// transfer synchronously inside the start call and report the bus as idle.
+// transfer synchronously inside the start call, return true and let i2cBusy() report the bus as idle with the outcome.
 bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess);
 bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess);
 bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, const uint8_t *data, bool allowRawAccess);   // data must stay valid until i2cBusy() reports idle

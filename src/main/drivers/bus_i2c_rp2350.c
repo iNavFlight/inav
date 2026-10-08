@@ -78,6 +78,7 @@ static uint16_t i2cErrorCount = 0;
 typedef struct {
     i2c_inst_t *hw;
     bool        initialised;
+    i2cAddrResults_t addrResults;   // outcome of the last start call per slave, reported by i2cBusy()
 } rp2350_i2c_state_t;
 
 static rp2350_i2c_state_t i2cState[I2CDEV_COUNT];
@@ -216,28 +217,48 @@ bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len,
     return true;
 }
 
-// Non-blocking transfers are not implemented for this platform yet - complete them synchronously
+// Non-blocking transfers are not implemented for this platform yet - complete them synchronously. The start call
+// returns false only when nothing could be started (unusable device); a NACK or bus error is a finished, failed
+// transfer that i2cBusy() reports, the same as the interrupt driven drivers once the transfer is over
+static bool i2cStartUsable(I2CDevice device)
+{
+    return device >= 0 && device < I2CDEV_COUNT && i2cState[device].initialised;
+}
+
+static bool i2cTransferDone(I2CDevice device, uint8_t addr_, bool ok)
+{
+    i2cAddrResultSet(&i2cState[device].addrResults, addr_, !ok);
+    return true;
+}
+
 bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess)
 {
-    return i2cRead(device, addr_, reg, len, buf, allowRawAccess);
+    if (!i2cStartUsable(device)) {
+        return false;
+    }
+    return i2cTransferDone(device, addr_, i2cRead(device, addr_, reg, len, buf, allowRawAccess));
 }
 
 bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
 {
-    return i2cWriteBuffer(device, addr_, reg_, len_, data, allowRawAccess);
+    if (!i2cStartUsable(device)) {
+        return false;
+    }
+    return i2cTransferDone(device, addr_, i2cWriteBuffer(device, addr_, reg_, len_, data, allowRawAccess));
 }
 
 bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess)
 {
-    return i2cWrite(device, addr_, reg, data, allowRawAccess);
+    if (!i2cStartUsable(device)) {
+        return false;
+    }
+    return i2cTransferDone(device, addr_, i2cWrite(device, addr_, reg, data, allowRawAccess));
 }
 
 bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
 {
-    UNUSED(device);
-    UNUSED(addr_);
     if (error) {
-        *error = false;
+        *error = i2cStartUsable(device) ? i2cAddrResultFailed(&i2cState[device].addrResults, addr_) : true;
     }
     /* Blocking implementation - transfers complete before returning */
     return false;

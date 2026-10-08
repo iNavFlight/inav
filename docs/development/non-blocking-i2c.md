@@ -34,7 +34,7 @@ Every platform implements the same `drivers/bus_i2c.h` API:
 | STM32F4 | Own interrupt-driven engine in `bus_i2c_stm32f40x.c`, ported from the Betaflight `bus_i2c_stm32f4xx.c` driver. Blocking calls use the same engine and wait for it. |
 | STM32F7/H7 | `HAL_I2C_Mem_Read_IT()` and friends, completion through the `HAL_I2C_*CpltCallback()` / `HAL_I2C_ErrorCallback()` hooks. |
 | AT32F43x | `i2c_memory_read_int()` and friends from `i2c_application`. The library sends the slave and register address synchronously (tens of µs, bounded by the library timeout), only the data phase runs in the interrupt. A NACK in that address phase is reported like any other failed transfer: the start call returns `true` and `i2cBusy()` reports the error at once. |
-| RP2350, software I2C, SITL | Synchronous: the start call completes the transfer, `i2cBusy()` is always `false`. |
+| RP2350, software I2C, SITL | Synchronous: the start call completes the transfer and returns `true`, `i2cBusy()` is always `false` and carries the outcome. A NACK is a failed transfer, not a refused start. |
 
 `i2cWriteStart()` copies the data byte into driver-owned storage, the caller
 does not have to keep it alive. Buffers given to `i2cReadStart()` and

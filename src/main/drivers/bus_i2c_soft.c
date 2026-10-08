@@ -34,6 +34,7 @@
 static IO_t scl;
 static IO_t sda;
 static volatile uint16_t i2cErrorCount = 0;
+static i2cAddrResults_t addrResults;    // outcome of the last start call per slave, reported by i2cBusy(); one bus only
 
 #define SCL_H         IOHi(scl)
 #define SCL_L         IOLo(scl)
@@ -290,28 +291,35 @@ bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t *
     return true;
 }
 
-// Non-blocking transfers are not implemented for this platform yet - complete them synchronously
+// Non-blocking transfers are not implemented for this platform yet - complete them synchronously. A NACK or bus
+// error is a finished, failed transfer that i2cBusy() reports, the same as the interrupt driven drivers once the
+// transfer is over; the start call itself always succeeds
+static bool i2cTransferDone(uint8_t addr_, bool ok)
+{
+    i2cAddrResultSet(&addrResults, addr_, !ok);
+    return true;
+}
+
 bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf, bool allowRawAccess)
 {
-    return i2cRead(device, addr_, reg_, len, buf, allowRawAccess);
+    return i2cTransferDone(addr_, i2cRead(device, addr_, reg_, len, buf, allowRawAccess));
 }
 
 bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
 {
-    return i2cWriteBuffer(device, addr_, reg_, len_, data, allowRawAccess);
+    return i2cTransferDone(addr_, i2cWriteBuffer(device, addr_, reg_, len_, data, allowRawAccess));
 }
 
 bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, bool allowRawAccess)
 {
-    return i2cWrite(device, addr_, reg_, data, allowRawAccess);
+    return i2cTransferDone(addr_, i2cWrite(device, addr_, reg_, data, allowRawAccess));
 }
 
 bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
 {
     UNUSED(device);
-    UNUSED(addr_);
     if (error) {
-        *error = false;
+        *error = i2cAddrResultFailed(&addrResults, addr_);
     }
     // Blocking driver - a transfer is finished when the start call returns
     return false;
