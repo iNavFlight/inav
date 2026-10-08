@@ -23,10 +23,12 @@
  * i2cBusy(). A blocking call issued while a non-blocking transfer is in
  * progress waits for it to finish first, so the two can share a bus.
  *
- * The handlers never reinitialise the peripheral: an unstick clocks the bus
- * for up to a few ms and the I2C interrupts sit above the motor timers. A
- * transfer the handlers have to give up on flags the bus for a reset that
- * the next i2cBusy() or start call performs from task context.
+ * The handlers never wait on the bus or reinitialise the peripheral: the
+ * I2C interrupts sit above the motor timers and an unstick clocks the bus
+ * for up to a few ms. A transfer the handlers have to give up on flags the
+ * bus for a reset that the next i2cBusy() or start call performs from task
+ * context, a transfer that stops making progress is caught by the same
+ * calls through the progress timeout.
  */
 
 #include <stdbool.h>
@@ -51,8 +53,8 @@
 
 #ifndef SOFT_I2C
 
-// Upper bound for the short waits on START/STOP bit release inside the handlers.
-// Normally these clear within one SCL period; a longer wait means a stuck bus.
+// Upper bound for the START/STOP bit release waits in i2cServiceReset().
+// Normally these clear within one SCL period; a longer wait means a held bus.
 #define I2C_BIT_RELEASE_TIMEOUT_US  1000
 
 #define GPIO_AF_I2C GPIO_AF_I2C1
@@ -117,7 +119,7 @@ typedef struct {
     uint16_t    errorIrqs;      // error interrupts since boot
     uint16_t    lastTransferUs; // start to completion of the last transfer
     uint16_t    maxIrqUs;       // longest single event handler run
-    uint16_t    maxBitWaitUs;   // longest wait for a START / STOP bit release
+    uint16_t    maxBitWaitUs;   // longest wait for a START / STOP bit release in i2cServiceReset()
     uint16_t    startCr2;       // interrupt enables found in CR2 when a transfer was started, should be 0
     uint16_t    startCallUs;    // time spent in the last i2cStartTransfer() call
 } i2cDebugStats_t;
@@ -195,7 +197,7 @@ static bool i2cHandleHardwareFailure(I2CDevice device)
     return false;
 }
 
-// Wait for the hardware to release a CR1 control bit (START / STOP). Safe to call from the handlers.
+// Wait for the hardware to release a CR1 control bit (START / STOP). Task context only, the handlers never wait on the bus.
 static bool i2cWaitBitRelease(I2C_TypeDef *I2Cx, uint32_t cr1Mask)
 {
     const timeUs_t startUs = microsISR();
@@ -629,21 +631,14 @@ static void i2cEventHandlerBody(I2CDevice device)
                 state->index++;                                                 // to show that the job is complete
             }
             else {                                                              // We need to send a subaddress
+                // BTF stays set until the repeated START is out on the bus and EVT would re-enter the handler until
+                // then. SR1 was read above, so a DR read clears BTF now (RM0090 I2C_SR1.BTF) and in transmitter mode
+                // touches nothing else; the handler returns without waiting for the START. EV5 picks the transfer up
+                // when the START goes out, a START that never goes out (held bus) is caught by i2cTransferStuck()
+                (void)I2Cx->DR;
                 I2C_GenerateSTART(I2Cx, ENABLE);                                // program the repeated Start
                 state->subaddressSent = true;                                   // this is set back to zero upon completion of the current task
             }
-        }
-        // we must wait for the start to clear, otherwise we get constant BTF
-        if (!i2cWaitBitRelease(I2Cx, I2C_CR1_START)) {
-            // The repeated START did not go out, the bus is held. Give the transfer up here and leave the reset to
-            // i2cServiceReset(), an unstick is too long for a handler
-            I2C_ITConfig(I2Cx, I2C_IT_EVT | I2C_IT_ERR | I2C_IT_BUF, DISABLE);
-            i2cErrorCount++;
-            state->error = true;
-            state->needsReset = true;
-            i2cAddrResultSet(&busAddrResults[device], state->addr >> 1, true);
-            state->busy = false;
-            return;
         }
     }
     else if (SReg_1 & I2C_SR1_RXNE) {                                           // Byte received - EV7

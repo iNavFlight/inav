@@ -82,12 +82,17 @@ costs one short failed start per attempt and nothing more. The F4 driver
 never reinitialised on a NACK for blocking calls either; the HAL and AT32
 blocking calls keep reinitialising on failure, as before.
 
-The F4 handlers never reinitialise the peripheral themselves. The I2C
-interrupts sit above the motor timers and an unstick clocks the bus for up
-to a few ms, so a transfer the handler has to give up on (a bus error with a
-START still pending, a repeated START that does not go out within 1 ms) only
-flags the bus: the next `i2cBusy()` or start call on that bus finishes the
-cycle with a STOP and reinitialises the peripheral from task context.
+The F4 handlers never wait on the bus or reinitialise the peripheral
+themselves. The I2C interrupts sit above the motor timers and an unstick
+clocks the bus for up to a few ms, so a transfer the handler has to give up
+on (a bus error with a START still pending) only flags the bus: the next
+`i2cBusy()` or start call on that bus finishes the cycle with a STOP and
+reinitialises the peripheral from task context. The repeated START after the
+register address is programmed without waiting for it to go out: the handler
+clears BTF with a DR read (the ChibiOS I2Cv1 sequence) so the event interrupt
+does not re-enter until the START is on the bus and EV5 fires. A repeated
+START that never goes out on a held bus shows up as a stuck transfer through
+the progress timeout, like any other stalled phase.
 
 A bus that refuses every start as busy with no transfer of ours in flight
 (`HAL_BUSY` on F7/H7, `BUSYF` on the AT32) is a fault the stuck detection
