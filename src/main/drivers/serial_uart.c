@@ -309,5 +309,6 @@ const struct serialPortVTable uartVTable[] = {
         .endWrite = NULL,
         .isIdle = isUartIdle,
         .setRxBuffer = uartSetRxBuffer,
+        .release = uartRelease,
     }
 };

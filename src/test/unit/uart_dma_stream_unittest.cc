@@ -73,12 +73,12 @@ bool reserved(const board_t &b, int stream)
 }
 
 // Mirror of uartDmaStreamAvailable()
-bool available(const board_t &b, int stream, owner_e owner, int ownerIndex, int device)
+bool available(const board_t &b, int stream, owner_e owner)
 {
     if (reserved(b, stream)) {
         return false;
     }
-    return owner == OWNER_FREE || (owner == OWNER_SERIAL && ownerIndex == device);
+    return owner == OWNER_FREE;
 }
 
 // Four motor-capable outputs on streams 0-3, a LED pad on stream 4 (timer 2), stream 6 unmapped
@@ -114,8 +114,8 @@ TEST(UartDmaStream, StartedMotorsLeaveTheRestToOwnership)
         EXPECT_FALSE(reserved(b, s)) << "stream " << s;
     }
     // The started motors own their streams; an unused output's stream is free
-    EXPECT_FALSE(available(b, 0, OWNER_TIMER, 0, 5));
-    EXPECT_TRUE(available(b, 3, OWNER_FREE, 0, 5));
+    EXPECT_FALSE(available(b, 0, OWNER_TIMER));
+    EXPECT_TRUE(available(b, 3, OWNER_FREE));
 }
 
 TEST(UartDmaStream, MotorsOffDshotNeverReserveMotorStreams)
@@ -146,10 +146,10 @@ TEST(UartDmaStream, LedOutputModeReservesTheTimersPads)
 TEST(UartDmaStream, OwnershipStillDecidesFreeStreams)
 {
     const board_t b = board(false, false, true);
-    EXPECT_TRUE(available(b, 6, OWNER_FREE, 0, 5));
-    EXPECT_TRUE(available(b, 6, OWNER_SERIAL, 5, 5));
-    EXPECT_FALSE(available(b, 6, OWNER_SERIAL, 2, 5));
-    EXPECT_FALSE(available(b, 6, OWNER_TIMER, 0, 5));
+    EXPECT_TRUE(available(b, 6, OWNER_FREE));
+    // A port holds only the streams it runs on, this one's included: every stop gives its stream back
+    EXPECT_FALSE(available(b, 6, OWNER_SERIAL));
+    EXPECT_FALSE(available(b, 6, OWNER_TIMER));
 }
 
 /*
@@ -211,12 +211,12 @@ bool pwmIsDmaStreamReserved(DMA_t dma)
 )";
 
 const char *expectedAvailable = R"(
-static inline bool uartDmaStreamAvailable(DMA_t dma, UARTDevice_e device)
+static inline bool uartDmaStreamAvailable(DMA_t dma)
 {
     if (pwmIsDmaStreamReserved(dma)) {
         return false;
     }
-    return dmaGetOwner(dma) == OWNER_FREE || (dmaGetOwner(dma) == OWNER_SERIAL && dma->resourceIndex == RESOURCE_INDEX(device));
+    return dmaGetOwner(dma) == OWNER_FREE;
 }
 )";
 
@@ -274,7 +274,6 @@ struct dmaWorld_t {
     int unavailable[4];
     int usedElsewhere[2];
     int named[2];           // streams a target names for some port
-    int own[2];             // streams this port took before, at an earlier opening
 };
 
 bool listed(const int *list, int count, int stream)
@@ -307,20 +306,18 @@ uint32_t pick(uint32_t named, const uint32_t (*candidates)[2], int device, bool 
     if (rxCallback || halfDuplex) {
         return TAG_NONE;
     }
-    for (int pass = 0; pass < 2; pass++) {
-        for (int i = 0; i < 2; i++) {
-            const uint32_t t = candidates[device][i];
-            const int dma = streamOf(t);
-            if (t != TAG_NONE && dma >= 0 && dma != otherDirection && !listed(w.usedElsewhere, 2, dma) && !listed(w.named, 2, dma) &&
-                !listed(w.unavailable, 4, dma) && (pass || listed(w.own, 2, dma))) {
-                return t;
-            }
+    for (int i = 0; i < 2; i++) {
+        const uint32_t t = candidates[device][i];
+        const int dma = streamOf(t);
+        if (t != TAG_NONE && dma >= 0 && dma != otherDirection && !listed(w.usedElsewhere, 2, dma) && !listed(w.named, 2, dma) &&
+            !listed(w.unavailable, 4, dma)) {
+            return t;
         }
     }
     return TAG_NONE;
 }
 
-const dmaWorld_t freeWorld = { { -1, -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+const dmaWorld_t freeWorld = { { -1, -1, -1, -1 }, { -1, -1 }, { -1, -1 } };
 
 int s(int dma, int stream)
 {
@@ -332,7 +329,7 @@ int s(int dma, int stream)
 TEST(UartDmaPick, NamedStreamIsUsedOnlyWhenFree)
 {
     EXPECT_EQ(tag(1, 5, 4), pick(tag(1, 5, 4), rxCandidates, 1, false, false, -1, freeWorld));
-    const dmaWorld_t taken = { { s(1, 5), -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+    const dmaWorld_t taken = { { s(1, 5), -1, -1, -1 }, { -1, -1 }, { -1, -1 } };
     EXPECT_EQ(TAG_NONE, pick(tag(1, 5, 4), rxCandidates, 1, false, false, -1, taken));
     EXPECT_EQ(TAG_NONE, pick(TAG_NONE, rxCandidates, 1, false, false, -1, freeWorld));
 }
@@ -351,47 +348,30 @@ TEST(UartDmaPick, AutoLeavesReceiversAndHalfDuplexOnTheInterrupt)
 TEST(UartDmaPick, AutoTakesTheFirstFreeCandidate)
 {
     EXPECT_EQ(tag(2, 2, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, freeWorld));
-    const dmaWorld_t firstTaken = { { s(2, 2), -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+    const dmaWorld_t firstTaken = { { s(2, 2), -1, -1, -1 }, { -1, -1 }, { -1, -1 } };
     EXPECT_EQ(tag(2, 5, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, firstTaken));
-    const dmaWorld_t bothTaken = { { s(2, 2), s(2, 5), -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+    const dmaWorld_t bothTaken = { { s(2, 2), s(2, 5), -1, -1 }, { -1, -1 }, { -1, -1 } };
     EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, rxCandidates, 0, false, false, -1, bothTaken));
 }
 
 TEST(UartDmaPick, AutoNeverTakesAnEmptySecondCandidate)
 {
-    const dmaWorld_t taken = { { s(1, 5), -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { -1, -1 } };
+    const dmaWorld_t taken = { { s(1, 5), -1, -1, -1 }, { -1, -1 }, { -1, -1 } };
     EXPECT_EQ(TAG_NONE, pick(TAG_AUTO, rxCandidates, 1, false, false, -1, taken));
 }
 
 TEST(UartDmaPick, AutoNeverTakesAStreamAnotherPortNames)
 {
     // UART6 names DMA2 stream 2 for its receiver: UART1 moves on to stream 5 even when it opens first
-    const dmaWorld_t named = { { -1, -1, -1, -1 }, { -1, -1 }, { s(2, 2), -1 }, { -1, -1 } };
+    const dmaWorld_t named = { { -1, -1, -1, -1 }, { -1, -1 }, { s(2, 2), -1 } };
     EXPECT_EQ(tag(2, 5, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, named));
 }
 
 TEST(UartDmaPick, AutoSkipsTheOtherDirectionAndTheSdCard)
 {
     EXPECT_EQ(tag(2, 7, 5), pick(TAG_AUTO, txCandidates, 5, false, false, s(2, 6), freeWorld));
-    const dmaWorld_t sdcard = { { -1, -1, -1, -1 }, { s(2, 6), -1 }, { -1, -1 }, { -1, -1 } };
+    const dmaWorld_t sdcard = { { -1, -1, -1, -1 }, { s(2, 6), -1 }, { -1, -1 } };
     EXPECT_EQ(tag(2, 7, 5), pick(TAG_AUTO, txCandidates, 5, false, false, -1, sdcard));
-}
-
-TEST(UartDmaPick, AutoReopenedPortTakesBackItsOwnStream)
-{
-    // UART1 got stream 5 while 2 was busy; reopened with 2 free, it keeps 5 rather than holding both
-    const dmaWorld_t ownsSecond = { { -1, -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { s(2, 5), -1 } };
-    EXPECT_EQ(tag(2, 5, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, ownsSecond));
-}
-
-TEST(UartDmaPick, AutoOwnStreamStillYieldsToTheOtherDirectionAndReservations)
-{
-    // UART6 owns both send streams, its receiver now runs on one of them: the sender takes the other
-    const dmaWorld_t ownsBoth = { { -1, -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { s(2, 6), s(2, 7) } };
-    EXPECT_EQ(tag(2, 7, 5), pick(TAG_AUTO, txCandidates, 5, false, false, s(2, 6), ownsBoth));
-    // A stream it owned that is now reserved is passed over for a free one
-    const dmaWorld_t ownReserved = { { s(2, 2), -1, -1, -1 }, { -1, -1 }, { -1, -1 }, { s(2, 2), -1 } };
-    EXPECT_EQ(tag(2, 5, 4), pick(TAG_AUTO, rxCandidates, 0, false, false, -1, ownReserved));
 }
 
 namespace {
@@ -402,19 +382,17 @@ static inline dmaTag_t uartDmaPick(dmaTag_t named, const dmaTag_t (*candidates)[
 {
     if (named != DMA_TAG_AUTO) {
         const DMA_t dma = dmaGetByTag(named);
-        return (named != DMA_NONE && dma && uartDmaStreamAvailable(dma, device)) ? named : DMA_NONE;
+        return (named != DMA_NONE && dma && uartDmaStreamAvailable(dma)) ? named : DMA_NONE;
     }
     if (port->rxCallback || (port->options & SERIAL_BIDIR)) {
         return DMA_NONE;
     }
-    for (int pass = 0; pass < 2; pass++) {
-        for (int i = 0; i < UART_DMA_CANDIDATES; i++) {
-            const dmaTag_t tag = uartDmaCandidate(candidates, device, i);
-            const DMA_t dma = dmaGetByTag(tag);
-            if (tag != DMA_NONE && dma && dma != otherDirection && !uartDmaStreamUsedElsewhere(dma) && !uartDmaStreamNamed(dma) &&
-                uartDmaStreamAvailable(dma, device) && (pass || dmaGetOwner(dma) == OWNER_SERIAL)) {
-                return tag;
-            }
+    for (int i = 0; i < UART_DMA_CANDIDATES; i++) {
+        const dmaTag_t tag = uartDmaCandidate(candidates, device, i);
+        const DMA_t dma = dmaGetByTag(tag);
+        if (tag != DMA_NONE && dma && dma != otherDirection && !uartDmaStreamUsedElsewhere(dma) && !uartDmaStreamNamed(dma) &&
+            uartDmaStreamAvailable(dma)) {
+            return tag;
         }
     }
     UNUSED(candidates);
@@ -476,6 +454,15 @@ TEST(UartDmaStreamSourceSync, H7StreamListMatches)
 TEST(UartDmaStreamSourceSync, NamedMatches)
 {
     EXPECT_TRUE(liveSourceContains("serial_uart_impl.h", expectedNamed));
+}
+
+// Without it a closed or reopened port would keep a stream the pick above counts as taken
+TEST(UartDmaStreamSourceSync, EveryStopGivesItsStreamBack)
+{
+    for (const char *file : { "serial_uart_stm32f4xx.c", "serial_uart_stm32f7xx.c", "serial_uart_stm32h7xx.c", "serial_uart_at32f43x.c" }) {
+        EXPECT_TRUE(liveSourceContains(file, "uartDmaRelease(s->rxDma); s->rxDma = NULL;"));
+        EXPECT_TRUE(liveSourceContains(file, "uartDmaRelease(s->txDma); s->txDma = NULL;"));
+    }
 }
 
 TEST(UartDmaStreamSourceSync, PickMatchesMirror)

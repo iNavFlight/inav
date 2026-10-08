@@ -347,13 +347,14 @@ static volatile uint8_t * const uartRxDmaBuffer[UARTDEV_MAX] = {
 };
 #endif
 
-static void uartRxDmaStop(uartPort_t *s)
+void uartRxDmaStop(uartPort_t *s)
 {
     if (s->rxDma) {
         const uint32_t stream = DMATAG_GET_STREAM(s->rxDma->tag);  // LL_DMA_STREAM_n is n
         CLEAR_BIT(s->USARTx->CR3, USART_CR3_DMAR);
         LL_DMA_DisableStream(s->rxDma->dma, stream);
         while (LL_DMA_IsEnabledStream(s->rxDma->dma, stream));
+        uartDmaRelease(s->rxDma);
         s->rxDma = NULL;
     }
 }
@@ -446,6 +447,7 @@ void uartTxDmaStop(uartPort_t *s)
         LL_DMA_DisableStream(s->txDma->dma, stream);
         while (LL_DMA_IsEnabledStream(s->txDma->dma, stream));
         DMA_CLEAR_FLAG(s->txDma, UART_TX_DMA_FLAGS);
+        uartDmaRelease(s->txDma);
         s->txDma = NULL;
         s->txDmaCount = 0;
     }

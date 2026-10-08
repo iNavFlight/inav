@@ -254,12 +254,13 @@ static const dmaTag_t uartRxDmaTag[UARTDEV_MAX] = {
 #endif
 };
 
-static void uartRxDmaStop(uartPort_t *s)
+void uartRxDmaStop(uartPort_t *s)
 {
     if (s->rxDma) {
         USART_DMACmd(s->USARTx, USART_DMAReq_Rx, DISABLE);
         DMA_Cmd(s->rxDma->ref, DISABLE);
         while (DMA_GetCmdStatus(s->rxDma->ref) != DISABLE);
+        uartDmaRelease(s->rxDma);
         s->rxDma = NULL;
     }
 }
@@ -348,6 +349,7 @@ void uartTxDmaStop(uartPort_t *s)
         DMA_Cmd(s->txDma->ref, DISABLE);
         while (DMA_GetCmdStatus(s->txDma->ref) != DISABLE);
         DMA_CLEAR_FLAG(s->txDma, UART_TX_DMA_FLAGS);
+        uartDmaRelease(s->txDma);
         s->txDma = NULL;
         s->txDmaCount = 0;
     }

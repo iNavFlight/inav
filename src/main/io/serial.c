@@ -445,6 +445,8 @@ void closeSerialPort(serialPort_t *serialPort)
     // TODO wait until data has been transmitted.
 
     serialPort->rxCallback = NULL;
+    // A stream would go on filling a ring nobody reads, and stay out of reach of the ports opened later
+    serialRelease(serialPort);
 
     serialPortUsage->function = FUNCTION_NONE;
     serialPortUsage->serialPort = NULL;

@@ -403,11 +403,12 @@ static const uartRxDmaConfig_t uartRxDmaConfig[UARTDEV_MAX] = {
 #endif
 };
 
-static void uartRxDmaStop(uartPort_t *s)
+void uartRxDmaStop(uartPort_t *s)
 {
     if (s->rxDma) {
         usart_dma_receiver_enable(s->USARTx, FALSE);
         dma_channel_enable(s->rxDma->ref, FALSE);
+        uartDmaRelease(s->rxDma);
         s->rxDma = NULL;
     }
 }
@@ -499,6 +500,7 @@ void uartTxDmaStop(uartPort_t *s)
         dma_interrupt_enable(s->txDma->ref, UART_TX_DMA_ENDED, FALSE);
         dma_channel_enable(s->txDma->ref, FALSE);
         DMA_CLEAR_FLAG(s->txDma, UART_TX_DMA_FLAGS);
+        uartDmaRelease(s->txDma);
         s->txDma = NULL;
         s->txDmaCount = 0;
     }
