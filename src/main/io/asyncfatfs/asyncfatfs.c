@@ -254,6 +254,7 @@ typedef struct afatfsFreeSpaceFAT_t {
     uint32_t startCluster;
     uint32_t endCluster;
     uint32_t blockEnd;      // the chain is written, or freed, up to here before the next step
+    uint32_t fillEnd;       // the block's FAT is written back from its end, and is done up to here
     uint32_t shrinkFirst;   // the old freefile's first cluster, while it is given back
     uint32_t shrinkCluster; // the first cluster of the tail being freed
     bool fromSearch;        // chosen by the FAT search: nothing larger exists, so the init ends with it
@@ -3626,6 +3627,7 @@ static void afatfs_freeFileGrowNextBlock(void)
     }
 
     afatfs.initState.freeSpaceFAT.blockEnd = MIN(afatfs.initState.freeSpaceFAT.startCluster + step, afatfs.initState.freeSpaceFAT.endCluster);
+    afatfs.initState.freeSpaceFAT.fillEnd = afatfs.initState.freeSpaceFAT.blockEnd;
     afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_GROW_FAT;
 }
 
@@ -3787,15 +3789,28 @@ static NOINLINE void afatfs_initContinue(void)
         }
         break;
         case AFATFS_INITIALIZATION_FREEFILE_GROW_FAT:
-            // Chain the new clusters before linking them: a power cut never leaves a chain into free ones
-            status = afatfs_FATFillWithPattern(AFATFS_FAT_PATTERN_TERMINATED_CHAIN, &afatfs.initState.freeSpaceFAT.startCluster, afatfs.initState.freeSpaceFAT.blockEnd);
+            // Chain the new clusters before linking them, one FAT sector at a time from the block's end, each on the
+            // card before the one before it: a power cut leaves chains that end in a terminator, never in a free cluster
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                const uint32_t fillEnd = afatfs.initState.freeSpaceFAT.fillEnd;
+                const uint32_t fillStart = MAX(afatfs.initState.freeSpaceFAT.startCluster, (fillEnd - 1) & ~(afatfs_fatEntriesPerSector() - 1));
+                const afatfsFATPattern_e pattern = fillEnd == afatfs.initState.freeSpaceFAT.blockEnd
+                    ? AFATFS_FAT_PATTERN_TERMINATED_CHAIN : AFATFS_FAT_PATTERN_UNTERMINATED_CHAIN;
+                uint32_t fillCluster = fillStart;
 
-            if (status == AFATFS_OPERATION_SUCCESS) {
-                afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_GROW_LINK;
-                goto doMore;
-            } else if (status == AFATFS_OPERATION_FAILURE) {
-                afatfs.lastError = AFATFS_ERROR_GENERIC;
-                afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                status = afatfs_FATFillWithPattern(pattern, &fillCluster, fillEnd);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    afatfs.initState.freeSpaceFAT.fillEnd = fillStart;
+                    if (fillStart == afatfs.initState.freeSpaceFAT.startCluster) {
+                        afatfs.initState.freeSpaceFAT.startCluster = afatfs.initState.freeSpaceFAT.blockEnd;
+                        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_GROW_LINK;
+                    }
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
             }
         break;
         case AFATFS_INITIALIZATION_FREEFILE_GROW_LINK:
@@ -3920,11 +3935,16 @@ static NOINLINE void afatfs_initContinue(void)
             }
         break;
         case AFATFS_INITIALIZATION_FREEFILE_SHRINK_FREE:
-            // The chain is cut on the card before its tail is freed
+            // The chain is cut on the card before its tail is freed, one FAT sector at a time from the front:
+            // a multiple-sector write may erase the sectors after the one it stopped at, under entries still chained
             if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
-                status = afatfs_FATFillWithPattern(AFATFS_FAT_PATTERN_FREE, &afatfs.initState.freeSpaceFAT.shrinkCluster, afatfs.initState.freeSpaceFAT.blockEnd);
+                const uint32_t fillEnd = MIN(afatfs.initState.freeSpaceFAT.blockEnd, (afatfs.initState.freeSpaceFAT.shrinkCluster | (afatfs_fatEntriesPerSector() - 1)) + 1);
 
-                if (status == AFATFS_OPERATION_SUCCESS) {
+                status = afatfs_FATFillWithPattern(AFATFS_FAT_PATTERN_FREE, &afatfs.initState.freeSpaceFAT.shrinkCluster, fillEnd);
+
+                if (status == AFATFS_OPERATION_SUCCESS && afatfs.initState.freeSpaceFAT.shrinkCluster < afatfs.initState.freeSpaceFAT.blockEnd) {
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_SUCCESS) {
                     if (afatfs.freeFile.logicalSize > 0) {
                         afatfs_freeFileShrinkNextBlock();
                     } else {
