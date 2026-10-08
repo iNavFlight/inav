@@ -281,7 +281,7 @@ typedef struct afatfsRefill_t {
     bool regularFull;   // A regular cluster allocation found no free cluster
     uint32_t blockStart;
     uint32_t claimStart;  // First cluster to claim
-    uint32_t claimCursor;
+    uint32_t claimCursor; // Searched up to here, then chained back from claimEnd down to here
     uint32_t claimEnd;    // One beyond the last cluster claimed
 } afatfsRefill_t;
 #endif
@@ -4129,7 +4129,7 @@ static NOINLINE void afatfs_freeFileRefillPoll(void)
 
                     if (clusters > MAX(oldClusters, fatEntriesPerSector)) {
                         refill->claimEnd = base + clusters;
-                        refill->claimCursor = refill->claimStart;
+                        refill->claimCursor = refill->claimEnd;
                         refill->phase = AFATFS_REFILL_CLAIM_UPDATE_FAT;
                     } else {
                         if (refill->moving) {
@@ -4153,15 +4153,26 @@ static NOINLINE void afatfs_freeFileRefillPoll(void)
         }
         break;
         case AFATFS_REFILL_CLAIM_UPDATE_FAT:
-            // Chain the claimed clusters before linking them: a power cut never leaves a chain into free ones
-            status = afatfs_FATFillWithPattern(AFATFS_FAT_PATTERN_TERMINATED_CHAIN, &refill->claimCursor, refill->claimEnd);
+            // Chain the claimed clusters before linking them, one FAT sector at a time from the end, each on the card
+            // before the one before it: a power cut leaves chains that end in a terminator, never in a free cluster
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                const uint32_t fillStart = MAX(refill->claimStart, (refill->claimCursor - 1) & ~(fatEntriesPerSector - 1));
+                const afatfsFATPattern_e pattern = refill->claimCursor == refill->claimEnd
+                    ? AFATFS_FAT_PATTERN_TERMINATED_CHAIN : AFATFS_FAT_PATTERN_UNTERMINATED_CHAIN;
+                uint32_t fillCluster = fillStart;
 
-            if (status == AFATFS_OPERATION_SUCCESS) {
-                // They are marked in the FAT now
-                refill->claiming = false;
-                refill->phase = refill->moving ? AFATFS_REFILL_CLAIM_SAVE_DIR_ENTRY : AFATFS_REFILL_CLAIM_LINK;
-            } else if (status == AFATFS_OPERATION_FAILURE) {
-                afatfs_freeFileRefillGiveUp();
+                status = afatfs_FATFillWithPattern(pattern, &fillCluster, refill->claimCursor);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    refill->claimCursor = fillStart;
+                    if (fillStart == refill->claimStart) {
+                        // They are marked in the FAT now
+                        refill->claiming = false;
+                        refill->phase = refill->moving ? AFATFS_REFILL_CLAIM_SAVE_DIR_ENTRY : AFATFS_REFILL_CLAIM_LINK;
+                    }
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs_freeFileRefillGiveUp();
+                }
             }
         break;
         case AFATFS_REFILL_CLAIM_LINK:
