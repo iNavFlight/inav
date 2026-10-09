@@ -4180,7 +4180,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Fixed 8-byte reply carrying one 64-bit mask as two `uint32_t` halves, low half first. Only the first `MIN(MAX_LOGIC_CONDITIONS, 64)` bits are evaluated. A condition counts as configured when any of `enabled`, `activatorId` (default -1), `operation`, `operandA.type`, `operandA.value`, `operandB.type`, `operandB.value` or `flags` differs from its default.
 
 ## <a id="msp2_inav_esc_rpm"></a>`MSP2_INAV_ESC_RPM (8256 / 0x2040)`
-**Description:** Retrieves the RPM reported by each ESC via telemetry.  
+**Description:** Retrieves the RPM and telemetry link quality reported by each ESC.  
 
 **Request Payload:** **None**  
   
@@ -4188,8 +4188,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
 | `escRpm` | `uint32_t` | 4 | RPM | RPM reported by the ESC |
+| `frameSuccess` | `uint8_t` | 1 | % | Share of telemetry replies decoded in the last closed window. 255 when no reply was expected in that window |
+| `frameTotal` | `uint16_t` | 2 | frames | Telemetry replies expected in the last closed window, missing ones included |
 
-**Notes:** Requires `USE_ESC_SENSOR`. Payload size depends on the number of detected motors with telemetry.
+**Notes:** Requires `USE_ESC_SENSOR` or `USE_DSHOT_BIDIR`. 7 bytes per motor, `getMotorCount()` entries. Source follows the RPM filter: bidirectional DSHOT when `isDshotTelemetryActive()`, serial ESC telemetry otherwise. The frame statistics come from fixed back-to-back windows of `ESC_FRAME_WINDOW_MS` (1 s), so they change once per window. A reply counts as missing when the ESC stays silent, fails CRC/GCR decoding or (serial) times out. Sources without frame counting (SRXL2) always report 255 / 0.
 
 ## <a id="msp2_inav_esc_telem"></a>`MSP2_INAV_ESC_TELEM (8257 / 0x2041)`
 **Description:** Retrieves the full telemetry data structure reported by each ESC.  

@@ -37,6 +37,7 @@
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/pwm_mapping.h"
 
 #include "sensors/sensors.h"
@@ -593,6 +594,17 @@ bool emergInflightRearmEnabled(void)
     return false;   // craft doesn't appear to be flying, don't allow emergency rearm
 }
 
+#ifdef USE_DSHOT_BIDIR
+// As in Betaflight: the ESC sends EDT frames only after being asked and forgets it on power-up,
+// so ask on every arm, while the motors are still stopped and the ESC accepts commands
+static void requestDshotExtendedTelemetry(void)
+{
+    if (isDshotTelemetryActive() && motorConfig()->useDshotEdt) {
+        sendDShotCommand(DSHOT_CMD_EXTENDED_TELEMETRY_ENABLE);
+    }
+}
+#endif
+
 void tryArm(void)
 {
     updateArmingStatus();
@@ -608,6 +620,9 @@ void tryArm(void)
     const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE);
 #endif
     if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
+#ifdef USE_DSHOT_BIDIR
+        requestDshotExtendedTelemetry();
+#endif
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_FLIGHT_MODE(TURTLE_MODE);
@@ -633,6 +648,9 @@ void tryArm(void)
 
         lastDisarmReason = DISARM_NONE;
 
+#ifdef USE_DSHOT_BIDIR
+        requestDshotExtendedTelemetry();
+#endif
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction
