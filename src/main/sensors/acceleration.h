@@ -47,7 +47,10 @@ typedef enum {
     ACC_ICM45686,
     ACC_ICM40609D,
     ACC_FAKE,
-    ACC_MAX = ACC_FAKE
+    // New sensors go after ACC_FAKE: acc_hardware is persisted (and AUTO is
+    // replaced by the detected value), so existing values must not shift.
+    ACC_ICM56686,
+    ACC_MAX = ACC_ICM56686
 } accelerationSensor_e;
 
 typedef struct {

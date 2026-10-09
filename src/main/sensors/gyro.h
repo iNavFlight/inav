@@ -45,7 +45,10 @@ typedef enum {
     GYRO_LSM6DXX,
     GYRO_ICM45686,
     GYRO_ICM40609D,
-    GYRO_FAKE
+    GYRO_FAKE,
+    // New sensors go after GYRO_FAKE to keep existing values (reported over
+    // MSP/blackbox) stable; keep in sync with accelerationSensor_e.
+    GYRO_ICM56686
 } gyroSensor_e;
 
 typedef enum {
