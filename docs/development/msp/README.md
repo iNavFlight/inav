@@ -357,6 +357,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [4109 - MSP2_COMMON_SET_MSP_RC_LINK_STATS](#msp2_common_set_msp_rc_link_stats)  
 [4110 - MSP2_COMMON_SET_MSP_RC_INFO](#msp2_common_set_msp_rc_info)  
 [4111 - MSP2_COMMON_GET_RADAR_GPS](#msp2_common_get_radar_gps)  
+[4112 - MSP2_COMMON_SERIAL_INJECT](#msp2_common_serial_inject)  
 [7937 - MSP2_SENSOR_RANGEFINDER](#msp2_sensor_rangefinder)  
 [7938 - MSP2_SENSOR_OPTIC_FLOW](#msp2_sensor_optic_flow)  
 [7939 - MSP2_SENSOR_GPS](#msp2_sensor_gps)  
@@ -3039,6 +3040,19 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `poiAltitude` | `int32_t` | 4 | cm | Altitude of a radar POI |
 
 **Notes:** Returns the stored GPS coordinates for all radar POIs (`radar_pois[i].gps`).
+
+## <a id="msp2_common_serial_inject"></a>`MSP2_COMMON_SERIAL_INJECT (4112 / 0x1010)`
+**Description:** Feeds raw bytes into an open serial port's receive path, as if they had arrived on the wire.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `identifier` | `uint8_t` | 1 | [serialPortIdentifier_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-serialportidentifier_e) | Port identifier Enum (`serialPortIdentifier_e`), as reported by `MSP2_COMMON_SERIAL_CONFIG` |
+| `data` | `uint8_t[]` | array | - | Raw bytes delivered to the port's receive path, as if received on the wire |
+
+**Reply Payload:** **None**  
+
+**Notes:** All or nothing: returns error if the port is unknown or not open, does not receive, has no software RX buffer (USB VCP), reads through an RX callback, or its RX buffer cannot take the whole block. Ports with an RX callback (serial RC receivers, the CRSF sensor port, the serial head tracker) are refused because their parsers run in interrupt context and must not be fed RC frames over MSP. At most 191 data bytes per message: `MSP_PORT_INBUF_SIZE` is 192 including the identifier, and a larger frame is dropped by the MSP parser without a reply. Meant for a port with nothing connected: bytes from a live sender would interleave with the injected ones or be lost. Everything after the identifier is payload, so this message cannot gain fields; a future variant needs a new message ID. An empty `data` only checks that the port can be fed.
 
 ## <a id="msp2_sensor_rangefinder"></a>`MSP2_SENSOR_RANGEFINDER (7937 / 0x1f01)`
 **Description:** Provides rangefinder data (distance, quality) from an external MSP-based sensor.  
