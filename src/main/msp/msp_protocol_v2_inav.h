@@ -165,3 +165,5 @@
 // command keeps its number, an unmerged one has no claim on it.
 #define MSP2_INAV_ESC_SRXL2_STATUS              0x2233
 #define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2234
+
+#define MSP2_INAV_MAG_LEARN                     0x2235  //out message  in-flight compass offset learning: state of the current or last flight

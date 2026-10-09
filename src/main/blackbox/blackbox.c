@@ -79,6 +79,7 @@
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
 #include "sensors/compass.h"
+#include "sensors/compass_learn.h"
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
@@ -118,7 +119,7 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
         BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
         BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND |
-        BLACKBOX_FEATURE_MOTORS | BLACKBOX_FEATURE_SERVOS,
+        BLACKBOX_FEATURE_MOTORS | BLACKBOX_FEATURE_SERVOS | BLACKBOX_FEATURE_MAG_LEARN,
 );
 
 void blackboxIncludeFlagSet(uint32_t mask)
@@ -542,6 +543,14 @@ static const blackboxConditionalFieldDefinition_t blackboxSlowFields[] = {
     {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
     {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
+#ifdef USE_MAG_LEARN
+    {"magBias",                0, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBias",                1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBias",                2, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasFlags",          -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasSectors",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasSpread",         -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
+#endif
 };
 
 #define BLACKBOX_FIRST_HEADER_SENDING_STATE BLACKBOX_STATE_SEND_HEADER
@@ -660,6 +669,9 @@ typedef struct blackboxSlowState_s {
     uint8_t activeWpNumber;
 #ifdef USE_DRONECAN
     uint32_t droneCANBusOffCount;
+#endif
+#ifdef USE_MAG_LEARN
+    magLearnStatus_t magLearn;
 #endif
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
@@ -885,6 +897,11 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW:
         return blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_PEAKS_YAW);
+
+#ifdef USE_MAG_LEARN
+    case FLIGHT_LOG_FIELD_CONDITION_MAG_LEARN:
+        return sensors(SENSOR_MAG) && compassConfig()->magLearn && blackboxIncludeFlag(BLACKBOX_FEATURE_MAG_LEARN);
+#endif
 
     case FLIGHT_LOG_FIELD_CONDITION_NEVER:
         return false;
@@ -1483,6 +1500,15 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.droneCANBusOffCount);
 #endif
 
+#ifdef USE_MAG_LEARN
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MAG_LEARN)) {
+        blackboxWriteSigned16VBArray(slowHistory.magLearn.delta, XYZ_AXIS_COUNT);
+        blackboxWriteUnsignedVB(slowHistory.magLearn.flags);
+        blackboxWriteUnsignedVB(slowHistory.magLearn.sectors);
+        blackboxWriteUnsignedVB(slowHistory.magLearn.spread);
+    }
+#endif
+
     blackboxSlowFrameIterationTimer = 0;
 }
 
@@ -1586,6 +1612,14 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #ifdef USE_TERRAIN
     slow->terrainAGL = terrainGetLastDistanceCm();
     slow->terrainAMSL = terrainGetLastAMSL();
+#endif
+#ifdef USE_MAG_LEARN
+    // Zero when not logged, or the state changing underneath would still trigger slow frames
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MAG_LEARN)) {
+        slow->magLearn = magLearnStatus;
+    } else {
+        memset(&slow->magLearn, 0, sizeof(slow->magLearn));
+    }
 #endif
 }
 
@@ -2150,6 +2184,12 @@ static bool blackboxWriteSysinfo(void)
 #endif
 #ifdef USE_MAG
         BLACKBOX_PRINT_HEADER_LINE("mag_hardware", "%d",                    compassConfig()->mag_hardware);
+#ifdef USE_MAG_LEARN
+        BLACKBOX_PRINT_HEADER_LINE("mag_learn", "%d",                       compassConfig()->magLearn);
+        BLACKBOX_PRINT_HEADER_LINE("mag_zero", "%d,%d,%d",                  compassConfig()->magZero.raw[X],
+                                                                            compassConfig()->magZero.raw[Y],
+                                                                            compassConfig()->magZero.raw[Z]);
+#endif
 #else
         BLACKBOX_PRINT_HEADER_LINE("mag_hardware", "%d",                    MAG_NONE);
 #endif

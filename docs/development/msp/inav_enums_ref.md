@@ -195,6 +195,7 @@
 - [ltm_frame_e](#enum-ltm_frame_e)
 - [ltm_modes_e](#enum-ltm_modes_e)
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
+- [magLearnFlags_e](#enum-maglearnflags_e)
 - [magSensor_e](#enum-magsensor_e)
 - [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
 - [mavlinkFcDispatchResult_e](#enum-mavlinkfcdispatchresult_e)
@@ -1060,6 +1061,7 @@
 | `BLACKBOX_FEATURE_GYRO_PEAKS_PITCH` | 1 << 11 |  |
 | `BLACKBOX_FEATURE_GYRO_PEAKS_YAW` | 1 << 12 |  |
 | `BLACKBOX_FEATURE_SERVOS` | 1 << 13 |  |
+| `BLACKBOX_FEATURE_MAG_LEARN` | 1 << 14 |  |
 
 ---
 ## <a id="enum-blackboxstate"></a>`BlackboxState`
@@ -2247,7 +2249,8 @@
 | `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL` | 64 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH` | 65 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW` | 66 |  |
-| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 67 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_MAG_LEARN` | 67 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 68 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_FIRST` | FLIGHT_LOG_FIELD_CONDITION_ALWAYS |  |
 | `FLIGHT_LOG_FIELD_CONDITION_LAST` | FLIGHT_LOG_FIELD_CONDITION_NEVER |  |
 
@@ -3808,6 +3811,24 @@
 | `LTM_RATE_NORMAL` | 0 |  |
 | `LTM_RATE_MEDIUM` | 1 |  |
 | `LTM_RATE_SLOW` | 2 |  |
+
+---
+## <a id="enum-maglearnflags_e"></a>`magLearnFlags_e`
+
+> Source: src/main/sensors/compass_learn.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MAG_LEARN_COLLECTING` | 1 << 0 |  |
+| `MAG_LEARN_PAUSED` | 1 << 1 |  |
+| `MAG_LEARN_SAVE_DUE` | 1 << 4 |  |
+| `MAG_LEARN_FEW_SECTORS` | 1 << 5 |  |
+| `MAG_LEARN_FEW_HEADINGS` | 1 << 6 |  |
+| `MAG_LEARN_NOT_SPHERE` | 1 << 7 |  |
+| `MAG_LEARN_OFF_SCALE` | 1 << 8 |  |
+| `MAG_LEARN_STEP_TOO_BIG` | 1 << 9 |  |
+| `MAG_LEARN_SAVED` | 1 << 10 |  |
+| `MAG_LEARN_DISARMED_FLYING` | 1 << 11 |  |
 
 ---
 ## <a id="enum-magsensor_e"></a>`magSensor_e`
