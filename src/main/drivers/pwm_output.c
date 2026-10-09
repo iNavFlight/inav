@@ -497,7 +497,7 @@ static uint8_t getBurstDmaTimerIndex(TIM_TypeDef *timer)
 // The CC1..CC4 DMA request bits sit next to each other in DIER on every supported MCU
 static uint32_t dshotDmaSource(const pwmOutputPort_t *port)
 {
-#if defined(USE_HAL_DRIVER) || !defined(AT32F43x)
+#if !defined(AT32F43x)
     STATIC_ASSERT(TIM_DMA_CC2 == TIM_DMA_CC1 << 1 && TIM_DMA_CC4 == TIM_DMA_CC1 << 3, tim_dma_cc_bits_adjacent);
     return TIM_DMA_CC1 << port->tch->timHw->channelIndex;
 #else
@@ -506,31 +506,22 @@ static uint32_t dshotDmaSource(const pwmOutputPort_t *port)
 #endif
 }
 
-#if defined(USE_HAL_DRIVER)
-static uint32_t dshotDmaStream(const pwmOutputPort_t *port)
+#if !defined(AT32F43x)
+// Per-channel DMA request bit in DIER; the LL and SPL drivers only offer fixed-channel variants
+static inline void dshotDmaReqEnable(TIM_TypeDef *tim, uint32_t dmaSource)
 {
-    STATIC_ASSERT(LL_DMA_STREAM_0 == 0 && LL_DMA_STREAM_7 == 7, ll_dma_stream_is_index);
-    return DMATAG_GET_STREAM(port->tch->timHw->dmaTag);
+    SET_BIT(tim->DIER, dmaSource);
 }
 
-// The LL driver only exposes per-channel LL_TIM_{En,Dis}ableDMAReq_CC1..CC4;
-// there is no runtime-channel variant, so set/clear the DIER bit directly.
-static inline void LL_TIM_EnableDMAReq_CCx(TIM_TypeDef *TIMx, uint16_t dmaSources)
+static inline void dshotDmaReqDisable(TIM_TypeDef *tim, uint32_t dmaSource)
 {
-    SET_BIT(TIMx->DIER, dmaSources & (TIM_DMA_CC1 | TIM_DMA_CC2 | TIM_DMA_CC3 | TIM_DMA_CC4));
+    CLEAR_BIT(tim->DIER, dmaSource);
 }
 
-static inline void LL_TIM_DisableDMAReq_CCx(TIM_TypeDef *TIMx, uint16_t dmaSources)
-{
-    CLEAR_BIT(TIMx->DIER, dmaSources & (TIM_DMA_CC1 | TIM_DMA_CC2 | TIM_DMA_CC3 | TIM_DMA_CC4));
-}
-#endif
-
-#if defined(USE_HAL_DRIVER)
 // Register slices of this port's timer channel for the direction switch: the channel's
 // byte in CCMR1/CCMR2 and its nibble in CCER. Derived on the fly, the shifts cost a few cycles.
 typedef struct {
-    volatile uint32_t *ccmr;
+    __typeof__(((TIM_TypeDef *)0)->CCMR1) *ccmr;   // CCMRx is 16 bits wide on F4, 32 on F7/H7
     uint32_t ccmrShift;
     uint32_t ccmrMask;      // the channel's byte plus its OCxM[3] bit
     uint32_t ccerShift;
@@ -544,7 +535,11 @@ static dshotChannelRegs_t dshotChannelRegs(const pwmOutputPort_t *port)
     dshotChannelRegs_t regs;
     regs.ccmr = (channelIndex < 2) ? &tim->CCMR1 : &tim->CCMR2;
     regs.ccmrShift = 8 * (channelIndex & 1);
-    regs.ccmrMask = (0xFF | TIM_CCMR1_OC1M_3) << regs.ccmrShift;
+    regs.ccmrMask = 0xFF << regs.ccmrShift;
+#ifdef TIM_CCMR1_OC1M_3
+    // F7/H7 keep a fourth OCxM bit outside the channel byte; F4 has none
+    regs.ccmrMask |= TIM_CCMR1_OC1M_3 << regs.ccmrShift;
+#endif
     regs.ccerShift = 4 * channelIndex;
     regs.ccerMask = 0xF << regs.ccerShift;
     return regs;
@@ -560,13 +555,8 @@ static dshotChannelRegs_t dshotChannelRegs(const pwmOutputPort_t *port)
 // The channel identifiers are evenly spaced, so channelIndex maps onto them linearly
 static uint32_t dshotTimChannel(const pwmOutputPort_t *port)
 {
-#if defined(AT32F43x)
     STATIC_ASSERT(TMR_SELECT_CHANNEL_4 == TMR_SELECT_CHANNEL_1 + 3 * (TMR_SELECT_CHANNEL_2 - TMR_SELECT_CHANNEL_1), tmr_channel_ids_linear);
     return TMR_SELECT_CHANNEL_1 + port->tch->timHw->channelIndex * (TMR_SELECT_CHANNEL_2 - TMR_SELECT_CHANNEL_1);
-#else
-    STATIC_ASSERT(TIM_Channel_4 == TIM_Channel_1 + 3 * (TIM_Channel_2 - TIM_Channel_1), tim_channel_ids_linear);
-    return TIM_Channel_1 + port->tch->timHw->channelIndex * (TIM_Channel_2 - TIM_Channel_1);
-#endif
 }
 #endif
 
@@ -635,7 +625,7 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     // channel's normal polarity whenever telemetry is active, matching Betaflight.
     const bool inverted = ((port->tch->timHw->output & TIMER_OUTPUT_INVERTED) != 0) ^ useDshotTelemetry;
 
-#if defined(USE_HAL_DRIVER)
+#if !defined(AT32F43x)
     // Telemetry input capture widens ARR to 0xffff (see pwmDshotSetDirectionInput);
     // restore the DSHOT bit period now, bypassing the ARR preload shadow so it
     // takes effect immediately instead of after the next update event.
@@ -670,7 +660,7 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     DMA_CLEAR_FLAG(port->tch->dma, DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_TEIF | DMA_IT_DMEIF | DMA_IT_FEIF);
     stream->CR = (stream->CR & ~(DMA_SxCR_DIR | DMA_SxCR_EN)) | DMA_SxCR_DIR_0;
     port->telemetryInputActive = false;
-#elif defined(AT32F43x)
+#else
     // Telemetry input capture widens the period to 0xffff (see pwmDshotSetDirectionInput);
     // restore the DSHOT bit period now, bypassing the period buffer so it takes effect
     // immediately, and reset the counter so a stale count above the new period doesn't
@@ -701,43 +691,12 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     port->tch->dma->ref->maddr = (uint32_t)port->dmaBuffer;
     port->tch->dma->ref->dtcnt = DSHOT_DMA_BUFFER_SIZE;
     port->telemetryInputActive = false;
-#else
-    TIM_ARRPreloadConfig(port->tch->timHw->tim, DISABLE);
-    TIM_SetAutoreload(port->tch->timHw->tim, DSHOT_MOTOR_BITLENGTH - 1);
-    TIM_ARRPreloadConfig(port->tch->timHw->tim, ENABLE);
-    TIM_SetCounter(port->tch->timHw->tim, 0);
-    TIM_OCInitTypeDef init;
-    TIM_OCStructInit(&init);
-    init.TIM_OCMode = TIM_OCMode_PWM1;
-    init.TIM_Pulse = 0;
-    if (port->tch->timHw->output & TIMER_OUTPUT_N_CHANNEL) {
-        init.TIM_OutputState = TIM_OutputState_Disable;
-        init.TIM_OutputNState = TIM_OutputNState_Enable;
-        init.TIM_OCNPolarity = inverted ? TIM_OCPolarity_Low : TIM_OCPolarity_High;
-        init.TIM_OCNIdleState = TIM_OCIdleState_Reset;
-    } else {
-        init.TIM_OutputState = TIM_OutputState_Enable;
-        init.TIM_OutputNState = TIM_OutputNState_Disable;
-        init.TIM_OCPolarity = inverted ? TIM_OCPolarity_Low : TIM_OCPolarity_High;
-        init.TIM_OCIdleState = TIM_OCIdleState_Set;
-    }
-    switch (port->tch->timHw->channelIndex) {
-    case 0: TIM_OC1Init(port->tch->timHw->tim, &init); TIM_OC1PreloadConfig(port->tch->timHw->tim, TIM_OCPreload_Enable); break;
-    case 1: TIM_OC2Init(port->tch->timHw->tim, &init); TIM_OC2PreloadConfig(port->tch->timHw->tim, TIM_OCPreload_Enable); break;
-    case 2: TIM_OC3Init(port->tch->timHw->tim, &init); TIM_OC3PreloadConfig(port->tch->timHw->tim, TIM_OCPreload_Enable); break;
-    default: TIM_OC4Init(port->tch->timHw->tim, &init); TIM_OC4PreloadConfig(port->tch->timHw->tim, TIM_OCPreload_Enable); break;
-    }
-    DMA_Cmd(port->tch->dma->ref, DISABLE);
-    port->tch->dma->ref->CR = (port->tch->dma->ref->CR & ~(DMA_DIR_MemoryToPeripheral | DMA_DIR_MemoryToMemory)) | DMA_DIR_MemoryToPeripheral;
-    port->tch->dma->ref->M0AR = (uint32_t)port->dmaBuffer;
-    DMA_SetCurrDataCounter(port->tch->dma->ref, DSHOT_DMA_BUFFER_SIZE);
-    port->telemetryInputActive = false;
 #endif
 }
 
 FAST_CODE static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
 {
-#if defined(USE_HAL_DRIVER)
+#if !defined(AT32F43x)
     // Runs in the DMA completion ISR for every motor in turn, so it only writes registers:
     // no HAL/LL init calls, and the stream is reconfigured in place (hardware clears its EN
     // bit at end of transfer, the wait below only covers the flag/EN ordering).
@@ -780,8 +739,8 @@ FAST_CODE static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
     stream->CR = cr;
     stream->NDTR = GCR_TELEMETRY_INPUT_LEN;
     stream->CR = cr | DMA_SxCR_EN;
-    LL_TIM_EnableDMAReq_CCx(tim, TIM_DMA_CC1 << tch->timHw->channelIndex);
-#elif defined(AT32F43x)
+    dshotDmaReqEnable(tim, dshotDmaSource(port));
+#else
     // Widen the period so the free-running counter doesn't wrap every DSHOT bit period
     // (20 ticks) while timing GCR edges, which span ~21 bits per telemetry frame.
     tmr_period_buffer_enable(port->tch->timHw->tim, TRUE);
@@ -799,28 +758,6 @@ FAST_CODE static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
     port->tch->dma->ref->dtcnt = GCR_TELEMETRY_INPUT_LEN;
     dma_channel_enable(port->tch->dma->ref, TRUE);
     tmr_dma_request_enable(port->tch->timHw->tim, dshotDmaSource(port), TRUE);
-#else
-    TIM_ARRPreloadConfig(port->tch->timHw->tim, ENABLE);
-    TIM_SetAutoreload(port->tch->timHw->tim, 0xffff);
-    TIM_ICInitTypeDef init;
-    TIM_ICStructInit(&init);
-    init.TIM_Channel = dshotTimChannel(port);
-    init.TIM_ICSelection = TIM_ICSelection_DirectTI;
-    init.TIM_ICPrescaler = TIM_ICPSC_DIV1;
-    init.TIM_ICFilter = 2;
-    init.TIM_ICPolarity = TIM_ICPolarity_BothEdge;
-    TIM_ICInit(port->tch->timHw->tim, &init);
-    DMA_Cmd(port->tch->dma->ref, DISABLE);
-    port->tch->dma->ref->CR &= ~(DMA_DIR_MemoryToPeripheral | DMA_DIR_MemoryToMemory); // P→M
-    port->tch->dma->ref->PAR = (uint32_t)port->ccr;
-    port->tch->dma->ref->M0AR = (uint32_t)port->dmaBuffer;
-    DMA_SetCurrDataCounter(port->tch->dma->ref, GCR_TELEMETRY_INPUT_LEN);
-    // Clear stale DMA flags (TCIF/HTIF from completed output DMA) before
-    // enabling input capture, otherwise a spurious TC fires immediately and
-    // kills the capture DMA before any edges can be recorded.
-    DMA_CLEAR_FLAG(port->tch->dma, DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_TEIF);
-    DMA_Cmd(port->tch->dma->ref, ENABLE);
-    TIM_DMACmd(port->tch->timHw->tim, dshotDmaSource(port), ENABLE);
 #endif
     port->telemetryInputActive = true;
 }
@@ -863,17 +800,14 @@ FAST_CODE static void pwmDshotDmaIrqHandler(DMA_t descriptor)
     // userParam is the motor index (see motorConfigDshot())
     pwmOutputPort_t *port = motors[descriptor->userParam].pwmPort;
 
-#if defined(USE_HAL_DRIVER)
-    // The stream disabled itself at end of transfer (normal mode). The DMA request must go
-    // too: CCR is 0 after the frame, so compare matches keep a request pending and the stream
-    // would serve it as a bogus first capture the moment it is re-enabled for input.
-    LL_TIM_DisableDMAReq_CCx(port->tch->timHw->tim, dshotDmaSource(port));
-#elif defined(AT32F43x)
+#if defined(AT32F43x)
     dma_channel_enable(port->tch->dma->ref, FALSE);
     tmr_dma_request_enable(port->tch->timHw->tim, dshotDmaSource(port), FALSE);
 #else
-    DMA_Cmd(port->tch->dma->ref, DISABLE);
-    TIM_DMACmd(port->tch->timHw->tim, dshotDmaSource(port), DISABLE);
+    // The stream disabled itself at end of transfer (normal mode). The DMA request must go
+    // too: CCR is 0 after the frame, so compare matches keep a request pending and the stream
+    // would serve it as a bogus first capture the moment it is re-enabled for input.
+    dshotDmaReqDisable(port->tch->timHw->tim, dshotDmaSource(port));
 #endif
 
     // Same bookkeeping as the timer driver's handler (timerPWMDMAInProgress())
@@ -921,19 +855,14 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
         }
 
         uint32_t edges = 0;
-#if defined(USE_HAL_DRIVER)
-        const uint32_t streamLL = dshotDmaStream(port);
-        edges = GCR_TELEMETRY_INPUT_LEN - LL_DMA_GetDataLength(port->tch->dma->dma, streamLL);
-        LL_TIM_DisableDMAReq_CCx(port->tch->timHw->tim, dshotDmaSource(port));
-        LL_DMA_DisableStream(port->tch->dma->dma, streamLL);
-#elif defined(AT32F43x)
+#if defined(AT32F43x)
         edges = GCR_TELEMETRY_INPUT_LEN - dma_data_number_get(port->tch->dma->ref);
         tmr_dma_request_enable(port->tch->timHw->tim, dshotDmaSource(port), FALSE);
         dma_channel_enable(port->tch->dma->ref, FALSE);
 #else
-        edges = GCR_TELEMETRY_INPUT_LEN - DMA_GetCurrDataCounter(port->tch->dma->ref);
-        TIM_DMACmd(port->tch->timHw->tim, dshotDmaSource(port), DISABLE);
-        DMA_Cmd(port->tch->dma->ref, DISABLE);
+        edges = GCR_TELEMETRY_INPUT_LEN - port->tch->dma->ref->NDTR;
+        dshotDmaReqDisable(port->tch->timHw->tim, dshotDmaSource(port));
+        CLEAR_BIT(port->tch->dma->ref->CR, DMA_SxCR_EN);
 #endif
 
         // Too few edges is no reply at all
@@ -1015,9 +944,11 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
             // stream's completion interrupt over from the timer driver
             dshotTelemetryDeadtimeUs = DSHOT_TELEMETRY_DEADTIME_US + 1000000 * (DSHOT_TELEMETRY_WINDOW_SLOTS * DSHOT_MOTOR_BITLENGTH) / dshotHz;
 #if defined(USE_HAL_DRIVER)
-            // FIFO threshold 1/4 for both directions (the timer driver set FULL), so captured
-            // edges reach memory one word at a time and the decode never finds a partial reply
-            // still sitting in the FIFO. Set once here; the direction switch leaves FCR alone.
+            // FIFO threshold 1/4 for both directions (the F7/H7 timer driver set FULL), so
+            // captured edges reach memory one word at a time and the decode never finds a
+            // partial reply still sitting in the FIFO. Set once here; the direction switch
+            // leaves FCR alone. The F4 driver runs the stream in direct mode, which already
+            // writes every word straight away.
             port->tch->dma->ref->FCR = DMA_SxFCR_DMDIS;
 #endif
             pwmDshotSetDirectionOutput(port);
