@@ -490,57 +490,57 @@ static const blackboxSimpleFieldDefinition_t blackboxGpsHFields[] = {
 };
 #endif
 
-// Rarely-updated fields
-static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
+// Rarely-updated fields; one without a condition is always logged
+static const blackboxConditionalFieldDefinition_t blackboxSlowFields[] = {
     /* "flightModeFlags" renamed internally to more correct ref of rcModeFlags, since it logs rc boxmode selections,
      * but name kept for external compatibility reasons.
      * "activeFlightModeFlags" logs actual active flight modes rather than rc boxmodes.
      * 'active' should at least distinguish it from the existing "flightModeFlags" */
 
-    {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"flightModeFlags2",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"activeFlightModeFlags", -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"stateFlags",            -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"flightModeFlags2",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"activeFlightModeFlags", -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"stateFlags",            -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
 
-    {"failsafePhase",         -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
-    {"rxSignalReceived",      -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
-    {"rxFlightChannelsValid", -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
-    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB)},
+    {"failsafePhase",         -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32), CONDITION(ALWAYS)},
+    {"rxSignalReceived",      -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32), CONDITION(ALWAYS)},
+    {"rxFlightChannelsValid", -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32), CONDITION(ALWAYS)},
+    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
 
-    {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"sagCompensatedVBat",    -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"sagCompensatedVBat",    -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    {"mspOverrideFlags",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"mspOverrideFlags",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
 #endif
-    {"IMUTemperature",        -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"IMUTemperature",        -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #ifdef USE_BARO
-    {"baroTemperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"baroTemperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
-    {"sens0Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens1Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens2Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens3Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens4Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens5Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens6Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens7Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens0Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens1Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens2Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens3Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens4Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens5Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens6Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens7Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 #ifdef USE_ESC_SENSOR
-    {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
-    {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
+    {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 #ifdef USE_DRONECAN
-    {"droneCANBusOffCount",   -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"droneCANBusOffCount",   -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
 #endif
 #ifdef USE_TERRAIN
-    {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
-    {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
+    {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 };
 
@@ -2418,7 +2418,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     case BLACKBOX_STATE_SEND_SLOW_HEADER:
         //On entry of this state, xmitState.headerIndex is 0 and xmitState.u.fieldIndex is -1
         if (!sendFieldDefinition('S', 0, blackboxSlowFields, blackboxSlowFields + 1, ARRAYLEN(blackboxSlowFields),
-                NULL, NULL)) {
+                &blackboxSlowFields[0].condition, &blackboxSlowFields[1].condition)) {
             blackboxSetState(BLACKBOX_STATE_SEND_SYSINFO);
         }
         break;
