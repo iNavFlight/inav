@@ -220,7 +220,6 @@ typedef enum
 extern bool lockMainPID(void);
 extern void unlockMainPID(void);
 extern void parseArguments(int argc, char *argv[]);
-extern char *strnstr(const char *s, const char *find, size_t slen);
 extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
 
 #define IPADDRESS_PRINT_BUFLEN (INET6_ADDRSTRLEN + 16)
