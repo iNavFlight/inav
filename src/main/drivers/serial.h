@@ -106,6 +106,12 @@ struct serialPortVTable {
     // Optional functions used to buffer large writes.
     void (*beginWrite)(serialPort_t *instance);
     void (*endWrite)(serialPort_t *instance);
+
+    // Optional: for a port whose reception is more than the ring, such as a DMA stream
+    void (*setRxBuffer)(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size);
+
+    // Optional: gives back what the port holds besides its pins, such as DMA streams, once no function uses it
+    void (*release)(serialPort_t *instance);
 };
 
 void serialWrite(serialPort_t *instance, uint8_t ch);
@@ -122,6 +128,8 @@ void serialPrint(serialPort_t *instance, const char *str);
 uint32_t serialGetBaudRate(serialPort_t *instance);
 bool serialIsConnected(const serialPort_t *instance);
 bool serialIsIdle(serialPort_t *instance);
+void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size);
+void serialRelease(serialPort_t *instance);
 
 // A shim that adapts the bufWriter API to the serialWriteBuf() API.
 void serialWriteBufShim(void *instance, const uint8_t *data, int count);
