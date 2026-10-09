@@ -5543,8 +5543,8 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
                 posControl.geoWaypointCount = posControl.waypointCount - nonGeoWaypointCount;
                 if (posControl.waypointListValid) {
                     nonGeoWaypointCount = 0;
-                    // If active WP index is bigger than total mission WP number, reset active WP index (Mission Upload mid flight with interrupted mission) if RESUME is enabled
-                    if (posControl.activeWaypointIndex > posControl.waypointCount) {
+                    // If active WP index is beyond the new mission, reset active WP index (Mission Upload mid flight with interrupted mission) if RESUME is enabled
+                    if (posControl.activeWaypointIndex >= posControl.waypointCount) {
                         posControl.activeWaypointIndex = 0;
                     }
                 }
@@ -5560,6 +5560,9 @@ void resetWaypointList(void)
     posControl.geoWaypointCount = 0;
     posControl.startWpIndex = 0;
     posControl.wpReachedNotificationPending = false;
+    // Otherwise a re-enabled planner keeps writing at its old index inside the replacing mission
+    posControl.wpPlannerActiveWPIndex = 0;
+    posControl.wpMissionPlannerStatus = WP_PLAN_WAIT;
 #ifdef USE_MULTI_MISSION
     posControl.totalMultiMissionWpCount = 0;
     posControl.loadedMultiMissionIndex = 0;
