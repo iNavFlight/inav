@@ -20,6 +20,11 @@
 
 #include "platform.h"
 
+#include "build/atomic.h"
+
+#include "drivers/nvic.h"
+#include "drivers/time.h"
+
 #include "serial.h"
 
 void serialPrint(serialPort_t *instance, const char *str)
@@ -132,4 +137,38 @@ bool serialIsIdle(serialPort_t *instance)
         return instance->vTable->isIdle(instance);
     else
         return false;
+}
+
+// For an rxCallback; the port can still be NULL to a receiver whose first burst lands before openSerialPort() returns
+timeUs_t serialRxByteTimeUs(const serialPort_t *instance)
+{
+    return (instance && instance->rxBursts) ? instance->rxByteTimeUs : microsISR();
+}
+
+// Swaps in a larger receive buffer; what the old one held is dropped
+void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size)
+{
+    if (size <= instance->rxBufferSize) {
+        return;
+    }
+
+    if (instance->vTable->setRxBuffer) {
+        instance->vTable->setRxBuffer(instance, buffer, size);
+        return;
+    }
+
+    // The receive interrupt must never see the new buffer with the old size or indices
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        instance->rxBuffer = buffer;
+        instance->rxBufferSize = size;
+        instance->rxBufferHead = 0;
+        instance->rxBufferTail = 0;
+    }
+}
+
+void serialRelease(serialPort_t *instance)
+{
+    if (instance->vTable->release) {
+        instance->vTable->release(instance);
+    }
 }

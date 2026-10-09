@@ -251,11 +251,340 @@ static uartDevice_t* uartHardwareMap[] = {
 #endif
 };
 
+#if defined(USE_UART_RX_DMA) || defined(USE_UART_TX_DMA)
+static UARTDevice_e uartDeviceOf(const uartPort_t *s)
+{
+    for (int device = 0; device < UARTDEV_MAX; device++) {
+        if (uartHardwareMap[device] && &uartHardwareMap[device]->port == s) {
+            return device;
+        }
+    }
+    return UARTDEV_MAX;
+}
+
+#endif
+
+#ifdef USE_UART_RX_DMA
+static const dmaTag_t uartRxDmaTag[UARTDEV_MAX] = {
+#ifdef UART1_RX_DMA
+    [UARTDEV_1] = UART1_RX_DMA,
+#endif
+#ifdef UART2_RX_DMA
+    [UARTDEV_2] = UART2_RX_DMA,
+#endif
+#ifdef UART3_RX_DMA
+    [UARTDEV_3] = UART3_RX_DMA,
+#endif
+#ifdef UART4_RX_DMA
+    [UARTDEV_4] = UART4_RX_DMA,
+#endif
+#ifdef UART5_RX_DMA
+    [UARTDEV_5] = UART5_RX_DMA,
+#endif
+#ifdef UART6_RX_DMA
+    [UARTDEV_6] = UART6_RX_DMA,
+#endif
+#ifdef UART7_RX_DMA
+    [UARTDEV_7] = UART7_RX_DMA,
+#endif
+#ifdef UART8_RX_DMA
+    [UARTDEV_8] = UART8_RX_DMA,
+#endif
+};
+
+// Only with the D-cache on, which leaves DMA_RAM uncached: from the cache the CPU would not see what the stream wrote
+#ifdef DMA_RAM_UNCACHED
+#if defined(UART1_RX_DMA) && (UART1_RX_DMA != DMA_NONE)
+static DMA_RAM uint8_t uart1RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#if defined(UART2_RX_DMA) && (UART2_RX_DMA != DMA_NONE)
+static DMA_RAM uint8_t uart2RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#if defined(UART3_RX_DMA) && (UART3_RX_DMA != DMA_NONE)
+static DMA_RAM uint8_t uart3RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#if defined(UART4_RX_DMA) && (UART4_RX_DMA != DMA_NONE)
+static DMA_RAM uint8_t uart4RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#if defined(UART5_RX_DMA) && (UART5_RX_DMA != DMA_NONE)
+static DMA_RAM uint8_t uart5RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#if defined(UART6_RX_DMA) && (UART6_RX_DMA != DMA_NONE)
+static DMA_RAM uint8_t uart6RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#if defined(UART7_RX_DMA) && (UART7_RX_DMA != DMA_NONE)
+static DMA_RAM uint8_t uart7RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+#if defined(UART8_RX_DMA) && (UART8_RX_DMA != DMA_NONE)
+static DMA_RAM uint8_t uart8RxDmaBuffer[UART_RX_BUFFER_SIZE];
+#endif
+
+static volatile uint8_t * const uartRxDmaBuffer[UARTDEV_MAX] = {
+#if defined(UART1_RX_DMA) && (UART1_RX_DMA != DMA_NONE)
+    [UARTDEV_1] = uart1RxDmaBuffer,
+#endif
+#if defined(UART2_RX_DMA) && (UART2_RX_DMA != DMA_NONE)
+    [UARTDEV_2] = uart2RxDmaBuffer,
+#endif
+#if defined(UART3_RX_DMA) && (UART3_RX_DMA != DMA_NONE)
+    [UARTDEV_3] = uart3RxDmaBuffer,
+#endif
+#if defined(UART4_RX_DMA) && (UART4_RX_DMA != DMA_NONE)
+    [UARTDEV_4] = uart4RxDmaBuffer,
+#endif
+#if defined(UART5_RX_DMA) && (UART5_RX_DMA != DMA_NONE)
+    [UARTDEV_5] = uart5RxDmaBuffer,
+#endif
+#if defined(UART6_RX_DMA) && (UART6_RX_DMA != DMA_NONE)
+    [UARTDEV_6] = uart6RxDmaBuffer,
+#endif
+#if defined(UART7_RX_DMA) && (UART7_RX_DMA != DMA_NONE)
+    [UARTDEV_7] = uart7RxDmaBuffer,
+#endif
+#if defined(UART8_RX_DMA) && (UART8_RX_DMA != DMA_NONE)
+    [UARTDEV_8] = uart8RxDmaBuffer,
+#endif
+};
+#endif
+
+#define UART_RX_DMA_FLAGS   (DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_TEIF | DMA_IT_DMEIF | DMA_IT_FEIF)
+
+void uartRxDmaStop(uartPort_t *s)
+{
+    if (s->rxDma) {
+        const uint32_t stream = DMATAG_GET_STREAM(s->rxDma->tag);  // LL_DMA_STREAM_n is n
+        CLEAR_BIT(s->USARTx->CR3, USART_CR3_DMAR);
+        CLEAR_BIT(s->USARTx->CR1, USART_CR1_IDLEIE);
+        LL_DMA_DisableIT_HT(s->rxDma->dma, stream);
+        LL_DMA_DisableIT_TC(s->rxDma->dma, stream);
+        LL_DMA_DisableStream(s->rxDma->dma, stream);
+        while (LL_DMA_IsEnabledStream(s->rxDma->dma, stream));
+        DMA_CLEAR_FLAG(s->rxDma, UART_RX_DMA_FLAGS);
+        uartDmaRelease(s->rxDma);
+        s->rxDma = NULL;
+        s->port.rxBursts = false;
+    }
+}
+
+// Half and full ring: a burst longer than half the ring is handed over before the stream overwrites it
+static void uartRxDmaHandler(DMA_t dma)
+{
+    DMA_CLEAR_FLAG(dma, UART_RX_DMA_FLAGS);
+    uartRxDmaDeliver((uartPort_t *)dma->userParam, microsISR());
+}
+
+// USART_CR3_DMAR is set again in uartReconfigure(): the HAL clears CR3 whenever it reprograms the port
+bool uartRxDmaStart(uartPort_t *s)
+{
+    uartRxDmaStop(s);
+
+    const UARTDevice_e device = uartDeviceOf(s);
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_RX) || uartRxDmaRefused(s)) {
+        return false;
+    }
+
+    const dmaTag_t tag = uartDmaPick(uartRxDmaTag[device], uartRxDmaCandidates, device, &s->port, uartTxDmaOf(s));
+    const DMA_t dma = dmaGetByTag(tag);
+    if (!dma) {
+        return false;
+    }
+
+    dmaInit(dma, OWNER_SERIAL, RESOURCE_INDEX(device));
+
+    const uint32_t stream = DMATAG_GET_STREAM(tag);
+    LL_DMA_DeInit(dma->dma, stream);
+
+    LL_DMA_InitTypeDef init;
+    LL_DMA_StructInit(&init);
+    init.Channel = DMATAG_GET_CHANNEL(tag) << DMA_SxCR_CHSEL_Pos;    // LL_DMA_CHANNEL_n is n in CHSEL
+    init.PeriphOrM2MSrcAddress = (uint32_t)&s->USARTx->RDR;
+    init.MemoryOrM2MDstAddress = (uint32_t)s->port.rxBuffer;
+    init.Direction = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
+    init.Mode = LL_DMA_MODE_CIRCULAR;
+    init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
+    init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
+    init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_BYTE;
+    init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_BYTE;
+    init.NbData = s->port.rxBufferSize;
+    init.Priority = LL_DMA_PRIORITY_MEDIUM;
+    // No FIFO: a byte is in the ring as soon as the count says so
+    init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
+    LL_DMA_Init(dma->dma, stream, &init);
+
+    s->port.rxBufferHead = s->port.rxBufferTail = 0;
+    s->rxDma = dma;
+
+    if (s->port.rxCallback) {
+        // The UART's priority, so the two never hand bytes over at once
+        dmaSetHandler(dma, uartRxDmaHandler, NVIC_PRIO_SERIALUART, (uint32_t)s);
+        DMA_CLEAR_FLAG(dma, UART_RX_DMA_FLAGS);
+        LL_DMA_EnableIT_HT(dma->dma, stream);
+        LL_DMA_EnableIT_TC(dma->dma, stream);
+        s->port.rxBursts = true;
+        SET_BIT(s->USARTx->CR1, USART_CR1_IDLEIE);
+    }
+
+    LL_DMA_EnableStream(dma->dma, stream);
+    // Restarted on a new ring (serialSetRxBuffer) the port gets no reprogramming to set it
+    SET_BIT(s->USARTx->CR3, USART_CR3_DMAR);
+    return true;
+}
+#endif
+
+#ifdef USE_UART_TX_DMA
+static const dmaTag_t uartTxDmaTag[UARTDEV_MAX] = {
+#ifdef UART1_TX_DMA
+    [UARTDEV_1] = UART1_TX_DMA,
+#endif
+#ifdef UART2_TX_DMA
+    [UARTDEV_2] = UART2_TX_DMA,
+#endif
+#ifdef UART3_TX_DMA
+    [UARTDEV_3] = UART3_TX_DMA,
+#endif
+#ifdef UART4_TX_DMA
+    [UARTDEV_4] = UART4_TX_DMA,
+#endif
+#ifdef UART5_TX_DMA
+    [UARTDEV_5] = UART5_TX_DMA,
+#endif
+#ifdef UART6_TX_DMA
+    [UARTDEV_6] = UART6_TX_DMA,
+#endif
+#ifdef UART7_TX_DMA
+    [UARTDEV_7] = UART7_TX_DMA,
+#endif
+#ifdef UART8_TX_DMA
+    [UARTDEV_8] = UART8_TX_DMA,
+#endif
+};
+
+#define UART_TX_DMA_FLAGS   (DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_TEIF | DMA_IT_DMEIF | DMA_IT_FEIF)
+#define UART_TX_DMA_ENDED   (DMA_IT_TCIF | DMA_IT_TEIF)
+
+void uartTxDmaStop(uartPort_t *s)
+{
+    if (s->txDma) {
+        const uint32_t stream = DMATAG_GET_STREAM(s->txDma->tag);  // LL_DMA_STREAM_n is n
+        CLEAR_BIT(s->USARTx->CR3, USART_CR3_DMAT);
+        LL_DMA_DisableIT_TC(s->txDma->dma, stream);
+        LL_DMA_DisableIT_TE(s->txDma->dma, stream);
+        LL_DMA_DisableStream(s->txDma->dma, stream);
+        while (LL_DMA_IsEnabledStream(s->txDma->dma, stream));
+        DMA_CLEAR_FLAG(s->txDma, UART_TX_DMA_FLAGS);
+        uartDmaRelease(s->txDma);
+        s->txDma = NULL;
+        s->txDmaCount = 0;
+    }
+}
+
+void uartStartTxDMA(uartPort_t *s)
+{
+    // Masked: the end-of-transfer interrupt also starts the next one
+    ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
+        const uint32_t head = s->port.txBufferHead;
+        const uint32_t tail = s->port.txBufferTail;
+
+        if (s->txDma && !s->txDmaCount && head != tail) {
+            // Up to the head, or to the end of the ring if the queue wraps: the rest follows
+            const uint32_t count = (head > tail) ? head - tail : s->port.txBufferSize - tail;
+            const uint32_t stream = DMATAG_GET_STREAM(s->txDma->tag);
+
+            s->txDmaCount = count;
+            LL_DMA_SetMemoryAddress(s->txDma->dma, stream, (uint32_t)&s->port.txBuffer[tail]);
+            LL_DMA_SetDataLength(s->txDma->dma, stream, count);
+            // Also orders the writes to the ring before the stream starts
+            uartTxDmaCleanCache(&s->port.txBuffer[tail], count);
+            LL_DMA_EnableStream(s->txDma->dma, stream);
+        }
+    }
+}
+
+// An error ends the transfer too, or the port would wait for it forever
+static void uartTxDmaHandler(DMA_t dma)
+{
+    uartPort_t *s = (uartPort_t *)dma->userParam;
+
+    // Clear every flag: one left set re-raises the interrupt, starving USB at this priority
+    const bool ended = DMA_GET_FLAG_STATUS(dma, UART_TX_DMA_ENDED);
+    DMA_CLEAR_FLAG(dma, UART_TX_DMA_FLAGS);
+
+    if (ended) {
+        // After an error the rest goes again, unless nothing went: that error would only repeat
+        const uint32_t sent = s->txDmaCount - LL_DMA_GetDataLength(dma->dma, DMATAG_GET_STREAM(dma->tag));
+        s->port.txBufferTail = (s->port.txBufferTail + (sent ? sent : s->txDmaCount)) % s->port.txBufferSize;
+        s->txDmaCount = 0;
+        uartStartTxDMA(s);
+    }
+}
+
+// USART_CR3_DMAT is set in uartReconfigure(), as DMAR is
+bool uartTxDmaStart(uartPort_t *s)
+{
+    uartTxDmaStop(s);
+
+    const UARTDevice_e device = uartDeviceOf(s);
+    if (device == UARTDEV_MAX || !(s->port.mode & MODE_TX)) {
+        return false;
+    }
+
+    const dmaTag_t tag = uartDmaPick(uartTxDmaTag[device], uartTxDmaCandidates, device, &s->port, uartRxDmaOf(s));
+    const DMA_t dma = dmaGetByTag(tag);
+    if (!dma) {
+        return false;
+    }
+#ifdef USE_UART_RX_DMA
+    // The stream this port receives on is this UART's too, so it looks free to it
+    if (dma == s->rxDma) {
+        return false;
+    }
+#endif
+
+    dmaInit(dma, OWNER_SERIAL, RESOURCE_INDEX(device));
+    dmaSetHandler(dma, uartTxDmaHandler, NVIC_PRIO_SERIALUART, (uint32_t)s);
+
+    const uint32_t stream = DMATAG_GET_STREAM(tag);
+    LL_DMA_DeInit(dma->dma, stream);
+
+    LL_DMA_InitTypeDef init;
+    LL_DMA_StructInit(&init);
+    init.Channel = DMATAG_GET_CHANNEL(tag) << DMA_SxCR_CHSEL_Pos;    // LL_DMA_CHANNEL_n is n in CHSEL
+    init.PeriphOrM2MSrcAddress = (uint32_t)&s->USARTx->TDR;
+    init.MemoryOrM2MDstAddress = (uint32_t)s->port.txBuffer;
+    init.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
+    init.Mode = LL_DMA_MODE_NORMAL;
+    init.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
+    init.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
+    init.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_BYTE;
+    init.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_BYTE;
+    init.Priority = LL_DMA_PRIORITY_MEDIUM;
+    init.FIFOMode = LL_DMA_FIFOMODE_DISABLE;
+    LL_DMA_Init(dma->dma, stream, &init);
+    DMA_CLEAR_FLAG(dma, UART_TX_DMA_FLAGS);
+    LL_DMA_EnableIT_TC(dma->dma, stream);
+    LL_DMA_EnableIT_TE(dma->dma, stream);
+
+    s->txDmaCount = 0;
+    s->txDma = dma;
+    return true;
+}
+#endif
+
 void uartIrqHandler(uartPort_t *s)
 {
     UART_HandleTypeDef *huart = &s->Handle;
+
+#ifdef USE_UART_RX_DMA
+    // End of a burst on a receiver that takes them; elsewhere the flag is left to serialIsIdle()
+    if (READ_BIT(huart->Instance->CR1, USART_CR1_IDLEIE) && __HAL_UART_GET_FLAG(huart, UART_FLAG_IDLE)) {
+        __HAL_UART_CLEAR_IDLEFLAG(huart);
+        uartRxDmaIdle(s);
+    }
+#endif
+
     /* UART in mode Receiver ---------------------------------------------------*/
-    if ((__HAL_UART_GET_IT(huart, UART_IT_RXNE) != RESET)) {
+    // With RX on DMA the interrupt still fires for TX: an RX byte is the stream's to take
+    if ((__HAL_UART_GET_IT(huart, UART_IT_RXNE) != RESET) && !uartRxDmaRunning(s)) {
         uint8_t rbyte = (uint8_t)(huart->Instance->RDR & (uint8_t) 0xff);
 
         if (s->port.rxCallback) {
@@ -293,7 +622,8 @@ void uartIrqHandler(uartPort_t *s)
     }
 
     /* UART in mode Transmitter ------------------------------------------------*/
-    if (__HAL_UART_GET_IT(huart, UART_IT_TXE) != RESET) {
+    // With TX on DMA the ring is the stream's to empty
+    if ((__HAL_UART_GET_IT(huart, UART_IT_TXE) != RESET) && !uartTxDmaRunning(s)) {
         /* Check that a Tx process is ongoing */
         if (huart->gState != HAL_UART_STATE_BUSY_TX) {
             if (s->port.txBufferTail == s->port.txBufferHead) {
@@ -351,6 +681,11 @@ uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, 
     s->port.baudRate = baudRate;
 
     s->port.rxBuffer = uart->rxBuffer;
+#if defined(USE_UART_RX_DMA) && defined(DMA_RAM_UNCACHED)
+    if (uartRxDmaBuffer[device]) {
+        s->port.rxBuffer = uartRxDmaBuffer[device];
+    }
+#endif
     s->port.txBuffer = uart->txBuffer;
     s->port.rxBufferSize = sizeof(uart->rxBuffer);
     s->port.txBufferSize = sizeof(uart->txBuffer);

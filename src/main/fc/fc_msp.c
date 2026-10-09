@@ -223,6 +223,10 @@ static void mspSerialPassthroughFn(serialPort_t *serialPort)
 {
     serialPort_t *passthroughPort = mspFindPassthroughSerialPort();
     if (passthroughPort && serialPort) {
+        // As in the CLI: a receiver's callback would take the bytes the session passes on; it is back after +++
+        const serialReceiveCallbackPtr rxCallback = passthroughPort->rxCallback;
+        passthroughPort->rxCallback = NULL;
+
         // The port the request came in on goes first, as it does in the CLI. Both of the
         // things serialPassthrough() does for whoever opened the session are done for its
         // first port only: the +++ that ends the session is looked for there, and a USB
@@ -230,6 +234,7 @@ static void mspSerialPassthroughFn(serialPort_t *serialPort)
         // way round, a session opened over MSP could not be closed and could not raise the
         // rate of the port it opened, which is what an SRXL2 ESC negotiates up to 400000
         serialPassthrough(serialPort, passthroughPort, NULL, NULL);
+        passthroughPort->rxCallback = rxCallback;
     }
 }
 

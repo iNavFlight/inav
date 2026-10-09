@@ -135,6 +135,10 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
         return (serialPort_t *)s;
     }
 
+    // Streams still running would go on with the rings about to be reset, and a receiver's with the old callback
+    uartTxDmaStop(s);
+    uartRxDmaStop(s);
+
     // common serial initialisation code should move to serialPort::init()
     s->port.rxBufferHead = s->port.rxBufferTail = 0;
     s->port.txBufferHead = s->port.txBufferTail = 0;
@@ -147,12 +151,12 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallbac
 
     uartReconfigure(s);
 
-    if (mode & MODE_RX) {
+    if ((mode & MODE_RX) && !uartRxDmaStart(s)) {
         USART_ClearITPendingBit(s->USARTx, USART_IT_RXNE);
         USART_ITConfig(s->USARTx, USART_IT_RXNE, ENABLE);
     }
 
-    if (mode & MODE_TX) {
+    if ((mode & MODE_TX) && !uartTxDmaStart(s)) {
         USART_ITConfig(s->USARTx, USART_IT_TXE, ENABLE);
     }
 
@@ -186,10 +190,12 @@ uint32_t uartTotalRxBytesWaiting(const serialPort_t *instance)
 {
     const uartPort_t *s = (const uartPort_t*)instance;
 
-    if (s->port.rxBufferHead >= s->port.rxBufferTail) {
-        return s->port.rxBufferHead - s->port.rxBufferTail;
+    const uint32_t head = uartRxBufferHead(s);
+
+    if (head >= s->port.rxBufferTail) {
+        return head - s->port.rxBufferTail;
     } else {
-        return s->port.rxBufferSize + s->port.rxBufferHead - s->port.rxBufferTail;
+        return s->port.rxBufferSize + head - s->port.rxBufferTail;
     }
 }
 
@@ -229,17 +235,52 @@ uint8_t uartRead(serialPort_t *instance)
     return ch;
 }
 
-void uartWrite(serialPort_t *instance, uint8_t ch)
+static void uartQueue(uartPort_t *s, uint8_t ch)
 {
-    uartPort_t *s = (uartPort_t *)instance;
     s->port.txBuffer[s->port.txBufferHead] = ch;
     if (s->port.txBufferHead + 1 >= s->port.txBufferSize) {
         s->port.txBufferHead = 0;
     } else {
         s->port.txBufferHead++;
     }
+}
 
-    USART_ITConfig(s->USARTx, USART_IT_TXE, ENABLE);
+void uartWrite(serialPort_t *instance, uint8_t ch)
+{
+    uartPort_t *s = (uartPort_t *)instance;
+    uartQueue(s, ch);
+
+    if (uartTxDmaRunning(s)) {
+        uartStartTxDMA(s);
+    } else {
+        USART_ITConfig(s->USARTx, USART_IT_TXE, ENABLE);
+    }
+}
+
+// Queued whole before the stream starts, so a message goes out in one transfer
+static void uartWriteBuf(serialPort_t *instance, const void *data, int count)
+{
+    uartPort_t *s = (uartPort_t *)instance;
+    const uint8_t *p = data;
+
+    for (; count > 0; count--, p++) {
+        while (!uartTotalTxBytesFree(instance)) {
+            // The ring is full: sending is what makes room
+            if (uartTxDmaRunning(s)) {
+                uartStartTxDMA(s);
+            }
+        }
+
+        if (uartTxDmaRunning(s)) {
+            uartQueue(s, *p);
+        } else {
+            uartWrite(instance, *p);
+        }
+    }
+
+    if (uartTxDmaRunning(s)) {
+        uartStartTxDMA(s);
+    }
 }
 
 bool isUartIdle(serialPort_t *instance)
@@ -264,9 +305,11 @@ const struct serialPortVTable uartVTable[] = {
         .setMode = uartSetMode,
         .setOptions = uartSetOptions,
         .isConnected = NULL,
-        .writeBuf = NULL,
+        .writeBuf = uartWriteBuf,
         .beginWrite = NULL,
         .endWrite = NULL,
         .isIdle = isUartIdle,
+        .setRxBuffer = uartSetRxBuffer,
+        .release = uartRelease,
     }
 };
