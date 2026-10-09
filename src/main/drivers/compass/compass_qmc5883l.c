@@ -76,6 +76,7 @@
 
 #define QMC5883L_REG_DATA_OUTPUT_X 0x00
 #define QMC5883L_REG_STATUS 0x06
+#define QMC5883L_STATUS_DRDY 0x01
 
 #define QMC5883L_REG_ID 0x0D
 #define QMC5883_ID_VAL 0xFF
@@ -92,29 +93,52 @@ static bool qmc5883Init(magDev_t * mag)
     return ack;
 }
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t qmc5883Status;
+static uint8_t qmc5883Data[6];
+
+// Two transfers per sample: the status byte first, the data only when DRDY confirms a fresh sample
+static busReadStepResult_e qmc5883ReadStart(magDev_t * mag, bool firstStep)
+{
+    static bool statusStarted = false;
+
+    if (firstStep) {
+        statusStarted = false;
+        qmc5883Status = 0;
+    }
+
+    if (!statusStarted) {
+        if (!busReadBufStart(mag->busDev, QMC5883L_REG_STATUS, &qmc5883Status, 1)) {
+            return BUS_READ_STEP_BUSY;
+        }
+        statusStarted = true;
+        return BUS_READ_STEP_NEXT;
+    }
+
+    if ((qmc5883Status & QMC5883L_STATUS_DRDY) == 0) {
+        return BUS_READ_STEP_LAST;     // nothing new to fetch, qmc5883Read() reports the miss
+    }
+
+    if (!busReadBufStart(mag->busDev, QMC5883L_REG_DATA_OUTPUT_X, qmc5883Data, sizeof(qmc5883Data))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    return BUS_READ_STEP_LAST;
+}
+
 static bool qmc5883Read(magDev_t * mag)
 {
-    uint8_t status;
-    uint8_t buf[6];
-
-    // set magData to zero for case of failed read
-    mag->magADCRaw[X] = 0;
-    mag->magADCRaw[Y] = 0;
-    mag->magADCRaw[Z] = 0;
-
-    bool ack = busRead(mag->busDev, QMC5883L_REG_STATUS, &status);
-    if (!ack || (status & 0x01) == 0) {
+    if ((qmc5883Status & QMC5883L_STATUS_DRDY) == 0) {
+        // set magData to zero for case of failed read
+        mag->magADCRaw[X] = 0;
+        mag->magADCRaw[Y] = 0;
+        mag->magADCRaw[Z] = 0;
         return false;
     }
 
-    ack = busReadBuf(mag->busDev, QMC5883L_REG_DATA_OUTPUT_X, buf, 6);
-    if (!ack) {
-        return false;
-    }
-
-    mag->magADCRaw[X] = (int16_t)(buf[1] << 8 | buf[0]);
-    mag->magADCRaw[Y] = (int16_t)(buf[3] << 8 | buf[2]);
-    mag->magADCRaw[Z] = (int16_t)(buf[5] << 8 | buf[4]);
+    mag->magADCRaw[X] = (int16_t)(qmc5883Data[1] << 8 | qmc5883Data[0]);
+    mag->magADCRaw[Y] = (int16_t)(qmc5883Data[3] << 8 | qmc5883Data[2]);
+    mag->magADCRaw[Z] = (int16_t)(qmc5883Data[5] << 8 | qmc5883Data[4]);
 
     return true;
 }
@@ -157,6 +181,7 @@ bool qmc5883Detect(magDev_t * mag)
     }
 
     mag->init = qmc5883Init;
+    mag->readStart = qmc5883ReadStart;
     mag->read = qmc5883Read;
 
     return true;

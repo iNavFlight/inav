@@ -77,9 +77,13 @@ typedef struct compassConfig_s {
 
 PG_DECLARE(compassConfig_t, compassConfig);
 
+// Regular sample rate of the compass task
+#define COMPASS_UPDATE_RATE_HZ      10
+#define COMPASS_UPDATE_PERIOD_US    (1000000 / COMPASS_UPDATE_RATE_HZ)
+
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse);
 bool compassInit(void);
-void compassUpdate(timeUs_t currentTimeUs);
+uint32_t compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
