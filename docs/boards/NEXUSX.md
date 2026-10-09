@@ -17,7 +17,7 @@ The receiver can be disabled using USER1, which controls a pinio on pin PC8.
 Pin configuration
 -----------------
 
-The RPM, TLM, AUX and SBUS pins can be Servo/Motor outputs or a UART. When UART2 is assigned a function in the ports tab, RPM and TLM become UART2 instead. UART1 does not take AUX and SBUS out of the output list, and UART1 has MSP assigned by default: if the mixer needs AUX or SBUS as outputs, they are driven as outputs and UART1 stops working. Remove every function from UART1 before using AUX or SBUS as outputs. See the table below.
+The RPM, TLM, AUX and SBUS pins can be Servo/Motor outputs or a UART. When UART2 is assigned a function in the ports tab, RPM and TLM become UART2 instead. If the mixer uses S8 and S9, they are driven as outputs and UART1 stops working. Remove every function from UART1 before using AUX or SBUS as outputs. See the table below.
 
 | Marking on the case | Both UART1 and UART2 unused                                                            | UART1 in use                                                                           | UART2 in use                                                                           | Both UART1 and UART2 in use                                                            |
 |---------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
