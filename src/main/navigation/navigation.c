@@ -7776,6 +7776,8 @@ static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos
     }
 
     posControl.wpInitialDistance = calculateDistanceToDestination(&posControl.activeWaypoint.pos);
+    // Read by the FLY_BY corner cut before isWaypointReached() refreshes it: the old value skips this WP
+    posControl.wpDistance = posControl.wpInitialDistance;
     posControl.wpInitialAltitude = posControl.actualState.abs.pos.z;
     posControl.wpAltitudeReached = false;
     posControl.wpAltitudeEnforceActive = false;
