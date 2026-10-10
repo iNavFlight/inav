@@ -16,10 +16,21 @@
  */
 
 
+#include <ctype.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "gps_ublox_utils.h"
+
+#define UBLOX_PROTVER(major, minor)         ((uint16_t)((major) * 100 + (minor)))
+
+#define UBLOX_PROTVER_NAV_RATE              UBLOX_PROTVER(15, 0)
+#define UBLOX_PROTVER_GNSS_CONFIG           UBLOX_PROTVER(15, 0)
+#define UBLOX_PROTVER_LAST_BEFORE_VALSET    UBLOX_PROTVER(23, 1)
+#define UBLOX_PROTVER_FAST_MEAS_RATE        UBLOX_PROTVER(24, 0)
+// Below this the documented firmware lacks the BDS_B1C signal key, and M9/F9P still take CFG-GNSS
+#define UBLOX_PROTVER_VALSET_ONLY           UBLOX_PROTVER(34, 0)
 
 void ublox_update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b)
 {
@@ -113,4 +124,148 @@ void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *
                         // bit7: carrier correction used
                         // bit8: doper corrections used
     //uint8_t reserved[4];
+}
+
+uint8_t ubloxDecodeHardwareVersion(const char *field, size_t len)
+{
+    // ublox_5   hwVersion 00040005
+    if (strncmp(field, "00040005", len) == 0) {
+        return UBX_HW_VERSION_UBLOX5;
+    }
+
+    // ublox_6   hwVersion 00040007
+    if (strncmp(field, "00040007", len) == 0) {
+        return UBX_HW_VERSION_UBLOX6;
+    }
+
+    // ublox_7   hwVersion 00070000
+    if (strncmp(field, "00070000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX7;
+    }
+
+    // ublox_M8  hwVersion 00080000
+    if (strncmp(field, "00080000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX8;
+    }
+
+    // ublox_M9  hwVersion 00190000
+    if (strncmp(field, "00190000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX9;
+    }
+
+    // ublox_M10 hwVersion 000A0000
+    if (strncmp(field, "000A0000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX10;
+    }
+
+    // ublox_X20 hwVersion 000B0000
+    if (strncmp(field, "000B0000", len) == 0) {
+        return UBX_HW_VERSION_UBLOX20;
+    }
+
+    return UBX_HW_VERSION_UNKNOWN;
+}
+
+bool ubloxParseProtocolVersion(const char *field, size_t len, uint8_t *major, uint8_t *minor)
+{
+    // Parsed digit by digit because a float round-trip turns 34.10 into 34.09
+    if (len < 14 || (strncmp(field, "PROTVER=", 8) && strncmp(field, "PROTVER ", 8))) {
+        return false;
+    }
+    if (!isdigit((unsigned char)field[8]) || !isdigit((unsigned char)field[9]) || field[10] != '.' ||
+        !isdigit((unsigned char)field[11]) || !isdigit((unsigned char)field[12]) || field[13] != '\0') {
+        return false;
+    }
+
+    *major = (field[8] - '0') * 10 + field[9] - '0';
+    *minor = (field[11] - '0') * 10 + field[12] - '0';
+    return true;
+}
+
+// "MOD=" names the module and wins over the F9's "EXT CORE 1." base
+static bool ubloxIsF9(const char *swVersion, size_t swLen, const char *module, size_t moduleLen)
+{
+    if (module && moduleLen >= 4 && strncmp(module, "MOD=", 4) == 0) {
+        for (size_t i = 4; i + 1 < moduleLen && module[i] != '\0'; i++) {
+            if (module[i] == 'F' && module[i + 1] == '9') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    return swVersion && swLen >= 11 && strncmp(swVersion, "EXT CORE 1.", 11) == 0;
+}
+
+// The F9 reports the M9's hardware ID
+uint8_t ubloxRefineHardwareVersion(uint8_t hwVersion, const char *swVersion, size_t swLen, const char *module, size_t moduleLen)
+{
+    if (hwVersion == UBX_HW_VERSION_UBLOX9 && ubloxIsF9(swVersion, swLen, module, moduleLen)) {
+        return UBX_HW_VERSION_UBLOX_F9;
+    }
+    return hwVersion;
+}
+
+bool ubloxCanConfigureNavRate(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor)
+{
+    return UBX_HW_GENERATION(hwVersion) >= UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX7) ||
+        UBLOX_PROTVER(protMajor, protMinor) >= UBLOX_PROTVER_NAV_RATE;
+}
+
+bool ubloxCanConfigureGnss(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor)
+{
+    return UBX_HW_GENERATION(hwVersion) >= UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX8) ||
+        UBLOX_PROTVER(protMajor, protMinor) >= UBLOX_PROTVER_GNSS_CONFIG;
+}
+
+bool ubloxUseM10GnssKeys(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor)
+{
+    const uint16_t protocol = UBLOX_PROTVER(protMajor, protMinor);
+    // Unknown hardware stays on CFG-GNSS wherever its firmware still accepts it
+    return protocol > UBLOX_PROTVER_LAST_BEFORE_VALSET &&
+        (UBX_HW_GENERATION(hwVersion) >= UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX10) ||
+         (hwVersion == UBX_HW_VERSION_UNKNOWN && protocol >= UBLOX_PROTVER_VALSET_ONLY));
+}
+
+// F9 NAKs single-band signal masks and the X20 plan lacks BDS B1I, so these only switch whole constellations
+bool ubloxUseGnssEnableKeys(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor)
+{
+    return UBLOX_PROTVER(protMajor, protMinor) > UBLOX_PROTVER_LAST_BEFORE_VALSET &&
+        (hwVersion == UBX_HW_VERSION_UBLOX_F9 || UBX_HW_GENERATION(hwVersion) >= UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX20));
+}
+
+static uint8_t ubloxAddKey(ubx_config_data8_payload_t *out, uint8_t count, uint32_t key, bool value)
+{
+    out[count].key = key;
+    out[count].value = value ? 1 : 0;
+    return count + 1;
+}
+
+uint8_t ubloxGnssEnableKeys(ubx_config_data8_payload_t *out, bool sbas, bool galileo, bool beidou, bool glonass, uint8_t supportedMask)
+{
+    uint8_t count = ubloxAddKey(out, 0, UBLOX_CFG_SIGNAL_SBAS_ENA, sbas);
+
+    if (supportedMask & UBX_MON_GNSS_GALILEO_MASK) {
+        count = ubloxAddKey(out, count, UBLOX_CFG_SIGNAL_GAL_ENA, galileo);
+    }
+    if (supportedMask & UBX_MON_GNSS_BEIDOU_MASK) {
+        count = ubloxAddKey(out, count, UBLOX_CFG_SIGNAL_BDS_ENA, beidou);
+    }
+    // Should be enabled with GPS
+    count = ubloxAddKey(out, count, UBLOX_CFG_QZSS_ENA, true);
+    if (supportedMask & UBX_MON_GNSS_GLONASS_MASK) {
+        count = ubloxAddKey(out, count, UBLOX_CFG_GLO_ENA, glonass);
+    }
+
+    return count;
+}
+
+uint8_t ubloxNavHzFor(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor, uint8_t configuredHz)
+{
+    if (!ubloxCanConfigureNavRate(hwVersion, protMajor, protMinor)) {
+        return 5;
+    }
+
+    const uint16_t minMeasPeriodMs = UBLOX_PROTVER(protMajor, protMinor) >= UBLOX_PROTVER_FAST_MEAS_RATE ? 25 : 50;
+    return MIN(configuredHz, 1000 / minMeasPeriodMs);
 }

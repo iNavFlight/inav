@@ -64,15 +64,19 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 
 /*
  * hwVersion encoding (fits in uint8_t):
- *   bits [7:6]  series:  0b00=unknown, 0b01=u-blox Neo/M series
- *   bits [5:0]  generation within series (e.g. 8=M8, 9=M9, 10=M10)
+ *   bits [7:6]  series:  0b00=unknown, 0b01=u-blox Neo/M series, 0b10=u-blox F9
+ *   bits [5:0]  generation within series (e.g. 8=M8, 9=M9/F9, 10=M10, 20=X20)
  *
- * This leaves 0b10 and 0b11 available for future series (e.g. u-blox F9,
- * other manufacturers).
+ * The ZED-X20P reports 000B0000 (after the M10's 000A0000); the ZED-F9P reports the M9's 00190000,
+ * so it is told apart by the MON-VER module name.
+ *
+ * This leaves 0b11 available for future series (e.g. other manufacturers).
  */
 #define UBX_HW_SERIES_MASK          0xC0
 #define UBX_HW_GEN_MASK             0x3F
 #define UBX_HW_SERIES_UBLOX_NM      0x40    // 0b01 << 6: u-blox Neo/M series
+#define UBX_HW_SERIES_UBLOX_F9      0x80    // 0b10 << 6: u-blox F9, which reports the M9's hardware ID
+#define UBX_HW_GENERATION(hw)       ((hw) & UBX_HW_GEN_MASK)
 
 #define UBX_HW_VERSION_UNKNOWN      0
 #define UBX_HW_VERSION_UBLOX5       (UBX_HW_SERIES_UBLOX_NM | 5)   // 0x45
@@ -81,6 +85,8 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBX_HW_VERSION_UBLOX8       (UBX_HW_SERIES_UBLOX_NM | 8)   // 0x48
 #define UBX_HW_VERSION_UBLOX9       (UBX_HW_SERIES_UBLOX_NM | 9)   // 0x49
 #define UBX_HW_VERSION_UBLOX10      (UBX_HW_SERIES_UBLOX_NM | 10)  // 0x4A
+#define UBX_HW_VERSION_UBLOX20      (UBX_HW_SERIES_UBLOX_NM | 20)  // 0x54, X20
+#define UBX_HW_VERSION_UBLOX_F9     (UBX_HW_SERIES_UBLOX_F9 | 9)   // 0x89
 
 #define UBLOX_CFG_MSGOUT_NAV_POSLLH_UART1   0x2091002a // U1
 #define UBLOX_CFG_MSGOUT_NAV_SAT_UART1      0x20910016 // U1
