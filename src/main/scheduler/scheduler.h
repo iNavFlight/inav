@@ -43,7 +43,7 @@ typedef struct {
     timeUs_t     maxExecutionTime;
     timeUs_t     totalExecutionTime;
     timeUs_t     averageExecutionTime;
-    timeDelta_t     latestDeltaTime;
+    timeDelta_t     averageDeltaTime;
 } cfTaskInfo_t;
 
 typedef enum {
@@ -175,6 +175,7 @@ typedef struct {
     timeUs_t lastExecutedAt;        // last time of invocation
     timeUs_t lastSignaledAt;        // time of invocation event for event-driven tasks
     timeDelta_t taskLatestDeltaTime;
+    uint32_t movingSumDeltaTime;      // moving sum over 32 samples; 32 bits fill the gap before the 64-bit fields
 
     /* Statistics */
     timeUs_t movingSumExecutionTime;  // moving sum over 32 samples
