@@ -91,7 +91,7 @@
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
 
 #ifdef USE_DSHOT_DMAR
-    timerDMASafeType_t dmaBurstBuffer[MAX_DMA_TIMERS][DSHOT_DMA_BUFFER_SIZE * 4];
+static DMA_RAM timerDMASafeType_t dmaBurstBuffer[MAX_DMA_TIMERS][DSHOT_DMA_BUFFER_SIZE * 4];
 #endif
 
 #ifdef USE_DSHOT
@@ -437,6 +437,10 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
         return NULL;
     }
 
+    // DMA_RAM is NOLOAD: a channel of this timer that drives no motor must read zero, not leftovers
+    if (!burstDmaTimers[burstDmaTimerIndex].dmaBurstBuffer) {
+        ZERO_FARRAY(dmaBurstBuffer[burstDmaTimerIndex]);
+    }
     port->dmaBurstBuffer = &dmaBurstBuffer[burstDmaTimerIndex][0];
     burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
     burstDmaTimer->dmaBurstBuffer = port->dmaBurstBuffer;

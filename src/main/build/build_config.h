@@ -57,6 +57,10 @@
 #elif defined (AT32F43x)
 #define DMA_RAM __attribute__ ((section(".DMA_RAM")))
 #define SLOW_RAM __attribute__ ((section(".SLOW_RAM")))
+#elif defined (STM32F7)
+#define DMA_RAM __attribute__ ((section(".DMA_RAM")))
+#define DMA_RAM_UNCACHED    // the UART receive rings move here only then
+#define SLOW_RAM
 #else
 #define DMA_RAM
 #define SLOW_RAM

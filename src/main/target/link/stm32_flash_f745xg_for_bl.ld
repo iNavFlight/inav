@@ -38,12 +38,14 @@ MEMORY
     FLASH1 (rx)                 : ORIGIN = 0x08018000, LENGTH = 928K
 
     TCM (rwx)                   : ORIGIN = 0x20000000, LENGTH = 64K
-    RAM (rwx)                   : ORIGIN = 0x20010000, LENGTH = 256K
+    RAM (rwx)                   : ORIGIN = 0x20010000, LENGTH = 240K
+    SRAM2 (rwx)                 : ORIGIN = 0x2004C000, LENGTH = 16K
     MEMORY_B1 (rx)              : ORIGIN = 0x60000000, LENGTH = 0K
 }
 /* note CCM could be used for stack */
 REGION_ALIAS("STACKRAM", TCM)
 REGION_ALIAS("FASTRAM", TCM)
+REGION_ALIAS("DMARAM", SRAM2)
 
 __firmware_start = ORIGIN(FLASH);
 
