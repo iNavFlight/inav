@@ -109,6 +109,7 @@
 
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
+#include "sensors/bec.h"
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 #include "sensors/diagnostics.h"
@@ -238,7 +239,7 @@ static bool osdDisplayHasCanvas;
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
 PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
-PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 4);
+PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 5);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
  * for reduced code size and CPU overhead. */
@@ -1863,6 +1864,22 @@ static bool osdDrawSingleElement(uint8_t item)
         osdDisplayBattVoltDJI(elemPosX, elemPosY, getBatterySagCompensatedVoltage(),
             2 + osdConfig()->main_voltage_decimals, osdConfig()->main_voltage_decimals);
         return true;
+
+#ifdef USE_BEC_VOLTAGE
+    case OSD_BEC_VOLTAGE:
+        strcpy(buff, "BEC");
+        if (!becIsConfigured()) {
+            strcpy(buff + 3, " ---");
+        } else {
+            osdFormatCentiNumber(buff + 3, becGetVoltage(), 0, 2, 0, 4, false);
+            if (becIsVoltageLow()) {
+                TEXT_ATTRIBUTES_ADD_BLINK(elemAttr);
+            }
+        }
+        buff[7] = SYM_VOLT;
+        buff[8] = '\0';
+        break;
+#endif
 
     case OSD_CURRENT_DRAW: {
         osdFormatCentiNumber(buff, getAmperage(), 0, 2, 0, 3, false);

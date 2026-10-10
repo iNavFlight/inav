@@ -140,6 +140,8 @@
 #define ADC_CHANNEL_1_PIN       PC2   // Vin (input power rail)
 #define VBAT_ADC_CHANNEL        ADC_CHN_1
 #define ADC_CHANNEL_2_PIN       PC1   // BEC 5V rail
+#define BEC_ADC_CHANNEL         ADC_CHN_2
+#define VBEC_SCALE_DEFAULT      625   // Rotorflight's scale / divider, 1000 / 160
 // VBAT scale: hardware-verified value (divider ratio ~320)
 #define VBAT_SCALE_DEFAULT      320
 
