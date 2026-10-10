@@ -906,6 +906,13 @@ static bool testBlackboxCondition(FlightLogFieldCondition condition)
     return (blackboxConditionCache & position) != 0;
 }
 
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+// A new file after a split has no serial port to wait for
+static bool blackboxSplitting;
+#else
+#define blackboxSplitting false
+#endif
+
 static void blackboxSetState(BlackboxState newState)
 {
     //Perform initial setup required for the new state
@@ -930,6 +937,9 @@ static void blackboxSetState(BlackboxState newState)
         break;
     case BLACKBOX_STATE_RUNNING:
         blackboxSlowFrameIterationTimer = blackboxSInterval; //Force a slow frame to be written on the first iteration
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+        blackboxSplitting = false;
+#endif
         break;
     case BLACKBOX_STATE_SHUTTING_DOWN:
         xmitState.u.startTime = millis();
@@ -2329,10 +2339,34 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
     blackboxDeviceFlush();
 }
 
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+static void blackboxUpdateState(timeUs_t currentTimeUs);
+
+// Time per iteration a new file's header may take on top of the usual step
+#define BLACKBOX_SPLIT_HEADER_US 50
+
 /**
  * Call each flight loop iteration to perform blackbox logging.
  */
 void blackboxUpdate(timeUs_t currentTimeUs)
+{
+    blackboxUpdateState(currentTimeUs);
+
+    // Every iteration spent on the new file's header is a gap in the log, so send it several steps at a time
+    const timeUs_t startUs = micros();
+    while (blackboxSplitting && blackboxState >= BLACKBOX_FIRST_HEADER_SENDING_STATE && blackboxState <= BLACKBOX_LAST_HEADER_SENDING_STATE
+        && cmpTimeUs(micros(), startUs) < BLACKBOX_SPLIT_HEADER_US && blackboxDeviceHasRoomToSpare()) {
+        blackboxUpdateState(currentTimeUs);
+    }
+}
+
+static void blackboxUpdateState(timeUs_t currentTimeUs)
+#else
+/**
+ * Call each flight loop iteration to perform blackbox logging.
+ */
+void blackboxUpdate(timeUs_t currentTimeUs)
+#endif
 {
 #ifdef USE_TERRAIN
     if(blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD){
@@ -2370,7 +2404,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
          * Once the UART has had time to init, transmit the header in chunks so we don't overflow its transmit
          * buffer, overflow the OpenLog's buffer, or keep the main loop busy for too long.
          */
-        if (millis() > xmitState.u.startTime + 100) {
+        if (blackboxSplitting || millis() > xmitState.u.startTime + 100) {
             if (blackboxDeviceReserveBufferSpace(BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION) == BLACKBOX_RESERVE_SUCCESS) {
                 for (int i = 0; i < BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION && blackboxHeader[xmitState.headerIndex] != '\0'; i++, xmitState.headerIndex++) {
                     blackboxWrite(blackboxHeader[xmitState.headerIndex]);
@@ -2476,6 +2510,14 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     default:
         break;
     }
+
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+    // Can't grow but the card has room: close the log, it goes on in a new file
+    if ((blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_PAUSED) && blackboxDeviceNeedsNewLog()) {
+        blackboxSplitting = true;
+        blackboxSetState(BLACKBOX_STATE_SHUTTING_DOWN);
+    }
+#endif
 
     // Did we run out of room on the device? Stop!
     if (isBlackboxDeviceFull()) {

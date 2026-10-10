@@ -228,6 +228,11 @@ After downloading the log, be sure to erase the chip to make it ready for reuse 
 
 If you try to start recording a new flight when the dataflash is already full, Blackbox logging will be disabled and nothing will be recorded.
 
+### Usage - Onboard SD card
+Logs are `LOGxxxxx.TXT` files on the card. The card's free space is kept in a file named `FREESPAC.E`; at every boot it grows again over the space freed since, so logs deleted on a PC make room again after the next power cycle.
+
+On targets with more than 512 KB of flash, a log that can't grow any further, because it reached 4 GB (the largest FAT32 file) or `FREESPAC.E` ran out while the card still has room, continues in a new file with its own header.
+
 ### Usage - Logging switch
 If you're recording to an onboard flash chip, you probably want to disable Blackbox recording when not required in order to save storage space. To do this, you can add a Blackbox flight mode to one of your AUX channels on the Configurator's modes tab. Once you've added a mode, Blackbox will only log flight data when the mode is active.
 
