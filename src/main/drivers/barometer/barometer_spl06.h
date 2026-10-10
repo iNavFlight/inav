@@ -42,6 +42,7 @@
 #define SPL06_CHIP_ID_REG                      0x0D    // Chip ID Register
 #define SPL06_CALIB_COEFFS_START               0x10
 #define SPL06_CALIB_COEFFS_END                 0x21
+#define SPL06_COEF_SRCE_REG                    0x28    // Sensor the temperature coefficients were made for
 
 #define SPL06_CALIB_COEFFS_LEN                 (SPL06_CALIB_COEFFS_END - SPL06_CALIB_COEFFS_START + 1)
 
