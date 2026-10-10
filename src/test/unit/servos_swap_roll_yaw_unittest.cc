@@ -198,6 +198,8 @@ extern "C" {
     bool areSticksDeflected(void) { return false; }
     void saveConfigAndNotify(void) {}
     bool isGPSHeadingValid(void) { return false; }
+    bool fwFlightLatchIsFlying(void) { return false; }
+    int8_t fwFlightTally(void) { return 0; }
 
     // ---- Additional stand-ins required to link programming/logic_condition.c
     // (needed for the REAL getRcCommandOverride(), which lives in that file).
