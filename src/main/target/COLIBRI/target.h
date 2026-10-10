@@ -37,6 +37,9 @@
 #define BEEPER                  PC5
 
 #define MPU6000_CS_PIN          PC4
+#if defined(COLIBRI)
+#define MPU6000_EXTI_PIN       PC0
+#endif
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define USE_IMU_MPU6000
 

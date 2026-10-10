@@ -39,6 +39,7 @@
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
+#include "drivers/accgyro/accgyro_data_ready.h"
 
 // Check busDevice scratchpad memory size
 STATIC_ASSERT(sizeof(mpuContextData_t) < BUS_SCRATCHPAD_MEMORY_SIZE, busDevice_scratchpad_memory_too_small);
@@ -96,6 +97,17 @@ bool mpuGyroReadScratchpad(gyroDev_t *gyro)
 
 bool mpuAccReadScratchpad(accDev_t *acc)
 {
+#if defined(USE_SPI_DATA_READY)
+    // The read on data-ready brought the accelerometer too
+    int16_t v[XYZ_AXIS_COUNT];
+    if (gyroDataReadyAcc(acc->busDev, v)) {
+        acc->ADCRaw[X] = v[X];
+        acc->ADCRaw[Y] = v[Y];
+        acc->ADCRaw[Z] = v[Z];
+        return true;
+    }
+#endif
+
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(acc->busDev);
 
     if (ctx->lastReadStatus) {
@@ -110,6 +122,14 @@ bool mpuAccReadScratchpad(accDev_t *acc)
 
 bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
 {
+#if defined(USE_SPI_DATA_READY)
+    int16_t raw;
+    if (gyroDataReadyTemperature(gyro->busDev, &raw)) {
+        *data = raw / 34 + 365;
+        return true;
+    }
+#endif
+
     mpuContextData_t * ctx = busDeviceGetScratchpadMemory(gyro->busDev);
 
     if (ctx->lastReadStatus) {
@@ -120,3 +140,40 @@ bool mpuTemperatureReadScratchpad(gyroDev_t *gyro, int16_t * data)
 
     return false;
 }
+
+#if defined(USE_SPI_DATA_READY)
+// From ACCEL_XOUT_H: accelerometer X, Y, Z, temperature, gyro X, Y, Z, big-endian
+static void mpuDataReadyParse(const uint8_t *data, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp)
+{
+    if (withAccAndTemp) {
+        acc[X] = int16_val_big_endian(data, 0);
+        acc[Y] = int16_val_big_endian(data, 1);
+        acc[Z] = int16_val_big_endian(data, 2);
+        *temp = int16_val_big_endian(data, 3);
+        data += 8;
+    }
+    gyro[X] = int16_val_big_endian(data, 0);
+    gyro[Y] = int16_val_big_endian(data, 1);
+    gyro[Z] = int16_val_big_endian(data, 2);
+}
+
+static const gyroDataReadyDriver_t mpuDataReady = {
+    .withAccAndTemp = { MPU_RA_ACCEL_XOUT_H | 0x80, 14 },
+    .gyroOnly = { MPU_RA_GYRO_XOUT_H | 0x80, 6 },
+    .hasTemp = true,
+    .parse = mpuDataReadyParse,
+    .registerRead = mpuGyroReadScratchpad,
+    .tested = true,
+};
+
+// A 50 us pulse on INT at each new sample. Written at the initialisation speed: the MPU6000 takes
+// register writes at 1 MHz at most
+void mpuDataReadySetup(gyroDev_t *gyro)
+{
+    busWrite(gyro->busDev, MPU_RA_INT_PIN_CFG, MPU_INT_ANYRD_2CLEAR);
+    delayMicroseconds(15);
+    busWrite(gyro->busDev, MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
+    delayMicroseconds(15);
+    gyro->dataReadyDriver = &mpuDataReady;
+}
+#endif
