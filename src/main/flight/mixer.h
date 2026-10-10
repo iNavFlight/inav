@@ -95,7 +95,7 @@ typedef struct motorConfig_s {
     uint8_t  motorPwmProtocol;
     uint16_t digitalIdleOffsetValue;
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
-#ifdef USE_MOTOR_SRXL2
+    // On every target, so turning USE_MOTOR_SRXL2 on or off never moves the fields stored after these
     /*
      * Appended at the end, but not immediately after motorPoleCount.
      *
@@ -120,7 +120,9 @@ typedef struct motorConfig_s {
     uint8_t srxl2ReverseChannel;            // 1-based aux channel an SRXL2 ESC uses to arm reverse; 0 disables
     uint8_t srxl2Telemetry;                 // read ESC telemetry off the SRXL2 link
     uint8_t srxl2TelemetryRate;             // how often to ask the ESC for telemetry, as srxl2TelemetryRate_e
-#endif
+    uint8_t throttleBoost;                  // must default to 0: it can land in the old tail padding, stored as zero
+    uint8_t throttleBoostCutoff;            // Hz
+    uint8_t thrustLinear;                   // must default to 0: it can land in the old tail padding, stored as zero
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);

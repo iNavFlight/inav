@@ -7243,6 +7243,26 @@ Throttle value when the stick is set to mid-position. Used in the throttle curve
 
 ---
 
+### throttle_boost
+
+Multirotor only, ported from Betaflight. Adds a high-pass filtered copy of the throttle to it, so the motors follow quick throttle moves sooner. The boost is this value divided by 10 times the difference between the throttle and its low-pass filtered value. 0 disables it; Betaflight uses 5 by default. Only the motors get the boost: OSD, telemetry and servos show the throttle that was asked for. Not applied while navigation controls the throttle, during a VTOL transition, with reversible motors or with the logic-condition throttle override.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
+
+---
+
+### throttle_boost_cutoff
+
+Cutoff of the low-pass filter used by `throttle_boost` [Hz]. A higher cutoff makes each boost shorter.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 5 | 50 |
+
+---
+
 ### throttle_idle
 
 The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle.
@@ -7266,6 +7286,16 @@ Throttle scaling factor. `1` means no throttle scaling. `0.5` means throttle sca
 ### throttle_tilt_comp_str
 
 Can be used in ANGLE and HORIZON mode and will automatically boost throttle when banking. Setting is in percentage, 0=disabled.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
+
+---
+
+### thrust_linear
+
+Multirotor only, ported from Betaflight 2026.6. A propeller's thrust grows faster than linearly with the motor command, so the quad responds less to the same correction at low throttle. This raises low motor outputs and lowers the throttle before the mix by the inverse amount, so hover stays where it was (within 8 us up to 50, about 23 us at 70 and 80 us at 100, at worst near 15 % throttle). The value is about ArduPilot's `MOT_THST_EXPO` times 100. Only the motors get the change: OSD, telemetry and servos show the throttle that was asked for. 0 disables it. Above about 70 check `nav_mc_hover_thr` again. Betaflight allows up to 150, but its formulas drive the throttle negative above 100 and stop being monotonic from about 130. Off on VTOL setups (any mixer profile that is not a multirotor), when any motor's throttle weight in the mixer is not 1, with reversible motors and with the logic-condition throttle override.
 
 | Default | Min | Max |
 | --- | --- | --- |
