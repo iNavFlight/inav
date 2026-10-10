@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "gps_ublox.h"
@@ -31,6 +33,14 @@ int ubloxCfgFillU2(ubx_config_data16_t *cfg, ubx_config_data16_payload_t *kvPair
 void ublox_update_checksum(uint8_t *data, uint8_t len, uint8_t *ck_a, uint8_t *ck_b);
 
 void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *navSig);
+
+uint8_t ubloxDecodeHardwareVersion(const char *field, size_t len);
+bool ubloxParseProtocolVersion(const char *field, size_t len, uint8_t *major, uint8_t *minor);
+
+bool ubloxCanConfigureNavRate(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor);
+bool ubloxCanConfigureGnss(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor);
+bool ubloxUseM10GnssKeys(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor);
+uint8_t ubloxNavHzFor(uint8_t hwVersion, uint8_t protMajor, uint8_t protMinor, uint8_t configuredHz);
 
 #ifdef __cplusplus
 }
