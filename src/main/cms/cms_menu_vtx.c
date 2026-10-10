@@ -27,6 +27,7 @@
 #if defined(USE_CMS) && defined(USE_VTX_CONTROL)
 
 #include "common/printf.h"
+#include "common/maths.h"
 #include "common/utils.h"
 
 #include "cms/cms.h"
@@ -57,6 +58,22 @@ static OSD_TAB_t cms_Vtx_EntBand = { &vtxBand, VTX_SETTINGS_BAND_COUNT, vtx58Ban
 static OSD_TAB_t cms_Vtx_EntChan = { &vtxChan, VTX_SETTINGS_CHANNEL_COUNT, vtx58ChannelNames };
 static OSD_TAB_t cms_Vtx_EntPower = { &vtxPower, VTX_SETTINGS_POWER_COUNT, vtx58DefaultPowerNames };
 static const OSD_TAB_t cms_Vtx_EntPitMode = { &vtxPitMode, 2, vtxCmsPitModeNames };
+static const char * const vtxUnknownPowerNames[] = { "---" };
+
+void cmsVtxUpdatePowerMetadata(void)
+{
+    vtxDeviceCapability_t capability;
+    if (vtxCommonGetDeviceCapability(vtxCommonDevice(), &capability)
+        && capability.powerCount && capability.powerNames) {
+        cms_Vtx_EntPower.max = capability.powerCount;
+        cms_Vtx_EntPower.names = (const char * const *)capability.powerNames;
+    } else {
+        cms_Vtx_EntPower.max = 0;
+        cms_Vtx_EntPower.names = vtxUnknownPowerNames;
+    }
+    // Clamp the menu selection, preserving EEPROM until the pilot saves it.
+    vtxPower = MIN(vtxPower, cms_Vtx_EntPower.max);
+}
 
 static long cms_Vtx_configPitMode(displayPort_t *pDisp, const void *self)
 {
@@ -100,7 +117,7 @@ static long cms_Vtx_configPower(displayPort_t *pDisp, const void *self)
     UNUSED(pDisp);
     UNUSED(self);
 
-    if (vtxPower == 0) {
+    if (vtxPower == 0 && cms_Vtx_EntPower.max > 0) {
         vtxPower = 1;
     }
     return 0;
@@ -135,6 +152,7 @@ static void cms_Vtx_initSettings(void)
     vtxBand = vtxSettingsConfig()->band;
     vtxChan = vtxSettingsConfig()->channel;
     vtxPower = vtxSettingsConfig()->power;
+    cmsVtxUpdatePowerMetadata();
 
     // If device is ready - read actual PIT mode
     if (vtxCommonDeviceIsReady(vtxDevice)) {
@@ -158,6 +176,12 @@ static long cms_Vtx_Commence(displayPort_t *pDisp, const void *self)
 {
     UNUSED(pDisp);
     UNUSED(self);
+
+    cmsVtxUpdatePowerMetadata();
+
+    if (!cms_Vtx_EntPower.max) {
+        return MENU_CHAIN_BACK;
+    }
 
     vtxCommonSetBandAndChannel(vtxCommonDevice(), vtxBand, vtxChan);
     vtxCommonSetPowerByIndex(vtxCommonDevice(), vtxPower);
@@ -243,7 +267,7 @@ static const OSD_Entry cms_menuVtxEntries[] =
     OSD_TAB_CALLBACK_ENTRY("PIT",   cms_Vtx_configPitMode, &cms_Vtx_EntPitMode),
     OSD_TAB_CALLBACK_ENTRY("BAND",  cms_Vtx_configBand,    &cms_Vtx_EntBand),
     OSD_TAB_CALLBACK_ENTRY("CHAN",  cms_Vtx_configChan,    &cms_Vtx_EntChan),
-    OSD_TAB_CALLBACK_ENTRY("POWER", cms_Vtx_configPower,   &cms_Vtx_EntPower),
+    { "POWER", {.func = cms_Vtx_configPower}, &cms_Vtx_EntPower, OME_TAB, DYNAMIC },
 
     OSD_SUBMENU_ENTRY("SET", &cms_menuCommence),
     OSD_BACK_AND_END_ENTRY,

@@ -18,3 +18,5 @@
 #pragma once
 
 extern const CMS_Menu cmsx_menuVtxControl;
+
+void cmsVtxUpdatePowerMetadata(void);
