@@ -165,3 +165,6 @@
 // command keeps its number, an unmerged one has no claim on it.
 #define MSP2_INAV_ESC_SRXL2_STATUS              0x2233
 #define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2234
+
+#define MSP2_INAV_SERIAL_PADS                   0x2236
+#define MSP2_INAV_SET_SERIAL_PAD                0x2237

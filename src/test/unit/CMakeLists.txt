@@ -166,6 +166,10 @@ set_property(SOURCE gps_heartbeat_unittest.cc PROPERTY definitions GPS_NULL_PORT
 
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY depends "io/gimbal_serial.c" "drivers/gimbal_common.c" "common/maths.c" "drivers/headtracker_common.c")
 set_property(SOURCE gimbal_serial_unittest.cc PROPERTY definitions USE_SERIAL_GIMBAL GIMBAL_UNIT_TEST USE_HEADTRACKER)
+
+set_property(SOURCE serial_pads_unittest.cc PROPERTY depends "io/serial_pads.c" "common/streambuf.c")
+set_property(SOURCE serial_pads_unittest.cc PROPERTY definitions USE_SERIAL_PADS
+    SOFTSERIAL_1_TX_PIN=PA2 SOFTSERIAL_1_RX_PIN=NONE SOFTSERIAL_2_TX_PIN=NONE SOFTSERIAL_2_RX_PIN=NONE)
 set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY depends
     "flight/mixer.c" "sensors/battery.c" "common/maths.c" "common/filter.c" "common/lulu.c")
 set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY definitions USE_ADC)

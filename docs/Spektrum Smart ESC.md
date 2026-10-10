@@ -43,6 +43,14 @@ lead.
 
 The motor pad that would normally have driven this ESC is simply left unused.
 
+On many boards the processor can also connect a UART's TX to a motor or servo pad, so
+the ESC can stay on the pad it is plugged into: choose that pad as the port's TX in the
+Pins column of the Ports tab, or with `serialpad` in the CLI (see
+[Serial](Serial.md#uart-pins-on-output-pads)). The NEXUS, NEXUS X and Vantac RF007
+helicopter boards have a connector labelled ESC that UART1's TX reaches, so a Smart ESC
+there needs UART1 assigned to it and `serialpad 0 5 0` (the connector is S5 in the
+Outputs tab).
+
 ## Setting it up
 
 1. **Ports tab**: assign `Spektrum Smart ESC (SRXL2)` to a spare UART, one per
