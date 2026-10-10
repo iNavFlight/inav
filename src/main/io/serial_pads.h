@@ -44,6 +44,8 @@ PG_DECLARE(serialPadConfig_t, serialPadConfig);
 // Pads are numbered from 1 in the order of the Outputs tab (S1, S2, ...); 0 is the UART's own pin
 void serialPadsInit(void);
 bool serialPadIsRouted(ioTag_t tag);
+// Whether the UART uses the stored pad now (true too when none is stored)
+bool serialPadInEffect(int uart, serialPadDirection_e direction);
 void serialPadGetOwnPins(int uart, serialPortPins_t *pins);
 uint8_t serialPadFind(ioTag_t tag);
 bool serialPadIsValid(serialPortIdentifier_e identifier, serialPadDirection_e direction, uint8_t pad);

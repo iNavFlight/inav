@@ -202,6 +202,8 @@ TEST_F(SerialPadsTest, OnlyPadsTheUartReachesAreValid)
     EXPECT_FALSE(serialPadIsValid(UART4, SERIAL_PAD_RX, 2));
     EXPECT_FALSE(serialPadIsValid(UART4, SERIAL_PAD_TX, 6));
     EXPECT_FALSE(serialPadIsValid((serialPortIdentifier_e)SERIAL_PAD_UART_COUNT, SERIAL_PAD_TX, 0));
+    // in range but not on this board
+    EXPECT_FALSE(serialPadIsValid(SERIAL_PORT_USART1, SERIAL_PAD_TX, 0));
     // S5 is UART3's own TX, free only while UART3 has no function
     EXPECT_FALSE(serialPadIsValid(UART4, SERIAL_PAD_TX, 5));
     portUsed[UART3] = false;
@@ -222,6 +224,28 @@ TEST_F(SerialPadsTest, SoftSerialKeepsItsPin)
     features = 0;
     serialPadsInit();
     EXPECT_EQ(IO_TAG(PA2), uartPins[UART2][SERIAL_PAD_TX]);
+}
+
+TEST_F(SerialPadsTest, AStoredPadNotInUseIsMarked)
+{
+    serialPadConfigMutable()->pin[UART4][SERIAL_PAD_TX] = IO_TAG(PA0);
+    serialPadConfigMutable()->pin[UART2][SERIAL_PAD_TX] = IO_TAG(PA2);
+    serialPadConfigMutable()->pin[UART2][SERIAL_PAD_RX] = IO_TAG(PC12);
+    portUsed[UART2] = true;
+    features = FEATURE_SOFTSERIAL;
+    serialPadsInit();
+
+    // no function, soft serial's pin, not an output: all left on their own pins
+    EXPECT_FALSE(serialPadInEffect(UART4, SERIAL_PAD_TX));
+    EXPECT_FALSE(serialPadInEffect(UART2, SERIAL_PAD_TX));
+    EXPECT_FALSE(serialPadInEffect(UART2, SERIAL_PAD_RX));
+    EXPECT_TRUE(serialPadInEffect(UART3, SERIAL_PAD_TX));
+
+    portUsed[UART4] = true;
+    serialPadsInit();
+    EXPECT_TRUE(serialPadInEffect(UART4, SERIAL_PAD_TX));
+    serialPadSet(UART4, SERIAL_PAD_RX, 3);
+    EXPECT_FALSE(serialPadInEffect(UART4, SERIAL_PAD_RX));
 }
 
 TEST_F(SerialPadsTest, ChoosingAPadTakesItFromAnotherPort)

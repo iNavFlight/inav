@@ -157,6 +157,12 @@ void serialPadsInit(void)
     }
 }
 
+bool serialPadInEffect(int uart, serialPadDirection_e direction)
+{
+    const ioTag_t tag = serialPadConfig()->pin[uart][direction];
+    return !tag || currentPin(uart, direction) == tag;
+}
+
 bool serialPadIsRouted(ioTag_t tag)
 {
     for (int i = 0; i < SERIAL_PAD_UART_COUNT; i++) {
@@ -188,7 +194,8 @@ static bool isOffered(int uart, int direction, ioTag_t tag)
 
 bool serialPadIsValid(serialPortIdentifier_e identifier, serialPadDirection_e direction, uint8_t pad)
 {
-    if (identifier < 0 || identifier >= SERIAL_PAD_UART_COUNT || direction >= SERIAL_PAD_DIRECTION_COUNT) {
+    if (identifier < 0 || identifier >= SERIAL_PAD_UART_COUNT || direction >= SERIAL_PAD_DIRECTION_COUNT
+            || !serialIsPortAvailable(identifier)) {
         return false;
     }
     const timerHardware_t *timHw = padHardware(pad);

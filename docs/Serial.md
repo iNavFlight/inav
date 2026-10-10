@@ -75,7 +75,7 @@ The Ports tab shows a Pins column for the UARTs that can move; choose the S pad 
 serialpad <port> <tx pad> <rx pad>
 ```
 
-`port` is the identifier `serial` uses, the pads are numbered as in the Outputs tab (S1, S2, ...) and 0 keeps the UART's own pin. `serialpad` alone lists the current choices. The change takes effect after `save`.
+`port` is the identifier `serial` uses, the pads are numbered as in the Outputs tab (S1, S2, ...) and 0 keeps the UART's own pin. `serialpad` alone lists the current choices, and marks any the UART is not using now: the port has no function, the pad is not an output on this board, soft serial, an ADC input or another port uses that pin, or the change is waiting for a save. The change takes effect after `save`.
 
 * The pad stops being a motor, servo, LED strip, beeper or PINIO output, and the other outputs keep their numbers. If the mixer drives a motor or servo on it, arming is blocked with a PWM output error (`status` shows "Motor or servo output used by a UART"): change the mixer or choose another pad.
 * A pad carries one UART pin at a time, and the move happens only while the port has a function.

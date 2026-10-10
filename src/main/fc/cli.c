@@ -971,6 +971,13 @@ static void cliSerialPad(char *cmdline)
 {
     if (isEmpty(cmdline)) {
         printSerialPads(DUMP_MASTER, serialPadConfig(), NULL);
+        for (int i = 0; i < SERIAL_PAD_UART_COUNT; i++) {
+            for (int dir = 0; dir < SERIAL_PAD_DIRECTION_COUNT && serialIsPortAvailable(i); dir++) {
+                if (!serialPadInEffect(i, dir)) {
+                    cliPrintLinef("# port %d %s: not on its pad now", i, dir == SERIAL_PAD_TX ? "TX" : "RX");
+                }
+            }
+        }
         return;
     }
 
