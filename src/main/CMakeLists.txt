@@ -407,6 +407,8 @@ main_sources(COMMON_SRC
     io/piniobox.h
     io/serial.c
     io/serial.h
+    io/serial_pads.c
+    io/serial_pads.h
     io/serial_4way.c
     io/serial_4way.h
     io/serial_4way_avrootloader.c

@@ -100,6 +100,7 @@
 #include "io/osd.h"
 #include "io/motor_srxl2.h"
 #include "io/serial.h"
+#include "io/serial_pads.h"
 #include "io/serial_4way.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
@@ -1728,6 +1729,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
          * bytes are MAX_SUPPORTED_MOTORS and MAX_SUPPORTED_SERVOS, the ceilings. */
         sbufWriteU8(dst, srxl2MotorCount());
         sbufWriteU8(dst, getMotorCount());
+        break;
+#endif
+
+#ifdef USE_SERIAL_PADS
+    case MSP2_INAV_SERIAL_PADS:
+        serialPadsWriteList(dst);
         break;
 #endif
 
@@ -3868,6 +3875,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if (srxl2MotorCalibrationManual(tmp_u8) != SRXL2_CAL_ACCEPTED) {
                 return MSP_RESULT_ERROR;
             }
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
+
+#ifdef USE_SERIAL_PADS
+    case MSP2_INAV_SET_SERIAL_PAD:
+        if (dataSize >= 3) {
+            const uint8_t identifier = sbufReadU8(src);
+            const uint8_t direction = sbufReadU8(src);
+            const uint8_t pad = sbufReadU8(src);
+            if (!serialPadIsValid(identifier, direction, pad)) {
+                return MSP_RESULT_ERROR;
+            }
+            serialPadSet(identifier, direction, pad);
         } else {
             return MSP_RESULT_ERROR;
         }

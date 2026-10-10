@@ -44,6 +44,10 @@ typedef struct {
     void * test;
 } TIM_TypeDef;
 
+typedef struct {
+    void * test;
+} USART_TypeDef;
+
 typedef enum {
   EXTI_Trigger_Rising = 0x08,
   EXTI_Trigger_Falling = 0x0C,
