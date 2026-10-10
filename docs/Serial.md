@@ -81,7 +81,7 @@ serialpad <port> <tx pad> <rx pad>
 * A pad carries one UART pin at a time, and the move happens only while the port has a function.
 * F4 and AT32 boards invert SBUS and SmartPort with an inverter on the UART's own pin, which an output pad does not have. F7 and H7 invert inside the UART.
 * A UART the board swaps (TX and RX exchanged) does not move.
-* Available on boards with more than 512 KB of flash (F405, F745, F765, H7 and AT32).
+* Available on boards with more than 512 KB of flash (F405, F745, F765, H7 and AT32), and on the NEXUS, NEXUS X and Vantac RF007, whose ESC connector UART1 can reach.
 
 
 ### Baud Rates
