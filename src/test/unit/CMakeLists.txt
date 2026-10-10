@@ -9,6 +9,9 @@ set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY depends
 set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY definitions USE_IMU_LSM6DXX)
 
 set_property(SOURCE adsb_unittest.cc PROPERTY depends "io/adsb.c" "common/maths.c")
+
+set_property(SOURCE blackbox_encoding_unittest.cc PROPERTY depends "blackbox/blackbox_encoding.c" "common/encoding.c")
+set_property(SOURCE blackbox_encoding_unittest.cc PROPERTY definitions USE_BLACKBOX)
 set_property(SOURCE adsb_unittest.cc PROPERTY definitions USE_ADSB MAX_ADSB_VEHICLES=5 ADSB_LIMIT_CM=6400000)
 set_property(SOURCE adsb_unittest.cc PROPERTY extra_includes "../../lib/main/MAVLink")
 

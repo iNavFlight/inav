@@ -1204,7 +1204,8 @@ static void writeInterframe(void)
      */
     blackboxWriteSignedVB((int32_t) (blackboxHistory[0]->time - 2 * blackboxHistory[1]->time + blackboxHistory[2]->time));
 
-    int32_t deltas[8];
+    // Up to 9 optional fields below: vbat, amperage, mag x3, baro, pitot, surface, rssi
+    int32_t deltas[9];
     arraySubInt32(deltas, blackboxCurrent->axisPID_Setpoint, blackboxLast->axisPID_Setpoint, XYZ_AXIS_COUNT);
     blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
 
