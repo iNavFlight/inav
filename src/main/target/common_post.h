@@ -173,6 +173,11 @@ extern uint8_t __config_end;
 #define USE_MAG_CALIBRATION_ORIENTATION
 #endif
 
+// In-flight compass offset learning, ~2 KB of flash: kept off 512 KB targets like the larger features in common.h
+#if defined(USE_MAG) && !defined(USE_MAG_LEARN) && (MCU_FLASH_SIZE > 512)
+#define USE_MAG_LEARN
+#endif
+
 // CRSF sensor input on a dedicated UART
 #if defined(USE_SERIALRX_CRSF)
 #define USE_CRSF_SENSOR_INPUT
