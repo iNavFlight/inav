@@ -296,6 +296,8 @@ bool i2cBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data);
 bool i2cBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
 bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data);
 bool i2cBusBusy(const busDevice_t *dev, bool *error);
+bool i2cBusReadBufferAsync(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length);
+i2cAsyncState_e i2cBusAsyncState(const busDevice_t * dev);
 
 bool spiBusInitHost(const busDevice_t * dev);
 bool spiBusIsBusy(const busDevice_t * dev);
@@ -332,6 +334,9 @@ bool busWriteBuf(const busDevice_t * busdev, uint8_t reg, const uint8_t * data, 
 bool busReadBuf(const busDevice_t * busdev, uint8_t reg, uint8_t * data, uint8_t length);
 bool busRead(const busDevice_t * busdev, uint8_t reg, uint8_t * data);
 bool busWrite(const busDevice_t * busdev, uint8_t reg, uint8_t data);
+
+bool busReadBufAsync(const busDevice_t * busdev, uint8_t reg, uint8_t * data, uint8_t length);
+i2cAsyncState_e busAsyncState(const busDevice_t * busdev);
 
 bool busTransfer(const busDevice_t * dev, uint8_t * rxBuf, const uint8_t * txBuf, int length);
 bool busTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * buffers, int count);
