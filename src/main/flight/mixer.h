@@ -93,6 +93,8 @@ typedef struct motorConfig_s {
     uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
     uint16_t motorPwmRate;                  // The update rate of motor outputs (50-498Hz)
     uint8_t  motorPwmProtocol;
+    uint8_t  useDshotTelemetry;
+    uint8_t  useDshotEdt;
     uint16_t digitalIdleOffsetValue;
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
 #ifdef USE_MOTOR_SRXL2
@@ -121,6 +123,12 @@ typedef struct motorConfig_s {
     uint8_t srxl2Telemetry;                 // read ESC telemetry off the SRXL2 link
     uint8_t srxl2TelemetryRate;             // how often to ask the ESC for telemetry, as srxl2TelemetryRate_e
 #endif
+    // On every target, so turning USE_DSHOT_BIDIR on or off never moves the fields stored after these
+    uint16_t dynamicIdleMinRpm;             // Slowest motor speed the dynamic idle keeps, 0 = off
+    uint8_t dynamicIdlePGain;
+    uint8_t dynamicIdleIGain;
+    uint8_t dynamicIdleDGain;
+    uint8_t dynamicIdleMaxIncrease;         // Largest idle raise, in 0.1 % of the motor range
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
