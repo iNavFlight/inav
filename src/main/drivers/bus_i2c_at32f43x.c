@@ -234,8 +234,11 @@ static void i2cPollPending(I2CDevice device)
     }
 
     // The end-of-transfer status is private to i2c_application.c, i2c_wait_end() with a zero timeout only probes it:
-    // I2C_ERR_TIMEOUT means the transfer is still running, anything else means it finished
-    if (state->handle.error_code != I2C_OK || i2c_wait_end(&state->handle, 0) != I2C_ERR_TIMEOUT) {
+    // I2C_ERR_TIMEOUT means the transfer is still running, anything else means it finished. error_code alone is not
+    // the end: after a NACK the library sets it from the interrupt and finishes with the STOP interrupt later, a new
+    // start in between would have its status overwritten with I2C_END by that STOP. A transfer that never reaches the
+    // end after an error interrupt is caught by the stuck check below
+    if (i2c_wait_end(&state->handle, 0) != I2C_ERR_TIMEOUT) {
         i2cStats.lastTransferUs = micros() - state->startUs;
         if (state->handle.error_code != I2C_OK) {
             i2cErrorCount++;    // keep the "I2C Errors" count of status / MSP meaningful for non-blocking transfers

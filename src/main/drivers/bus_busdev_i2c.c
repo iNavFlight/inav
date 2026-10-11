@@ -53,6 +53,7 @@ bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data)
     const bool allowRawAccess = (dev->flags & DEVFLAGS_USE_RAW_REGISTERS);
     return i2cRead(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, 1, data, allowRawAccess);
 }
+
 bool i2cBusReadBufferStart(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
 {
     const bool allowRawAccess = (dev->flags & DEVFLAGS_USE_RAW_REGISTERS);

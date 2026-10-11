@@ -628,6 +628,14 @@ void i2cInit(I2CDevice device)
     // Enable RCC
     RCC_ClockCmd(hardware->rcc, ENABLE);
 
+    if (state->initialised) {
+        // Re-initialisation after a failure: drop whatever transfer the HAL still thinks is running. Done before the
+        // unstick so that the peripheral and its interrupts do not react to the bus being clocked by hand
+        HAL_I2C_DeInit(pHandle);
+    }
+    state->busy = false;
+    state->error = false;
+
     IO_t scl = IOGetByTag(hardware->scl);
     IO_t sda = IOGetByTag(hardware->sda);
 
@@ -641,13 +649,6 @@ void i2cInit(I2CDevice device)
     IOConfigGPIOAF(sda, IOCFG_I2C, hardware->af);
 
     // Init I2C peripheral
-    if (state->initialised) {
-        // Re-initialisation after a failure: drop whatever transfer the HAL still thinks is running
-        HAL_I2C_DeInit(pHandle);
-    }
-    state->busy = false;
-    state->error = false;
-
     pHandle->Instance = hardware->dev;
 
 /*

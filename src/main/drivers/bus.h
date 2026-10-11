@@ -283,7 +283,6 @@ extern const busDeviceDescriptor_t __busdev_registry_end[];
 #define BUSDEV_REGISTER_I2C_TAG(_name, _devHw, _i2cBus, _devAddr, _irqPin, _tag, _flags, _param)    // NO-OP
 #endif
 
-// busTransfer and busTransferMultiple are supported only on full-duplex SPI bus
 /*
  * Result of one step of a sensor read made of several non-blocking transfers (status poll, trigger, data).
  * The sensor layer calls the driver's readStart(dev, firstStep) with firstStep set for the first transfer and
@@ -295,6 +294,7 @@ typedef enum {
     BUS_READ_STEP_LAST,         // the final transfer was started, call read() once it is done
 } busReadStepResult_e;
 
+// busTransfer and busTransferMultiple are supported only on full-duplex SPI bus
 typedef struct busTransferDescriptor_s {
     uint8_t *       rxBuf;
     const uint8_t * txBuf;

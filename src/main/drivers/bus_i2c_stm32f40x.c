@@ -53,7 +53,7 @@
 
 #ifndef SOFT_I2C
 
-// Upper bound for the START/STOP bit release waits in i2cServiceReset().
+// Upper bound for the START/STOP bit release waits in task context (i2cServiceReset(), transfer start).
 // Normally these clear within one SCL period; a longer wait means a held bus.
 #define I2C_BIT_RELEASE_TIMEOUT_US  1000
 
@@ -119,8 +119,8 @@ typedef struct {
     uint16_t    errorIrqs;      // error interrupts since boot
     uint16_t    lastTransferUs; // start to completion of the last transfer
     uint16_t    maxIrqUs;       // longest single event handler run
-    uint16_t    maxBitWaitUs;   // longest wait for a START / STOP bit release in i2cServiceReset()
-    uint16_t    startCr2;       // interrupt enables found in CR2 when a transfer was started, should be 0
+    uint16_t    maxBitWaitUs;   // longest wait for a START / STOP bit release in task context
+    uint16_t    startCr2;       // interrupt enables found in CR2 when a transfer was started: EVT and ERR off, BUF may be left on (1024)
     uint16_t    startCallUs;    // time spent in the last i2cStartTransfer() call
 } i2cDebugStats_t;
 
@@ -388,11 +388,8 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr, uint8_t reg, bool a
 
     if (!(I2Cx->CR2 & I2C_IT_EVT)) {                                    // interrupts are off between transfers
         if (!(I2Cx->CR1 & I2C_CR1_START)) {                             // ensure sending a start
-            const timeUs_t startUs = micros();
-            while (I2Cx->CR1 & I2C_CR1_STOP) {                          // wait for any stop to finish sending
-                if (cmpTimeUs(micros(), startUs) >= I2C_TIMEOUT) {
-                    return i2cHandleHardwareFailure(device);
-                }
+            if (!i2cWaitBitRelease(I2Cx, I2C_CR1_STOP)) {                // wait for any stop to finish sending
+                return i2cHandleHardwareFailure(device);
             }
             I2C_GenerateSTART(I2Cx, ENABLE);                            // send the start for the new job
         }
