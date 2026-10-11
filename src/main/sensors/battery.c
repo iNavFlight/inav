@@ -270,16 +270,6 @@ void batteryUpdateThresholdsAndCells(void)
 }
 
 #ifdef USE_ADC
-// profileDetect() profile sorting compare function
-static int profile_compare(profile_comp_t *a, profile_comp_t *b) {
-    if (a->max_voltage < b->max_voltage)
-        return -1;
-    else if (a->max_voltage > b->max_voltage)
-        return 1;
-    else
-        return 0;
-}
-
 // Find profile matching plugged battery for profile_autoselect
 static int8_t profileDetect(void) {
     profile_comp_t profile_comp_array[MAX_BATTERY_PROFILE_COUNT];
@@ -291,8 +281,16 @@ static int8_t profileDetect(void) {
         profile_comp_array[i].max_voltage = profile->cells * profile->voltage.cellDetect;
     }
 
-    // Sort profiles by max voltage
-    qsort(profile_comp_array, MAX_BATTERY_PROFILE_COUNT, sizeof(*profile_comp_array), (int (*)(const void *, const void *))profile_compare);
+    // Sort profiles by max voltage; insertion sort keeps equal profiles in index order and avoids linking qsort
+    for (uint8_t i = 1; i < MAX_BATTERY_PROFILE_COUNT; ++i) {
+        const profile_comp_t key = profile_comp_array[i];
+        int8_t j = i - 1;
+        while (j >= 0 && profile_comp_array[j].max_voltage > key.max_voltage) {
+            profile_comp_array[j + 1] = profile_comp_array[j];
+            --j;
+        }
+        profile_comp_array[j + 1] = key;
+    }
 
     // Return index of the first profile where vbat <= profile_max_voltage
     for (uint8_t i = 0; i < MAX_BATTERY_PROFILE_COUNT; ++i)
