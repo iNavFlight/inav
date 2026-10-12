@@ -6036,6 +6036,16 @@ RSSI dBm lower end of curve or RX sensitivity level. Worst rssi (min) = 0%
 
 ---
 
+### osd_show_radar_peer_name
+
+Show the radar peer name (set with MSP2_COMMON_SET_RADAR_POS) in the formation flight OSD element instead of the peer ID letter (A, B, C...)
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_sidebar_height
 
 Height of sidebars in rows. 0 leaves only the level indicator arrows (Not for pixel OSD)
