@@ -38,6 +38,28 @@ PID meaning:
 * POS - translated position error to desired velocity, uses P term only
 * POSR - translates velocity error to desired acceleration
 
+## Fixed-wing flight detection
+
+Several fixed-wing features need to know whether the aircraft is flying. INAV keeps a FLYING / NOT_FLYING state, set by a takeoff signature (a sustained real acceleration, such as a throw or bungee launch) and cleared once the aircraft is stationary, plus a score of how strongly the sensors indicate flight. GPS loss is treated as missing information, not as evidence that the aircraft has stopped.
+
+| Signal | Points | Notes |
+|---|---|---|
+| GPS heading valid | 3 | |
+| Airspeed above 350 cm/s | 3 | healthy pitot only |
+| Baro altitude change over 5 m | 2 | from the disarmed baseline, up or down |
+| Velocity above 300 cm/s | 2 | only when GPS heading is not valid |
+
+| Feature | Requires |
+|---|---|
+| In-flight emergency re-arm | landing detector active and (FLYING or score 1+) |
+| Landing detector activation and cancellation | score 3+ |
+| Servo autotrim | FLYING and score 5+ |
+| Launch mode arming | launch enabled, NOT_FLYING and score 0 |
+
+A pitot is not required for any of these. Without one, a score of 5 comes from GPS heading plus a baro altitude change. Only a score of 6 or more needs airspeed, and no feature uses it. Without GPS or baro the score is lower, so autotrim is skipped.
+
+New code that needs this should use `isProbablyStillFlying()` or `isFlightDetected()` rather than reading the score with its own threshold.
+
 ## NAV RTH - return to home mode
 
 Home for RTH is the position where vehicle was first armed. This position may be offset by the CLI settings `nav_rth_home_offset_distance` and `nav_rth_home_offset_direction`. This position may also be overridden with Safehomes. RTH requires accelerometer, compass and GPS sensors.
