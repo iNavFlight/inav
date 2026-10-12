@@ -46,6 +46,9 @@
 #ifdef USE_RPM_FILTER
 
 #define RPM_FILTER_RPM_LPF_HZ 150
+// Serial ESC telemetry ages by one per missed reply of that motor (SRXL2 only once its own
+// stale timeout passed): a single CRC error keeps the value, a silent ESC drops to 0
+#define RPM_FILTER_MAX_ESC_DATA_AGE 2
 #define RPM_FILTER_HARMONICS 3
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 1);
@@ -199,7 +202,8 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
 #endif
         {
 #ifdef USE_ESC_SENSOR
-            motorFrequency = (float)getEscTelemetry(i)->rpm / 60.0f;
+            const escSensorData_t *escData = getEscTelemetry(i);
+            motorFrequency = escData->dataAge <= RPM_FILTER_MAX_ESC_DATA_AGE ? (float)escData->rpm / 60.0f : 0.0f;
 #else
             motorFrequency = 0.0f;
 #endif

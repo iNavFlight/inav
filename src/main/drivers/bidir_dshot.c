@@ -40,9 +40,14 @@
 // have no consumer and just mark their type as seen
 #define DSHOT_TELEMETRY_STORED_TYPE_COUNT (DSHOT_TELEMETRY_TYPE_CURRENT + 1)
 
+// A silent ESC (reset, brownout, desync) must not leave the RPM notches on its last speed.
+// Replies come with every frame, so this is far longer than any regular gap, EDT included
+#define DSHOT_ERPM_TIMEOUT_MS 100
+
 typedef struct {
     uint16_t telemetryData[DSHOT_TELEMETRY_STORED_TYPE_COUNT];
     uint8_t telemetryTypes;     // bit per dshotTelemetryType_e seen since boot
+    timeMs_t lastErpmMs;        // millis(), not micros(): a dead ESC must not turn fresh on wrap
 } dshotTelemetryMotorState_t;
 
 bool useDshotTelemetry = false;
@@ -128,13 +133,21 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
     if (type < DSHOT_TELEMETRY_STORED_TYPE_COUNT) {
         motorTelemetry[motorIndex].telemetryData[type] = decoded;
     }
+    if (type == DSHOT_TELEMETRY_TYPE_ERPM) {
+        motorTelemetry[motorIndex].lastErpmMs = millis();
+    }
 
     return rawValue;
 }
 
 float getMotorFrequencyHz(uint8_t motorIndex)
 {
-    return motorTelemetry[motorIndex].telemetryData[DSHOT_TELEMETRY_TYPE_ERPM] * erpmToHz;
+    const dshotTelemetryMotorState_t *state = &motorTelemetry[motorIndex];
+    if (millis() - state->lastErpmMs > DSHOT_ERPM_TIMEOUT_MS) {
+        return 0.0f;
+    }
+
+    return state->telemetryData[DSHOT_TELEMETRY_TYPE_ERPM] * erpmToHz;
 }
 
 float getDshotRpm(uint8_t motorIndex)
