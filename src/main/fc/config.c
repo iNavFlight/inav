@@ -105,9 +105,9 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored layout only on >512 KB targets.
 #ifdef USE_AUTO_TRANSITION
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 12);
 #else
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 8);
 #endif
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
@@ -117,9 +117,6 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .debug_mode = SETTING_DEBUG_MODE_DEFAULT,
 #ifdef USE_DEV_TOOLS
     .groundTestMode = SETTING_GROUND_TEST_MODE_DEFAULT,     // disables motors, set heading trusted for FW (for dev use)
-#endif
-#ifdef USE_I2C
-    .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
 #ifdef USE_AUTO_TRANSITION
@@ -136,6 +133,10 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
 );
+
+#ifdef USE_I2C
+PG_REGISTER(i2cBusConfig_t, i2cBusConfig, PG_I2C_BUS_CONFIG, 0);
+#endif
 
 PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 2);
 

@@ -23,6 +23,7 @@
 #include "common/time.h"
 #include "config/parameter_group.h"
 #include "drivers/adc.h"
+#include "drivers/bus_i2c.h"
 #include "fc/stats.h"
 
 #define MAX_PROFILE_COUNT 3
@@ -80,9 +81,6 @@ typedef struct systemConfig_s {
 #ifdef USE_DEV_TOOLS
     bool groundTestMode;                    // Disables motor ouput, sets heading trusted on FW (for dev use)
 #endif
-#ifdef USE_I2C
-    uint8_t i2c_speed;
-#endif
     uint8_t throttle_tilt_compensation_strength;    // the correction that will be applied at throttle_correction_angle.
 #ifdef USE_AUTO_TRANSITION
     uint16_t vtolTransitionToFwMinAirspeed;
@@ -100,6 +98,14 @@ typedef struct systemConfig_s {
 } systemConfig_t;
 
 PG_DECLARE(systemConfig_t, systemConfig);
+
+#ifdef USE_I2C
+typedef struct i2cBusConfig_s {
+    uint8_t speed[I2CDEV_COUNT];
+} i2cBusConfig_t;
+
+PG_DECLARE(i2cBusConfig_t, i2cBusConfig);
+#endif
 
 typedef struct beeperConfig_s {
     uint32_t beeper_off_flags;

@@ -49,9 +49,15 @@ static volatile uint16_t i2cErrorCount = 0;
 #endif
 
 static uint32_t delayTicks = 90;
+static bool softInitialised;
 
-void i2cSetSpeed(uint8_t speed)
+void i2cSetSpeed(I2CDevice device, uint8_t speed)
 {
+    // a single software bus, which takes the first bus's speed
+    if (device != I2CDEV_1) {
+        return;
+    }
+
     switch (speed) {
         case I2C_SPEED_100KHZ:
             delayTicks = SystemCoreClock / 100000 / 2;
@@ -67,6 +73,10 @@ void i2cSetSpeed(uint8_t speed)
 
         case I2C_SPEED_800KHZ:
             delayTicks = SystemCoreClock / 800000 / 2;
+            break;
+
+        case I2C_SPEED_1000KHZ:
+            delayTicks = SystemCoreClock / 1000000 / 2;
             break;
     }
 }
@@ -189,6 +199,12 @@ static uint8_t I2C_ReceiveByte(void)
     return byte;
 }
 
+bool i2cIsInitialised(I2CDevice device)
+{
+    UNUSED(device);
+    return softInitialised;
+}
+
 void i2cInit(I2CDevice device)
 {
     UNUSED(device);
@@ -198,6 +214,7 @@ void i2cInit(I2CDevice device)
 
     IOConfigGPIOAF(scl, IOCFG_OUT_OD, 0);
     IOConfigGPIOAF(sda, IOCFG_OUT_OD, 0);
+    softInitialised = true;
 }
 
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, const uint8_t * data, bool allowRawAccess)

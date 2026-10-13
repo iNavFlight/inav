@@ -447,6 +447,77 @@ static void mspSerializeServoMixer(sbuf_t *dst, const servoMixer_t *m)
 #endif
 }
 
+#ifdef USE_I2C
+// a software bus takes I2C1's speed, and is reported as I2C1 with bit 7 of the bus number set
+#ifdef SOFT_I2C
+#define MSP_I2C_BUS_SOFTWARE 0x80
+#else
+#define MSP_I2C_BUS_SOFTWARE 0
+#endif
+
+static void mspSerializeI2cBuses(sbuf_t *dst)
+{
+    static const I2CDevice buses[] = {
+#if defined(USE_I2C_DEVICE_1) || defined(SOFT_I2C)
+        I2CDEV_1,
+#endif
+#ifdef USE_I2C_DEVICE_2
+        I2CDEV_2,
+#endif
+#ifdef USE_I2C_DEVICE_3
+        I2CDEV_3,
+#endif
+#ifdef USE_I2C_DEVICE_4
+        I2CDEV_4,
+#endif
+    };
+    static busDevice_t * const * const sensorDevices[SENSOR_INDEX_COUNT] = {
+        [SENSOR_INDEX_ACC] = &acc.dev.busDev,
+#ifdef USE_BARO
+        [SENSOR_INDEX_BARO] = &baro.dev.busDev,
+#endif
+#ifdef USE_MAG
+        [SENSOR_INDEX_MAG] = &mag.dev.busDev,
+#endif
+#ifdef USE_RANGEFINDER
+        [SENSOR_INDEX_RANGEFINDER] = &rangefinder.dev.busDev,
+#endif
+#ifdef USE_PITOT
+        [SENSOR_INDEX_PITOT] = &pitot.dev.busDev,
+#endif
+    };
+
+    // a bus that shares its pins with a UART in use is never started
+    uint8_t *busCount = sbufPtr(dst);
+    sbufWriteU8(dst, 0);
+    for (const I2CDevice *bus = buses; bus < ARRAYEND(buses); bus++) {
+        if (i2cIsInitialised(*bus)) {
+            sbufWriteU8(dst, *bus | MSP_I2C_BUS_SOFTWARE);
+            (*busCount)++;
+        }
+    }
+
+    uint8_t *sensorCount = sbufPtr(dst);
+    sbufWriteU8(dst, 0);
+    for (int sensor = 0; sensor < SENSOR_INDEX_COUNT; sensor++) {
+        const busDevice_t *dev = sensorDevices[sensor] ? *sensorDevices[sensor] : NULL;
+#ifdef SOFT_I2C
+        const I2CDevice bus = I2CDEV_1;
+#else
+        const I2CDevice bus = dev ? dev->busdev.i2c.i2cBus : I2CINVALID;
+#endif
+        // a driver that failed detection leaves its pointer on a released device
+        if (detectedSensors[sensor] && dev && dev->busType == BUSTYPE_I2C && bus >= 0) {
+            sbufWriteU8(dst, bus | MSP_I2C_BUS_SOFTWARE);
+            sbufWriteU8(dst, dev->busdev.i2c.address);
+            sbufWriteU8(dst, sensor);
+            sbufWriteU8(dst, detectedSensors[sensor]);
+            (*sensorCount)++;
+        }
+    }
+}
+#endif
+
 /*
  * Returns true if the command was processd, false otherwise.
  * May set mspPostProcessFunc to a function to be called once the command has been processed
@@ -1714,6 +1785,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, 0);
 #endif
         break;
+
+#ifdef USE_I2C
+    case MSP2_INAV_I2C_BUSES:
+        mspSerializeI2cBuses(dst);
+        break;
+#endif
 
     case MSP2_INAV_MAG_UNALIGNED:
         for (int i = 0; i < 3; i++) {

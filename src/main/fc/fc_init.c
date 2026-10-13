@@ -247,7 +247,9 @@ void init(void)
     resumeRxSignal();
 
 #ifdef USE_I2C
-    i2cSetSpeed(systemConfig()->i2c_speed);
+    for (int bus = 0; bus < I2CDEV_COUNT; bus++) {
+        i2cSetSpeed(bus, i2cBusConfig()->speed[bus]);
+    }
 #endif
 
 #ifdef USE_HARDWARE_PREBOOT_SETUP

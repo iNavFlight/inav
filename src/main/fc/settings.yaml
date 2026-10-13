@@ -78,7 +78,7 @@ tables:
   - name: ltm_rates
     values: ["NORMAL", "MEDIUM", "SLOW"]
   - name: i2c_speed
-    values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
+    values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ", "1000KHZ"]
   - name: debug_modes
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
@@ -4165,11 +4165,6 @@ groups:
     type: systemConfig_t
     headers: ["fc/config.h"]
     members:
-      - name: i2c_speed
-        description: "This setting controls the clock speed of I2C bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. User need to bear in mind that lower clock speeds might require higher looptimes (lower looptime rate)"
-        default_value: "400KHZ"
-        condition: USE_I2C
-        table: i2c_speed
       - name: debug_mode
         description: "Defines debug values exposed in debug variables (developer / debugging setting)"
         default_value: "NONE"
@@ -4259,6 +4254,36 @@ groups:
         type: string
         field: pilotName
         max: MAX_NAME_LENGTH
+
+  - name: PG_I2C_BUS_CONFIG
+    type: i2cBusConfig_t
+    headers: ["fc/config.h"]
+    condition: USE_I2C
+    members:
+      - name: i2c1_speed
+        description: "Clock speed of the I2C1 bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ or 1000KHZ when every chip on the bus supports it. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. Lower clock speeds might require higher looptimes (lower looptime rate). A software I2C bus runs at this speed too"
+        default_value: "400KHZ"
+        field: speed[I2CDEV_1]
+        condition: USE_I2C_DEVICE_1 || SOFT_I2C
+        table: i2c_speed
+      - name: i2c2_speed
+        description: "Clock speed of the I2C2 bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ or 1000KHZ when every chip on the bus supports it. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. Lower clock speeds might require higher looptimes (lower looptime rate)"
+        default_value: "400KHZ"
+        field: speed[I2CDEV_2]
+        condition: USE_I2C_DEVICE_2
+        table: i2c_speed
+      - name: i2c3_speed
+        description: "Clock speed of the I2C3 bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ or 1000KHZ when every chip on the bus supports it. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. Lower clock speeds might require higher looptimes (lower looptime rate)"
+        default_value: "400KHZ"
+        field: speed[I2CDEV_3]
+        condition: USE_I2C_DEVICE_3
+        table: i2c_speed
+      - name: i2c4_speed
+        description: "Clock speed of the I2C4 bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ or 1000KHZ when every chip on the bus supports it. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. Lower clock speeds might require higher looptimes (lower looptime rate)"
+        default_value: "400KHZ"
+        field: speed[I2CDEV_4]
+        condition: USE_I2C_DEVICE_4
+        table: i2c_speed
 
   - name: PG_MODE_ACTIVATION_OPERATOR_CONFIG
     type: modeActivationOperatorConfig_t
