@@ -65,7 +65,6 @@ typedef struct i2cDevice_s {
 } i2cDevice_t;
 
 void i2cSetSpeed(I2CDevice device, uint8_t speed);
-uint8_t i2cGetSpeed(I2CDevice device);
 bool i2cIsInitialised(I2CDevice device);
 void i2cInit(I2CDevice device);
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess);

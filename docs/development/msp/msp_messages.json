@@ -11697,13 +11697,6 @@
                                 "desc": "Bus (`I2CDevice`): 0 is I2C1. Bit 7 set marks a software I2C bus.",
                                 "units": "",
                                 "enum": "I2CDevice"
-                            },
-                            {
-                                "name": "speed",
-                                "ctype": "uint8_t",
-                                "desc": "Clock the bus runs at since boot (`I2CSpeed`, same values as the `i2cN_speed` settings).",
-                                "units": "",
-                                "enum": "I2CSpeed"
                             }
                         ]
                     },
@@ -11748,8 +11741,8 @@
                 ]
             },
             "variable_len": true,
-            "notes": "Requires USE_I2C. Lists the accelerometer, barometer, compass, rangefinder and pitot sensors; other I2C devices (temperature sensors, OLED display) are not listed. The speed is the one applied at boot: a changed `i2cN_speed` takes effect after a reboot.",
-            "description": "Lists the I2C buses with their clock and the sensors detected on each."
+            "notes": "Requires USE_I2C. Lists the accelerometer, barometer, compass, rangefinder and pitot sensors; other I2C devices (temperature sensors, OLED display) are not listed.",
+            "description": "Lists the I2C buses the board started and the sensors detected on each."
         }
     }
 }

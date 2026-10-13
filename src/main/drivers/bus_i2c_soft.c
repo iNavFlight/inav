@@ -49,7 +49,6 @@ static volatile uint16_t i2cErrorCount = 0;
 #endif
 
 static uint32_t delayTicks = 90;
-static uint8_t softSpeed = I2C_SPEED_400KHZ;
 static bool softInitialised;
 
 void i2cSetSpeed(I2CDevice device, uint8_t speed)
@@ -58,7 +57,6 @@ void i2cSetSpeed(I2CDevice device, uint8_t speed)
     if (device != I2CDEV_1) {
         return;
     }
-    softSpeed = speed;
 
     switch (speed) {
         case I2C_SPEED_100KHZ:
@@ -199,12 +197,6 @@ static uint8_t I2C_ReceiveByte(void)
     }
     SCL_L;
     return byte;
-}
-
-uint8_t i2cGetSpeed(I2CDevice device)
-{
-    UNUSED(device);
-    return softSpeed;
 }
 
 bool i2cIsInitialised(I2CDevice device)

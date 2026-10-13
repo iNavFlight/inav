@@ -160,4 +160,4 @@
 
 #define MSP2_INAV_MAG_UNALIGNED                 0x2232  //out message  compass reading with zero/gain calibration applied but no alignment rotation; payload: 3x I16 (X,Y,Z)
 
-#define MSP2_INAV_I2C_BUSES                     0x2238  //out message  I2C buses with the clock each one runs at, then the sensors detected on them
+#define MSP2_INAV_I2C_BUSES                     0x2238  //out message  I2C buses the board started, then the sensors detected on them

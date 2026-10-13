@@ -109,11 +109,6 @@ void i2cSetSpeed(I2CDevice device, uint8_t speed)
     }
 }
 
-uint8_t i2cGetSpeed(I2CDevice device)
-{
-    return i2cSpeed[device];
-}
-
 bool i2cIsInitialised(I2CDevice device)
 {
     return i2cState[device].initialised;

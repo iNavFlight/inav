@@ -448,7 +448,7 @@ static void mspSerializeServoMixer(sbuf_t *dst, const servoMixer_t *m)
 }
 
 #ifdef USE_I2C
-// a software bus is reported as I2C1, whose speed it takes, with bit 7 of the bus number set
+// a software bus takes I2C1's speed, and is reported as I2C1 with bit 7 of the bus number set
 #ifdef SOFT_I2C
 #define MSP_I2C_BUS_SOFTWARE 0x80
 #else
@@ -493,7 +493,6 @@ static void mspSerializeI2cBuses(sbuf_t *dst)
     for (const I2CDevice *bus = buses; bus < ARRAYEND(buses); bus++) {
         if (i2cIsInitialised(*bus)) {
             sbufWriteU8(dst, *bus | MSP_I2C_BUS_SOFTWARE);
-            sbufWriteU8(dst, i2cGetSpeed(*bus));
             (*busCount)++;
         }
     }
