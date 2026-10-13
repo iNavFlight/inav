@@ -855,6 +855,12 @@ groups:
         field: arm_control
         min: -1
         max: 60
+      - name: blackbox_sdcard_wraparound
+        description: "When the SD card fills up, delete the oldest log to make room for the current one instead of stopping. Off by default because it destroys old logs without asking - make sure anything you want to keep has been downloaded before enabling this on a card you're reusing for long or continuous logging."
+        default_value: OFF
+        field: sdcardWraparound
+        condition: USE_SDCARD
+        type: bool
 
   - name: PG_MOTOR_CONFIG
     type: motorConfig_t

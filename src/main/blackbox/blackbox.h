@@ -60,6 +60,7 @@ typedef struct blackboxConfig_s {
     uint8_t invertedCardDetection;
     uint32_t includeFlags;
     int8_t arm_control;
+    uint8_t sdcardWraparound;
 } blackboxConfig_t;
 
 PG_DECLARE(blackboxConfig_t, blackboxConfig);

@@ -74,12 +74,50 @@ static struct {
     afatfsFinder_t logDirectoryFinder;
     uint32_t largestLogFileNumber;
 
+    // State for finding and reclaiming whichever log is blocking the freefile from continuing, when the card is
+    // full and wraparound is enabled.
+    //
+    // The log to evict is whoever starts at or after scanBoundaryCluster (afatfs_freeFileFirstCluster() at the
+    // moment the scan began) - that's the one actually blocking further progress. Falls back to whoever has the
+    // lowest address overall only when nothing matches: the true end of the whole pre-allocated region, which is
+    // visited once per lap (every time we wrap all the way back around), not just once ever.
+    //
+    // One pass over the directory tracks the two lowest addresses in each of two sets at once: "candidates
+    // >= scanBoundaryCluster" (scratch*/scratchSecondCluster) and "candidates overall" (oldestLog*/
+    // oldestLogSecondCluster). The log to evict is the lowest of whichever set has a >= boundary candidate,
+    // falling back to the lowest overall when it doesn't. Its companion "second" value is - provably - exactly
+    // the next surviving log's address past the one being evicted (nothing can sit between scanBoundaryCluster
+    // and the chosen log, or it would have won instead; and anything past the chosen log is themselves
+    // >= scanBoundaryCluster, so it can't be missing from the constrained set either). That lets us size the
+    // reclaimed region precisely - to exactly where the next surviving log begins, which is guaranteed
+    // supercluster-aligned - without a second directory scan. Falls back to the evicted log's own fileSize only
+    // when nothing sits past it at all (it was adjacent to the true end of the region).
+    //
+    // scratchFirstCluster and oldestLogFirstCluster double as "found anything?" sentinels (UINT32_MAX = nothing
+    // found yet); scratchSecondCluster/oldestLogSecondCluster double the same way for "found a second one yet?".
+    uint32_t scanBoundaryCluster;
+    afatfsDirEntryPointer_t scratchEntryPos;
+    uint32_t scratchFirstCluster;
+    uint32_t scratchSecondCluster;
+    uint32_t scratchFileSize;
+    afatfsDirEntryPointer_t oldestLogEntryPos;
+    uint32_t oldestLogFirstCluster;
+    uint32_t oldestLogSecondCluster;
+    uint32_t oldestLogFileSize;
+    // Set when a wraparound scan finds no log left to reclaim (or the one it found is too small to be useful) -
+    // stops us retrying every iteration until the next time we start logging from scratch (the user may have
+    // downloaded/freed space by then)
+    bool wraparoundGaveUp;
+
     enum {
         BLACKBOX_SDCARD_INITIAL,
         BLACKBOX_SDCARD_WAITING,
         BLACKBOX_SDCARD_ENUMERATE_FILES,
         BLACKBOX_SDCARD_CHANGE_INTO_LOG_DIRECTORY,
         BLACKBOX_SDCARD_READY_TO_CREATE_LOG,
+        BLACKBOX_SDCARD_SCAN_FOR_OLDEST_LOG,
+        BLACKBOX_SDCARD_DELETE_OLDEST_LOG,
+        BLACKBOX_SDCARD_RELOCATE_FREEFILE,
         BLACKBOX_SDCARD_READY_TO_LOG
     } state;
 } blackboxSDCard;
@@ -366,6 +404,26 @@ void blackboxDeviceClose(void)
 
 #ifdef USE_SDCARD
 
+static void blackboxOldestLogDirOpened(afatfsFilePtr_t directory)
+{
+    if (directory) {
+        blackboxSDCard.logDirectory = directory;
+        // afatfs_isFull() is true right now, so this is exactly the address we need next
+        blackboxSDCard.scanBoundaryCluster = afatfs_freeFileFirstCluster();
+        blackboxSDCard.scratchFirstCluster = UINT32_MAX; // Sentinel: nothing found yet
+        blackboxSDCard.scratchSecondCluster = UINT32_MAX;
+        blackboxSDCard.oldestLogFirstCluster = UINT32_MAX;
+        blackboxSDCard.oldestLogSecondCluster = UINT32_MAX;
+
+        afatfs_findFirst(blackboxSDCard.logDirectory, &blackboxSDCard.logDirectoryFinder);
+
+        blackboxSDCard.state = BLACKBOX_SDCARD_SCAN_FOR_OLDEST_LOG;
+    } else {
+        // Retry
+        blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+    }
+}
+
 static void blackboxLogDirCreated(afatfsFilePtr_t directory)
 {
     if (directory) {
@@ -434,6 +492,7 @@ static bool blackboxSDCardBeginLog(void)
     case BLACKBOX_SDCARD_INITIAL:
         if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY) {
             blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
+            blackboxSDCard.wraparoundGaveUp = false;
 
             if(afatfs_isCurrentDirRoot()){
                 //we are in root of SD card, we have to create or move to log directory
@@ -502,7 +561,127 @@ static bool blackboxSDCardBeginLog(void)
         break;
 
     case BLACKBOX_SDCARD_READY_TO_CREATE_LOG:
-        blackboxCreateLogFile();
+        if (blackboxConfig()->sdcardWraparound && afatfs_isFull() && !blackboxSDCard.wraparoundGaveUp) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
+            afatfs_fopen(".", "r", blackboxOldestLogDirOpened);
+        } else {
+            blackboxCreateLogFile();
+        }
+        break;
+
+    case BLACKBOX_SDCARD_SCAN_FOR_OLDEST_LOG:
+        // We only get here because we've just hit the end of the ring (afatfs_isFull(), checked before this
+        // state was entered). The next cluster to write is n+1 same as always: whoever starts at or after
+        // scanBoundaryCluster is the log actually blocking that. The only time nothing matches is at the true
+        // end of the whole region, visited once per lap - in that case, wrap all the way back to whoever has
+        // the lowest address overall instead.
+        //
+        // One pass tracks the two lowest addresses in each candidate set (scratch*/scratchSecondCluster for
+        // ">= scanBoundaryCluster", oldestLog*/oldestLogSecondCluster for "overall") - see the struct comment
+        // for why the winning set's "second" value is exactly the next surviving log's address, letting us size
+        // the reclaimed region without a second scan.
+        while (afatfs_findNext(blackboxSDCard.logDirectory, &blackboxSDCard.logDirectoryFinder, &directoryEntry) == AFATFS_OPERATION_SUCCESS) {
+            if (directoryEntry && !fat_isDirectoryEntryTerminator(directoryEntry)) {
+                // A log file, whether still live or already deleted by someone else (PC, previous wraparound) -
+                // only byte 0 of the filename changes on deletion, so LOG/TXT are still recognisable.
+                if (
+                    (directoryEntry->filename[0] == 'L' || directoryEntry->filename[0] == FAT_DELETED_FILE_MARKER)
+                    && directoryEntry->filename[1] == 'O' && directoryEntry->filename[2] == 'G'
+                    && directoryEntry->filename[8] == 'T' && directoryEntry->filename[9] == 'X' && directoryEntry->filename[10] == 'T'
+                ) {
+                    uint32_t entryFirstCluster = ((uint32_t) directoryEntry->firstClusterHigh << 16) | directoryEntry->firstClusterLow;
+                    // A deleted entry whose cluster was never actually allocated (e.g. a flight too short to log
+                    // any frames, unlinked by blackboxDeviceEndLog(false)) has nothing to give back. Cluster 0
+                    // would otherwise always win every "lowest address" comparison below, permanently masquerading
+                    // as the oldest/nearest-boundary log and making wraparound give up for good even though real
+                    // reclaimable logs exist elsewhere - so it must never become a candidate.
+                    if (entryFirstCluster != 0 && entryFirstCluster >= blackboxSDCard.scanBoundaryCluster) {
+                        if (entryFirstCluster < blackboxSDCard.scratchFirstCluster) {
+                            blackboxSDCard.scratchSecondCluster = blackboxSDCard.scratchFirstCluster;
+                            blackboxSDCard.scratchEntryPos = blackboxSDCard.logDirectoryFinder;
+                            blackboxSDCard.scratchFirstCluster = entryFirstCluster;
+                            blackboxSDCard.scratchFileSize = directoryEntry->fileSize;
+                        } else if (entryFirstCluster != 0 && entryFirstCluster < blackboxSDCard.scratchSecondCluster) {
+                            blackboxSDCard.scratchSecondCluster = entryFirstCluster;
+                        }
+                    }
+                    if (entryFirstCluster != 0 && entryFirstCluster < blackboxSDCard.oldestLogFirstCluster) {
+                        blackboxSDCard.oldestLogSecondCluster = blackboxSDCard.oldestLogFirstCluster;
+                        blackboxSDCard.oldestLogEntryPos = blackboxSDCard.logDirectoryFinder;
+                        blackboxSDCard.oldestLogFirstCluster = entryFirstCluster;
+                        blackboxSDCard.oldestLogFileSize = directoryEntry->fileSize;
+                    } else if (entryFirstCluster != 0 && entryFirstCluster < blackboxSDCard.oldestLogSecondCluster) {
+                        blackboxSDCard.oldestLogSecondCluster = entryFirstCluster;
+                    }
+                }
+            } else {
+                afatfs_findLast(blackboxSDCard.logDirectory);
+                afatfs_fclose(blackboxSDCard.logDirectory, NULL);
+                blackboxSDCard.logDirectory = NULL;
+
+                // Done scanning - the ">= boundary" candidate wins if one was found at all
+                uint32_t nextBoundaryCluster;
+                if (blackboxSDCard.scratchFirstCluster != UINT32_MAX) {
+                    blackboxSDCard.oldestLogEntryPos = blackboxSDCard.scratchEntryPos;
+                    blackboxSDCard.oldestLogFirstCluster = blackboxSDCard.scratchFirstCluster;
+                    blackboxSDCard.oldestLogFileSize = blackboxSDCard.scratchFileSize;
+                    nextBoundaryCluster = blackboxSDCard.scratchSecondCluster;
+                } else {
+                    nextBoundaryCluster = blackboxSDCard.oldestLogSecondCluster;
+                }
+
+                if (nextBoundaryCluster != UINT32_MAX) {
+                    // Guaranteed supercluster-aligned (every log's extent is), so landing exactly on it means
+                    // the *next* wrap's ">= boundary" search above is guaranteed to find a match again.
+                    // firstCluster fields are cluster numbers, but afatfs_freeFileRelocate() takes a byte size -
+                    // convert.
+                    blackboxSDCard.oldestLogFileSize =
+                        (nextBoundaryCluster - blackboxSDCard.oldestLogFirstCluster) * afatfs_freeFileClusterSize();
+                }
+                // Else: no log sits further along than the one we're reclaiming - it was adjacent to the true
+                // end of the whole region, so there's nothing to measure against. Keep oldestLogFileSize as the
+                // evicted log's own (not supercluster-aligned) fileSize - a safe, conservative fallback.
+
+                if (
+                    blackboxSDCard.oldestLogFirstCluster == UINT32_MAX || blackboxSDCard.oldestLogFirstCluster == 0
+                    || blackboxSDCard.oldestLogFileSize < afatfs_freeFileSuperClusterSize()
+                ) {
+                    // Nothing left we can reclaim: no logs at all, the only candidate never wrote any data and
+                    // so has no clusters to give back, or (the slot adjacent to the true ring end, which has no
+                    // next log to size against) has shrunk below one supercluster from a run of short flights
+                    // landing there - either way, give up until the next fresh start rather than repeating a
+                    // real delete+relocate+create+fail cycle every tick for a slot we can't usefully reclaim.
+                    blackboxSDCard.wraparoundGaveUp = true;
+                    blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+                } else {
+                    blackboxSDCard.state = BLACKBOX_SDCARD_DELETE_OLDEST_LOG;
+                }
+                goto doMore;
+            }
+        }
+        break;
+
+    case BLACKBOX_SDCARD_DELETE_OLDEST_LOG:
+        // Wait for the cache to drain before marking anything deleted, so the freefile's own directory sector
+        // (likely already dirty from the supercluster steal that triggered this reclaim) is guaranteed to pick
+        // up a fresh, later write timestamp when BLACKBOX_SDCARD_RELOCATE_FREEFILE saves it below - otherwise
+        // afatfs_flush()'s oldest-timestamp-first order could flush the relocate before this delete. See
+        // afatfs_hasPendingWrites() in asyncfatfs.h.
+        if (afatfs_hasPendingWrites()) {
+            break;
+        }
+
+        if (afatfs_deleteDirectoryEntryAt(&blackboxSDCard.oldestLogEntryPos) == AFATFS_OPERATION_SUCCESS) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_RELOCATE_FREEFILE;
+            goto doMore;
+        }
+        break;
+
+    case BLACKBOX_SDCARD_RELOCATE_FREEFILE:
+        if (afatfs_freeFileRelocate(blackboxSDCard.oldestLogFirstCluster, blackboxSDCard.oldestLogFileSize) == AFATFS_OPERATION_SUCCESS) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            goto doMore;
+        }
         break;
 
     case BLACKBOX_SDCARD_READY_TO_LOG:
@@ -579,7 +758,8 @@ bool isBlackboxDeviceFull(void)
 
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-        return afatfs_isFull();
+        // Only really full once wraparound is disabled, or has already given up trying to reclaim room
+        return afatfs_isFull() && (!blackboxConfig()->sdcardWraparound || blackboxSDCard.wraparoundGaveUp);
 #endif
 
 #if defined (SITL_BUILD)
@@ -591,6 +771,20 @@ bool isBlackboxDeviceFull(void)
         return false;
     }
 }
+
+#ifdef USE_SDCARD
+/**
+ * True if the current log can't grow any further but wraparound is enabled and hasn't yet given up trying to
+ * reclaim room - i.e. it's worth closing the current log and starting a new one instead of just stopping.
+ */
+bool blackboxDeviceNeedsNewLog(void)
+{
+    return blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD
+        && blackboxConfig()->sdcardWraparound
+        && afatfs_isFull()
+        && !blackboxSDCard.wraparoundGaveUp;
+}
+#endif
 
 bool isBlackboxDeviceWorking(void)
 {

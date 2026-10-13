@@ -461,6 +461,18 @@ typedef struct afatfs_t {
     // The current working directory:
     afatfsFile_t currentDirectory;
 
+    /*
+     * afatfs_createFileContinue() uses &afatfs.currentDirectory as scratch cursor state (via
+     * afatfs_findFirst()/afatfs_findNext()/afatfs_allocateDirectoryEntry()) for the whole lifetime of a
+     * createFile operation, not just for a single call. afatfs_poll() drives every open file's operation
+     * forward independently, so two createFile operations against the current directory can legitimately both
+     * be pending at once; without this lock their walks would interleave and clobber each other's progress
+     * through the shared cursor, which can make a walk wrongly conclude the directory ends at an earlier
+     * cluster than it really does and re-extend it there, corrupting the existing chain. This holds the file
+     * currently walking &afatfs.currentDirectory (or NULL if free) - see afatfs_createFileContinue().
+     */
+    afatfsFilePtr_t currentDirectoryWalkOwner;
+
     uint32_t partitionStartSector; // The physical sector that the first partition on the device begins at
 
     uint32_t fatStartSector; // The first sector of the first FAT
@@ -2468,12 +2480,21 @@ static afatfsOperationStatus_e afatfs_ftruncateContinue(afatfsFilePtr_t file, bo
             status = afatfs_saveDirectoryEntry(file, markDeleted ? AFATFS_SAVE_DIRECTORY_DELETED : AFATFS_SAVE_DIRECTORY_NORMAL);
 
             if (status == AFATFS_OPERATION_SUCCESS) {
+                if (opState->startCluster == 0) {
+                    // The file never actually had a cluster allocated to it (e.g. a contiguous file that was
+                    // opened but never written to, so it never stole its first supercluster from the freefile -
+                    // see afatfs_appendSuperclusterContinue()). Cluster 0 is a reserved FAT entry, not a real
+                    // cluster, so there is no chain to erase - walking/filling from "cluster 0" here would corrupt
+                    // the reserved FAT entries (and, in the contiguous case, everything up to the freefile's
+                    // current start). Skip straight to completion.
+                    opState->phase = AFATFS_TRUNCATE_FILE_SUCCESS;
+                }
 #ifdef AFATFS_USE_FREEFILE
-                if (opState->endCluster) {
+                else if (opState->endCluster) {
                     opState->phase = AFATFS_TRUNCATE_FILE_ERASE_FAT_CHAIN_CONTIGUOUS;
-                } else
+                }
 #endif
-                {
+                else {
                     opState->phase = AFATFS_TRUNCATE_FILE_ERASE_FAT_CHAIN_NORMAL;
                 }
                 goto doMore;
@@ -2621,6 +2642,13 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
 
     switch (opState->phase) {
         case AFATFS_CREATEFILE_PHASE_INITIAL:
+            // Don't start walking the shared &afatfs.currentDirectory cursor while another createFile
+            // operation is still using it - wait for it to finish first. See the currentDirectoryWalkOwner
+            // field comment.
+            if (afatfs.currentDirectoryWalkOwner != NULL && afatfs.currentDirectoryWalkOwner != file) {
+                break;
+            }
+            afatfs.currentDirectoryWalkOwner = file;
             afatfs_findFirst(&afatfs.currentDirectory, &file->directoryEntryPos);
             opState->phase = AFATFS_CREATEFILE_PHASE_FIND_FILE;
             goto doMore;
@@ -2711,6 +2739,12 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
             }
         break;
         case AFATFS_CREATEFILE_PHASE_SUCCESS:
+            // We're done with the shared &afatfs.currentDirectory cursor now that our entry is found/created -
+            // release it so another pending createFile operation (if any) can use it.
+            if (afatfs.currentDirectoryWalkOwner == file) {
+                afatfs.currentDirectoryWalkOwner = NULL;
+            }
+
             if ((file->mode & AFATFS_FILE_MODE_RETAIN_DIRECTORY) != 0) {
                 /*
                  * For this high performance file type, we require the directory entry for the file to be retained
@@ -2771,6 +2805,9 @@ static void afatfs_createFileContinue(afatfsFile_t *file)
             opState->callback(file);
         break;
         case AFATFS_CREATEFILE_PHASE_FAILURE:
+            if (afatfs.currentDirectoryWalkOwner == file) {
+                afatfs.currentDirectoryWalkOwner = NULL;
+            }
             file->type = AFATFS_FILE_TYPE_NONE;
             opState->callback(NULL);
         break;
@@ -2834,6 +2871,93 @@ bool afatfs_funlink(afatfsFilePtr_t file, afatfsCallback_t callback)
 
     return true;
 }
+
+/**
+ * Mark the directory entry at `entryPos` deleted without touching its FAT chain. See asyncfatfs.h for why this
+ * must be used instead of afatfs_funlink()/afatfs_ftruncate() on any file that isn't the most recently allocated
+ * one.
+ */
+afatfsOperationStatus_e afatfs_deleteDirectoryEntryAt(afatfsDirEntryPointer_t *entryPos)
+{
+    uint8_t *sector;
+    afatfsOperationStatus_e status = afatfs_cacheSector(entryPos->sectorNumberPhysical, &sector, AFATFS_CACHE_READ | AFATFS_CACHE_WRITE, 0);
+
+    if (status == AFATFS_OPERATION_SUCCESS) {
+        fatDirectoryEntry_t *entry = (fatDirectoryEntry_t *) sector + entryPos->entryIndex;
+
+        entry->filename[0] = FAT_DELETED_FILE_MARKER;
+    }
+
+    return status;
+}
+
+/**
+ * True while any cache sector is dirty (write pending) or a flush is in progress. See asyncfatfs.h for why a
+ * free-space reclaim sequence (delete a directory entry, then relocate the freefile onto it) needs to wait for
+ * this to go false before starting.
+ */
+bool afatfs_hasPendingWrites(void)
+{
+    return afatfs.cacheDirtyEntries > 0 || afatfs.cacheFlushInProgress;
+}
+
+#ifdef AFATFS_USE_FREEFILE
+
+/**
+ * The cluster the freefile currently starts at - i.e. the next cluster that will be handed out. When
+ * afatfs_isFull() is true, this is exactly the address execution needs next: either the true end of the whole
+ * pre-allocated region (nothing else has ever started there), or the start of whatever file is immediately
+ * blocking further progress.
+ */
+uint32_t afatfs_freeFileFirstCluster(void)
+{
+    return afatfs.freeFile.firstCluster;
+}
+
+/**
+ * Size, in bytes, of one supercluster - the unit afatfs_appendSupercluster() hands out. A reclaimed region
+ * smaller than this is useless (the first write attempt will just set afatfs_isFull() again without allocating
+ * anything).
+ */
+uint32_t afatfs_freeFileSuperClusterSize(void)
+{
+    return afatfs_superClusterSize();
+}
+
+/**
+ * Size, in bytes, of one FAT cluster - the unit directory entries' firstCluster fields are numbered in.
+ * afatfs_freeFileRelocate()'s newSizeBytes is a byte count, so a caller computing a size from a difference of
+ * two cluster numbers must multiply that difference by this before passing it in.
+ */
+uint32_t afatfs_freeFileClusterSize(void)
+{
+    return afatfs_clusterSize();
+}
+
+/**
+ * Relocate the freefile. See asyncfatfs.h for the safety requirement (the new range must already be known-free,
+ * e.g. just vacated by afatfs_deleteDirectoryEntryAt()).
+ */
+afatfsOperationStatus_e afatfs_freeFileRelocate(uint32_t newFirstCluster, uint32_t newSizeBytes)
+{
+    if (afatfs_fileIsBusy(&afatfs.freeFile)) {
+        return AFATFS_OPERATION_IN_PROGRESS;
+    }
+
+    afatfs.freeFile.firstCluster = newFirstCluster;
+    afatfs.freeFile.logicalSize = newSizeBytes;
+    afatfs.freeFile.physicalSize = newSizeBytes;
+
+    afatfsOperationStatus_e status = afatfs_saveDirectoryEntry(&afatfs.freeFile, AFATFS_SAVE_DIRECTORY_NORMAL);
+
+    if (status == AFATFS_OPERATION_SUCCESS) {
+        afatfs.filesystemFull = false;
+    }
+
+    return status;
+}
+
+#endif
 
 /**
  * Open (or create) a file in the CWD with the given filename.
