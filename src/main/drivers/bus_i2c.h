@@ -32,6 +32,7 @@ typedef enum {  // Weird mapping to keep config compatible with previos version
     I2C_SPEED_200KHZ    = 3,
     I2C_SPEED_400KHZ    = 0,
     I2C_SPEED_800KHZ    = 1,
+    I2C_SPEED_1000KHZ   = 4,
 } I2CSpeed;
 
 typedef enum I2CDevice {
@@ -63,7 +64,9 @@ typedef struct i2cDevice_s {
 #endif
 } i2cDevice_t;
 
-void i2cSetSpeed(uint8_t speed);
+void i2cSetSpeed(I2CDevice device, uint8_t speed);
+uint8_t i2cGetSpeed(I2CDevice device);
+bool i2cIsInitialised(I2CDevice device);
 void i2cInit(I2CDevice device);
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess);
 bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess);

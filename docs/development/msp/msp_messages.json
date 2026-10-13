@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 0
+        "patch": 1
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -11674,6 +11674,82 @@
             },
             "notes": "Requires a receiver using MSP as the protocol, sends MSP2_RX_BIND to the receiver.",
             "description": "Initiates binding for MSP receivers (mLRS)."
+        },
+        "MSP2_INAV_I2C_BUSES": {
+            "code": 8760,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "busCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of I2C buses the target enables (`USE_I2C_DEVICE_n`) that were started; a bus sharing its pins with a UART in use is left out, and a software I2C bus is reported as I2C1 with bit 7 set.",
+                        "units": ""
+                    },
+                    {
+                        "name": "buses",
+                        "repeating": "busCount",
+                        "payload": [
+                            {
+                                "name": "bus",
+                                "ctype": "uint8_t",
+                                "desc": "Bus (`I2CDevice`): 0 is I2C1. Bit 7 set marks a software I2C bus.",
+                                "units": "",
+                                "enum": "I2CDevice"
+                            },
+                            {
+                                "name": "speed",
+                                "ctype": "uint8_t",
+                                "desc": "Clock the bus runs at since boot (`I2CSpeed`, same values as the `i2cN_speed` settings).",
+                                "units": "",
+                                "enum": "I2CSpeed"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "sensorCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of detected sensors that sit on an I2C bus.",
+                        "units": ""
+                    },
+                    {
+                        "name": "sensors",
+                        "repeating": "sensorCount",
+                        "payload": [
+                            {
+                                "name": "bus",
+                                "ctype": "uint8_t",
+                                "desc": "Bus the sensor is on (`I2CDevice`), with bit 7 set on a software I2C bus.",
+                                "units": "",
+                                "enum": "I2CDevice"
+                            },
+                            {
+                                "name": "address",
+                                "ctype": "uint8_t",
+                                "desc": "7-bit I2C address.",
+                                "units": ""
+                            },
+                            {
+                                "name": "sensor",
+                                "ctype": "uint8_t",
+                                "desc": "Sensor role (`sensorIndex_e`).",
+                                "units": "",
+                                "enum": "sensorIndex_e"
+                            },
+                            {
+                                "name": "hardware",
+                                "ctype": "uint8_t",
+                                "desc": "Detected hardware, a value of the role's `*_hardware` setting (`acc_hardware`, `baro_hardware`, `mag_hardware`, `rangefinder_hardware`, `pitot_hardware`).",
+                                "units": ""
+                            }
+                        ]
+                    }
+                ]
+            },
+            "variable_len": true,
+            "notes": "Requires USE_I2C. Lists the accelerometer, barometer, compass, rangefinder and pitot sensors; other I2C devices (temperature sensors, OLED display) are not listed. The speed is the one applied at boot: a changed `i2cN_speed` takes effect after a reboot.",
+            "description": "Lists the I2C buses with their clock and the sensors detected on each."
         }
     }
 }

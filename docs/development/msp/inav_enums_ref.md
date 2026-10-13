@@ -2712,6 +2712,7 @@
 | `I2C_SPEED_200KHZ` | 3 |  |
 | `I2C_SPEED_400KHZ` | 0 |  |
 | `I2C_SPEED_800KHZ` | 1 |  |
+| `I2C_SPEED_1000KHZ` | 4 |  |
 
 ---
 ## <a id="enum-i2cstate_t"></a>`i2cState_t`

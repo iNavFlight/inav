@@ -2288,9 +2288,9 @@ Battery alarm delay in seconds for Hott telemetry
 
 ---
 
-### i2c_speed
+### i2c1_speed
 
-This setting controls the clock speed of I2C bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. User need to bear in mind that lower clock speeds might require higher looptimes (lower looptime rate)
+Clock speed of the I2C1 bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ or 1000KHZ when every chip on the bus supports it. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. Lower clock speeds might require higher looptimes (lower looptime rate). A software I2C bus runs at this speed too
 
 | Allowed Values |  |
 | --- | --- |
@@ -2298,6 +2298,49 @@ This setting controls the clock speed of I2C bus. 400KHZ is the default that mos
 | 800KHZ |  |
 | 100KHZ |  |
 | 200KHZ |  |
+| 1000KHZ |  |
+
+---
+
+### i2c2_speed
+
+Clock speed of the I2C2 bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ or 1000KHZ when every chip on the bus supports it. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. Lower clock speeds might require higher looptimes (lower looptime rate)
+
+| Allowed Values |  |
+| --- | --- |
+| 400KHZ | Default |
+| 800KHZ |  |
+| 100KHZ |  |
+| 200KHZ |  |
+| 1000KHZ |  |
+
+---
+
+### i2c3_speed
+
+Clock speed of the I2C3 bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ or 1000KHZ when every chip on the bus supports it. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. Lower clock speeds might require higher looptimes (lower looptime rate)
+
+| Allowed Values |  |
+| --- | --- |
+| 400KHZ | Default |
+| 800KHZ |  |
+| 100KHZ |  |
+| 200KHZ |  |
+| 1000KHZ |  |
+
+---
+
+### i2c4_speed
+
+Clock speed of the I2C4 bus. 400KHZ is the default that most setups are able to use. Some noise-free setups may be overclocked to 800KHZ or 1000KHZ when every chip on the bus supports it. Some sensor chips or setups with long wires may work unreliably at 400KHZ - user can try lowering the clock speed to 200KHZ or even 100KHZ. Lower clock speeds might require higher looptimes (lower looptime rate)
+
+| Allowed Values |  |
+| --- | --- |
+| 400KHZ | Default |
+| 800KHZ |  |
+| 100KHZ |  |
+| 200KHZ |  |
+| 1000KHZ |  |
 
 ---
 

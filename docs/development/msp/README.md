@@ -461,6 +461,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8744 - MSP2_INAV_TIMESYNC](#msp2_inav_timesync)  
 [8752 - MSP2_INAV_SET_AUX_RC](#msp2_inav_set_aux_rc)  
 [8753 - MSP2_INAV_WIND](#msp2_inav_wind)  
+[8760 - MSP2_INAV_I2C_BUSES](#msp2_inav_i2c_buses)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -4877,6 +4878,25 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `flags` | `uint8_t` | 1 | - | Validity flags. Bit 0: wind estimate valid (`isEstimatedWindSpeedValid()`). Remaining bits reserved. |
 
 **Notes:** Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.
+
+## <a id="msp2_inav_i2c_buses"></a>`MSP2_INAV_I2C_BUSES (8760 / 0x2238)`
+**Description:** Lists the I2C buses with their clock and the sensors detected on each.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Repeats|Size (Bytes)|Units|Description|
+|---|---|---|---|---|---|
+| `busCount` | `uint8_t` | - | 1 | - | Number of I2C buses the target enables (`USE_I2C_DEVICE_n`) that were started; a bus sharing its pins with a UART in use is left out, and a software I2C bus is reported as I2C1 with bit 7 set. |
+| `bus` | `uint8_t` | busCount | 1 | [I2CDevice](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-i2cdevice) | Bus (`I2CDevice`): 0 is I2C1. Bit 7 set marks a software I2C bus. |
+| `speed` | `uint8_t` | busCount | 1 | [I2CSpeed](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-i2cspeed) | Clock the bus runs at since boot (`I2CSpeed`, same values as the `i2cN_speed` settings). |
+| `sensorCount` | `uint8_t` | - | 1 | - | Number of detected sensors that sit on an I2C bus. |
+| `bus` | `uint8_t` | sensorCount | 1 | [I2CDevice](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-i2cdevice) | Bus the sensor is on (`I2CDevice`), with bit 7 set on a software I2C bus. |
+| `address` | `uint8_t` | sensorCount | 1 | - | 7-bit I2C address. |
+| `sensor` | `uint8_t` | sensorCount | 1 | [sensorIndex_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-sensorindex_e) | Sensor role (`sensorIndex_e`). |
+| `hardware` | `uint8_t` | sensorCount | 1 | - | Detected hardware, a value of the role's `*_hardware` setting (`acc_hardware`, `baro_hardware`, `mag_hardware`, `rangefinder_hardware`, `pitot_hardware`). |
+
+**Notes:** Requires USE_I2C. Lists the accelerometer, barometer, compass, rangefinder and pitot sensors; other I2C devices (temperature sensors, OLED display) are not listed. The speed is the one applied at boot: a changed `i2cN_speed` takes effect after a reboot.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

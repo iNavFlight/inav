@@ -69,10 +69,11 @@ static const uint32_t speedToBaud[] = {
     [I2C_SPEED_800KHZ] = 800000U,
     [I2C_SPEED_100KHZ] = 100000U,
     [I2C_SPEED_200KHZ] = 200000U,
+    [I2C_SPEED_1000KHZ] = 1000000U,
 };
 #define SPEED_TABLE_COUNT (sizeof(speedToBaud) / sizeof(speedToBaud[0]))
 
-static uint32_t i2cBaudrate  = 400000U;
+static uint8_t  i2cSpeed[I2CDEV_COUNT];    // zero is I2C_SPEED_400KHZ
 static uint16_t i2cErrorCount = 0;
 
 typedef struct {
@@ -101,11 +102,21 @@ static inline uint ioTagToGpio(ioTag_t tag)
 
 /* ─── Public API ──────────────────────────────────────────────────────────── */
 
-void i2cSetSpeed(uint8_t speed)
+void i2cSetSpeed(I2CDevice device, uint8_t speed)
 {
     if ((size_t)speed < SPEED_TABLE_COUNT && speedToBaud[speed] != 0) {
-        i2cBaudrate = speedToBaud[speed];
+        i2cSpeed[device] = speed;
     }
+}
+
+uint8_t i2cGetSpeed(I2CDevice device)
+{
+    return i2cSpeed[device];
+}
+
+bool i2cIsInitialised(I2CDevice device)
+{
+    return i2cState[device].initialised;
 }
 
 void i2cInit(I2CDevice device)
@@ -144,7 +155,7 @@ void i2cInit(I2CDevice device)
     gpio_pull_up(sdaGpio);
     gpio_pull_up(sclGpio);
 
-    i2c_init(hw, i2cBaudrate);
+    i2c_init(hw, speedToBaud[i2cSpeed[device]]);
 
     i2cState[device].hw          = hw;
     i2cState[device].initialised = true;

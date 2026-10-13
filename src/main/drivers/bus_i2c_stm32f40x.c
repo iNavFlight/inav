@@ -135,7 +135,7 @@ typedef struct i2cBusState_s {
 
 static volatile uint16_t i2cErrorCount = 0;
 
-static i2cDevice_t i2cHardwareMap[] = {
+static i2cDevice_t i2cHardwareMap[I2CDEV_COUNT] = {
     { .dev = I2C1, .scl = IO_TAG(I2C1_SCL), .sda = IO_TAG(I2C1_SDA), .rcc = RCC_APB1(I2C1), .speed = I2C_SPEED_400KHZ },
     { .dev = I2C2, .scl = IO_TAG(I2C2_SCL), .sda = IO_TAG(I2C2_SDA), .rcc = RCC_APB1(I2C2), .speed = I2C_SPEED_400KHZ },
 #ifdef STM32F4
@@ -456,11 +456,19 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
     }
 }
 
-void i2cSetSpeed(uint8_t speed)
+void i2cSetSpeed(I2CDevice device, uint8_t speed)
 {
-    for (unsigned int i = 0; i < ARRAYLEN(i2cHardwareMap); i++) {
-        i2cHardwareMap[i].speed = speed;
-    }
+    i2cHardwareMap[device].speed = speed;
+}
+
+uint8_t i2cGetSpeed(I2CDevice device)
+{
+    return i2cHardwareMap[device].speed;
+}
+
+bool i2cIsInitialised(I2CDevice device)
+{
+    return busState[device].initialized;
 }
 
 uint32_t i2cTimeoutUserCallback(void)
@@ -511,6 +519,10 @@ void i2cInit(I2CDevice device)
 
         case I2C_SPEED_800KHZ:
             i2cInit.I2C_ClockSpeed = 800000;
+            break;
+
+        case I2C_SPEED_1000KHZ:
+            i2cInit.I2C_ClockSpeed = 1000000;
             break;
 
         case I2C_SPEED_100KHZ:

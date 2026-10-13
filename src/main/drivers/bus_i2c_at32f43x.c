@@ -92,11 +92,19 @@ typedef struct {
 
 static i2cState_t i2cState[I2CDEV_COUNT];
 
-void i2cSetSpeed(uint8_t speed)
+void i2cSetSpeed(I2CDevice device, uint8_t speed)
 {
-    for (unsigned int i = 0; i < ARRAYLEN(i2cHardwareMap); i++) {
-        i2cHardwareMap[i].speed = speed;
-    }
+    i2cHardwareMap[device].speed = speed;
+}
+
+uint8_t i2cGetSpeed(I2CDevice device)
+{
+    return i2cHardwareMap[device].speed;
+}
+
+bool i2cIsInitialised(I2CDevice device)
+{
+    return i2cState[device].initialised;
 }
  
 //I2C1_ERR_IRQHandler
@@ -395,6 +403,10 @@ void i2cInit(I2CDevice device)
 
         case I2C_SPEED_800KHZ:
              i2c_init(pHandle->i2cx, 0x0f, i2cClockTIMINGR(i2cPclk, 800, 0));
+            break;
+
+        case I2C_SPEED_1000KHZ:
+            i2c_init(pHandle->i2cx, 0x0f, i2cClockTIMINGR(i2cPclk, 1000, 0));
             break;
 
         case I2C_SPEED_100KHZ:
