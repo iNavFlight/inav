@@ -405,6 +405,10 @@ class VirtualCrsfReceiver:
         while time.monotonic() < deadline:
             try:
                 self._sock = socket.create_connection((self.host, self.port), timeout=1.0)
+                # A receiver's bytes arrive back to back on the wire. Without this, Nagle holds
+                # small writes until the previous one is acknowledged, splitting a frame with a
+                # gap past CRSF_TIME_NEEDED_PER_FRAME_US so the parser drops it.
+                self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 self._sock.setblocking(False)
                 self._thread = threading.Thread(target=self._run, name=self.name, daemon=True)
                 self._thread.start()
