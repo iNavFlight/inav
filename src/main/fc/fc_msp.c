@@ -1812,7 +1812,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU8(dst, osdConfig()->sidebar_scroll_arrows);
         sbufWriteU8(dst, osdConfig()->units);
         sbufWriteU8(dst, osdConfig()->stats_energy_unit);
-        sbufWriteU8(dst, osdConfig()->show_radar_peer_name);
 #ifdef USE_ADSB
         sbufWriteU8(dst, osdConfig()->adsb_warning_style);
 #else
@@ -3820,7 +3819,7 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP2_INAV_OSD_SET_PREFERENCES:
         {
-            if (dataSize >= 10) {
+            if (dataSize >= 9) {
                 osdConfigMutable()->video_system = sbufReadU8(src);
                 osdConfigMutable()->main_voltage_decimals = sbufReadU8(src);
                 osdConfigMutable()->ahi_reverse_roll = sbufReadU8(src);
@@ -3830,9 +3829,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 osdConfigMutable()->sidebar_scroll_arrows = sbufReadU8(src);
                 osdConfigMutable()->units = sbufReadU8(src);
                 osdConfigMutable()->stats_energy_unit = sbufReadU8(src);
-                osdConfigMutable()->show_radar_peer_name = sbufReadU8(src);
 #ifdef USE_ADSB
-                if(dataSize >= 11) {
+                if(dataSize >= 10) {
                     osdConfigMutable()->adsb_warning_style = sbufReadU8(src);
                 }
 #endif

@@ -237,7 +237,7 @@ static bool osdDisplayHasCanvas;
 
 #define AH_MAX_PITCH_DEFAULT 20 // Specify default maximum AHI pitch value displayed (degrees)
 
-PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 1);
+PG_REGISTER_WITH_RESET_TEMPLATE(osdConfig_t, osdConfig, PG_OSD_CONFIG, 0);
 PG_REGISTER_WITH_RESET_FN(osdLayoutsConfig_t, osdLayoutsConfig, PG_OSD_LAYOUTS_CONFIG, 4);
 
 /* OSD formatting helpers replacing common tfp_sprintf patterns
@@ -2921,17 +2921,11 @@ static bool osdDrawSingleElement(uint8_t item)
 
                 //[peer ID or name]
                 uint8_t peerIdWidth = 1;
-                if (osdConfig()->show_radar_peer_name && currentPeer->name[0] != '\0') {
+                if (currentPeer->name[0] != '\0') {
                     peerIdWidth = RADAR_PEER_NAME_LENGTH;
                     for (uint8_t i = 0; i < RADAR_PEER_NAME_LENGTH; i++) {
                         const char nameChar = currentPeer->name[i];
                         displayWriteChar(osdDisplayPort, elemPosX + 1 + i, elemPosY, nameChar != '\0' ? sl_toupper((unsigned char)nameChar) : SYM_BLANK);
-                    }
-                } else if (osdConfig()->show_radar_peer_name) {
-                    peerIdWidth = RADAR_PEER_NAME_LENGTH; // keep LQ and direction at fixed positions while cycling through peers
-                    displayWriteChar(osdDisplayPort, elemPosX + 1, elemPosY, 65 + currentPeerIndex);
-                    for (uint8_t i = 1; i < RADAR_PEER_NAME_LENGTH; i++) {
-                        displayWriteChar(osdDisplayPort, elemPosX + 1 + i, elemPosY, SYM_BLANK);
                     }
                 } else {
                     displayWriteChar(osdDisplayPort, elemPosX + 1, elemPosY, 65 + currentPeerIndex);
@@ -2995,7 +2989,7 @@ static bool osdDrawSingleElement(uint8_t item)
             }
         }
 
-        //clear screen (use the widest possible layout so a mid-flight config change can't leave stale glyphs)
+        //clear screen (use the widest possible layout so a peer with a name can't leave stale glyphs)
         const uint8_t elemWidth = 3 + RADAR_PEER_NAME_LENGTH;
         for(uint8_t i = 0; i < elemWidth; i++){
             displayWriteChar(osdDisplayPort, elemPosX + i, elemPosY, SYM_BLANK);
@@ -4426,8 +4420,7 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .stats_page_auto_swap_time = SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME_DEFAULT,
     .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT,
 
-    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT,
-    .show_radar_peer_name = SETTING_OSD_SHOW_RADAR_PEER_NAME_DEFAULT
+    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)

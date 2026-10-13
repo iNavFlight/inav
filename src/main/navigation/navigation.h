@@ -603,7 +603,7 @@ typedef struct {
 } navWapointHeading_t;
 
 #define RADAR_MAX_POIS 6
-#define RADAR_PEER_NAME_LENGTH 3
+#define RADAR_PEER_NAME_LENGTH 4
 typedef struct radar_pois_s {
     gpsLocation_t gps;
     uint8_t state;

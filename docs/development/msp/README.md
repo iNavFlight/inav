@@ -2979,11 +2979,11 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `speed` | `uint16_t` | 2 | cm/s | Speed of the POI |
 | `linkQuality` | `uint8_t` | 1 | 0-4 | Link quality indicator |
 | `peerNameLength` | `uint8_t` | 1 | Bytes | Optional. Length of the peer name that follows |
-| `peerName` | `char[]` | array | - | Optional. Peer name, copied into `radar_pois[i].name`, up to `RADAR_PEER_NAME_LENGTH` (3) bytes. The name is not null-terminated if all `RADAR_PEER_NAME_LENGTH` bytes are non-zero |
+| `peerName` | `char[]` | array | - | Optional. Peer name, copied into `radar_pois[i].name`, up to `RADAR_PEER_NAME_LENGTH` (4) bytes. The name is not null-terminated if all `RADAR_PEER_NAME_LENGTH` bytes are non-zero |
 
 **Reply Payload:** **None**  
 
-**Notes:** Expects at least 19 bytes. Returns an error if POI index is not less than `RADAR_MAX_POIS`. Updates the `radar_pois` array. If more than 21 bytes are sent, the payload is expected to also carry `peerNameLength` and `peerName`; an error is returned if fewer than `peerNameLength` name bytes follow. The peer name is displayed instead of the peer ID letter in the formation flight OSD element when `osdConfig()->show_radar_peer_name` (`MSP2_INAV_OSD_PREFERENCES` / `MSP2_INAV_OSD_SET_PREFERENCES`) is enabled.
+**Notes:** Expects at least 19 bytes. Returns an error if POI index is not less than `RADAR_MAX_POIS`. Updates the `radar_pois` array. If more than 21 bytes are sent, the payload is expected to also carry `peerNameLength` and `peerName`; an error is returned if fewer than `peerNameLength` name bytes follow. If a peer name is set, it is displayed instead of the peer ID letter in the formation flight OSD element.
 
 ## <a id="msp2_common_set_radar_itd"></a>`MSP2_COMMON_SET_RADAR_ITD (4108 / 0x100c)`
 **Description:** Sets radar information to display (likely internal/unused).  
@@ -3661,10 +3661,9 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `sidebarScrollArrows` | `uint8_t` | 1 | - | Boolean: Show arrows for scrollable sidebars (`osdConfig()->sidebar_scroll_arrows`) |
 | `units` | `uint8_t` | 1 | [osd_unit_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osd_unit_e) | Enum: `osd_unit_e` Measurement units (Metric/Imperial) (`osdConfig()->units`) |
 | `statsEnergyUnit` | `uint8_t` | 1 | [osd_stats_energy_unit_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osd_stats_energy_unit_e) | Enum `osd_stats_energy_unit_e`: Unit for energy display in post-flight stats (`osdConfig()->stats_energy_unit`) |
-| `showRadarPeerName` | `uint8_t` | 1 | - | Boolean: Show the radar peer name instead of the peer ID letter in the formation flight OSD element (`osdConfig()->show_radar_peer_name`) |
 | `adsbWarningStyle` | `uint8_t` | 1 | [osd_adsb_warning_style_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osd_adsb_warning_style_e) | Enum `osd_adsb_warning_style_e`: ADSB warning element style, one or two lines (`osdConfig()->adsb_warning_style`). 0 if `USE_ADSB` disabled |
 
-**Notes:** Requires `USE_OSD`. Expects 11 bytes.
+**Notes:** Requires `USE_OSD`. Expects 10 bytes.
 
 ## <a id="msp2_inav_osd_set_preferences"></a>`MSP2_INAV_OSD_SET_PREFERENCES (8215 / 0x2017)`
 **Description:** Sets OSD display preferences.  
@@ -3681,12 +3680,11 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `sidebarScrollArrows` | `uint8_t` | 1 | - | Sets `osdConfigMutable()->sidebar_scroll_arrows` |
 | `units` | `uint8_t` | 1 | [osd_unit_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osd_unit_e) | Sets `osdConfigMutable()->units` (enum `osd_unit_e`) |
 | `statsEnergyUnit` | `uint8_t` | 1 | [osd_stats_energy_unit_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osd_stats_energy_unit_e) | Sets `osdConfigMutable()->stats_energy_unit` |
-| `showRadarPeerName` | `uint8_t` | 1 | - | Sets `osdConfigMutable()->show_radar_peer_name` |
 | `adsbWarningStyle` | `uint8_t` | 1 | [osd_adsb_warning_style_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-osd_adsb_warning_style_e) | Sets `osdConfigMutable()->adsb_warning_style`. Only read if `USE_ADSB` is compiled in and `dataSize` includes this trailing byte |
 
 **Reply Payload:** **None**  
 
-**Notes:** Requires `USE_OSD`. Expects 10 bytes, or 11 bytes if `USE_ADSB` is compiled in and `adsbWarningStyle` is included. Triggers a full OSD redraw.
+**Notes:** Requires `USE_OSD`. Expects 9 bytes, or 10 bytes if `USE_ADSB` is compiled in and `adsbWarningStyle` is included. Triggers a full OSD redraw.
 
 ## <a id="msp2_inav_select_battery_profile"></a>`MSP2_INAV_SELECT_BATTERY_PROFILE (8216 / 0x2018)`
 **Description:** Selects the active battery profile and saves configuration.  
