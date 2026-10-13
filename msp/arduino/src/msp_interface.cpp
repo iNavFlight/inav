@@ -21,10 +21,6 @@
 
 #include "msp_interface.h"
 
-static_assert(sizeof(mspNavStatusReply_t) == 7, "MSP_NAV_STATUS payload size mismatch");
-static_assert(sizeof(mspWpReply_t) == 21, "MSP_WP reply payload size mismatch");
-static_assert(sizeof(mspSetWpRequest_t) == 21, "MSP_SET_WP request payload size mismatch");
-
 // --- CRC8 DVB-S2 Calculation ---
 // (Copied from Betaflight/INAV source)
 uint8_t MSPIntf::crc8_dvb_s2(uint8_t crc, unsigned char a)

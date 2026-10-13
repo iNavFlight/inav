@@ -4,7 +4,7 @@ Interactive MSP API shell.
 
 Examples:
   python msp_shell.py --tcp-endpoint 127.0.0.1:5760
-  python -m mspapi2.msp_shell --tcp 127.0.0.1:5760
+  python -m inav_msp.msp_shell --tcp 127.0.0.1:5760
   python msp_shell.py --udp-endpoint 127.0.0.1:27072 --force-mspv2
   > get_raw_gps
   > set_flight_axis_angle_override pitch_deg=10
@@ -24,8 +24,8 @@ try:
 except ImportError:
     pass
 
-from mspapi2.msp_api import MSPApi
-from mspapi2.utils import format_nested_dict
+from inav_msp.msp_api import MSPApi
+from inav_msp.utils import format_nested_dict
 
 
 class ShellInputError(ValueError):

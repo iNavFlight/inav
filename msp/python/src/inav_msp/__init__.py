@@ -12,7 +12,7 @@ from .msp_serial import MSPSerial
 from .mspcodec import InavMSP, MSPCodec
 
 try:
-    __version__ = importlib_metadata.version("mspapi2")
+    __version__ = importlib_metadata.version("inav-msp")
 except importlib_metadata.PackageNotFoundError:  # pragma: no cover - fallback for editable installs
     __version__ = "0.0.0"
 

@@ -16,7 +16,6 @@ import argparse
 import configparser
 import json
 import os
-import sys
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -26,15 +25,8 @@ os.environ["MAVLINK20"] = "1"
 
 from pymavlink import mavutil
 
-try:
-    from mspapi2.msp_api import MSPApi
-    from mspapi2.lib import InavEnums
-except ModuleNotFoundError:
-    workspace_root_guess = Path(__file__).resolve().parents[5]
-    mspapi2_repo = workspace_root_guess / "mspapi2"
-    sys.path.insert(0, str(mspapi2_repo))
-    from mspapi2.msp_api import MSPApi
-    from mspapi2.lib import InavEnums
+from inav_msp.msp_api import MSPApi  # pip install -e msp/python
+from inav_msp.lib import InavEnums
 
 
 INAV_ROOT = Path(__file__).resolve().parents[4]

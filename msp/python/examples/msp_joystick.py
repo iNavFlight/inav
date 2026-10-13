@@ -14,8 +14,8 @@ import time
 
 import pygame
 
-from mspapi2 import MSPApi
-from mspapi2.lib import InavMSP
+from inav_msp import MSPApi
+from inav_msp.lib import InavMSP
 
 MIN_US = 910
 MAX_US = 2099

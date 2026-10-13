@@ -8,8 +8,8 @@ The pattern shown here works for ANY of the 249 MSP messages.
 """
 
 import argparse
-from mspapi2 import MSPApi, InavMSP
-from mspapi2.lib import InavEnums
+from inav_msp import MSPApi, InavMSP
+from inav_msp.lib import InavEnums
 
 
 def parse_args():

@@ -1,6 +1,6 @@
 # Examples
 
-Practical examples showing how to use mspapi2. They accept `--port` for a
+Practical examples showing how to use inav_msp. They accept `--port` for a
 serial connection and, where applicable, `--tcp`/`--udp` endpoints (e.g.
 SITL or a wifi bridge):
 
@@ -58,7 +58,7 @@ python examples/introspection.py
 
 ```python
 from examples.introspection import print_message_info
-from mspapi2 import InavMSP
+from inav_msp import InavMSP
 
 print_message_info(InavMSP.MSP2_INAV_STATUS)
 ```
@@ -97,7 +97,7 @@ python examples/msp_joystick.py --tcp 127.0.0.1:5762 --rate 50 --joystick-index 
 ### Simple template
 
 ```python
-from mspapi2 import MSPApi
+from inav_msp import MSPApi
 
 with MSPApi(port="/dev/ttyACM0") as api:
     attitude = api.get_attitude()
@@ -107,7 +107,7 @@ with MSPApi(port="/dev/ttyACM0") as api:
 ### Custom message template
 
 ```python
-from mspapi2 import MSPApi, InavMSP
+from inav_msp import MSPApi, InavMSP
 from examples.introspection import print_message_info
 
 # First, find out what fields the message has

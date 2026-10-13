@@ -5,7 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from mspapi2 import msp_shell
+from inav_msp import msp_shell
 
 
 class FakeApi:

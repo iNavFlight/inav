@@ -1,5 +1,5 @@
 """
-Basic mspapi2 usage examples.
+Basic inav_msp usage examples.
 
 This script demonstrates the fundamental operations:
 - Connecting to a flight controller
@@ -9,11 +9,11 @@ This script demonstrates the fundamental operations:
 """
 
 import argparse
-from mspapi2 import MSPApi
+from inav_msp import MSPApi
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Basic mspapi2 usage examples")
+    parser = argparse.ArgumentParser(description="Basic inav_msp usage examples")
     parser.add_argument("--port", default="/dev/ttyACM0", help="Serial port")
     parser.add_argument("--baudrate", type=int, default=115200, help="Baudrate")
     parser.add_argument("--tcp", help="TCP endpoint (e.g., localhost:9000)")

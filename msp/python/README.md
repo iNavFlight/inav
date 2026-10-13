@@ -1,10 +1,8 @@
-# mspapi2 — Python MSP library
+# inav-msp for Python
 
-Python client for INAV's MultiWii Serial Protocol (MSP), part of the
-[msp_sdk](https://github.com/xznhj8129/msp-sdk) monorepo. A generated codec
-packs and unpacks message payloads from the canonical MSP schema; a typed
-helper API on top provides unit conversion and convenient command helpers, so
-you never hand-craft binary payloads.
+Python library for INAV's MultiWii Serial Protocol (MSP), one of the INAV MSP libraries generated from `msp/schema/msp_v2.yaml` in the INAV repository (see [`msp/README.md`](../README.md)). The message table, enums and constants are generated from the schema and INAV's source; a typed API on top converts units and wraps common commands, so you never hand-craft binary payloads.
+
+Install name `inav-msp`, import name `inav_msp`.
 
 ## Features
 
@@ -20,22 +18,22 @@ you never hand-craft binary payloads.
 * **`MSPSerial`** — MSP v1/v2 framing over serial, TCP, or UDP, with a
   background reader thread, per-message queues, retries, reconnect, and
   frame logging.
-* **`mspapi2-shell`** — interactive shell that exposes every `MSPApi` method.
-* **`mspapi2.lib`** — generated data: `InavMSP` (message enum), `InavEnums`
+* **`inav-msp-shell`** — interactive shell that exposes every `MSPApi` method.
+* **`inav_msp.lib`** — generated data: `InavMSP` (message enum), `InavEnums`
   (INAV enums), `InavConstants` (protocol constants), `boxes` (mode boxes),
   `inav_version` (INAV snapshot version).
 
 ## Install
 
 ```bash
-pip install ./pythonlib        # from the SDK root
-pip install -e ./pythonlib     # editable/development install
+pip install ./msp/python       # from the INAV repository root
+pip install -e ./msp/python    # editable/development install
 ```
 
 ## Quick start
 
 ```python
-from mspapi2 import MSPApi
+from inav_msp import MSPApi
 
 with MSPApi(port="/dev/ttyACM0", baudrate=115200) as api:
     print(api.get_api_version())
@@ -64,7 +62,7 @@ Extra options: `force_msp_v2=True` forces v2 framing on serial/TCP;
 ### Interactive shell
 
 ```bash
-mspapi2-shell --tcp 127.0.0.1:5760
+inav-msp-shell --tcp 127.0.0.1:5760
 ```
 
 Every `MSPApi` method is callable by name with `key=value` arguments:
@@ -78,10 +76,10 @@ Every `MSPApi` method is callable by name with `key=value` arguments:
 
 ## Schema and generated data
 
-`src/mspapi2/generated/` holds the generated protocol code — `messages.py`
+`src/inav_msp/generated/` holds the generated protocol code — `messages.py`
 (every payload resolved to struct format strings, plus `InavMSP`) and
 `enums.py` (`InavEnums`) and `constants.py` (`InavConstants`).
-`src/mspapi2/lib/` re-exports them and keeps `inav_version.py`. Nothing reads a JSON schema at runtime; the codec executes
+`src/inav_msp/lib/` re-exports them and keeps `inav_version.py`. Nothing reads a JSON schema at runtime; the codec executes
 the generated table.
 
 **The schema must match the firmware you talk to.** The codec trusts the
@@ -111,7 +109,7 @@ methods), `msp_joystick.py` (gamepad as MSP RC input). See
 PYTHONPATH=src python -m unittest discover tests
 ```
 
-(or `./build_all.sh test` from the SDK root.)
+(or `./msp/build.sh test` from the INAV repository root, which also runs the C and JavaScript checks.)
 
 ## Error handling philosophy
 

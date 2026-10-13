@@ -3,9 +3,9 @@ requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mspapi2"
+name = "inav-msp"
 version = "0.1.1"
-description = "MultiWii Serial Protocol API, codec, and multi-client server"
+description = "INAV MSP library for Python: generated codec, typed API and transports"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "xznhj8129" }]
@@ -21,19 +21,19 @@ classifiers = [
     "Topic :: System :: Monitoring",
 ]
 
-# The codec and API work without pydantic; mspapi2.models needs it.
+# The codec and API work without pydantic; inav_msp.models needs it.
 [project.optional-dependencies]
 models = ["pydantic>=2"]
 
 [project.urls]
-Homepage = "https://github.com/xznhj8129/msp-sdk"
+Homepage = "https://github.com/iNavFlight/inav"
 
 [project.scripts]
-mspapi2-shell = "mspapi2.msp_shell:main"
+inav-msp-shell = "inav_msp.msp_shell:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"mspapi2.generated" = ["*.py"]
-"mspapi2.models" = ["*.py"]
+"inav_msp.generated" = ["*.py"]
+"inav_msp.models" = ["*.py"]

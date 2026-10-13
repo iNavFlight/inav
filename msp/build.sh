@@ -57,7 +57,7 @@ cmd_generate() {
     echo "- Generating Pydantic models (schema -> python/.../models)"
     python3 "${GEN}/gen_pydantic.py" \
         "${SCHEMA}/msp_v2.yaml" "${SCHEMA}/enums.yaml" "${SCHEMA}/constants.yaml" \
-        --output-dir "${PYDIR}/src/mspapi2/models"
+        --output-dir "${PYDIR}/src/inav_msp/models"
 
     echo "- Generating the MSP reference docs (schema -> docs/development/msp/)"
     python3 "${GEN}/gen_docs.py"
@@ -72,8 +72,8 @@ cmd_generate() {
     local maj min pat
     read -r maj min pat <<< "$(sed -nE 's/^[[:space:]]*project\([[:space:]]*INAV[[:space:]]+VERSION[[:space:]]+([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 \2 \3/p' "${REPO_ROOT}/CMakeLists.txt" | head -n1)"
     [[ -n "${maj}" ]] || { echo "Failed to parse INAV version from ${REPO_ROOT}/CMakeLists.txt" >&2; exit 1; }
-    mkdir -p "${PYDIR}/src/mspapi2/lib"
-    cat > "${PYDIR}/src/mspapi2/lib/inav_version.py" <<PY
+    mkdir -p "${PYDIR}/src/inav_msp/lib"
+    cat > "${PYDIR}/src/inav_msp/lib/inav_version.py" <<PY
 VERSION = "${maj}.${min}.${pat}"
 MAJOR = ${maj}
 MINOR = ${min}

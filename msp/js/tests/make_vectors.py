@@ -21,8 +21,8 @@ import string
 import sys
 from pathlib import Path
 
-from mspapi2.generated.messages import MESSAGES
-from mspapi2.mspcodec import _decode_side, _encode_side
+from inav_msp.generated.messages import MESSAGES
+from inav_msp.mspcodec import _decode_side, _encode_side
 
 INT_RANGES = {
     "B": (0, 0xFF), "b": (-0x80, 0x7F), "H": (0, 0xFFFF), "h": (-0x8000, 0x7FFF),

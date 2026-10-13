@@ -14,8 +14,8 @@ SEND_HZ = 10.0
 import argparse
 import time
 
-from mspapi2.msp_api import MSPApi
-from mspapi2.lib import boxes
+from inav_msp.msp_api import MSPApi
+from inav_msp.lib import boxes
 
 
 def main() -> None:

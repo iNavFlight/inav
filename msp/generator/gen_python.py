@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the Python message table from the MSP YAML schema.
 
-Emits python/src/mspapi2/generated/messages.py: every payload resolved to a
+Emits python/src/inav_msp/generated/messages.py: every payload resolved to a
 `struct` format string at generation time, so the runtime codec never inspects
 a schema. It looks a message up and calls struct.pack/unpack.
 
@@ -303,7 +303,7 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--schema", type=Path, default=MSP_ROOT / "schema")
     ap.add_argument("--out", type=Path,
-                    default=MSP_ROOT / "python" / "src" / "mspapi2" / "generated" / "messages.py")
+                    default=MSP_ROOT / "python" / "src" / "inav_msp" / "generated" / "messages.py")
     args = ap.parse_args()
 
     model = Model(args.schema)

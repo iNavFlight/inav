@@ -58,3 +58,6 @@ tokens.yaml
 # Local development files
 .semgrepignore
 build_sitl/
+
+# PlatformIO build output (msp/arduino/tests)
+.pio/

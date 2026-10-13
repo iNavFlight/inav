@@ -8,7 +8,7 @@ and which ones use enums.
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from mspapi2 import MSPCodec, InavMSP
+from inav_msp import MSPCodec, InavMSP
 
 
 def get_message_info(code: InavMSP, codec: Optional[MSPCodec] = None) -> Dict[str, Any]:

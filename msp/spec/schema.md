@@ -6,7 +6,7 @@
 
 The MSP YAML schema is a small interface definition language for binary protocols and the
 data structures around them. It was written to describe INAV's MSP protocol,
-enums, and SDK types, but nothing in the core language is INAV-specific.
+enums, and the types its libraries share, but nothing in the core language is INAV-specific.
 
 YAML is the carrier syntax only. The language is defined here, not by YAML.
 

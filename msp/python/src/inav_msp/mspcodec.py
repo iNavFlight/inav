@@ -1,6 +1,6 @@
 """MSP codec driven by the generated message table.
 
-Everything is resolved at generation time in mspapi2.generated.messages; this
+Everything is resolved at generation time in inav_msp.generated.messages; this
 module only executes: look the message up, pack or unpack. Nothing here reads a
 schema at runtime.
 

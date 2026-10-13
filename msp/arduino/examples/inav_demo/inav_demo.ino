@@ -1,4 +1,4 @@
-// INAV MSP demo sketch for the MSP SDK for INAV library.
+// Demo sketch for the INAV MSP Arduino library.
 // Demonstrates connection, FC info, mode ranges, mission upload, and telemetry polling.
 
 #include <Arduino.h>
@@ -7,7 +7,7 @@
 #include <sdkconfig.h>
 #endif
 
-#include <inav_api.h>
+#include <inav_msp.h>
 
 // --- Serial ports & baud ---
 #ifndef FC_SERIAL_NUM

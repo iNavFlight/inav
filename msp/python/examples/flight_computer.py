@@ -2,7 +2,7 @@
 """
 Flight Computer Example
 
-Demonstrates using mspapi2 on a companion computer (Raspberry Pi) to:
+Demonstrates using inav_msp on a companion computer (Raspberry Pi) to:
 - Monitor telemetry
 - Make autonomous decisions
 - Control navigation via waypoints
@@ -23,10 +23,10 @@ import argparse
 import time
 import logging
 from datetime import datetime
-from mspapi2 import MSPApi
-from mspapi2.lib import InavEnums
+from inav_msp import MSPApi
+from inav_msp.lib import InavEnums
 from functools import partial
-from mspapi2.utils import format_nested_dict
+from inav_msp.utils import format_nested_dict
 
 
 # Configure logging

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from mspapi2.msp_serial import (
+from inav_msp.msp_serial import (
     DIR_FROM_FC,
     DIR_TO_FC,
     MSPMessage,

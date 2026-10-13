@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-from mspapi2.lib import InavEnums
-from mspapi2.msp_api import MSPApi
+from inav_msp.lib import InavEnums
+from inav_msp.msp_api import MSPApi
 import time
 from statistics import mean
 

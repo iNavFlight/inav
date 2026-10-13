@@ -8,11 +8,11 @@ from __future__ import annotations
 import argparse
 from functools import partial
 
-from mspapi2.lib import InavEnums, InavMSP
-from mspapi2.msp_api import MSPApi
-from mspapi2.msp_serial import MSPUnsupportedError
-from mspapi2.utils import format_nested_dict
-from mspapi2.lib.inav_version import MAJOR as INAV_VERSION_MAJOR
+from inav_msp.lib import InavEnums, InavMSP
+from inav_msp.msp_api import MSPApi
+from inav_msp.msp_serial import MSPUnsupportedError
+from inav_msp.utils import format_nested_dict
+from inav_msp.lib.inav_version import MAJOR as INAV_VERSION_MAJOR
 import time
 from typing import Any, Dict
 

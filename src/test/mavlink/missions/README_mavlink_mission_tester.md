@@ -5,7 +5,7 @@ This is a non-interactive mission upload/regression harness for MAVLink mission 
 It uses:
 
 - `pymavlink` for raw MAVLink mission upload through MAVProxy UDP `14550`
-- `mspapi2` for MSP mission readback through SITL UART1 TCP `5760`
+- `inav_msp` (`pip install -e msp/python`) for MSP mission readback through SITL UART1 TCP `5760`
 
 It does not start SITL or MAVProxy by default.
 

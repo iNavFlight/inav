@@ -3,8 +3,8 @@ from __future__ import annotations
 import struct
 import unittest
 
-from mspapi2.lib import InavMSP
-from mspapi2.msp_api import MSPApi
+from inav_msp.lib import InavMSP
+from inav_msp.msp_api import MSPApi
 
 
 class ReadOnlySerial:

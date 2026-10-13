@@ -1,6 +1,6 @@
-# MSP SDK for INAV — JavaScript
+# inav-msp for JavaScript
 
-ES-module MSP codec generated from `msp/schema/msp_v2.yaml`, for JavaScript consumers such as INAV Configurator. It decodes and encodes MSP payloads; framing and transport stay with the consumer.
+ES-module MSP codec generated from `msp/schema/msp_v2.yaml`, for JavaScript consumers such as INAV Configurator. It is one of the INAV MSP libraries (see [`msp/README.md`](../README.md)); the package name is `inav-msp`. It decodes and encodes MSP payloads; framing and transport stay with the consumer.
 
 ## Files
 

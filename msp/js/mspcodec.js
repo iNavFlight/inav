@@ -2,7 +2,7 @@
 //
 // Everything is resolved at generation time in generated/messages.js; this
 // module only executes: look the message up, pack or unpack. Nothing here reads
-// a schema. It follows msp/python/src/mspapi2/mspcodec.py rule for rule, and
+// a schema. It follows msp/python/src/inav_msp/mspcodec.py rule for rule, and
 // `msp/build.sh test` checks the two against each other on every message.
 //
 // Decoding is lenient about trailing bytes, matching the firmware's own

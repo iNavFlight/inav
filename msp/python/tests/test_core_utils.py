@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from mspapi2.utils import format_nested_dict, msp_override_mask
+from inav_msp.utils import format_nested_dict, msp_override_mask
 
 
 class UtilsTest(unittest.TestCase):
