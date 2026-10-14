@@ -84,7 +84,6 @@
  *      This bit will be set to zero after POR routine
  */
 
-#define IST8310_REG_DATA 0x03
 #define IST8310_REG_STAT1 0x02
 #define IST8310_DRDY_MASK 0x01
 #define IST8310_REG_WHOAMI 0x00
@@ -96,12 +95,7 @@
 #define IST8310_REG_PDCNTL 0x42
 
 // Parameter
-// ODR = Output Data Rate, we use single measure mode for getting more data.
 #define IST8310_ODR_SINGLE 0x01
-#define IST8310_ODR_10_HZ 0x03
-#define IST8310_ODR_20_HZ 0x05
-#define IST8310_ODR_50_HZ 0x07
-#define IST8310_ODR_100_HZ 0x06
 
 // Device ID (ist8310 -> 0x10)
 #define IST8310_CHIP_ID 0x10
@@ -114,8 +108,9 @@
 
 static bool ist8310Init(magDev_t * mag)
 {
-    busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_50_HZ);
-    delay(5);
+    // A reboot without a power cycle leaves the chip as it was, and it may never measure again
+    busWrite(mag->busDev, IST8310_REG_CNTRL2, IST8310_CNTRL2_RESET);
+    delay(50);  // power-on reset routine: 50 ms max
 
     busWrite(mag->busDev, IST8310_REG_AVERAGE, IST8310_AVG_16);
     delay(5);
@@ -123,37 +118,31 @@ static bool ist8310Init(magDev_t * mag)
     busWrite(mag->busDev, IST8310_REG_PDCNTL, IST8310_PULSE_DURATION_NORMAL);
     delay(5);
 
+    // Single measurement is the only mode the datasheet defines besides stand-by
+    busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_SINGLE);
+
     return true;
 }
 
 static bool ist8310Read(magDev_t * mag)
 {
-    uint8_t status = 0;
-
-    if (!busRead(mag->busDev, IST8310_REG_STAT1, &status)) {
+    // STAT1 and the data in one read: in single measurement mode the data only changes after a trigger
+    uint8_t buf[7];
+    if (!busReadBuf(mag->busDev, IST8310_REG_STAT1, buf, 7)) {
         return false;
     }
 
-    // The IST8310 updates its data registers once per output-data period. Only read
-    // them once DRDY is set; a read racing an update would mix old and new samples
-    // across axes, corrupting the mag vector and calibration. When no fresh sample
-    // is ready, return success so the caller keeps the previous values.
-    if (!(status & IST8310_DRDY_MASK)) {
-        return true;
+    if (buf[0] & IST8310_DRDY_MASK) {
+        uint8_t LSB2FSV = 3; // 3mG - 14 bit
+
+        // Invert Y axis to co convert from left to right coordinate system
+        mag->magADCRaw[X] =  (int16_t)(buf[2] << 8 | buf[1]) * LSB2FSV;
+        mag->magADCRaw[Y] = -(int16_t)(buf[4] << 8 | buf[3]) * LSB2FSV;
+        mag->magADCRaw[Z] =  (int16_t)(buf[6] << 8 | buf[5]) * LSB2FSV;
     }
 
-    uint8_t buf[6];
-    uint8_t LSB2FSV = 3; // 3mG - 14 bit
-
-    bool ack = busReadBuf(mag->busDev, IST8310_REG_DATA, buf, 6);
-    if (!ack) {
-        return false;
-    }
-
-    // Invert Y axis to co convert from left to right coordinate system
-    mag->magADCRaw[X] =  (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
-    mag->magADCRaw[Y] = -(int16_t)(buf[3] << 8 | buf[2]) * LSB2FSV;
-    mag->magADCRaw[Z] =  (int16_t)(buf[5] << 8 | buf[4]) * LSB2FSV;
+    // Also restarts a measurement that never completed: the task is far slower than its 6 ms
+    busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_SINGLE);
 
     return true;
 }
