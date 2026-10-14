@@ -34,6 +34,8 @@ set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
     "drivers/accgyro/accgyro_fake.c" "flight/imu.c" "sensors/boardalignment.c"
     "sensors/gyro.c")
 
+set_property(SOURCE gsf_yaw_unittest.cc PROPERTY depends "flight/gsf_yaw.c" "common/maths.c")
+
 set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")
 
 set_property(SOURCE navigation_fixedwing_turn_math_unittest.cc PROPERTY depends
