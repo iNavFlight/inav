@@ -101,6 +101,8 @@
 #define IST8310_CHIP_ID 0x10
 #define IST8310_AVG_16  0x24
 #define IST8310_PULSE_DURATION_NORMAL 0xC0
+#define IST8310_RANGE_XY 16000  // mG, 1600 uT
+#define IST8310_RANGE_Z  25000  // mG, 2500 uT
 
 #define IST8310_CNTRL2_RESET 0x01
 #define IST8310_CNTRL2_DRPOL 0x04
@@ -132,13 +134,19 @@ static bool ist8310Read(magDev_t * mag)
         return false;
     }
 
-    if (buf[0] & IST8310_DRDY_MASK) {
-        uint8_t LSB2FSV = 3; // 3mG - 14 bit
+    uint8_t LSB2FSV = 3; // 3mG - 14 bit
+    const int x = (int16_t)(buf[2] << 8 | buf[1]) * LSB2FSV;
+    const int y = (int16_t)(buf[4] << 8 | buf[3]) * LSB2FSV;
+    const int z = (int16_t)(buf[6] << 8 | buf[5]) * LSB2FSV;
 
-        // Invert Y axis to co convert from left to right coordinate system
-        mag->magADCRaw[X] =  (int16_t)(buf[2] << 8 | buf[1]) * LSB2FSV;
-        mag->magADCRaw[Y] = -(int16_t)(buf[4] << 8 | buf[3]) * LSB2FSV;
-        mag->magADCRaw[Z] =  (int16_t)(buf[6] << 8 | buf[5]) * LSB2FSV;
+    // Past the measuring range a sample can only be corrupt, and one spoils a compass calibration
+    const bool inRange = ABS(x) <= IST8310_RANGE_XY && ABS(y) <= IST8310_RANGE_XY && ABS(z) <= IST8310_RANGE_Z;
+
+    if ((buf[0] & IST8310_DRDY_MASK) && inRange) {
+        // Invert Y axis to convert from left to right coordinate system
+        mag->magADCRaw[X] =  x;
+        mag->magADCRaw[Y] = -y;
+        mag->magADCRaw[Z] =  z;
     }
 
     // Also restarts a measurement that never completed: the task is far slower than its 6 ms
