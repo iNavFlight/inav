@@ -91,6 +91,7 @@
 // I2C Contorl Register
 #define IST8310_REG_CNTRL1 0x0A
 #define IST8310_REG_CNTRL2 0x0B
+#define IST8310_REG_CNTRL3 0x0D
 #define IST8310_REG_AVERAGE 0x41
 #define IST8310_REG_PDCNTL 0x42
 
@@ -108,17 +109,26 @@
 #define IST8310_CNTRL2_DRPOL 0x04
 #define IST8310_CNTRL2_DRENA 0x08
 
+#define IST8310_CNTRL3_16BIT 0x70   // X, Y and Z at 1320 LSB/G instead of 330
+
+static uint8_t ist8310SetupWait;
+
+static void ist8310Setup(magDev_t * mag, uint8_t cntrl3)
+{
+    busWrite(mag->busDev, IST8310_REG_AVERAGE, IST8310_AVG_16);
+    busWrite(mag->busDev, IST8310_REG_PDCNTL, IST8310_PULSE_DURATION_NORMAL);
+    busWrite(mag->busDev, IST8310_REG_CNTRL3, cntrl3 | IST8310_CNTRL3_16BIT);
+}
+
 static bool ist8310Init(magDev_t * mag)
 {
     // A reboot without a power cycle leaves the chip as it was, and it may never measure again
     busWrite(mag->busDev, IST8310_REG_CNTRL2, IST8310_CNTRL2_RESET);
     delay(50);  // power-on reset routine: 50 ms max
 
-    busWrite(mag->busDev, IST8310_REG_AVERAGE, IST8310_AVG_16);
-    delay(5);
-
-    busWrite(mag->busDev, IST8310_REG_PDCNTL, IST8310_PULSE_DURATION_NORMAL);
-    delay(5);
+    uint8_t cntrl3 = 0;
+    busRead(mag->busDev, IST8310_REG_CNTRL3, &cntrl3);
+    ist8310Setup(mag, cntrl3);
 
     // Single measurement is the only mode the datasheet defines besides stand-by
     busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_SINGLE);
@@ -126,18 +136,27 @@ static bool ist8310Init(magDev_t * mag)
     return true;
 }
 
+static int ist8310ToMilliGauss(const uint8_t *data, bool is16Bit)
+{
+    const int counts = (int16_t)(data[1] << 8 | data[0]);
+
+    // A 16-bit count is a quarter of a 14-bit one (3 mG): rounded mG keep the stored calibrations valid
+    return is16Bit ? (counts * 3 + (counts < 0 ? -2 : 2)) / 4 : counts * 3;
+}
+
 static bool ist8310Read(magDev_t * mag)
 {
-    // STAT1 and the data in one read: in single measurement mode the data only changes after a trigger
-    uint8_t buf[7];
-    if (!busReadBuf(mag->busDev, IST8310_REG_STAT1, buf, 7)) {
+    // STAT1 to CNTRL3 in one read: the data only change after a trigger, and CNTRL3 tells how they were measured
+    uint8_t buf[IST8310_REG_CNTRL3 - IST8310_REG_STAT1 + 1];
+    if (!busReadBuf(mag->busDev, IST8310_REG_STAT1, buf, sizeof(buf))) {
         return false;
     }
 
-    uint8_t LSB2FSV = 3; // 3mG - 14 bit
-    const int x = (int16_t)(buf[2] << 8 | buf[1]) * LSB2FSV;
-    const int y = (int16_t)(buf[4] << 8 | buf[3]) * LSB2FSV;
-    const int z = (int16_t)(buf[6] << 8 | buf[5]) * LSB2FSV;
+    const uint8_t cntrl3 = buf[IST8310_REG_CNTRL3 - IST8310_REG_STAT1];
+    const bool is16Bit = (cntrl3 & IST8310_CNTRL3_16BIT) == IST8310_CNTRL3_16BIT;
+    const int x = ist8310ToMilliGauss(&buf[1], is16Bit);
+    const int y = ist8310ToMilliGauss(&buf[3], is16Bit);
+    const int z = ist8310ToMilliGauss(&buf[5], is16Bit);
 
     // Past the measuring range a sample can only be corrupt, and one spoils a compass calibration
     const bool inRange = ABS(x) <= IST8310_RANGE_XY && ABS(y) <= IST8310_RANGE_XY && ABS(z) <= IST8310_RANGE_Z;
@@ -147,6 +166,16 @@ static bool ist8310Read(magDev_t * mag)
         mag->magADCRaw[X] =  x;
         mag->magADCRaw[Y] = -y;
         mag->magADCRaw[Z] =  z;
+    }
+
+    if (is16Bit) {
+        ist8310SetupWait = 0;
+    } else if (ist8310SetupWait > 0) {
+        ist8310SetupWait--;
+    } else {
+        // Back at its defaults after a supply dip, or a chip without 16 bits: set up again, every 10 reads at most
+        ist8310Setup(mag, cntrl3);
+        ist8310SetupWait = 10;
     }
 
     // Also restarts a measurement that never completed: the task is far slower than its 6 ms
