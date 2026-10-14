@@ -178,6 +178,11 @@ extern uint8_t __config_end;
 #define USE_MAG_LEARN
 #endif
 
+// Yaw from GPS velocity, without the compass: same rule
+#if defined(USE_GPS) && !defined(USE_GSF_YAW) && (MCU_FLASH_SIZE > 512)
+#define USE_GSF_YAW
+#endif
+
 // CRSF sensor input on a dedicated UART
 #if defined(USE_SERIALRX_CRSF)
 #define USE_CRSF_SENSOR_INPUT

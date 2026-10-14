@@ -298,3 +298,211 @@ void gsfUpdateComposite(gsfState_t *gsf)
     }
     gsf->yawVariance = variance;
 }
+
+#if defined(USE_GSF_YAW)
+
+#include "build/build_config.h"
+
+#include "common/time.h"
+
+#include "drivers/time.h"
+
+#include "fc/runtime_config.h"
+
+#include "flight/imu.h"
+
+#include "io/gps.h"
+
+#include "navigation/navigation.h"
+#include "navigation/navigation_private.h"
+
+#define GSF_WINDOW_COUNT        16          // 320 ms of 20 ms IMU windows, room for the GPS delay
+#define GSF_GPS_DELAY_US        100000      // from the GPS fix to its message here; to be measured on real receivers
+#define GSF_VEL_ACCURACY        0.5f        // m/s
+#define GSF_MIN_SATS            6
+#define GSF_MAX_EPH_CM          500
+#define GSF_STEADY_RATE         DEGREES_TO_RADIANS(90.0f)   // faster rotation leaves the AHRS tilt less sure
+#define GSF_USABLE_EXCITATION   25.0f       // m/s of velocity change: a 90 deg turn at 16 m/s
+#define GSF_USABLE_SIGMA        DEGREES_TO_RADIANS(15.0f)
+#define GSF_USABLE_SETTLE_US    3000000
+#define GSF_NIS_FILTER          0.1f
+#define GSF_WINDOW_US           20000       // the task period: a GPS sample is fused within one window of its time
+#define GSF_FUSION_MIN_US       80000       // at most ~10 fusions a second, whatever the receiver's rate
+
+typedef struct gsfWindow_s {
+    float dv[2];        // m/s, forward and right of the yaw at the window's start
+    float dYaw;         // rad
+    float dt;           // s
+    float maxRateSq;    // (rad/s)^2
+    timeUs_t end;
+} gsfWindow_t;
+
+STATIC_FASTRAM gsfState_t gsfState;
+STATIC_FASTRAM gsfWindow_t gsfAccumulating;
+STATIC_FASTRAM gsfWindow_t gsfWindows[GSF_WINDOW_COUNT];
+STATIC_FASTRAM uint8_t gsfWindowHead;      // where the next window goes
+STATIC_FASTRAM uint8_t gsfWindowCount;
+STATIC_FASTRAM gsfYawStatus_t gsfStatus;
+STATIC_FASTRAM float gsfGpsVel[2];         // m/s, north and east
+STATIC_FASTRAM timeUs_t gsfGpsTakenAt;
+STATIC_FASTRAM bool gsfGpsPending;
+STATIC_FASTRAM timeUs_t gsfSettledSince;
+STATIC_FASTRAM timeUs_t gsfLastFusion;
+STATIC_FASTRAM bool gsfAirborne;
+
+// Every AHRS update: kept out of line so LTO does not pull it into the realtime loop's fast memory
+NOINLINE void gsfYawAccumulateImu(float dT)
+{
+    const fpVector3_t *acc = &imuMeasuredAccelBF;       // cm/s^2
+    const fpVector3_t *rate = &imuMeasuredRotationBF;   // rad/s
+
+    // rMat's last row is roll and pitch only, so the compass never reaches the yaw rate; up is +z, yaw clockwise
+    const float yawRate = -(rMat[2][0] * rate->x + rMat[2][1] * rate->y + rMat[2][2] * rate->z);
+
+    // Acceleration forward and right of the nose in the horizontal plane. rMat's earth frame is north, west, up, and
+    // its heading (the compass-corrected one) cancels between the acceleration and the nose
+    const float noseN = rMat[0][0];
+    const float noseW = rMat[1][0];
+    const float noseLen = fast_fsqrtf(sq(noseN) + sq(noseW));
+    if (noseLen > 0.1f) {
+        const float accN = rMat[0][0] * acc->x + rMat[0][1] * acc->y + rMat[0][2] * acc->z;
+        const float accW = rMat[1][0] * acc->x + rMat[1][1] * acc->y + rMat[1][2] * acc->z;
+        const float forward = (accN * noseN + accW * noseW) / noseLen;
+        const float right = (accN * noseW - accW * noseN) / noseLen;
+
+        // Into the frame of the window's start, which the yaw has turned from since
+        const float c = cos_approx(gsfAccumulating.dYaw);
+        const float s = sin_approx(gsfAccumulating.dYaw);
+        gsfAccumulating.dv[0] += (forward * c - right * s) * dT * 0.01f;
+        gsfAccumulating.dv[1] += (forward * s + right * c) * dT * 0.01f;
+    }
+
+    gsfAccumulating.dYaw += yawRate * dT;
+    gsfAccumulating.dt += dT;
+    gsfAccumulating.maxRateSq = MAX(gsfAccumulating.maxRateSq, vectorNormSquared(rate));
+}
+
+void gsfYawOnNewGpsData(void)
+{
+    if (!STATE(GPS_FIX) || !gpsSol.flags.validVelNE || gpsSol.numSat < GSF_MIN_SATS || gpsSol.eph > GSF_MAX_EPH_CM) {
+        return;
+    }
+
+    gsfGpsVel[0] = gpsSol.velNED[X] * 0.01f;
+    gsfGpsVel[1] = gpsSol.velNED[Y] * 0.01f;
+    gsfGpsTakenAt = micros() - GSF_GPS_DELAY_US;
+    gsfGpsPending = true;
+}
+
+static void updateNis(void)
+{
+    int lead = 0;
+    for (int i = 1; i < GSF_MODEL_COUNT; i++) {
+        if (gsfState.model[i].weight > gsfState.model[lead].weight) {
+            lead = i;
+        }
+    }
+
+    const gsfModel_t *m = &gsfState.model[lead];
+    const float det = m->S[0][0] * m->S[1][1] - m->S[0][1] * m->S[1][0];
+    if (det > 1e-9f) {
+        const float nis = (m->innov[0] * (m->innov[0] * m->S[1][1] - m->innov[1] * m->S[0][1]) +
+                           m->innov[1] * (m->innov[1] * m->S[0][0] - m->innov[0] * m->S[1][0])) / det;
+        gsfStatus.nis += GSF_NIS_FILTER * (nis - gsfStatus.nis);
+    }
+}
+
+void taskGsfYaw(timeUs_t currentTimeUs)
+{
+    // Zeroed at boot, which would read as a certain heading of 0
+    if (gsfState.model[0].weight == 0.0f) {
+        gsfReset(&gsfState);
+    }
+
+    if (gsfAccumulating.dt > 0.0f) {
+        gsfAccumulating.end = currentTimeUs;
+        gsfWindows[gsfWindowHead] = gsfAccumulating;
+        gsfWindowHead = (gsfWindowHead + 1) % GSF_WINDOW_COUNT;
+        if (gsfWindowCount < GSF_WINDOW_COUNT) {
+            gsfWindowCount++;
+        }
+        memset(&gsfAccumulating, 0, sizeof(gsfAccumulating));
+    }
+
+    // Learn only in flight, on the ground the wheels and the takeoff acceleration mislead it. From the first flight
+    // detection to the landing detection: isFlightDetected alone drops with the throttle under cruise or hover
+    if (!ARMING_FLAG(ARMED) || STATE(LANDING_DETECTED)) {
+        gsfAirborne = false;
+    } else if (isFlightDetected()) {
+        gsfAirborne = true;
+    }
+    const bool inFlight = gsfAirborne;
+    if (!inFlight && gsfState.fusing) {
+        gsfState.fusing = false;
+    }
+
+    // Step the filter up to the GPS delay behind the present
+    const gsfWindow_t *last = NULL;
+    while (gsfWindowCount > 0) {
+        const gsfWindow_t *w = &gsfWindows[(gsfWindowHead + GSF_WINDOW_COUNT - gsfWindowCount) % GSF_WINDOW_COUNT];
+        if (cmpTimeUs(currentTimeUs, w->end) < GSF_GPS_DELAY_US) {
+            break;
+        }
+
+        gsfPredict(&gsfState, w->dv, w->dYaw, w->dt);
+        if (gsfState.fusing) {
+            gsfStatus.excitation += fast_fsqrtf(sq(w->dv[0]) + sq(w->dv[1]));
+        }
+        last = w;
+        gsfWindowCount--;
+    }
+
+    // The latest GPS sample, fused once the filter has reached the time it was taken
+    if (gsfGpsPending && last && cmpTimeUs(last->end, gsfGpsTakenAt) >= -GSF_WINDOW_US) {
+        gsfGpsPending = false;
+        const bool spaced = !gsfState.fusing || cmpTimeUs(gsfGpsTakenAt, gsfLastFusion) >= GSF_FUSION_MIN_US;
+        if (inFlight && last->maxRateSq < sq(GSF_STEADY_RATE) && spaced) {
+            if (!gsfState.fusing) {
+                gsfStatus.excitation = 0.0f;
+                gsfStatus.nis = 2.0f;
+            }
+            if (gsfFuseVelocity(&gsfState, gsfGpsVel[0], gsfGpsVel[1], GSF_VEL_ACCURACY)) {
+                updateNis();
+            }
+            gsfLastFusion = gsfGpsTakenAt;
+        }
+    }
+
+    gsfUpdateComposite(&gsfState);
+
+    // Carry the delayed yaw to the present with the gyro
+    float yaw = gsfState.yaw + gsfAccumulating.dYaw;
+    for (int n = 0; n < gsfWindowCount; n++) {
+        yaw += gsfWindows[(gsfWindowHead + GSF_WINDOW_COUNT - 1 - n) % GSF_WINDOW_COUNT].dYaw;
+    }
+    gsfStatus.yaw = yaw < 0.0f ? yaw + 2.0f * M_PIf : (yaw >= 2.0f * M_PIf ? yaw - 2.0f * M_PIf : yaw);
+    gsfStatus.yawSigma = fast_fsqrtf(gsfState.yawVariance);
+
+    // Its own variance is not proof on its own: it also has to have seen manoeuvres, and stay settled a while
+    const bool settled = gsfState.fusing && gsfStatus.excitation >= GSF_USABLE_EXCITATION && gsfStatus.yawSigma < GSF_USABLE_SIGMA;
+    if (!settled) {
+        gsfSettledSince = 0;
+    } else if (gsfSettledSince == 0) {
+        gsfSettledSince = currentTimeUs ? currentTimeUs : 1;
+    }
+
+    gsfStatus.flags = 0;
+    if (gsfState.fusing) {
+        gsfStatus.flags |= GSF_YAW_FUSING;
+    }
+    if (settled && cmpTimeUs(currentTimeUs, gsfSettledSince) >= GSF_USABLE_SETTLE_US) {
+        gsfStatus.flags |= GSF_YAW_USABLE;
+    }
+}
+
+const gsfYawStatus_t *gsfYawGetStatus(void)
+{
+    return &gsfStatus;
+}
+
+#endif

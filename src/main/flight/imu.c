@@ -47,6 +47,7 @@
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
+#include "flight/gsf_yaw.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
@@ -944,6 +945,9 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
         imuCheckVibrationLevels();
         imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
+#ifdef USE_GSF_YAW
+        gsfYawAccumulateImu(dT);
+#endif
     } else {
         acc.accADCf[X] = 0.0f;
         acc.accADCf[Y] = 0.0f;

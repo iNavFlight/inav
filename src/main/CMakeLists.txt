@@ -347,6 +347,8 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
+    flight/gsf_yaw.c
+    flight/gsf_yaw.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c

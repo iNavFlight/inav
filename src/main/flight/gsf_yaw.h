@@ -42,3 +42,25 @@ void gsfReset(gsfState_t *gsf);
 void gsfPredict(gsfState_t *gsf, const float dvLevel[2], float dYaw, float dt);
 bool gsfFuseVelocity(gsfState_t *gsf, float velNorth, float velEast, float velAccuracy);
 void gsfUpdateComposite(gsfState_t *gsf);
+
+#ifdef USE_GSF_YAW
+#include "common/time.h"
+
+typedef enum {
+    GSF_YAW_FUSING  = 1 << 0,   // in flight with GPS: the models are learning
+    GSF_YAW_USABLE  = 1 << 1,   // enough manoeuvring seen and the estimate has settled
+} gsfYawFlags_e;
+
+typedef struct gsfYawStatus_s {
+    float yaw;              // rad, clockwise from north, carried to the present with the gyro
+    float yawSigma;         // rad
+    float excitation;       // velocity change seen since fusion started (m/s)
+    float nis;              // normalised innovation squared of the leading model, filtered (about 2 when consistent)
+    uint8_t flags;
+} gsfYawStatus_t;
+
+void gsfYawAccumulateImu(float dT);
+void gsfYawOnNewGpsData(void);
+void taskGsfYaw(timeUs_t currentTimeUs);
+const gsfYawStatus_t *gsfYawGetStatus(void);
+#endif

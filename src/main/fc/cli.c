@@ -201,6 +201,7 @@ static const char * const blackboxIncludeFlagNames[] = {
     "PEAKS_Y",
     "SERVOS",
     "MAG_LEARN",
+    "GSF",
     NULL
 };
 #endif

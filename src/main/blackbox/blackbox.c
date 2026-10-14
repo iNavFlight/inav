@@ -57,6 +57,7 @@
 #include "fc/rc_smoothing.h"
 
 #include "flight/failsafe.h"
+#include "flight/gsf_yaw.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
@@ -463,6 +464,13 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"navAcc",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_ACC},
     {"navAcc",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_ACC},
     {"navAcc",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_ACC},
+#ifdef USE_GSF_YAW
+    {"gsfYaw",        -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfYawStd",     -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfExcitation", -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfNis",        -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfFlags",      -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+#endif
 };
 
 #ifdef USE_GPS
@@ -621,6 +629,13 @@ typedef struct blackboxMainState_s {
     int32_t navPos[XYZ_AXIS_COUNT];
     int16_t navRealVel[XYZ_AXIS_COUNT];
     int16_t navAccNEU[XYZ_AXIS_COUNT];
+#ifdef USE_GSF_YAW
+    uint16_t gsfYaw;            // decidegrees
+    uint16_t gsfYawStd;         // decidegrees
+    uint16_t gsfExcitation;     // m/s
+    uint16_t gsfNis;            // x100
+    uint8_t gsfFlags;
+#endif
     int16_t navTargetVel[XYZ_AXIS_COUNT];
     int32_t navTargetPos[XYZ_AXIS_COUNT];
     int16_t navHeading;
@@ -903,6 +918,13 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return sensors(SENSOR_MAG) && compassConfig()->magLearn && blackboxIncludeFlag(BLACKBOX_FEATURE_MAG_LEARN);
 #endif
 
+    case FLIGHT_LOG_FIELD_CONDITION_GSF:
+#ifdef USE_GSF_YAW
+        return feature(FEATURE_GPS) && blackboxIncludeFlag(BLACKBOX_FEATURE_GSF);
+#else
+        return false;
+#endif
+
     case FLIGHT_LOG_FIELD_CONDITION_NEVER:
         return false;
 
@@ -1169,6 +1191,16 @@ static void writeIntraframe(void)
         }
     }
 
+#ifdef USE_GSF_YAW
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GSF)) {
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfYaw);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfYawStd);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfExcitation);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfNis);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfFlags);
+    }
+#endif
+
     //Rotate our history buffers:
 
     //The current state becomes the new "before" state
@@ -1433,6 +1465,16 @@ static void writeInterframe(void)
             blackboxWriteSignedVB(blackboxHistory[0]->navAccNEU[x] - (blackboxHistory[1]->navAccNEU[x] + blackboxHistory[2]->navAccNEU[x]) / 2);
         }
     }
+
+#ifdef USE_GSF_YAW
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GSF)) {
+        blackboxWriteSignedVB(blackboxCurrent->gsfYaw - blackboxLast->gsfYaw);
+        blackboxWriteSignedVB(blackboxCurrent->gsfYawStd - blackboxLast->gsfYawStd);
+        blackboxWriteSignedVB(blackboxCurrent->gsfExcitation - blackboxLast->gsfExcitation);
+        blackboxWriteSignedVB(blackboxCurrent->gsfNis - blackboxLast->gsfNis);
+        blackboxWriteSignedVB(blackboxCurrent->gsfFlags - blackboxLast->gsfFlags);
+    }
+#endif
 
     //Rotate our history buffers
     blackboxHistory[2] = blackboxHistory[1];
@@ -1941,6 +1983,15 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
     blackboxCurrent->navTargetHeading = navDesiredHeading;
     blackboxCurrent->navSurface = navActualSurface;
+
+#ifdef USE_GSF_YAW
+    const gsfYawStatus_t *gsf = gsfYawGetStatus();
+    blackboxCurrent->gsfYaw = constrain(lrintf(RADIANS_TO_DECIDEGREES(gsf->yaw)), 0, 3599);
+    blackboxCurrent->gsfYawStd = constrain(lrintf(RADIANS_TO_DECIDEGREES(gsf->yawSigma)), 0, 3600);
+    blackboxCurrent->gsfExcitation = constrain(lrintf(gsf->excitation), 0, UINT16_MAX);
+    blackboxCurrent->gsfNis = constrain(lrintf(gsf->nis * 100.0f), 0, UINT16_MAX);
+    blackboxCurrent->gsfFlags = gsf->flags;
+#endif
 }
 
 /**
