@@ -470,6 +470,8 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"gsfExcitation", -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
     {"gsfNis",        -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
     {"gsfFlags",      -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfGpsDelay",   -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfMagErr",     -1, SIGNED,   .Ipredict = PREDICT(0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
 #endif
 };
 
@@ -635,6 +637,8 @@ typedef struct blackboxMainState_s {
     uint16_t gsfExcitation;     // m/s
     uint16_t gsfNis;            // x100
     uint8_t gsfFlags;
+    uint16_t gsfGpsDelay;       // ms
+    int16_t gsfMagErr;          // decidegrees, compass heading minus the estimate
 #endif
     int16_t navTargetVel[XYZ_AXIS_COUNT];
     int32_t navTargetPos[XYZ_AXIS_COUNT];
@@ -1198,6 +1202,8 @@ static void writeIntraframe(void)
         blackboxWriteUnsignedVB(blackboxCurrent->gsfExcitation);
         blackboxWriteUnsignedVB(blackboxCurrent->gsfNis);
         blackboxWriteUnsignedVB(blackboxCurrent->gsfFlags);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfGpsDelay);
+        blackboxWriteSignedVB(blackboxCurrent->gsfMagErr);
     }
 #endif
 
@@ -1473,6 +1479,8 @@ static void writeInterframe(void)
         blackboxWriteSignedVB(blackboxCurrent->gsfExcitation - blackboxLast->gsfExcitation);
         blackboxWriteSignedVB(blackboxCurrent->gsfNis - blackboxLast->gsfNis);
         blackboxWriteSignedVB(blackboxCurrent->gsfFlags - blackboxLast->gsfFlags);
+        blackboxWriteSignedVB(blackboxCurrent->gsfGpsDelay - blackboxLast->gsfGpsDelay);
+        blackboxWriteSignedVB(blackboxCurrent->gsfMagErr - blackboxLast->gsfMagErr);
     }
 #endif
 
@@ -1991,6 +1999,8 @@ static void loadMainState(timeUs_t currentTimeUs)
     blackboxCurrent->gsfExcitation = constrain(lrintf(gsf->excitation), 0, UINT16_MAX);
     blackboxCurrent->gsfNis = constrain(lrintf(gsf->nis * 100.0f), 0, UINT16_MAX);
     blackboxCurrent->gsfFlags = gsf->flags;
+    blackboxCurrent->gsfGpsDelay = gsf->gpsDelayUs / 1000;
+    blackboxCurrent->gsfMagErr = (gsf->flags & GSF_YAW_MAG_COMPARED) ? lrintf(RADIANS_TO_DECIDEGREES(gsf->magError)) : 0;
 #endif
 }
 
@@ -2243,6 +2253,9 @@ static bool blackboxWriteSysinfo(void)
 #endif
 #else
         BLACKBOX_PRINT_HEADER_LINE("mag_hardware", "%d",                    MAG_NONE);
+#endif
+#ifdef USE_GSF_YAW
+        BLACKBOX_PRINT_HEADER_LINE("ahrs_gsf_yaw", "%d",                    imuConfig()->gsf_yaw);
 #endif
         BLACKBOX_PRINT_HEADER_LINE("serialrx_provider", "%d",               rxConfig()->serialrx_provider);
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_protocol", "%d",              motorConfig()->motorPwmProtocol);

@@ -153,6 +153,7 @@
 - [gyro_fsr_e](#enum-gyro_fsr_e)
 - [gyroFilterMode_e](#enum-gyrofiltermode_e)
 - [gyroHardwareLpf_e](#enum-gyrohardwarelpf_e)
+- [gsfYawFlags_e](#enum-gsfyawflags_e)
 - [gyroSensor_e](#enum-gyrosensor_e)
 - [HardwareMotorTypes_e](#enum-hardwaremotortypes_e)
 - [hardwareSensorStatus_e](#enum-hardwaresensorstatus_e)
@@ -1062,6 +1063,7 @@
 | `BLACKBOX_FEATURE_GYRO_PEAKS_YAW` | 1 << 12 |  |
 | `BLACKBOX_FEATURE_SERVOS` | 1 << 13 |  |
 | `BLACKBOX_FEATURE_MAG_LEARN` | 1 << 14 |  |
+| `BLACKBOX_FEATURE_GSF` | 1 << 15 |  |
 
 ---
 ## <a id="enum-blackboxstate"></a>`BlackboxState`
@@ -2250,7 +2252,8 @@
 | `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH` | 65 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW` | 66 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_MAG_LEARN` | 67 |  |
-| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 68 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GSF` | 68 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 69 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_FIRST` | FLIGHT_LOG_FIELD_CONDITION_ALWAYS |  |
 | `FLIGHT_LOG_FIELD_CONDITION_LAST` | FLIGHT_LOG_FIELD_CONDITION_NEVER |  |
 
@@ -2832,6 +2835,21 @@
 | `GYRO_HARDWARE_LPF_COUNT` | 4 |  |
 
 ---
+## <a id="enum-gsfyawflags_e"></a>`gsfYawFlags_e`
+
+> Source: src/main/flight/gsf_yaw.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `GSF_YAW_FUSING` | 1 << 0 |  |
+| `GSF_YAW_USABLE` | 1 << 1 |  |
+| `GSF_YAW_INCONSISTENT` | 1 << 2 |  |
+| `GSF_YAW_DELAY_MEASURED` | 1 << 3 |  |
+| `GSF_YAW_MAG_COMPARED` | 1 << 4 |  |
+| `GSF_YAW_MAG_DISAGREES` | 1 << 5 |  |
+| `GSF_YAW_IN_AHRS` | 1 << 6 |  |
+| `GSF_YAW_RESET` | 1 << 7 |  |
+
 ## <a id="enum-gyrosensor_e"></a>`gyroSensor_e`
 
 > Source: src/main/sensors/gyro.h
