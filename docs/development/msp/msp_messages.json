@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 2
+        "patch": 3
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -6487,6 +6487,33 @@
             },
             "notes": "Returns the stored GPS coordinates for all radar POIs (`radar_pois[i].gps`).",
             "description": "Provides the GPS positions (latitude, longitude, altitude) for each radar point of interest." 
+        },
+        "MSP2_COMMON_SERIAL_INJECT": {
+            "code": 4112,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "identifier",
+                        "ctype": "uint8_t",
+                        "desc": "Port identifier Enum (`serialPortIdentifier_e`), as reported by `MSP2_COMMON_SERIAL_CONFIG`",
+                        "units": "",
+                        "enum": "serialPortIdentifier_e"
+                    },
+                    {
+                        "name": "data",
+                        "ctype": "uint8_t",
+                        "desc": "Raw bytes delivered to the port's receive path, as if received on the wire",
+                        "units": "",
+                        "array": true,
+                        "array_size": 0
+                    }
+                ]
+            },
+            "reply": null,
+            "variable_len": true,
+            "notes": "All or nothing: returns error if the port is unknown or not open, does not receive, has no software RX buffer (USB VCP), reads through an RX callback, or its RX buffer cannot take the whole block. Ports with an RX callback (serial RC receivers, the CRSF sensor port, the serial head tracker) are refused because their parsers run in interrupt context and must not be fed RC frames over MSP. At most 191 data bytes per message: `MSP_PORT_INBUF_SIZE` is 192 including the identifier, and a larger frame is dropped by the MSP parser without a reply. Meant for a port with nothing connected: bytes from a live sender would interleave with the injected ones or be lost. Everything after the identifier is payload, so this message cannot gain fields; a future variant needs a new message ID. An empty `data` only checks that the port can be fed.",
+            "description": "Feeds raw bytes into an open serial port's receive path, as if they had arrived on the wire."
         },
         "MSP2_SENSOR_RANGEFINDER": {
             "code": 7937,
