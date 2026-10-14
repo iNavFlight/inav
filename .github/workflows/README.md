@@ -93,18 +93,20 @@ every PR.
    so this deliberately listens to `nightly-build.yml` instead of trying to
    fix that separately; verified empirically that `ci.yml` alone has zero
    push-triggered runs in this repo's history.)
-3. On PR builds, it computes the PR's TRUE base commit — the merge-base of
-   the PR head and base ref via the compare API — fetches the per-commit
-   baseline for that exact commit, falling back to the nearest ancestor
-   commit that has one (never the branch tip, which would include unrelated
-   changes merged after the PR forked), diffs it against the PR's own size
+3. On PR builds, it takes the base commit the PR was built on: CI builds
+   `refs/pull/<n>/merge`, and `ci.yml` records that merge's first parent
+   (builds that did not record it fall back to the merge-base of the PR head and
+   base ref via the compare API). It fetches the per-commit baseline for that
+   exact commit, falling back to the nearest ancestor commit that has one
+   (never the branch tip, which would include unrelated changes merged after
+   the build), diffs it against the PR's own size
    report, and posts/updates a comment (marker `<!-- pr-size-diff -->`)
    naming the baseline commit that was used.
 
 **Scripts:** `.github/scripts/extract-size-report.sh` (size extraction),
 `.github/scripts/merge-size-reports.sh` (merges per-shard reports),
 `.github/scripts/publish-size-baseline.sh` (per-commit publish + pruning),
-`.github/scripts/fetch-size-baseline.sh` (merge-base baseline resolution),
+`.github/scripts/fetch-size-baseline.sh` (base commit baseline resolution),
 `.github/scripts/size-diff-comment.js` (pure diff + markdown rendering,
 unit tested in `.github/scripts/size-diff-comment.test.js`)
 
