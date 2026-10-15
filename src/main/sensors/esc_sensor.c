@@ -41,6 +41,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "flight/mixer.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
 #include "drivers/pwm_mapping.h"
@@ -51,6 +52,30 @@
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
+static escFrameCounter_t escSensorFrames[MAX_SUPPORTED_MOTORS];
+static timeMs_t         escFrameWindowStartMs;
+
+escFrameCounter_t * escSensorFrameCounter(uint8_t esc)
+{
+    return &escSensorFrames[esc];
+}
+
+// NOINLINE: escSensorUpdate() is inlined into the ITCM scheduler; this runs once per window
+void NOINLINE escSensorFrameWindowUpdate(timeMs_t currentTimeMs)
+{
+    if (currentTimeMs - escFrameWindowStartMs < ESC_FRAME_WINDOW_MS) {
+        return;
+    }
+
+    escFrameWindowStartMs = currentTimeMs;
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        escFrameCounter_t *counter = &escSensorFrames[i];
+        counter->lastWindowTotal = counter->total;
+        counter->lastWindowSuccess = counter->total ? (uint32_t)counter->valid * 100 / counter->total : 0;
+        counter->total = 0;
+        counter->valid = 0;
+    }
+}
 
 #if defined(USE_ESC_SENSOR)
 
@@ -130,6 +155,7 @@ static bool escSensorDecodeFrame(void)
     if (bufferPosition >= TELEMETRY_FRAME_SIZE) {
         uint8_t checksum = crc8_update(0, telemetryBuffer, TELEMETRY_FRAME_SIZE - 1);
         if (checksum == telemetryBuffer[TELEMETRY_FRAME_SIZE - 1]) {
+            escSensorFrames[escSensorMotor].valid++;
             escSensorData[escSensorMotor].dataAge       = 0;
             escSensorData[escSensorMotor].temperature   = telemetryBuffer[0];
             escSensorData[escSensorMotor].voltage       = ((uint16_t)telemetryBuffer[1]) << 8 | telemetryBuffer[2];
@@ -155,6 +181,32 @@ uint32_t computeRpm(int16_t erpm) {
 escSensorData_t NOINLINE * getEscTelemetry(uint8_t esc)
 {
     return &escSensorData[esc];
+}
+
+void escSensorInitData(void)
+{
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        escSensorData[i].dataAge = ESC_DATA_INVALID;
+        escSensorData[i].temperature = 0;
+        escSensorData[i].voltage = 0;
+        escSensorData[i].current = 0;
+        escSensorData[i].rpm = 0;
+    }
+    escSensorDataNeedsUpdate = true;
+}
+
+void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16_t voltage, int32_t current)
+{
+    if (esc >= MAX_SUPPORTED_MOTORS) {
+        return;
+    }
+
+    escSensorData[esc].dataAge = 0;
+    escSensorData[esc].rpm = rpm;
+    escSensorData[esc].temperature = temperature;
+    escSensorData[esc].voltage = voltage;
+    escSensorData[esc].current = current;
+    escSensorDataNeedsUpdate = true;
 }
 
 escSensorData_t * escSensorGetData(void)
@@ -249,6 +301,16 @@ bool escSensorInitialize(void)
     }
 #endif
 
+    escSensorInitData();
+
+#ifdef USE_DSHOT_BIDIR
+    // Telemetry on the motor line: fed by the motor driver, no port to open
+    if (isDshotTelemetryActive()) {
+        ENABLE_STATE(ESC_SENSOR_ENABLED);
+        return true;
+    }
+#endif
+
     // FUNCTION_ESCSERIAL is shared between SERIALSHOT and ESC_SENSOR telemetry
     // They are mutually exclusive
     serialPortConfig_t * portConfig = findSerialPortConfig(FUNCTION_ESCSERIAL);
@@ -261,10 +323,6 @@ bool escSensorInitialize(void)
         return false;
     }
 
-    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-        escSensorData[i].dataAge = ESC_DATA_INVALID;
-    }
-
     ENABLE_STATE(ESC_SENSOR_ENABLED);
 
     return true;
@@ -272,6 +330,25 @@ bool escSensorInitialize(void)
 
 void escSensorUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_DSHOT_BIDIR
+    if (isDshotTelemetryActive()) {
+        // The motor driver refreshes the data with every decoded frame. Age it at the serial
+        // poll rate, so a silent ESC drops out of the combined values the same way (the serial
+        // poll timer doubles as the aging clock, nothing polls here)
+        const timeMs_t currentTimeMs = currentTimeUs / 1000;
+        if (currentTimeMs - escTriggerTimeMs >= ESC_REQUEST_TIMEOUT_MS) {
+            escTriggerTimeMs = currentTimeMs;
+            for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+                if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
+                    escSensorData[i].dataAge++;
+                    escSensorDataNeedsUpdate = true;
+                }
+            }
+        }
+        return;
+    }
+#endif
+
 #ifdef USE_MOTOR_SRXL2
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
         /* One ESC per port, so escSensorData[i] belongs to the i-th assigned
@@ -326,6 +403,8 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 
     const timeMs_t currentTimeMs = currentTimeUs / 1000;
 
+    escSensorFrameWindowUpdate(currentTimeMs);
+
     switch (escSensorState) {
         case ESC_SENSOR_WAIT_STARTUP:
             if (currentTimeMs > ESC_BOOTTIME_MS) {
@@ -338,6 +417,9 @@ void escSensorUpdate(timeUs_t currentTimeUs)
             if (!escSensorConfig()->listenOnly) {
                 pwmRequestMotorTelemetry(escSensorMotor);
             }
+            // One reply expected per request (per listen window with listenOnly); a timeout
+            // or a CRC error just never makes it to valid
+            escSensorFrames[escSensorMotor].total++;
             bufferPosition = 0;
             escTriggerTimeMs = currentTimeMs;
             escSensorState = ESC_SENSOR_WAITING;
@@ -377,4 +459,13 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 
 }
 
+#endif
+
+#ifndef USE_ESC_SENSOR
+void escSensorInitData(void) {}
+void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16_t voltage, int32_t current)
+{
+    UNUSED(esc); UNUSED(rpm); UNUSED(temperature); UNUSED(voltage); UNUSED(current);
+}
+escSensorData_t * escSensorGetData(void) { return NULL; }
 #endif
