@@ -21,6 +21,10 @@ set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 U
 
 set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
+set_property(SOURCE compass_learn_unittest.cc PROPERTY depends
+    "common/bitarray.c" "common/maths.c" "sensors/compass_learn.c")
+set_property(SOURCE compass_learn_unittest.cc PROPERTY definitions USE_MAG USE_MAG_LEARN)
+
 set_property(SOURCE compass_orientation_unittest.cc PROPERTY depends
     "common/maths.c" "sensors/compass_orientation.c")
 set_property(SOURCE compass_orientation_unittest.cc PROPERTY definitions USE_MAG USE_MAG_CALIBRATION_ORIENTATION)

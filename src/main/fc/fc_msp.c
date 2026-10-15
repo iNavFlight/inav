@@ -135,6 +135,7 @@
 #include "sensors/barometer.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/compass.h"
+#include "sensors/compass_learn.h"
 #include "sensors/gyro.h"
 #include "sensors/opflow.h"
 #include "sensors/temperature.h"
@@ -1761,6 +1762,18 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
         }
         break;
+
+#ifdef USE_MAG_LEARN
+    case MSP2_INAV_MAG_LEARN:
+        sbufWriteU16(dst, magLearnStatus.flags);
+        sbufWriteU8(dst, magLearnStatus.sectors);
+        sbufWriteU8(dst, magLearnStatus.headings);
+        sbufWriteU16(dst, magLearnStatus.spread);
+        for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+            sbufWriteU16(dst, magLearnStatus.delta[i]);
+        }
+        break;
+#endif
 
     case MSP2_INAV_MIXER:
         sbufWriteU8(dst, mixerConfig()->motorDirectionInverted);
