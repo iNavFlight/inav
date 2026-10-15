@@ -3069,11 +3069,11 @@ Enable MAVLink high-latency mode on port 1
 
 ### mavlink_port1_min_txbuffer
 
-Minimum percent of TX buffer space free for MAVLink port 1. Requires RADIO_STATUS messages.
+Minimum percent of TX buffer space free for MAVLink port 1. Requires RADIO_STATUS messages. Below it the streams pause; with 0 they never pause and only slow down.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 33 | 0 | 100 |
+| 0 | 0 | 100 |
 
 ---
 
@@ -3122,11 +3122,11 @@ Enable MAVLink high-latency mode on port 2
 
 ### mavlink_port2_min_txbuffer
 
-Minimum percent of TX buffer space free for MAVLink port 2. Requires RADIO_STATUS messages.
+Minimum percent of TX buffer space free for MAVLink port 2. Requires RADIO_STATUS messages. Below it the streams pause; with 0 they never pause and only slow down.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 33 | 0 | 100 |
+| 0 | 0 | 100 |
 
 ---
 
@@ -3155,11 +3155,11 @@ Enable MAVLink high-latency mode on port 3
 
 ### mavlink_port3_min_txbuffer
 
-Minimum percent of TX buffer space free for MAVLink port 3. Requires RADIO_STATUS messages.
+Minimum percent of TX buffer space free for MAVLink port 3. Requires RADIO_STATUS messages. Below it the streams pause; with 0 they never pause and only slow down.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 33 | 0 | 100 |
+| 0 | 0 | 100 |
 
 ---
 
@@ -3188,11 +3188,11 @@ Enable MAVLink high-latency mode on port 4
 
 ### mavlink_port4_min_txbuffer
 
-Minimum percent of TX buffer space free for MAVLink port 4. Requires RADIO_STATUS messages.
+Minimum percent of TX buffer space free for MAVLink port 4. Requires RADIO_STATUS messages. Below it the streams pause; with 0 they never pause and only slow down.
 
 | Default | Min | Max |
 | --- | --- | --- |
-| 33 | 0 | 100 |
+| 0 | 0 | 100 |
 
 ---
 
