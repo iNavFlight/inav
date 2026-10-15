@@ -84,6 +84,12 @@ static void adcInstanceInit(ADCDevice adcDevice)
     adcDevice_t * adc = &adcHardware[adcDevice];
 
     RCC_ClockCmd(adc->rccDMA, ENABLE);
+
+    // The stream is the ADC's: whatever takes a free stream at run time must not take it
+    DMA_t adcDma = dmaGetByRef(adc->DMAy_Streamx);
+    if (adcDma) {
+        dmaInit(adcDma, OWNER_ADC, adcDevice);
+    }
     RCC_ClockCmd(adc->rccADC, ENABLE);
 
     adc->ADCHandle.Init.ClockPrescaler        = ADC_CLOCK_SYNC_PCLK_DIV8;
@@ -156,6 +162,27 @@ static void adcInstanceInit(ADCDevice adcDevice)
     {
         /* Start Conversation Error */
     }
+}
+
+bool adcDmaMoveOff(DMA_t stream)
+{
+    adcDevice_t *adc = &adcHardware[ADCDEV_1];
+    if (!adc->enabled || dmaGetByRef(adc->DMAy_Streamx) != stream) {
+        return false;
+    }
+    DMA_Stream_TypeDef *other = adc->DMAy_Streamx == DMA2_Stream0 ? DMA2_Stream4 : DMA2_Stream0;
+    DMA_t otherDma = dmaGetByRef(other);
+    if (!otherDma || dmaGetOwner(otherDma) != OWNER_FREE) {
+        return false;
+    }
+
+    HAL_ADC_Stop_DMA(&adc->ADCHandle);
+    HAL_DMA_DeInit(&adc->DmaHandle);
+    dmaInit(stream, OWNER_FREE, 0);
+
+    adc->DMAy_Streamx = other;
+    adcInstanceInit(ADCDEV_1);
+    return true;
 }
 
 void adcHardwareInit(drv_adc_config_t *init)

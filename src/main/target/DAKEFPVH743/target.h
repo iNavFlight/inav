@@ -73,6 +73,7 @@
 
 // Primary IMU options
 #define IMU_1_CS_PIN       PA4
+#define IMU_1_IRQ_PIN      PC4
 #define IMU_1_SPI_BUS      BUS_SPI1
 #define IMU_1_ALIGN        CW0_DEG
 

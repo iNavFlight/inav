@@ -34,6 +34,7 @@
 
 #define MPU9250_SPI_BUS         BUS_SPI1
 #define MPU9250_CS_PIN          PC4
+#define MPU9250_EXTI_PIN       PC5
 
 #define USE_MAG
 
