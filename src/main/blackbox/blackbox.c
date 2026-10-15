@@ -906,8 +906,23 @@ static bool testBlackboxCondition(FlightLogFieldCondition condition)
     return (blackboxConditionCache & position) != 0;
 }
 
+// Paused by blackboxDeviceBufferLow(), not by the BLACKBOX mode
+static bool blackboxPausedForDevice;
+static uint32_t blackboxDevicePauses;
+static uint32_t blackboxDevicePausedIterations;
+
+void blackboxGetDevicePauses(uint32_t *pauses, uint32_t *iterations)
+{
+    *pauses = blackboxDevicePauses;
+    *iterations = blackboxDevicePausedIterations;
+}
+
 static void blackboxSetState(BlackboxState newState)
 {
+    if (newState != BLACKBOX_STATE_PAUSED) {
+        blackboxPausedForDevice = false;
+    }
+
     //Perform initial setup required for the new state
     switch (newState) {
     case BLACKBOX_STATE_PREPARE_LOG_FILE:
@@ -2276,7 +2291,7 @@ static void blackboxAdvanceIterationTimers(void)
 }
 
 // Called once every FC loop in order to log the current state
-static void blackboxLogIteration(timeUs_t currentTimeUs)
+static void blackboxLogIterationFrames(timeUs_t currentTimeUs)
 {
     // Write a keyframe every BLACKBOX_I_INTERVAL frames so we can resynchronise upon missing frames
     if (blackboxShouldLogIFrame()) {
@@ -2329,10 +2344,18 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
     blackboxDeviceFlush();
 }
 
+// For the pause threshold in blackboxDeviceBufferLow()
+static void blackboxLogIteration(timeUs_t currentTimeUs)
+{
+    blackboxIterationBegin();
+    blackboxLogIterationFrames(currentTimeUs);
+    blackboxIterationEnd();
+}
+
 /**
  * Call each flight loop iteration to perform blackbox logging.
  */
-void blackboxUpdate(timeUs_t currentTimeUs)
+static void blackboxUpdateState(timeUs_t currentTimeUs)
 {
 #ifdef USE_TERRAIN
     if(blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD){
@@ -2342,7 +2365,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
         }
 
         //incooming request to get access to SD card
-        if(blackboxSDCardAccessStatus.requestToSdCardAccessState && (blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_STOPPED)){
+        if(blackboxSDCardAccessStatus.requestToSdCardAccessState && (blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_PAUSED || blackboxState == BLACKBOX_STATE_STOPPED)){
             //we have to be sure that all writes are already processed and SD card is in idle
             if(afatfs_isIdle()){
                 blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
@@ -2435,8 +2458,14 @@ void blackboxUpdate(timeUs_t currentTimeUs)
         }
         break;
     case BLACKBOX_STATE_PAUSED:
-        // Only allow resume to occur during an I-frame iteration, so that we have an "I" base to work from
-        if (IS_RC_MODE_ACTIVE(BOXBLACKBOX) && blackboxShouldLogIFrame()) {
+        // Switched off during a pause for the device: from here on the pause is the switch's
+        if (blackboxPausedForDevice && blackboxModeActivationConditionPresent && !IS_RC_MODE_ACTIVE(BOXBLACKBOX)) {
+            blackboxPausedForDevice = false;
+        }
+        // Only allow resume to occur during an I-frame iteration, so that we have an "I" base to work from.
+        // The switch too waits for a device that fell behind, or the I frame could be cut
+        if ((blackboxPausedForDevice || IS_RC_MODE_ACTIVE(BOXBLACKBOX))
+            && blackboxDeviceBufferRecovered() && blackboxShouldLogIFrame()) {
             // Write a log entry so the decoder is aware that our large time/iteration skip is intended
             flightLogEvent_loggingResume_t resume;
 
@@ -2447,6 +2476,9 @@ void blackboxUpdate(timeUs_t currentTimeUs)
             blackboxSetState(BLACKBOX_STATE_RUNNING);
 
             blackboxLogIteration(currentTimeUs);
+        } else if (blackboxPausedForDevice || (IS_RC_MODE_ACTIVE(BOXBLACKBOX) && !blackboxDeviceBufferRecovered())) {
+            // Not logged because of the device, also once the switch is back on
+            blackboxDevicePausedIterations++;
         }
         // Keep the logging timers ticking so our log iteration continues to advance
         blackboxAdvanceIterationTimers();
@@ -2454,6 +2486,12 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     case BLACKBOX_STATE_RUNNING:
         // On entry to this state, blackboxIteration, blackboxPFrameIndex and blackboxIFrameIndex are reset to 0
         if (blackboxModeActivationConditionPresent && !IS_RC_MODE_ACTIVE(BOXBLACKBOX)) {
+            blackboxSetState(BLACKBOX_STATE_PAUSED);
+        } else if (blackboxDeviceBufferLow()) {
+            // Skip frames the device would drop halfway; resume on an I frame with LOGGING_RESUME
+            blackboxPausedForDevice = true;
+            blackboxDevicePauses++;
+            blackboxDevicePausedIterations++;
             blackboxSetState(BLACKBOX_STATE_PAUSED);
         } else {
             blackboxLogIteration(currentTimeUs);
@@ -2481,6 +2519,18 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     if (isBlackboxDeviceFull()) {
         blackboxSetState(BLACKBOX_STATE_STOPPED);
     }
+}
+
+void blackboxUpdate(timeUs_t currentTimeUs)
+{
+    blackboxUpdateState(currentTimeUs);
+    // Flush this iteration's bytes now, unless the card is lent to terrain: those wait for it
+#ifdef USE_TERRAIN
+    if (blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice) {
+        return;
+    }
+#endif
+    blackboxWriteFlush();
 }
 
 BlackboxState getBlackboxState(void)
