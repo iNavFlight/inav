@@ -69,6 +69,10 @@ typedef struct {
 } uartPort_t;
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins);
+#if defined(STM32F7) || defined(STM32H7)
+// Takes effect when the port next opens; the new pin must use the alternate function of the UART's own TX
+void uartSetTxPin(UARTDevice_e device, ioTag_t txPin);
+#endif
 void uartClearIdleFlag(uartPort_t *s);
 void uartConfigurePinSwap(uartPort_t *uartPort);
 #if defined(AT32F43x) 

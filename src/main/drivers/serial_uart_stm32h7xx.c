@@ -297,6 +297,15 @@ void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)
     }
 }
 
+void uartSetTxPin(UARTDevice_e device, ioTag_t txPin)
+{
+    uartDevice_t *uart = uartHardwareMap[device];
+
+    if (uart) {
+        uart->tx = txPin;
+    }
+}
+
 void uartIrqHandler(uartPort_t *s)
 {
     UART_HandleTypeDef *huart = &s->Handle;
