@@ -3906,10 +3906,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
             }
 
             // The circuit leaves the circle heading down the downwind leg, so the base turn point is ahead of the
-            // aircraft instead of behind it; the circle goes on until the heading comes round
+            // aircraft instead of behind it; the circle goes on until the heading comes round, checked every pass
+            // (restarting the loiter timer here would wait another 30 s each time)
             if (posControl.fwLandState.landingDirection >= 0 && navFwAutolandConfig()->downwindOffset
                 && ABS(wrap_18000(posControl.actualState.yaw - wrap_36000(posControl.fwLandState.landingDirection + 18000))) > FW_LAND_DOWNWIND_HEADING_TOLERANCE) {
-                posControl.fwLandState.landingDirection = -1;
+                fpVector3_t tmpPoint = fwLandLoiterCenter();
+                setDesiredPosition(&tmpPoint, posControl.fwLandState.landPosHeading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
+                return NAV_FSM_EVENT_NONE;
             }
 
             if (posControl.fwLandState.landingDirection >= 0) {
