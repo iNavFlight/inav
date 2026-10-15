@@ -118,15 +118,29 @@ typedef struct gyroConfig_s {
     // bump. A field added here must default to zero: it can land in the old struct's padding
     bool     gyro_secondary_enabled;
 #endif
+#ifdef USE_SPI_DATA_READY
+    // Appended too, so zero is the default: AUTO
+    uint8_t  gyro_data_ready;           // gyroDataReady_e
+    // Samples the IMU queues in its FIFO before its interrupt, read together; 0 for none
+    uint8_t  gyro_fifo_samples;
+#endif
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
+
+// AUTO where the driver is tested on the MCU family, ON wherever driver and target support it
+typedef enum {
+    GYRO_DATA_READY_AUTO = 0,
+    GYRO_DATA_READY_ON,
+    GYRO_DATA_READY_OFF,
+} gyroDataReady_e;
 
 #ifdef USE_DUAL_GYRO
 void gyroSetSecondaryLogging(bool logging);
 #endif
 
 bool gyroInit(void);
+void gyroStartDataReady(void);
 void gyroGetMeasuredRotationRate(fpVector3_t *imuMeasuredRotationBF);
 void gyroUpdate(void);
 void gyroFilter(void);

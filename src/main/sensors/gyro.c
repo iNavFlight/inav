@@ -37,6 +37,7 @@
 #include "config/feature.h"
 
 #include "drivers/accgyro/accgyro.h"
+#include "drivers/accgyro/accgyro_data_ready.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_mpu6000.h"
 #include "drivers/accgyro/accgyro_mpu6500.h"
@@ -128,6 +129,10 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
 #ifdef USE_DUAL_GYRO
     .gyro_to_use = SETTING_GYRO_TO_USE_DEFAULT,
     .gyro_secondary_enabled = SETTING_GYRO_SECONDARY_ENABLED_DEFAULT,
+#endif
+#ifdef USE_SPI_DATA_READY
+    .gyro_data_ready = SETTING_GYRO_DATA_READY_DEFAULT,
+    .gyro_fifo_samples = SETTING_GYRO_FIFO_SAMPLES_DEFAULT,
 #endif
     .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,
     .gyroDynamicLpfMinHz = SETTING_GYRO_DYN_LPF_MIN_HZ_DEFAULT,
@@ -340,6 +345,21 @@ static void gyroDevStart(gyroDev_t *dev)
     dev->initFn(dev);
 }
 
+#ifdef USE_SPI_DATA_READY
+// AUTO leaves it to each driver: it reads on data-ready where it has been tested
+static gyroDevDataReady_e gyroReadOnDataReady(void)
+{
+    switch (gyroConfig()->gyro_data_ready) {
+    case GYRO_DATA_READY_ON:
+        return GYRO_DEV_DATA_READY_ON;
+    case GYRO_DATA_READY_OFF:
+        return GYRO_DEV_DATA_READY_OFF;
+    default:
+        return GYRO_DEV_DATA_READY_WHERE_TESTED;
+    }
+}
+#endif
+
 bool gyroInit(void)
 {
     memset(&gyro, 0, sizeof(gyro));
@@ -368,6 +388,11 @@ bool gyroInit(void)
     sensorsSet(SENSOR_GYRO);
 
     // Driver initialisation
+#ifdef USE_SPI_DATA_READY
+    gyroDev[0].readOnDataReady = gyroReadOnDataReady();
+    gyroDev[0].readOnDataReadyWithAcc = true;
+    gyroDev[0].dataReadyFifoSamples = gyroConfig()->gyro_fifo_samples;
+#endif
     gyroDevStart(&gyroDev[0]);
 
     // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
@@ -386,6 +411,11 @@ bool gyroInit(void)
 
             gyroDev[GYRO_SECONDARY].imuSensorToUse = tag;
             if (gyroDetect(&gyroDev[GYRO_SECONDARY], GYRO_AUTODETECT) != GYRO_NONE) {
+#ifdef USE_SPI_DATA_READY
+                // Its interrupt stays off while no log is written
+                gyroDev[GYRO_SECONDARY].readOnDataReady = gyroReadOnDataReady();
+                gyroDev[GYRO_SECONDARY].dataReadyFifoSamples = gyroConfig()->gyro_fifo_samples;
+#endif
                 gyroDevStart(&gyroDev[GYRO_SECONDARY]);
                 gyro.secondaryInitialized = true;
                 break;
@@ -407,6 +437,28 @@ bool gyroInit(void)
     );
 #endif
     return true;
+}
+
+// At the end of init, so a DMA stream a driver needs is one nobody else has taken
+void gyroStartDataReady(void)
+{
+#ifdef USE_SPI_DATA_READY
+    if (!gyro.initialized) {
+        return;
+    }
+    for (int i = 0; i < MAX_GYRO_COUNT; i++) {
+#ifdef USE_DUAL_GYRO
+        if (i == GYRO_SECONDARY && !gyro.secondaryInitialized) {
+            continue;
+        }
+#else
+        if (i != GYRO_PRIMARY) {
+            continue;
+        }
+#endif
+        gyroDataReadyStart(&gyroDev[i]);
+    }
+#endif
 }
 
 /* Zero calibration works on raw gyro readings, so the movement threshold has to be
@@ -664,7 +716,15 @@ static void NOINLINE gyroUpdateSecondary(void)
         return;
     }
 
-    if (!gyroReadAndCalibrate(GYRO_SECONDARY, gyro.gyroRaw2)) {
+    // Each queued sample goes through the zero calibration; gyroRaw2 keeps the newest
+    const gyroDev_t *dev = &gyroDev[GYRO_SECONDARY];
+    bool read = false;
+    int samples = 0;
+    do {
+        read = gyroReadAndCalibrate(GYRO_SECONDARY, gyro.gyroRaw2) || read;
+    } while (gyroSamplePending(dev) && ++samples < GYRO_SAMPLE_QUEUE_LENGTH);
+
+    if (!read && !gyroReadsOnDataReady(dev)) {
         gyro.gyroRaw2[X] = 0.0f;
         gyro.gyroRaw2[Y] = 0.0f;
         gyro.gyroRaw2[Z] = 0.0f;
@@ -689,24 +749,28 @@ void FAST_CODE NOINLINE gyroUpdate(void)
     gyroUpdateSecondary();
 #endif
 
-    if (!gyroUpdateAndCalibrate(gyro.gyroADCf)) {
-        return;
-    }
+    // Every queued sample goes through the first LPF, which then runs at the sensor's rate
+    int samples = 0;
+    do {
+        if (!gyroUpdateAndCalibrate(gyro.gyroADCf)) {
+            continue;
+        }
 
-    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
-        // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
-        float gyroADCf = gyro.gyroADCf[axis];
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            // At this point gyro.gyroADCf contains unfiltered gyro value [deg/s]
+            float gyroADCf = gyro.gyroADCf[axis];
 
-        // Set raw gyro for blackbox purposes
-        gyro.gyroRaw[axis] = gyroADCf;
+            // Set raw gyro for blackbox purposes
+            gyro.gyroRaw[axis] = gyroADCf;
 
-        /*
-         * First gyro LPF is the only filter applied with the full gyro sampling speed
-         */
-        gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
+            /*
+             * First gyro LPF is the only filter applied with the full gyro sampling speed
+             */
+            gyroADCf = gyroLpfApplyFn((filter_t *) &gyroLpfState[axis], gyroADCf);
 
-        gyro.gyroADCf[axis] = gyroADCf;
-    }
+            gyro.gyroADCf[axis] = gyroADCf;
+        }
+    } while (gyroSamplePending(&gyroDev[GYRO_PRIMARY]) && ++samples < GYRO_SAMPLE_QUEUE_LENGTH);
 }
 
 bool gyroReadTemperature(void)
