@@ -215,6 +215,16 @@ set_property(SOURCE pitotmeter_failed_hw_validity_unittest.cc PROPERTY definitio
 
 set_property(SOURCE servos_swap_roll_yaw_unittest.cc PROPERTY depends
     "flight/servos.c" "common/maths.c" "common/filter.c" "common/lulu.c" "programming/logic_condition.c")
+set_property(SOURCE vtx_pit_mode_unittest.cc PROPERTY definitions USE_VTX_CONTROL)
+set_property(SOURCE vtx_pit_mode_unittest.cc PROPERTY depends "io/vtx.c")
+
+set_property(SOURCE vtx_tramp_unittest.cc PROPERTY definitions USE_VTX_CONTROL USE_VTX_TRAMP)
+set_property(SOURCE cms_vtx_unittest.cc PROPERTY definitions USE_CMS USE_VTX_CONTROL)
+set_property(SOURCE cms_vtx_unittest.cc PROPERTY depends "cms/cms_menu_vtx.c" "io/vtx_string.c")
+set_property(SOURCE vtx_tramp_unittest.cc PROPERTY depends "io/vtx_tramp.c" "io/vtx_string.c" "common/crc.c" "common/streambuf.c")
+
+set_property(SOURCE vtx_settings_migration_unittest.cc PROPERTY depends "config/parameter_group.c")
+set_property(SOURCE vtx_settings_migration_unittest.cc PROPERTY definitions USE_VTX_CONTROL)
 
 function(unit_test src)
     get_filename_component(basename ${src} NAME)
@@ -264,3 +274,8 @@ foreach(source ${TEST_PROGRAMS})
 endforeach()
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS ${test_targets})
+
+# ELF does not synthesize the firmware PG section boundaries for host tests.
+if(UNIX AND NOT APPLE)
+    target_link_options(vtx_settings_migration_unittest PRIVATE "-Wl,-T,${CMAKE_CURRENT_SOURCE_DIR}/parameter_group_test.ld")
+endif()
