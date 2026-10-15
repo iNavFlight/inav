@@ -131,6 +131,11 @@ typedef struct i2cBusState_s {
     uint32_t                    len;    // buffer length
     uint8_t                    *buf;    // buffer
     bool                        txnOk;
+
+    /* A read started by i2cReadAsync(), stepped from the main loop */
+    bool                        async;
+    uint8_t                     asyncAddr;
+    i2cAsyncState_e             asyncState;
 } i2cBusState_t;
 
 static volatile uint16_t i2cErrorCount = 0;
@@ -536,11 +541,28 @@ uint16_t i2cGetErrorCounter(void)
     return i2cErrorCount;
 }
 
+// Each wait of the state machine holds SCL low, so a late step only makes the transfer longer
+static void i2cStep(i2cBusState_t * i2cBusState)
+{
+    i2cStateMachine(i2cBusState, micros());
+    if (i2cBusState->async && i2cBusState->state == I2C_STATE_STOPPED) {
+        i2cBusState->async = false;
+        i2cBusState->asyncState = i2cBusState->txnOk ? I2C_ASYNC_OK : I2C_ASYNC_FAILED;
+    }
+}
+
 static void i2cWaitForCompletion(I2CDevice device)
 {
     do {
-        i2cStateMachine(&busState[device], micros());
+        i2cStep(&busState[device]);
     } while (busState[device].state != I2C_STATE_STOPPED);
+}
+
+static void i2cDrain(I2CDevice device)
+{
+    while (busState[device].state != I2C_STATE_STOPPED || busState[device].async) {
+        i2cStep(&busState[device]);
+    }
 }
 
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, const uint8_t * data, bool allowRawAccess)
@@ -548,6 +570,8 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, co
     // Don't try to access the non-initialized device
     if (!busState[device].initialized)
         return false;
+
+    i2cDrain(device);
 
     // Set up write transaction
     busState[device].addr = addr << 1;
@@ -576,6 +600,8 @@ bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t* 
     if (!busState[device].initialized)
         return false;
 
+    i2cDrain(device);
+
     // Set up read transaction
     busState[device].addr = addr << 1;
     busState[device].reg = reg;
@@ -591,6 +617,59 @@ bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t* 
 
     return busState[device].txnOk;
 }
+
+#ifdef USE_I2C_ASYNC
+// The same state machine, stepped from i2cAsyncPoll()
+
+bool i2cReadAsync(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t *buf, bool allowRawAccess)
+{
+    if (device == I2CINVALID || !busState[device].initialized) {
+        return false;
+    }
+
+    i2cBusState_t * i2cBusState = &busState[device];
+    if (i2cBusState->state != I2C_STATE_STOPPED || i2cBusState->async) {
+        return false;
+    }
+
+    i2cBusState->addr = addr << 1;
+    i2cBusState->reg = reg;
+    i2cBusState->rw = I2C_TXN_READ;
+    i2cBusState->len = len;
+    i2cBusState->buf = buf;
+    i2cBusState->txnOk = false;
+    i2cBusState->state = I2C_STATE_STARTING;
+    i2cBusState->allowRawAccess = allowRawAccess;
+    i2cBusState->async = true;
+    i2cBusState->asyncAddr = addr;
+    i2cBusState->asyncState = I2C_ASYNC_BUSY;
+
+    i2cStep(i2cBusState);
+    return true;
+}
+
+i2cAsyncState_e i2cAsyncState(I2CDevice device, uint8_t addr)
+{
+    if (device == I2CINVALID) {
+        return I2C_ASYNC_FAILED;
+    }
+
+    i2cBusState_t * i2cBusState = &busState[device];
+    if (i2cBusState->async) {
+        i2cStep(i2cBusState);
+    }
+    return i2cBusState->asyncAddr == addr ? i2cBusState->asyncState : I2C_ASYNC_IDLE;
+}
+
+void i2cAsyncPoll(void)
+{
+    for (unsigned i = 0; i < ARRAYLEN(i2cHardwareMap); i++) {
+        if (busState[i].async) {
+            i2cStep(&busState[i]);
+        }
+    }
+}
+#endif
 
 static void i2cUnstick(IO_t scl, IO_t sda)
 {
