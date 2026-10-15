@@ -421,6 +421,7 @@ static float getLandAltitude(void);
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
+static bool fwLandCircuitRthTarget(fpVector3_t *target);
 #endif
 
 /*************************************************************************************************/
@@ -1981,6 +1982,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_RTH_HEAD_HOME(navigatio
         } else {
 #endif
             fpVector3_t * tmpHomePos = rthGetHomeTargetPosition(RTH_HOME_ENROUTE_PROPORTIONAL);
+#ifdef USE_FW_AUTOLAND
+            // A landing circuit starts from its wind circle: fly there instead of the runway, whose arrival loiter
+            // would cross it on the way out
+            fpVector3_t circuitTarget;
+            if (fwLandCircuitRthTarget(&circuitTarget)) {
+                circuitTarget.z = tmpHomePos->z;
+                if (fabsf(posControl.activeWaypoint.pos.x - circuitTarget.x) > 100.0f || fabsf(posControl.activeWaypoint.pos.y - circuitTarget.y) > 100.0f) {
+                    calculateAndSetActiveWaypointToLocalPosition(&circuitTarget);
+                }
+                tmpHomePos = &circuitTarget;
+            }
+#endif
 
             if (isWaypointReached(tmpHomePos, &posControl.activeWaypoint.bearing)) {
                 // Successfully reached position target - update XYZ-position
@@ -3791,24 +3804,52 @@ static uint16_t fwLandLoiterRadius(void)
 // Bearing from the runway to the side the approach is flown on. The circuit flies on the free side of the runway,
 // seen from approach heading 1 whatever the landing direction; the classic approach keeps the side relative to
 // the landing direction
-static int32_t fwLandCircuitSide(int32_t approachHeading)
+static int32_t fwLandCircuitSide(uint8_t approachIdx, int32_t approachHeading)
 {
-    const navFwAutolandApproach_t *approach = fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx);
+    const navFwAutolandApproach_t *approach = fwAutolandApproachConfig(approachIdx);
     if (navFwAutolandConfig()->downwindOffset) {
         approachHeading = DEGREES_TO_CENTIDEGREES(approach->landApproachHeading1 ? approach->landApproachHeading1 : approach->landApproachHeading2);
     }
     return wrap_36000(ABS(approachHeading) + (approach->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT ? -9000 : 9000));
 }
 
-// The wind circle: over the land site, or abeam it on the free side with its edge a downwind offset away
+// Centre of the circuit's wind circle: abeam the land site on the free side, its edge a downwind offset away
+static void fwLandCircuitCenter(const fpVector3_t *landPos, uint8_t approachIdx, fpVector3_t *center)
+{
+    calculateFarAwayPos(center, landPos, fwLandCircuitSide(approachIdx, 0), navFwAutolandConfig()->downwindOffset + fwLandLoiterRadius());
+}
+
+// The wind circle: over the land site, or the circuit's
 static fpVector3_t fwLandLoiterCenter(void)
 {
     fpVector3_t center = posControl.fwLandState.landPos;
     if (navFwAutolandConfig()->downwindOffset) {
-        calculateFarAwayPos(&center, &posControl.fwLandState.landPos, fwLandCircuitSide(0), navFwAutolandConfig()->downwindOffset + fwLandLoiterRadius());
+        fwLandCircuitCenter(&posControl.fwLandState.landPos, posControl.fwLandState.approachSettingIdx, &center);
     }
     center.z = posControl.fwLandState.landAproachAltAgl;
     return center;
+}
+
+// Where an RTH that will land with the circuit should fly to: its wind circle, so the aircraft never circles over
+// the runway waiting for the landing to start. False when the landing will not use the circuit
+static bool fwLandCircuitRthTarget(fpVector3_t *target)
+{
+#ifdef USE_SAFE_HOME
+    const int8_t idx = posControl.safehomeState.index;
+    if (!STATE(AIRPLANE) || !navFwAutolandConfig()->downwindOffset || posControl.fwLandState.landAborted || idx < 0
+        || !posControl.safehomeState.isApplied || !navigationRTHAllowsLanding()) {
+        return false;
+    }
+    const navFwAutolandApproach_t *approach = fwAutolandApproachConfig(idx);
+    if (approach->landApproachHeading1 == 0 && approach->landApproachHeading2 == 0) {
+        return false;
+    }
+    fwLandCircuitCenter(&posControl.safehomeState.nearestSafeHome, idx, target);
+    return true;
+#else
+    UNUSED(target);
+    return false;
+#endif
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER(navigationFSMState_t previousState)
@@ -3919,7 +3960,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 fpVector3_t tmpPos;
                 const int32_t approachAlt = posControl.fwLandState.landAproachAltAgl;
                 const int32_t finalAlt = navFwAutolandConfig()->finalAlt ? posControl.fwLandState.landAltAgl + navFwAutolandConfig()->finalAlt : approachAlt / 3 * 2;
-                const int32_t dir = fwLandCircuitSide(approachHeading);
+                const int32_t dir = fwLandCircuitSide(posControl.fwLandState.approachSettingIdx, approachHeading);
                 const uint32_t offset = navFwAutolandConfig()->downwindOffset;
                 // The circuit turns onto the final early by the space a 90 degree turn takes at this speed and bank
                 // (arc plus roll-in, as the corner cut plans it), so its straight part is the approach length
