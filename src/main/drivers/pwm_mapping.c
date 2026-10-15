@@ -42,6 +42,7 @@
 #include "sensors/rangefinder.h"
 
 #include "io/serial.h"
+#include "io/serial_pads.h"
 #include "io/motor_srxl2.h"
 #include "io/servo_sbus.h"
 
@@ -60,7 +61,10 @@ static const char * pwmInitErrorMsg[] = {
     /* PWM_INIT_ERROR_TOO_MANY_SERVOS */          "Mixer defines too many servos",
     /* PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS */ "Not enough motor outputs/timers",
     /* PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS */ "Not enough servo outputs/timers",
-    /* PWM_INIT_ERROR_TIMER_INIT_FAILED */        "Output timer init failed"
+    /* PWM_INIT_ERROR_TIMER_INIT_FAILED */        "Output timer init failed",
+#ifdef USE_SERIAL_PADS
+    /* PWM_INIT_ERROR_OUTPUT_ROUTED_TO_UART */    "Motor or servo output used by a UART",
+#endif
 };
 
 static const motorProtocolProperties_t motorProtocolProperties[] = {
@@ -93,54 +97,74 @@ const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTyp
     return &motorProtocolProperties[proto];
 }
 
+static void getUartPins(UARTDevice_e device, serialPortPins_t *pins)
+{
+#ifdef USE_SERIAL_PADS
+    // a UART moved to a pad leaves the outputs numbered as on its own pins
+    serialPadGetOwnPins(device, pins);
+#else
+    uartGetPortPins(device, pins);
+#endif
+}
+
+static bool isRoutedToUart(const timerHardware_t *timHw)
+{
+#ifdef USE_SERIAL_PADS
+    return serialPadIsRouted(timHw->tag);
+#else
+    UNUSED(timHw);
+    return false;
+#endif
+}
+
 static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 {
     serialPortPins_t uartPins;
 
 #if defined(USE_UART2)
-    uartGetPortPins(UARTDEV_2, &uartPins);
+    getUartPins(UARTDEV_2, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART2) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART3)
-    uartGetPortPins(UARTDEV_3, &uartPins);
+    getUartPins(UARTDEV_3, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART3) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART4)
-    uartGetPortPins(UARTDEV_4, &uartPins);
+    getUartPins(UARTDEV_4, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART4) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART5)
-    uartGetPortPins(UARTDEV_5, &uartPins);
+    getUartPins(UARTDEV_5, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART5) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART6)
-    uartGetPortPins(UARTDEV_6, &uartPins);
+    getUartPins(UARTDEV_6, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART6) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART7)
-    uartGetPortPins(UARTDEV_7, &uartPins);
+    getUartPins(UARTDEV_7, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART7) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
 #endif
 
 #if defined(USE_UART8)
-    uartGetPortPins(UARTDEV_8, &uartPins);
+    getUartPins(UARTDEV_8, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART8) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
@@ -401,11 +425,18 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
             }
 
             // LEDs: only on the auto pass, and only if timer is uncontested
-            if (!isDedicated && TIM_IS_LED(timHw->usageFlags)
+            if (!isDedicated && TIM_IS_LED(timHw->usageFlags) && !isRoutedToUart(timHw)
                     && !pwmHasMotorOnTimer(timOutputs, timHw->tim)
                     && !pwmHasServoOnTimer(timOutputs, timHw->tim)) {
                 pwmAssignOutput(timOutputs, timHw, MAP_TO_LED_OUTPUT);
             }
+        }
+    }
+
+    // the beeper, LED strip and PINIO find their pads by these flags
+    for (int idx = 0; idx < timerHardwareCount; idx++) {
+        if (isRoutedToUart(&timerHardware[idx])) {
+            timerHardware[idx].usageFlags &= ~(TIM_USE_LED | TIM_USE_BEEPER | TIM_USE_PINIO);
         }
     }
 }
@@ -465,6 +496,11 @@ static void pwmInitMotors(timMotorServoHardware_t * timOutputs)
     // Finally initialize individual motor outputs
     for (int idx = 0; idx < motorCount; idx++) {
         const timerHardware_t *timHw = timOutputs->timMotors[idx];
+        if (isRoutedToUart(timHw)) {
+            pwmInitError = PWM_INIT_ERROR_OUTPUT_ROUTED_TO_UART;
+            LOG_ERROR(PWM, "Motor %d output is used by a UART", idx);
+            return;
+        }
         if (!pwmMotorConfig(timHw, idx, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
             pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
             LOG_ERROR(PWM, "Timer allocation failed for motor %d", idx);
@@ -515,6 +551,11 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
     // Configure individual servo outputs
     for (int idx = 0; idx < MIN(servoCount, timOutputs->maxTimServoCount); idx++) {
         const timerHardware_t *timHw = timOutputs->timServos[idx];
+        if (isRoutedToUart(timHw)) {
+            pwmInitError = PWM_INIT_ERROR_OUTPUT_ROUTED_TO_UART;
+            LOG_ERROR(PWM, "Servo %d output is used by a UART", idx);
+            return;
+        }
 
         if (!pwmServoConfig(timHw, idx, servoConfig()->servoPwmRate, servoConfig()->servoCenterPulse, feature(FEATURE_PWM_OUTPUT_ENABLE))) {
             pwmInitError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
@@ -539,6 +580,26 @@ const timMotorServoHardware_t *pwmGetOutputAssignment(void)
 {
     return &timOutputsStatic;
 }
+
+#ifdef USE_SERIAL_PADS
+uint32_t pwmGetPadFunction(const timerHardware_t *timHw, uint8_t *number)
+{
+    for (int i = 0; motorsUseHardwareTimers() && i < timOutputsStatic.maxTimMotorCount; i++) {
+        if (timOutputsStatic.timMotors[i] == timHw) {
+            *number = i + 1;
+            return TIM_USE_MOTOR;
+        }
+    }
+    for (int i = 0; servosUseHardwareTimers() && i < timOutputsStatic.maxTimServoCount; i++) {
+        if (timOutputsStatic.timServos[i] == timHw) {
+            *number = i + 1;
+            return TIM_USE_SERVO;
+        }
+    }
+    *number = 0;
+    return feature(FEATURE_LED_STRIP) && TIM_IS_LED(timHw->usageFlags) ? TIM_USE_LED : 0;
+}
+#endif
 
 // Upper bound for timerHardware[] size across all supported targets.
 // timerHardwareCount is a runtime value; this constant prevents a VLA on the MSP

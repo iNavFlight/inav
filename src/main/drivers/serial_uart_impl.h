@@ -23,6 +23,19 @@ extern const struct serialPortVTable uartVTable[];
 
 void uartStartTxDMA(uartPort_t *s);
 
+#ifdef USE_SERIAL_PADS
+// A pin the UART's TX or RX can move to, with the alternate function that connects it
+typedef struct uartAltPin_s {
+    uint8_t device;
+    bool tx;
+    ioTag_t pin;
+    uint8_t af;
+} uartAltPin_t;
+
+#define UART_ALT_RX(device, pin, af) { UARTDEV_ ## device, false, DEFIO_TAG_E(pin), af }
+#define UART_ALT_TX(device, pin, af) { UARTDEV_ ## device, true, DEFIO_TAG_E(pin), af }
+#endif
+
 uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t options);
 uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t options);
 uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t options);
