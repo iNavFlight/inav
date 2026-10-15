@@ -159,6 +159,8 @@ If SITL is started without command line options, only a serial MSP / CLI connect
 
 ```--useimu``` Use IMU sensor data from the simulator instead of using attitude data directly from the simulator. Not recommended, use only for debugging.
 
+```--lockstep``` RealFlight interface only. For a simulator that steps its physics once per `ExchangeData` request (an external physics backend speaking the FlightAxis protocol), not for RealFlight itself. INAV's clock follows the `m-currentPhysicsTime-SEC` of each reply instead of the host clock, so it advances only as the simulation steps, and the next request is sent only after every task due at the new time has run. A paused or stalled simulator pauses INAV with it, and every task runs at its configured rate in simulated time regardless of host load. The SOAP timeout is 30 s instead of 1 s so a reply held across a stall is not dropped.
+
 ```--chanmap=[chanmap]``` The channelmap to map the motor and servo outputs from INAV to the virtual receiver channel or control surfaces around simulator.
 Syntax: (M(otor)|S(ervo)<INAV-OUT>-<RECEIVER_OUT>),..., all numbers must have two digits.
 Example:

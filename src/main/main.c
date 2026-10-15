@@ -75,5 +75,8 @@ int main(void)
 #endif
         scheduler();
         processLoopback();
+#if defined(SITL_BUILD)
+        simLockstepLoopPass();
+#endif
     }
 }

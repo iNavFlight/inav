@@ -234,6 +234,16 @@ void schedulerInit(void)
     queueAdd(&cfTasks[TASK_SYSTEM]);
 }
 
+#if defined(SITL_BUILD)
+// tasks run so far, so the SITL lockstep clock can tell an idle pass
+static uint32_t taskExecutionCount = 0;
+
+uint32_t schedulerTaskExecutionCount(void)
+{
+    return taskExecutionCount;
+}
+#endif
+
 void FAST_CODE NOINLINE scheduler(void)
 {
     // Cache currentTime
@@ -322,6 +332,9 @@ void FAST_CODE NOINLINE scheduler(void)
     currentTask = selectedTask;
 
     if (selectedTask) {
+#if defined(SITL_BUILD)
+        taskExecutionCount++;
+#endif
         // Found a task that should be run
         selectedTask->taskLatestDeltaTime = (timeDelta_t)(currentTimeUs - selectedTask->lastExecutedAt);
         selectedTask->lastExecutedAt = currentTimeUs;
@@ -366,7 +379,9 @@ void FAST_CODE NOINLINE scheduler(void)
             }
         }
         const timeUs_t nowUs = micros();
-        if (sitlEarliestNextTaskAt > nowUs + 50) {
+        // In lockstep simulated time moves only with the next simulator
+        // reply, which waits for this loop: never sleep here.
+        if (!simLockstepActive() && sitlEarliestNextTaskAt > nowUs + 50) {
             const timeDelta_t sleepUs = (timeDelta_t)(sitlEarliestNextTaskAt - nowUs) - 50;
             if (sleepUs > 0) {
                 usleep((useconds_t)sleepUs);
