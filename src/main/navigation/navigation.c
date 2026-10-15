@@ -3818,14 +3818,31 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
     }
 
+    const timeUs_t now = micros();
     if (posControl.fwLandState.loiterStartTime == 0) {
-        posControl.fwLandState.loiterStartTime = micros();
+        posControl.fwLandState.loiterStartTime = now;
+        posControl.fwLandState.climbAltTarget = getEstimatedActualPosition(Z);
+        posControl.fwLandState.climbAltTimeUs = now;
     }
 
     if (ABS(getEstimatedActualPosition(Z) - posControl.fwLandState.landAproachAltAgl) < (navConfig()->general.waypoint_enforce_altitude > 0 ? navConfig()->general.waypoint_enforce_altitude : FW_LAND_LOITER_ALT_TOLERANCE)) {
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_LOITER;
         return NAV_FSM_EVENT_SUCCESS;
+    }
+
+    if (navFwAutolandConfig()->downwindOffset) {
+        // The circuit reaches the circle altitude on the circle itself, at the slope of its final: a step of the
+        // altitude target from the RTH altitude would be flown as a dive
+        const float finalAlt = navFwAutolandConfig()->finalAlt ? navFwAutolandConfig()->finalAlt : posControl.fwLandState.landAproachAltAgl / 3.0f * 2.0f;
+        const float rate = posControl.actualState.velXY * finalAlt / (navFwAutolandConfig()->approachLength + fwLandLoiterRadius());
+        const float step = rate * US2S(now - posControl.fwLandState.climbAltTimeUs);
+        posControl.fwLandState.climbAltTimeUs = now;
+        posControl.fwLandState.climbAltTarget += constrainf(posControl.fwLandState.landAproachAltAgl - posControl.fwLandState.climbAltTarget, -step, step);
+        fpVector3_t center = fwLandLoiterCenter();
+        center.z = posControl.fwLandState.climbAltTarget;
+        setDesiredPosition(&center, 0, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z);
+        return NAV_FSM_EVENT_NONE;
     }
 
     fpVector3_t tmpHomePos = posControl.rthState.homePosition.pos;

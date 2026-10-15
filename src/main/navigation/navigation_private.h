@@ -429,6 +429,8 @@ typedef struct {
     int32_t landingDirection;
     int32_t landAproachAltAgl;
     int32_t landAltAgl;
+    float climbAltTarget;
+    timeUs_t climbAltTimeUs;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;
     bool landAborted;
