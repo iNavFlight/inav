@@ -1712,13 +1712,21 @@ static void geoZoneInit(void)
         safeHomeGeozoneConfig.shape = GEOZONE_SHAPE_CIRCULAR;
         safeHomeGeozoneConfig.type = GEOZONE_TYPE_INCLUSIVE;
         safeHomeGeozoneConfig.fenceAction = geoZoneConfig()->safeHomeFenceAction;
-        safeHomeGeozoneConfig.maxAltitude = 0;
+        // From the ground up without a ceiling, like a configured zone with 0/0 altitudes
+        safeHomeGeozoneConfig.maxAltitude = INT32_MAX;
         safeHomeGeozoneConfig.minAltitude = 0;
         safeHomeGeozoneConfig.vertexCount = 1;
 
-        activeGeoZones[activeGeoZonesCount].config = safeHomeGeozoneConfig;
-        activeGeoZones[activeGeoZonesCount].verticesLocal = (fpVector2_t*)&posControl.safehomeState.nearestSafeHome;
-        activeGeoZones[activeGeoZonesCount].radius = navConfig()->general.safehome_max_distance;
+        if (!STATE(AIRPLANE) && safeHomeGeozoneConfig.fenceAction == GEOFENCE_ACTION_AVOID) {
+            safeHomeGeozoneConfig.fenceAction = GEOFENCE_ACTION_POS_HOLD;
+        }
+
+        geoZoneRuntimeConfig_t *zone = &activeGeoZones[activeGeoZonesCount];
+        zone->config = safeHomeGeozoneConfig;
+        zone->verticesLocal = (fpVector2_t*)&posControl.safehomeState.nearestSafeHome;
+        zone->radius = navConfig()->general.safehome_max_distance;
+        zone->isInfZone = true;
+        zone->enable = true;
         activeGeoZonesCount++;
     }
 
