@@ -91,6 +91,7 @@
 #define FW_RTH_CLIMB_MARGIN_PERCENT 15
 #define FW_LAND_LOITER_MIN_TIME 30000000 // usec (30 sec)
 #define FW_LAND_LOITER_ALT_TOLERANCE 150
+#define FW_LAND_DOWNWIND_HEADING_TOLERANCE 3000 // centidegrees
 
 #define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
 #define FW_COURSE_LOCK_FORCE_TIMEOUT_MS 2500 // failsafe: force the lock this long after stick centre even if still banked
@@ -3904,14 +3905,23 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 }
             }
 
+            // The circuit leaves the circle heading down the downwind leg, so the base turn point is ahead of the
+            // aircraft instead of behind it; the circle goes on until the heading comes round
+            if (posControl.fwLandState.landingDirection >= 0 && navFwAutolandConfig()->downwindOffset
+                && ABS(wrap_18000(posControl.actualState.yaw - wrap_36000(posControl.fwLandState.landingDirection + 18000))) > FW_LAND_DOWNWIND_HEADING_TOLERANCE) {
+                posControl.fwLandState.landingDirection = -1;
+            }
+
             if (posControl.fwLandState.landingDirection >= 0) {
                 fpVector3_t tmpPos;
                 const int32_t approachAlt = posControl.fwLandState.landAproachAltAgl;
                 const int32_t finalAlt = navFwAutolandConfig()->finalAlt ? posControl.fwLandState.landAltAgl + navFwAutolandConfig()->finalAlt : approachAlt / 3 * 2;
                 const int32_t dir = fwLandCircuitSide(approachHeading);
                 const uint32_t offset = navFwAutolandConfig()->downwindOffset;
-                // The circuit turns onto the final a turn radius earlier, so its straight part is the approach length
-                const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? fwLandLoiterRadius() : 0);
+                // The circuit turns onto the final a turn radius earlier, so its straight part is the approach length;
+                // the radius is the one the turn coordinator will fly at this speed and bank, not the circle setting
+                posControl.fwLandState.turnRadius = MAX(fwLandLoiterRadius(), navGetFwPlannedTurnRadius());
+                const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? posControl.fwLandState.turnRadius : 0);
 
                 calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landPos, posControl.fwLandState.landingDirection, finalLength);
                 tmpPos.z = posControl.fwLandState.landAltAgl - finalAlt;

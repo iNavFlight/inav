@@ -632,6 +632,11 @@ static float getFwCoordinatedTurnRadius(void)
     return constrainf(radius, NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX);
 }
 
+uint32_t navGetFwPlannedTurnRadius(void)
+{
+    return lrintf(getFwCoordinatedTurnRadius());
+}
+
 // Coordinated-turn feed-forward bank [centideg] for the active WP turn (loiter has its own circle controller).
 static float getFwTurnFeedForward(int32_t navHeadingError, timeDelta_t deltaMicros)
 {

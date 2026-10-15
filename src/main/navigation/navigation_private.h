@@ -431,6 +431,7 @@ typedef struct {
     int32_t landAltAgl;
     float climbAltTarget;
     timeUs_t climbAltTimeUs;
+    uint32_t turnRadius;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;
     bool landAborted;
@@ -642,6 +643,7 @@ bool adjustFixedWingPositionFromRCInput(void);
 void applyFixedWingPositionController(timeUs_t currentTimeUs);
 float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing);
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
+uint32_t navGetFwPlannedTurnRadius(void);
 
 bool isFixedWingLandingDetected(void);
 
