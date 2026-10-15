@@ -3862,7 +3862,7 @@ Dive angle that airplane will use during final landing phase. During dive phase,
 
 ### nav_fw_land_downwind_offset
 
-Flies a landing circuit instead of the classic approach: the edge of the wind circle is this far [cm] from the landing site, on the side the approach direction of fwapproach gives seen from approach heading 1, whatever the landing direction (the free side of the runway); the downwind leg is the circle's tangent the aircraft comes out on heading downwind (next to the runway when nav_fw_loiter_direction turns towards it, two radii further out otherwise), then base and final. 0 keeps the classic approach (wind circle over the land site, turning point 4 loiter radii out).
+Flies a landing circuit instead of the classic approach: the edge of the wind circle is this far [cm] from the landing site, on the side the approach direction of fwapproach gives seen from approach heading 1, whatever the landing direction (the free side of the runway); the downwind leg is the circle's tangent the aircraft comes out on heading downwind (next to the runway when fw_loiter_direction turns towards it, two radii further out otherwise), then base and final. 0 keeps the classic approach (wind circle over the land site, turning point 4 loiter radii out).
 
 | Default | Min | Max |
 | --- | --- | --- |
