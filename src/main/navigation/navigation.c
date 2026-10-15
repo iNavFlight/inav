@@ -3800,12 +3800,12 @@ static int32_t fwLandCircuitSide(int32_t approachHeading)
     return wrap_36000(ABS(approachHeading) + (approach->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT ? -9000 : 9000));
 }
 
-// The wind circle: over the land site, or abeam it at the downwind offset
+// The wind circle: over the land site, or abeam it on the free side with its edge a downwind offset away
 static fpVector3_t fwLandLoiterCenter(void)
 {
     fpVector3_t center = posControl.fwLandState.landPos;
     if (navFwAutolandConfig()->downwindOffset) {
-        calculateFarAwayPos(&center, &posControl.fwLandState.landPos, fwLandCircuitSide(0), navFwAutolandConfig()->downwindOffset);
+        calculateFarAwayPos(&center, &posControl.fwLandState.landPos, fwLandCircuitSide(0), navFwAutolandConfig()->downwindOffset + fwLandLoiterRadius());
     }
     center.z = posControl.fwLandState.landAproachAltAgl;
     return center;
@@ -3932,10 +3932,15 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH] = tmpPos;
 
                 if (offset) {
-                    // Base turn abeam the start of the final; the downwind from the wind circle and the base descend
-                    // together from the approach altitude to the final altitude
-                    calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, offset);
-                    tmpPos.z = approachAlt - (approachAlt - finalAlt) * (float)finalLength / (finalLength + offset);
+                    // The downwind leg is the circle's tangent the aircraft comes out on heading downwind: next to
+                    // the runway when the circle turns towards it, two radii further out when it turns away. Base
+                    // turn abeam the start of the final; downwind and base descend together from the approach
+                    // altitude to the final altitude
+                    const bool rightOfLanding = wrap_18000(dir - posControl.fwLandState.landingDirection) > 0;
+                    const bool inner = rightOfLanding ? navGetFwLoiterDirection() < 0 : navGetFwLoiterDirection() > 0;
+                    const uint32_t downwindDistance = offset + (inner ? 0 : 2 * fwLandLoiterRadius());
+                    calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, downwindDistance);
+                    tmpPos.z = approachAlt - (approachAlt - finalAlt) * (float)finalLength / (finalLength + downwindDistance);
                 } else {
                     calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, MAX((uint32_t)navConfig()->fw.loiter_radius * 4, navFwAutolandConfig()->approachLength / 2));
                     tmpPos.z = approachAlt;

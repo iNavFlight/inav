@@ -644,6 +644,7 @@ void applyFixedWingPositionController(timeUs_t currentTimeUs);
 float processHeadingYawController(timeDelta_t deltaMicros, int32_t navHeadingError, bool errorIsDecreasing);
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs);
 uint32_t navGetFwPlannedTurnRadius(void);
+int8_t navGetFwLoiterDirection(void);
 
 bool isFixedWingLandingDetected(void);
 

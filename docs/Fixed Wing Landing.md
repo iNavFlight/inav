@@ -88,10 +88,10 @@ In cm/s. Min: 0; Max: 3000, Default: 140
 
 By default the wind circle is flown over the landing site and the turning point before the final is placed 4 loiter radii beside the runway (or half the approach length, whichever is longer). Small fields with trees or buildings on one side want the whole pattern on the other side, at a known distance, with a final that is really as long as configured. The three settings below do that; all keep the default behaviour at 0.
 
-* `nav_fw_land_downwind_offset`: Distance of the wind circle and of the downwind leg from the runway. The wind circle is flown abeam the landing site, this far out on the side given by the approach direction (seen from approach heading 1, whatever the landing direction, so always the same physical side of the runway). From the circle the aircraft flies a downwind leg parallel to the runway, a base leg towards the runway and the final.
+* `nav_fw_land_downwind_offset`: Distance between the edge of the wind circle and the landing site. The wind circle is flown abeam the landing site on the side given by the approach direction (seen from approach heading 1, whatever the landing direction, so always the same physical side of the runway), its centre one radius further out. The aircraft leaves the circle once it is heading down the downwind leg, which is the circle's tangent parallel to the runway: next to the runway when `nav_fw_loiter_direction` turns the circle towards it (right turns on the left side, left turns on the right side), two radii further out otherwise. Then a base leg towards the runway and the final.
 In cm. Min: 0, Max: 50000, Default: 0 (classic approach)
 
-* `nav_fw_land_loiter_radius`: Radius of the wind circle. The circuit also turns onto the final this much before the start of the final, so the straight final is `nav_fw_land_approach_length` long.
+* `nav_fw_land_loiter_radius`: Radius of the wind circle. The aircraft cannot fly a circle tighter than its coordinated turn at the approach speed and `nav_fw_bank_angle` (V^2 / (g tan bank), 37 m at 16 m/s and 35 degrees), so the circle grows to that. The circuit turns onto the final one turn radius before the start of the final, so the straight final is `nav_fw_land_approach_length` long.
 In cm. Min: 0, Max: 30000, Default: 0 (uses `nav_fw_loiter_radius`)
 
 * `nav_fw_land_final_alt`: Altitude above the landing site at the start of the final. The downwind and base legs descend linearly from the approach altitude to it.
