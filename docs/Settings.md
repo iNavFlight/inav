@@ -3860,6 +3860,26 @@ Dive angle that airplane will use during final landing phase. During dive phase,
 
 ---
 
+### nav_fw_land_downwind_offset
+
+Flies a landing circuit instead of the classic approach: the wind circle and the downwind leg are this far [cm] beside the runway, on the side the approach direction of fwapproach gives seen from approach heading 1, whatever the landing direction (the free side of the runway). 0 keeps the classic approach (wind circle over the land site, turning point 4 loiter radii out).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 50000 |
+
+---
+
+### nav_fw_land_final_alt
+
+Altitude above the landing site at the start of the final [cm]; the downwind and base legs descend linearly from the approach altitude to it. 0 uses two thirds of the approach altitude.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 30000 |
+
+---
+
 ### nav_fw_land_final_approach_pitch2throttle_mod
 
 Modifier for pitch to throttle ratio at final approach. In Percent.
@@ -3907,6 +3927,16 @@ Pitch value for glide phase. In degrees.
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | -15 | 45 |
+
+---
+
+### nav_fw_land_loiter_radius
+
+Radius of the wind circle flown before the approach, also the turn allowance of the landing circuit [cm]. 0 uses nav_fw_loiter_radius.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 30000 |
 
 ---
 

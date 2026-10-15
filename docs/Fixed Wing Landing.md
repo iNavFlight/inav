@@ -46,7 +46,7 @@ CLI command `fwapproach`:
 `fwapproach` has 17 slots in which landing parameters can be stored. In slot 0-7 the landing parameters for Safehome are stored, in 8 - 16 the parameters for waypoint missions. Only one landing point per mission can be saved. 
 
 * index: 0 - 17, 0 - 7 Safehome, 8 - 16 Mission
-* Approach direction: 0 - Left, 1 - Right. Always seen from the primary landing direction (positive value), i.e. whether the aircraft flies left or right turns on approach.
+* Approach direction: 0 - Left, 1 - Right. Always seen from the primary landing direction (positive value), i.e. whether the aircraft flies left or right turns on approach. With a landing circuit (`nav_fw_land_downwind_offset` set) it is the side of the runway the circuit is flown on, seen from approach heading 1 whatever the landing direction: the free side, away from trees and buildings.
 * Approach Altitude: Initial altitude of the approach, the altitude at which the wind direction is determined and the downwind approach, in cm
 * Land Altitude: Altitude of the landing site, in cm
 * Approach heading 1 and 2: Two landing directions can be set, values: 0 - +/-360. 0 = landing direction is deactivated. 
@@ -83,6 +83,19 @@ In degrees. Min: 0, Max: 45, Default: 0
 
 * `nav_fw_land_max_tailwind`: Max. tailwind if no landing direction with downwind is available. Wind strengths below this value are ignored (error tolerance in the wind measurement). Landing then takes place in the main direction. If, for example, 90 degrees is configured, landing takes place in this direction, NOT in 270 degrees (see above).
 In cm/s. Min: 0; Max: 3000, Default: 140
+
+### Landing circuit
+
+By default the wind circle is flown over the landing site and the turning point before the final is placed 4 loiter radii beside the runway (or half the approach length, whichever is longer). Small fields with trees or buildings on one side want the whole pattern on the other side, at a known distance, with a final that is really as long as configured. The three settings below do that; all keep the default behaviour at 0.
+
+* `nav_fw_land_downwind_offset`: Distance of the wind circle and of the downwind leg from the runway. The wind circle is flown abeam the landing site, this far out on the side given by the approach direction (seen from approach heading 1, whatever the landing direction, so always the same physical side of the runway). From the circle the aircraft flies a downwind leg parallel to the runway, a base leg towards the runway and the final.
+In cm. Min: 0, Max: 50000, Default: 0 (classic approach)
+
+* `nav_fw_land_loiter_radius`: Radius of the wind circle. The circuit also turns onto the final this much before the start of the final, so the straight final is `nav_fw_land_approach_length` long.
+In cm. Min: 0, Max: 30000, Default: 0 (uses `nav_fw_loiter_radius`)
+
+* `nav_fw_land_final_alt`: Altitude above the landing site at the start of the final. The downwind and base legs descend linearly from the approach altitude to it.
+In cm. Min: 0, Max: 30000, Default: 0 (two thirds of the approach altitude)
 
 ### General paramters and tuning tips
 

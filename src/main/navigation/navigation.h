@@ -108,6 +108,9 @@ typedef struct navFwAutolandConfig_s
     uint8_t flarePitch;
     uint16_t maxTailwind;
     int8_t glidePitch;
+    uint16_t loiterRadius;
+    uint16_t downwindOffset;
+    uint16_t finalAlt;
 } navFwAutolandConfig_t;
 
 PG_DECLARE(navFwAutolandConfig_t, navFwAutolandConfig);

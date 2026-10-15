@@ -4712,6 +4712,24 @@ groups:
         field: maxTailwind
         min: 0
         max: 3000
+      - name: nav_fw_land_loiter_radius
+        description: "Radius of the wind circle flown before the approach, also the turn allowance of the landing circuit [cm]. 0 uses nav_fw_loiter_radius."
+        default_value: 0
+        field: loiterRadius
+        min: 0
+        max: 30000
+      - name: nav_fw_land_downwind_offset
+        description: "Flies a landing circuit instead of the classic approach: the wind circle and the downwind leg are this far [cm] beside the runway, on the side the approach direction of fwapproach gives seen from approach heading 1, whatever the landing direction (the free side of the runway). 0 keeps the classic approach (wind circle over the land site, turning point 4 loiter radii out)."
+        default_value: 0
+        field: downwindOffset
+        min: 0
+        max: 50000
+      - name: nav_fw_land_final_alt
+        description: "Altitude above the landing site at the start of the final [cm]; the downwind and base legs descend linearly from the approach altitude to it. 0 uses two thirds of the approach altitude."
+        default_value: 0
+        field: finalAlt
+        min: 0
+        max: 30000
   - name: PG_GIMBAL_CONFIG
     type: gimbalConfig_t
     headers: ["drivers/gimbal_common.h"]

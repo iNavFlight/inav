@@ -24,7 +24,7 @@ logConfig_t                      8 0
 modeActivationOperatorConfig_t   1 0
 motorConfig_t                   10 11
 navConfig_t                    156 7
-navFwAutolandConfig_t           16 0
+navFwAutolandConfig_t           24 0
 opticalFlowConfig_t              8 2
 osdCommonConfig_t                1 0
 osdConfig_t                    160 15

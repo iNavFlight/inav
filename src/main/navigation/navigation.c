@@ -3782,6 +3782,34 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_MIXERAT_MISSION_CAPTURE
 #endif
 
 #ifdef USE_FW_AUTOLAND
+static uint16_t fwLandLoiterRadius(void)
+{
+    return navFwAutolandConfig()->loiterRadius ? navFwAutolandConfig()->loiterRadius : navConfig()->fw.loiter_radius;
+}
+
+// Bearing from the runway to the side the approach is flown on. The circuit flies on the free side of the runway,
+// seen from approach heading 1 whatever the landing direction; the classic approach keeps the side relative to
+// the landing direction
+static int32_t fwLandCircuitSide(int32_t approachHeading)
+{
+    const navFwAutolandApproach_t *approach = fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx);
+    if (navFwAutolandConfig()->downwindOffset) {
+        approachHeading = DEGREES_TO_CENTIDEGREES(approach->landApproachHeading1 ? approach->landApproachHeading1 : approach->landApproachHeading2);
+    }
+    return wrap_36000(ABS(approachHeading) + (approach->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT ? -9000 : 9000));
+}
+
+// The wind circle: over the land site, or abeam it at the downwind offset
+static fpVector3_t fwLandLoiterCenter(void)
+{
+    fpVector3_t center = posControl.fwLandState.landPos;
+    if (navFwAutolandConfig()->downwindOffset) {
+        calculateFarAwayPos(&center, &posControl.fwLandState.landPos, fwLandCircuitSide(0), navFwAutolandConfig()->downwindOffset);
+    }
+    center.z = posControl.fwLandState.landAproachAltAgl;
+    return center;
+}
+
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
@@ -3861,25 +3889,30 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
 
             if (posControl.fwLandState.landingDirection >= 0) {
                 fpVector3_t tmpPos;
+                const int32_t approachAlt = posControl.fwLandState.landAproachAltAgl;
+                const int32_t finalAlt = navFwAutolandConfig()->finalAlt ? posControl.fwLandState.landAltAgl + navFwAutolandConfig()->finalAlt : approachAlt / 3 * 2;
+                const int32_t dir = fwLandCircuitSide(approachHeading);
+                const uint32_t offset = navFwAutolandConfig()->downwindOffset;
+                // The circuit turns onto the final a turn radius earlier, so its straight part is the approach length
+                const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? fwLandLoiterRadius() : 0);
 
-                int32_t finalApproachAlt = posControl.fwLandState.landAproachAltAgl / 3 * 2;
-                int32_t dir = 0;
-                if (fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT) {
-                    dir = wrap_36000(ABS(approachHeading) - 9000);
-                } else {
-                    dir = wrap_36000(ABS(approachHeading) + 9000);
-                }
-
-                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landPos, posControl.fwLandState.landingDirection, navFwAutolandConfig()->approachLength);
-                tmpPos.z = posControl.fwLandState.landAltAgl - finalApproachAlt;
+                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landPos, posControl.fwLandState.landingDirection, finalLength);
+                tmpPos.z = posControl.fwLandState.landAltAgl - finalAlt;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_LAND] = tmpPos;
 
-                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), navFwAutolandConfig()->approachLength);
-                tmpPos.z = finalApproachAlt;
+                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), finalLength);
+                tmpPos.z = finalAlt;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH] = tmpPos;
 
-                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, MAX((uint32_t)navConfig()->fw.loiter_radius * 4, navFwAutolandConfig()->approachLength / 2));
-                tmpPos.z = posControl.fwLandState.landAproachAltAgl;
+                if (offset) {
+                    // Base turn abeam the start of the final; the downwind from the wind circle and the base descend
+                    // together from the approach altitude to the final altitude
+                    calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, offset);
+                    tmpPos.z = approachAlt - (approachAlt - finalAlt) * (float)finalLength / (finalLength + offset);
+                } else {
+                    calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, MAX((uint32_t)navConfig()->fw.loiter_radius * 4, navFwAutolandConfig()->approachLength / 2));
+                    tmpPos.z = approachAlt;
+                }
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN] = tmpPos;
 
                 setLandWaypoint(&posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN], &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH]);
@@ -3895,8 +3928,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
         }
     }
 
-    fpVector3_t tmpPoint = posControl.fwLandState.landPos;
-    tmpPoint.z = posControl.fwLandState.landAproachAltAgl;
+    fpVector3_t tmpPoint = fwLandLoiterCenter();
     setDesiredPosition(&tmpPoint, posControl.fwLandState.landPosHeading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
 
     return NAV_FSM_EVENT_NONE;
@@ -5322,6 +5354,13 @@ uint32_t navigationGetLoiterRadius(void)
         (posControl.navState == NAV_STATE_POSHOLD_3D_INITIALIZE || posControl.navState == NAV_STATE_POSHOLD_3D_IN_PROGRESS)) {
         return posControl.gcsLoiterRadiusOverride;
     }
+
+#ifdef USE_FW_AUTOLAND
+    if (navFwAutolandConfig()->loiterRadius &&
+        (posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER || posControl.navState == NAV_STATE_FW_LANDING_LOITER)) {
+        return navFwAutolandConfig()->loiterRadius;
+    }
+#endif
 
     return navConfig()->fw.loiter_radius;
 }
