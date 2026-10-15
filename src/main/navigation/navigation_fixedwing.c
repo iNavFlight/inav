@@ -741,6 +741,14 @@ static float fwTurnEaseTimeMs(float phiNomDeg)
     return rollMs + csMs + (float)navConfig()->fw.wp_turn_control_ease;
 }
 
+// Straight distance a 90 degree FLY_BY turn takes before and after its corner at this speed: the arc (R tan 45)
+// plus the roll-in lead, as the corner cut plans it
+uint32_t navGetFwPlannedTurnLead(void)
+{
+    const float easeLead = posControl.actualState.velXY * (fwTurnEaseTimeMs(getFwPlanningBankDeg()) / 1000.0f) * 1.5f;
+    return lrintf(getFwCoordinatedTurnRadius() + easeLead);
+}
+
 // Crossfade out of an arc handback: the arc leaves the wings near level while the PID and turn FF
 // still see the full carrot error, so adopting their command directly is a step of several degrees.
 static float applyFwArcHandbackFade(float rollTargetCd, timeDelta_t deltaMicros)

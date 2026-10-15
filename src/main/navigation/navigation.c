@@ -3921,9 +3921,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 const int32_t finalAlt = navFwAutolandConfig()->finalAlt ? posControl.fwLandState.landAltAgl + navFwAutolandConfig()->finalAlt : approachAlt / 3 * 2;
                 const int32_t dir = fwLandCircuitSide(approachHeading);
                 const uint32_t offset = navFwAutolandConfig()->downwindOffset;
-                // The circuit turns onto the final a turn radius earlier, so its straight part is the approach length;
-                // the radius is the one the turn coordinator will fly at this speed and bank, not the circle setting
-                posControl.fwLandState.turnRadius = MAX(fwLandLoiterRadius(), navGetFwPlannedTurnRadius());
+                // The circuit turns onto the final early by the space a 90 degree turn takes at this speed and bank
+                // (arc plus roll-in, as the corner cut plans it), so its straight part is the approach length
+                posControl.fwLandState.turnRadius = MAX(fwLandLoiterRadius(), navGetFwPlannedTurnLead());
                 const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? posControl.fwLandState.turnRadius : 0);
 
                 calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landPos, posControl.fwLandState.landingDirection, finalLength);
