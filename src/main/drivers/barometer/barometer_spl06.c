@@ -201,7 +201,14 @@ static bool spl06_configure_measurements(baroDev_t *baro)
 {
     uint8_t reg_value;
 
-    reg_value = SPL06_TEMP_USE_EXT_SENSOR | spl06_samples_to_cfg_reg_value(SPL06_TEMPERATURE_OVERSAMPLING);
+    // COEF_SRCE tells which sensor the coefficients were made for; some parts with this chip ID use the internal one
+    uint8_t coef_source;
+    if (!busRead(baro->busDev, SPL06_COEF_SRCE_REG, &coef_source)) {
+        coef_source = SPL06_TEMP_USE_EXT_SENSOR;    // the SPL06-001 datasheet does not list the register
+    }
+
+    reg_value = (coef_source & SPL06_TEMP_USE_EXT_SENSOR) |
+                spl06_samples_to_cfg_reg_value(SPL06_TEMPERATURE_OVERSAMPLING);
     if (!busWrite(baro->busDev, SPL06_TEMPERATURE_CFG_REG, reg_value)) {
         return false;
     }
