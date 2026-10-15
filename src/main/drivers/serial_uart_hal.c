@@ -31,6 +31,7 @@
 #include "common/utils.h"
 #include "drivers/io.h"
 #include "drivers/nvic.h"
+#include "drivers/time.h"
 
 #include "serial.h"
 #include "serial_uart.h"
@@ -107,6 +108,10 @@ static void uartReconfigure(uartPort_t *uartPort)
     {
         HAL_UART_Init(&uartPort->Handle);
     }
+
+    // A byte or an error flag taken at the old rate would come out as data at the new one
+    __HAL_UART_CLEAR_FLAG(&uartPort->Handle, UART_CLEAR_PEF | UART_CLEAR_FEF | UART_CLEAR_NEF | UART_CLEAR_OREF);
+    __HAL_UART_SEND_REQ(&uartPort->Handle, UART_RXDATA_FLUSH_REQUEST);
 
     if (uartPort->port.mode & MODE_RX) {
         /* Enable the UART Parity Error Interrupt */
@@ -187,6 +192,14 @@ serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr callback,
 void uartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     uartPort_t *uartPort = (uartPort_t *)instance;
+
+    // The ring buffer empties two frames before the line does, and the reconfigure would cut them
+    if ((uartPort->port.mode & MODE_TX) && uartPort->port.baudRate) {
+        const timeUs_t limit = micros() + 2 * 10 * 1000000 / uartPort->port.baudRate + 1;
+        while (!(uartPort->USARTx->ISR & USART_ISR_TC) && cmpTimeUs(limit, micros()) > 0) {
+        }
+    }
+
     uartPort->port.baudRate = baudRate;
     uartReconfigure(uartPort);
 }
