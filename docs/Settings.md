@@ -2138,6 +2138,18 @@ Gyro processing anti-aliasing filter cutoff frequency. In normal operation this 
 
 ---
 
+### gyro_data_ready
+
+Read the gyro when it signals a new sample, on its data-ready interrupt, instead of polling it: every sample once, and the CPU no longer waits on the bus. Needs a supported IMU (ICM-42605, ICM-42688-P) and a target that declares the interrupt pin; without interrupts the gyro is read as before. AUTO and ON do it, OFF polls the gyro.
+
+| Allowed Values |  |
+| --- | --- |
+| AUTO | Default |
+| ON |  |
+| OFF |  |
+
+---
+
 ### gyro_dyn_lpf_curve_expo
 
 Expo value for the throttle-to-frequency mapping for Dynamic LPF
