@@ -96,6 +96,7 @@ typedef struct SPIDevice_s {
     const uint32_t * divisorMap;
     volatile uint16_t errorCount;
     bool initDone;
+    bool leadingEdge;
 } spiDevice_t;
 
 bool spiInitDevice(SPIDevice device, bool leadingEdge);
