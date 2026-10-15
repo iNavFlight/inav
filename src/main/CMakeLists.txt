@@ -73,6 +73,8 @@ main_sources(COMMON_SRC
     drivers/1-wire/ds2482.h
 
     drivers/accgyro/accgyro.c
+    drivers/accgyro/accgyro_data_ready.c
+    drivers/accgyro/accgyro_data_ready.h
     drivers/accgyro/accgyro.h
     drivers/accgyro/accgyro_bmi088.c
     drivers/accgyro/accgyro_bmi088.h
@@ -138,6 +140,8 @@ main_sources(COMMON_SRC
     drivers/bus.h
     drivers/bus_busdev_i2c.c
     drivers/bus_busdev_spi.c
+    drivers/bus_spi_data_ready.c
+    drivers/bus_spi_data_ready_dma.c
     drivers/bus_i2c_soft.c
 
     drivers/compass/compass.h

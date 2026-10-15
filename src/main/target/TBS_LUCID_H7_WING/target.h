@@ -96,8 +96,10 @@
 
 #define GYRO1_SPI_BUS           BUS_SPI1
 #define GYRO1_CS_PIN            PC15
+#define GYRO1_EXTI_PIN          PB2
 #define GYRO2_SPI_BUS           BUS_SPI4
 #define GYRO2_CS_PIN            PE11
+#define GYRO2_EXTI_PIN          PE15
 
 #define USE_IMU_MPU6000
 #define IMU_1_MPU6000_ALIGN       CW180_DEG_FLIP
