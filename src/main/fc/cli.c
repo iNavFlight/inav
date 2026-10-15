@@ -4411,7 +4411,8 @@ static void cliTasks(char *cmdline)
         cfTaskInfo_t taskInfo;
         getTaskInfo(taskId, &taskInfo);
         if (taskInfo.isEnabled) {
-            const int taskFrequency = taskInfo.latestDeltaTime == 0 ? 0 : (int)(1000000.0f / ((float)taskInfo.latestDeltaTime));
+            // A task that reschedules itself runs at uneven intervals, so its latest one alone can be far off
+            const int taskFrequency = taskInfo.averageDeltaTime == 0 ? 0 : (int)(1000000.0f / ((float)taskInfo.averageDeltaTime));
             const int maxLoad = (taskInfo.maxExecutionTime * taskFrequency + 5000) / 1000;
             const int averageLoad = (taskInfo.averageExecutionTime * taskFrequency + 5000) / 1000;
             if (taskId != TASK_SERIAL) {
