@@ -86,7 +86,7 @@ INAV uses special memory attributes for performance-critical code on resource-co
 ```c
 FASTRAM                     // Fast RAM section (aligned)
 EXTENDED_FASTRAM            // Extended fast RAM (STM32F4/F7 only)
-DMA_RAM                     // DMA-accessible RAM (STM32H7, AT32F43x)
+DMA_RAM                     // DMA-accessible RAM, not cached on F7/H7 (STM32F7, STM32H7, AT32F43x)
 SLOW_RAM                    // Slower external RAM - deprecated, o not use
 STATIC_FASTRAM              // Static variable in fast RAM
 STATIC_FASTRAM_UNIT_TESTED  // Static fast RAM variable visible in unit tests

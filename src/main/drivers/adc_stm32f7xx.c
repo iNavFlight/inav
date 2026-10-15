@@ -83,6 +83,9 @@ static void adcInstanceInit(ADCDevice adcDevice)
 {
     adcDevice_t * adc = &adcHardware[adcDevice];
 
+    // DMA_RAM is not zeroed at startup: read 0, not leftovers, if the DMA never starts
+    memset((void *)adcValues[adcDevice], 0, sizeof(adcValues[adcDevice]));
+
     RCC_ClockCmd(adc->rccDMA, ENABLE);
     RCC_ClockCmd(adc->rccADC, ENABLE);
 
