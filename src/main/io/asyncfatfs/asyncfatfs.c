@@ -3638,8 +3638,9 @@ static void afatfs_initContinue(void)
 /**
  * Check to see if there are any pending operations on the filesystem and perform a little work (without waiting on the
  * sdcard). You must call this periodically.
+ * Out of line: the realtime callbacks call it from scheduler(), which is FAST_CODE, so LTO would inline it into ITCM.
  */
-void afatfs_poll(void)
+NOINLINE void afatfs_poll(void)
 {
     // Only attempt to continue FS operations if the card is present & ready, otherwise we would just be wasting time
     if (sdcard_poll()) {
