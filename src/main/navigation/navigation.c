@@ -3841,6 +3841,46 @@ static fpVector3_t fwLandLoiterCenter(void)
     return center;
 }
 
+static void fwLandResetCircleMeasure(void)
+{
+    posControl.fwLandState.circleSum = 0;
+    posControl.fwLandState.circleAngle = 0;
+    posControl.fwLandState.circleCount = 0;
+}
+
+// The loiter controller flies the wind circle wider than the coordinated-turn radius it was placed with (it banks
+// less than the planning bank): after each full turn the circle moves out to the radius really flown, so its edge
+// stays a downwind offset from the runway
+static void fwLandMeasureCircle(void)
+{
+    if (!navFwAutolandConfig()->downwindOffset) {
+        return;
+    }
+    const fpVector3_t center = fwLandLoiterCenter();
+    const navEstimatedPosVel_t *est = navGetCurrentActualPositionAndVelocity();
+    const float dx = est->pos.x - center.x;
+    const float dy = est->pos.y - center.y;
+    const float bearing = atan2_approx(dy, dx);
+    if (posControl.fwLandState.circleCount > 0) {
+        float delta = bearing - posControl.fwLandState.circleBearing;
+        if (delta > M_PIf) {
+            delta -= 2.0f * M_PIf;
+        } else if (delta < -M_PIf) {
+            delta += 2.0f * M_PIf;
+        }
+        posControl.fwLandState.circleAngle += delta;
+    }
+    posControl.fwLandState.circleBearing = bearing;
+    posControl.fwLandState.circleSum += calc_length_pythagorean_2D(dx, dy);
+    posControl.fwLandState.circleCount++;
+
+    if (fabsf(posControl.fwLandState.circleAngle) >= 2.0f * M_PIf) {
+        const uint32_t flown = lrintf(posControl.fwLandState.circleSum / posControl.fwLandState.circleCount);
+        posControl.fwLandState.circleRadius = MAX(posControl.fwLandState.circleRadius, flown);
+        fwLandResetCircleMeasure();
+    }
+}
+
 // Where an RTH that will land with the circuit should fly to: its wind circle, so the aircraft never circles over
 // the runway waiting for the landing to start. False when the landing will not use the circuit
 static bool fwLandCircuitRthTarget(fpVector3_t *target)
@@ -3881,7 +3921,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
         posControl.fwLandState.climbAltTimeUs = now;
         posControl.fwLandState.circleRadius = 0;
         posControl.fwLandState.circleRadius = fwLandCircleRadius();
+        fwLandResetCircleMeasure();
     }
+    fwLandMeasureCircle();
 
     if (ABS(getEstimatedActualPosition(Z) - posControl.fwLandState.landAproachAltAgl) < (navConfig()->general.waypoint_enforce_altitude > 0 ? navConfig()->general.waypoint_enforce_altitude : FW_LAND_LOITER_ALT_TOLERANCE)) {
         updateClimbRateToAltitudeController(0, 0, ROC_TO_ALT_CURRENT);
@@ -3921,6 +3963,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
     if (isRollPitchStickDeflected(navConfig()->fw.launch_land_abort_deadband)) {
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT;
     }
+
+    fwLandMeasureCircle();
 
     if (micros() - posControl.fwLandState.loiterStartTime > FW_LAND_LOITER_MIN_TIME) {
        if (isEstimatedWindSpeedValid()) {
@@ -3981,6 +4025,10 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 // The circuit turns onto the final early by the space a 90 degree turn takes at this speed and bank
                 // (arc plus roll-in, as the corner cut plans it), so its straight part is the approach length
                 posControl.fwLandState.turnRadius = MAX(fwLandLoiterRadius(), navGetFwPlannedTurnLead());
+                // the turn onto the final is flown as wide as the wind circle was
+                if (offset) {
+                    posControl.fwLandState.turnRadius = MAX(posControl.fwLandState.turnRadius, posControl.fwLandState.circleRadius);
+                }
                 const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? posControl.fwLandState.turnRadius : 0);
                 // The glide path reaches the ground short of the site by the aim offset: the float after the
                 // throttle cut lands the aircraft on the site instead of past it
@@ -7294,6 +7342,7 @@ static void resetFwAutoland(void)
     posControl.fwLandState.landAproachAltAgl = 0;
     posControl.fwLandState.loiterStartTime = 0;
     posControl.fwLandState.circleRadius = 0;
+    fwLandResetCircleMeasure();
     posControl.fwLandState.approachSettingIdx = 0;
     posControl.fwLandState.landPosHeading = -1;
     posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;
