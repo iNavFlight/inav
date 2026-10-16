@@ -1918,7 +1918,8 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled. The sink-rate flare takes the
         // approach power off over the time it takes to the ground: cut at once at speed above the runway it dropped the
         // nose, and the aircraft with it; held to the ground it touched down at the approach speed, nose level
-        const float powerLeft = 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / MAX(posControl.fwLandState.flareTimeS, 0.5f);
+        const float powerLeft = posControl.fwLandState.throttleCutUs
+            ? 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / MAX(posControl.fwLandState.flareTimeS, 0.5f) : 1.0f;
         if (sinkFlare && !STATE(LANDING_DETECTED) && powerLeft > 0.0f) {
             const uint16_t idle = getThrottleIdleValue();
             rcCommand[THROTTLE] = setDesiredThrottle(idle + (MAX(posControl.fwLandState.approachThrottle, idle) - idle) * powerLeft, false);
@@ -1928,9 +1929,12 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
         if (sinkFlare) {
             float noseUp = fwLandFlarePitch(currentTimeUs);
-            // the wheels touch with the nose a little up: at the flare sink, slow and low, never below the glide pitch
-            if (posControl.fwLandState.flareSinkTarget <= navFwAutolandConfig()->flareSink) {
-                noseUp = MAX(noseUp, MIN(navFwAutolandConfig()->glidePitch, (int8_t)navFwAutolandConfig()->flarePitch));
+            // the wheels touch with the nose a little up: below the height of the flare sink the lowest pitch rises
+            // to the glide pitch at the ground, slow and low (at the speed of the final a floor floated the aircraft)
+            const float floorHeight = MAX(navFwAutolandConfig()->flareSink, 1U) * FW_LAND_ROUNDOUT_TIME_S;
+            if (posControl.fwLandState.flareHeight < floorHeight) {
+                const float touchdownPitch = MIN(navFwAutolandConfig()->glidePitch, (int8_t)navFwAutolandConfig()->flarePitch);
+                noseUp = MAX(noseUp, touchdownPitch * (1.0f - posControl.fwLandState.flareHeight / floorHeight));
             }
             fwLandRetrimPitch(noseUp, currentTimeUs);
             rcCommand[PITCH] = -pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(noseUp), pidProfile()->max_angle_inclination[FD_PITCH]);

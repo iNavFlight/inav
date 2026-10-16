@@ -441,7 +441,6 @@ typedef struct {
     float circleBearing;
     uint32_t circleCount;
     fpVector3_t aimPos;
-    fpVector3_t touchdownPos;
     float pathLength;
     float pathFlown;
     float pathStartAlt;
@@ -449,6 +448,8 @@ typedef struct {
     timeUs_t throttleCutUs;
     float flareTimeS;
     float flareSinkTarget;
+    float flareHeight;
+    float roundOutHeight;
     timeUs_t pathTimeUs;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;
