@@ -74,12 +74,33 @@ static struct {
     afatfsFinder_t logDirectoryFinder;
     uint32_t largestLogFileNumber;
 
+    // Wraparound scan state. The directory is scanned once for the log to evict: the one starting at or after
+    // scanBoundaryCluster (the freefile's start when the card filled), as it is what blocks the freefile. If none,
+    // the lowest-addressed log overall (the freefile reached the end of the region and wraps).
+    // scratch* tracks the two lowest first-clusters >= scanBoundaryCluster; oldestLog* the two lowest overall.
+    // The "second" value is the next surviving log's start, which bounds the reclaimed region.
+    // UINT32_MAX in the first/second cluster fields means "none found yet".
+    uint32_t scanBoundaryCluster;
+    afatfsDirEntryPointer_t scratchEntryPos;
+    uint32_t scratchFirstCluster;
+    uint32_t scratchSecondCluster;
+    uint32_t scratchFileSize;
+    afatfsDirEntryPointer_t oldestLogEntryPos;
+    uint32_t oldestLogFirstCluster;
+    uint32_t oldestLogSecondCluster;
+    uint32_t oldestLogFileSize;
+    // Set when a scan finds nothing usable to reclaim; stops retries until logging is next started
+    bool wraparoundGaveUp;
+
     enum {
         BLACKBOX_SDCARD_INITIAL,
         BLACKBOX_SDCARD_WAITING,
         BLACKBOX_SDCARD_ENUMERATE_FILES,
         BLACKBOX_SDCARD_CHANGE_INTO_LOG_DIRECTORY,
         BLACKBOX_SDCARD_READY_TO_CREATE_LOG,
+        BLACKBOX_SDCARD_SCAN_FOR_OLDEST_LOG,
+        BLACKBOX_SDCARD_DELETE_OLDEST_LOG,
+        BLACKBOX_SDCARD_RELOCATE_FREEFILE,
         BLACKBOX_SDCARD_READY_TO_LOG
     } state;
 } blackboxSDCard;
@@ -366,6 +387,25 @@ void blackboxDeviceClose(void)
 
 #ifdef USE_SDCARD
 
+static void blackboxOldestLogDirOpened(afatfsFilePtr_t directory)
+{
+    if (directory) {
+        blackboxSDCard.logDirectory = directory;
+        blackboxSDCard.scanBoundaryCluster = afatfs_freeFileFirstCluster();
+        blackboxSDCard.scratchFirstCluster = UINT32_MAX; // Sentinel: nothing found yet
+        blackboxSDCard.scratchSecondCluster = UINT32_MAX;
+        blackboxSDCard.oldestLogFirstCluster = UINT32_MAX;
+        blackboxSDCard.oldestLogSecondCluster = UINT32_MAX;
+
+        afatfs_findFirst(blackboxSDCard.logDirectory, &blackboxSDCard.logDirectoryFinder);
+
+        blackboxSDCard.state = BLACKBOX_SDCARD_SCAN_FOR_OLDEST_LOG;
+    } else {
+        // Retry
+        blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+    }
+}
+
 static void blackboxLogDirCreated(afatfsFilePtr_t directory)
 {
     if (directory) {
@@ -434,6 +474,7 @@ static bool blackboxSDCardBeginLog(void)
     case BLACKBOX_SDCARD_INITIAL:
         if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY) {
             blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
+            blackboxSDCard.wraparoundGaveUp = false;
 
             if(afatfs_isCurrentDirRoot()){
                 //we are in root of SD card, we have to create or move to log directory
@@ -502,7 +543,103 @@ static bool blackboxSDCardBeginLog(void)
         break;
 
     case BLACKBOX_SDCARD_READY_TO_CREATE_LOG:
-        blackboxCreateLogFile();
+        if (afatfs_isFull() && !blackboxSDCard.wraparoundGaveUp) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
+            afatfs_fopen(".", "r", blackboxOldestLogDirOpened);
+        } else {
+            blackboxCreateLogFile();
+        }
+        break;
+
+    case BLACKBOX_SDCARD_SCAN_FOR_OLDEST_LOG:
+        while (afatfs_findNext(blackboxSDCard.logDirectory, &blackboxSDCard.logDirectoryFinder, &directoryEntry) == AFATFS_OPERATION_SUCCESS) {
+            if (directoryEntry && !fat_isDirectoryEntryTerminator(directoryEntry)) {
+                // Match deleted entries too (first byte replaced by the deleted marker): their clusters are free
+                // but still delimit the region.
+                if (
+                    (directoryEntry->filename[0] == 'L' || directoryEntry->filename[0] == FAT_DELETED_FILE_MARKER)
+                    && directoryEntry->filename[1] == 'O' && directoryEntry->filename[2] == 'G'
+                    && directoryEntry->filename[8] == 'T' && directoryEntry->filename[9] == 'X' && directoryEntry->filename[10] == 'T'
+                ) {
+                    uint32_t entryFirstCluster = ((uint32_t) directoryEntry->firstClusterHigh << 16) | directoryEntry->firstClusterLow;
+                    // Cluster 0 means no clusters were ever allocated (e.g. a log discarded by
+                    // blackboxDeviceEndLog(false)); it must not become a candidate or it would always win.
+                    if (entryFirstCluster != 0) {
+                        if (entryFirstCluster >= blackboxSDCard.scanBoundaryCluster) {
+                            if (entryFirstCluster < blackboxSDCard.scratchFirstCluster) {
+                                blackboxSDCard.scratchSecondCluster = blackboxSDCard.scratchFirstCluster;
+                                blackboxSDCard.scratchEntryPos = blackboxSDCard.logDirectoryFinder;
+                                blackboxSDCard.scratchFirstCluster = entryFirstCluster;
+                                blackboxSDCard.scratchFileSize = directoryEntry->fileSize;
+                            } else if (entryFirstCluster < blackboxSDCard.scratchSecondCluster) {
+                                blackboxSDCard.scratchSecondCluster = entryFirstCluster;
+                            }
+                        }
+                        if (entryFirstCluster < blackboxSDCard.oldestLogFirstCluster) {
+                            blackboxSDCard.oldestLogSecondCluster = blackboxSDCard.oldestLogFirstCluster;
+                            blackboxSDCard.oldestLogEntryPos = blackboxSDCard.logDirectoryFinder;
+                            blackboxSDCard.oldestLogFirstCluster = entryFirstCluster;
+                            blackboxSDCard.oldestLogFileSize = directoryEntry->fileSize;
+                        } else if (entryFirstCluster < blackboxSDCard.oldestLogSecondCluster) {
+                            blackboxSDCard.oldestLogSecondCluster = entryFirstCluster;
+                        }
+                    }
+                }
+            } else {
+                afatfs_findLast(blackboxSDCard.logDirectory);
+                afatfs_fclose(blackboxSDCard.logDirectory, NULL);
+                blackboxSDCard.logDirectory = NULL;
+
+                uint32_t nextBoundaryCluster;
+                if (blackboxSDCard.scratchFirstCluster != UINT32_MAX) {
+                    blackboxSDCard.oldestLogEntryPos = blackboxSDCard.scratchEntryPos;
+                    blackboxSDCard.oldestLogFirstCluster = blackboxSDCard.scratchFirstCluster;
+                    blackboxSDCard.oldestLogFileSize = blackboxSDCard.scratchFileSize;
+                    nextBoundaryCluster = blackboxSDCard.scratchSecondCluster;
+                } else {
+                    nextBoundaryCluster = blackboxSDCard.oldestLogSecondCluster;
+                }
+
+                if (nextBoundaryCluster != UINT32_MAX) {
+                    // Reclaim up to the next log's start: it is supercluster-aligned, so the next lap's boundary search matches again.
+                    // Size is in bytes.
+                    blackboxSDCard.oldestLogFileSize =
+                        (nextBoundaryCluster - blackboxSDCard.oldestLogFirstCluster) * afatfs_freeFileClusterSize();
+                }
+                // Else nothing lies beyond the evicted log; its own fileSize is used as a conservative size.
+
+                if (
+                    blackboxSDCard.oldestLogFirstCluster == UINT32_MAX || blackboxSDCard.oldestLogFirstCluster == 0
+                    || blackboxSDCard.oldestLogFileSize < afatfs_freeFileSuperClusterSize()
+                ) {
+                    // Nothing usable: no logs, no allocated clusters, or less than one supercluster
+                    blackboxSDCard.wraparoundGaveUp = true;
+                    blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+                } else {
+                    blackboxSDCard.state = BLACKBOX_SDCARD_DELETE_OLDEST_LOG;
+                }
+                goto doMore;
+            }
+        }
+        break;
+
+    case BLACKBOX_SDCARD_DELETE_OLDEST_LOG:
+        // Drain the cache first so the delete is flushed before the freefile relocation; see afatfs_hasPendingWrites()
+        if (afatfs_hasPendingWrites()) {
+            break;
+        }
+
+        if (afatfs_deleteDirectoryEntryAt(&blackboxSDCard.oldestLogEntryPos) == AFATFS_OPERATION_SUCCESS) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_RELOCATE_FREEFILE;
+            goto doMore;
+        }
+        break;
+
+    case BLACKBOX_SDCARD_RELOCATE_FREEFILE:
+        if (afatfs_freeFileRelocate(blackboxSDCard.oldestLogFirstCluster, blackboxSDCard.oldestLogFileSize) == AFATFS_OPERATION_SUCCESS) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+            goto doMore;
+        }
         break;
 
     case BLACKBOX_SDCARD_READY_TO_LOG:
@@ -579,7 +716,8 @@ bool isBlackboxDeviceFull(void)
 
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-        return afatfs_isFull();
+        // A full card is only "full" once wraparound has failed to reclaim space
+        return afatfs_isFull() && blackboxSDCard.wraparoundGaveUp;
 #endif
 
 #if defined (SITL_BUILD)
@@ -591,6 +729,18 @@ bool isBlackboxDeviceFull(void)
         return false;
     }
 }
+
+#ifdef USE_SDCARD
+/**
+ * True if the card is full but wraparound may still reclaim space: close this log and start a new one.
+ */
+bool blackboxDeviceNeedsNewLog(void)
+{
+    return blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD
+        && afatfs_isFull()
+        && !blackboxSDCard.wraparoundGaveUp;
+}
+#endif
 
 bool isBlackboxDeviceWorking(void)
 {

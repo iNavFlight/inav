@@ -70,6 +70,9 @@ bool blackboxDeviceBeginLog(void);
 bool blackboxDeviceEndLog(bool retainLog);
 
 bool isBlackboxDeviceFull(void);
+#ifdef USE_SDCARD
+bool blackboxDeviceNeedsNewLog(void);
+#endif
 bool isBlackboxDeviceWorking(void);
 int32_t blackboxGetLogNumber(void);
 
