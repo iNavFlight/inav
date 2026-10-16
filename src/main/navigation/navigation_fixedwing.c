@@ -104,6 +104,9 @@
 
 #define FW_LAND_ROLLOUT_YAW_RATE_PER_DEG 0.5f     // [deg/s per deg] heading hold after the throttle cut: 2 s time constant
 #define FW_LAND_ROLLOUT_YAW_RATE_MAX     8.0f     // [deg/s]
+#define FW_LAND_PITCH_TRIM_RATE          10.0f    // [pitch PID output/s per deg] glide/flare re-trim on the attitude error
+#define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
+#define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
 
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
@@ -1752,6 +1755,31 @@ int16_t fixedWingPitchToThrottleCorrection(int16_t pitch, timeUs_t currentTimeUs
     }
 }
 
+#ifdef USE_FW_AUTOLAND
+// After the throttle cut the pitch I-term still holds the trim of the powered, faster approach, and the I-term lock
+// keeps it there through the large attitude change: re-trim it until the measured nose holds the glide or flare pitch
+static void fwLandRetrimPitch(float pitchDeg, timeUs_t currentTimeUs)
+{
+    static float pendingTrim;
+    static timeUs_t previousTimeUs;
+    const float dt = US2S(currentTimeUs - previousTimeUs);
+    previousTimeUs = currentTimeUs;
+    if (dt > FW_LAND_PITCH_TRIM_GAP_S || posControl.flags.estAglStatus != EST_TRUSTED
+        || posControl.actualState.agl.pos.z <= FW_LAND_PITCH_TRIM_MIN_AGL) {
+        pendingTrim = 0.0f;
+        return;
+    }
+
+    // attitude and PID output are both positive nose down: a nose below the set pitch moves the I-term nose up
+    pendingTrim += (pitchDeg + DECIDEGREES_TO_DEGREES((float)attitude.values.pitch)) * FW_LAND_PITCH_TRIM_RATE * dt;
+    const int8_t step = (int8_t)constrainf(pendingTrim, -100.0f, 100.0f);
+    if (step) {
+        pidReduceErrorAccumulators(step, FD_PITCH);
+        pendingTrim -= step;
+    }
+}
+#endif
+
 void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
 {
     const uint16_t cruiseThrottle = currentBatteryProfile->nav.fw.cruise_throttle;
@@ -1827,10 +1855,12 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
         if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
+            fwLandRetrimPitch(navFwAutolandConfig()->glidePitch, currentTimeUs);
             rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->glidePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
 
         if (posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
+            fwLandRetrimPitch(navFwAutolandConfig()->flarePitch, currentTimeUs);
             const int16_t flarePitchCommand = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
             // With a flare sink rate the altitude controller raises the nose further as the aircraft slows down,
             // never lower than the flare pitch (a negative command is nose up)
