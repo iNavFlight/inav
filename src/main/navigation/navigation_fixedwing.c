@@ -642,6 +642,13 @@ int8_t navGetFwLoiterDirection(void)
     return loiterDirection();
 }
 
+// Radius [cm] the loiter controller is holding its circle at, 0 when it is not loitering
+uint32_t navGetFwLoiterHoldRadius(bool *established)
+{
+    *established = fwTurn.loiter.ratchetActive && fwTurn.loiter.established;
+    return fwTurn.loiter.ratchetActive ? lrintf(fwTurn.loiter.activeRadius) : 0;
+}
+
 // Coordinated-turn feed-forward bank [centideg] for the active WP turn (loiter has its own circle controller).
 static float getFwTurnFeedForward(int32_t navHeadingError, timeDelta_t deltaMicros)
 {
@@ -1378,6 +1385,12 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     if ((posControl.navState == NAV_STATE_RTH_HEAD_HOME) && navigationRTHAllowsLanding() && checkMixerATRequired(MIXERAT_REQUEST_LAND)){
         needToCalculateCircularLoiter = false;
     }
+#ifdef USE_FW_AUTOLAND
+    // The landing circuit joins its own wind circle: an RTH loiter around the joining point would circle wider
+    if (posControl.navState == NAV_STATE_RTH_HEAD_HOME && posControl.fwLandState.rthToCircuit) {
+        needToCalculateCircularLoiter = false;
+    }
+#endif
 
     /* FLY_BY corner cut: start the turn R*tan(angle/2) before the WP so the arc joins the next leg
      * at any speed. FLY_BY legs only - the landing approach forces FLY_BY in every mode. */

@@ -91,16 +91,16 @@ By default the wind circle is flown over the landing site and the turning point 
 * `nav_fw_land_downwind_offset`: Distance between the edge of the wind circle and the landing site. The wind circle is flown abeam the landing site on the side given by the approach direction (seen from approach heading 1, whatever the landing direction, so always the same physical side of the runway), its centre one radius further out. The aircraft leaves the circle once it is heading down the downwind leg, which is the circle's tangent parallel to the runway: next to the runway when `fw_loiter_direction` turns the circle towards it (right turns on the left side, left turns on the right side), two radii further out otherwise. Then a base leg towards the runway and the final.
 In cm. Min: 0, Max: 50000, Default: 0 (classic approach)
 
-* `nav_fw_land_loiter_radius`: Radius of the wind circle. The aircraft cannot fly a circle tighter than its coordinated turn at the approach speed and `nav_fw_bank_angle` (V^2 / (g tan bank), 37 m at 16 m/s and 35 degrees), so the circle grows to that. The circuit turns onto the final one turn radius before the start of the final, so the straight final is `nav_fw_land_approach_length` long.
+* `nav_fw_land_loiter_radius`: Radius of the wind circle. The aircraft cannot fly a circle tighter than its coordinated turn at the approach speed and `nav_fw_bank_angle` (V^2 / (g tan bank), 37 m at 16 m/s and 35 degrees), so the circle grows to that. The circle follows the radius the aircraft is really flying it at (it grows with the speed), so its edge stays at the offset. The circuit turns onto the final one turn radius before the start of the final, so the straight final is `nav_fw_land_approach_length` long.
 In cm. Min: 0, Max: 30000, Default: 0 (uses `nav_fw_loiter_radius`)
 
-* `nav_fw_land_final_alt`: Altitude above the landing site at the start of the final. The downwind and base legs descend linearly from the approach altitude to it.
+* `nav_fw_land_final_alt`: Altitude above the landing site at the start of the straight final. The downwind and base legs descend evenly along the path from the approach altitude to it, the straight final from it to the ground at the aim point, whatever height the aircraft left the circle at.
 In cm. Min: 0, Max: 30000, Default: 0 (two thirds of the approach altitude)
 
 * `nav_fw_land_aim_offset`: The glide path meets the ground this far before the landing site, in either landing direction. After the throttle cut at `nav_fw_land_glide_alt` the aircraft floats while it slows down (a 1.2 m model at 14 m/s floats 50 to 60 m), so aiming short puts the touchdown on the site. Works with the classic approach too.
 In cm. Min: 0, Max: 10000, Default: 0
 
-An RTH that will land with the circuit flies to the far side of the wind circle instead of the landing site, joins the circle there and never crosses the runway.
+An RTH that will land with the circuit flies towards the far side of the wind circle instead of the landing site, and the landing takes over where the circle's own approach starts (3.7 radii from its centre), so the aircraft joins the circle tangentially and never circles over the runway.
 
 ### General paramters and tuning tips
 
