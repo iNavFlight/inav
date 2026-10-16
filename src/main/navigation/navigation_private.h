@@ -423,7 +423,6 @@ typedef enum {
 } fwAutolandWaypoint_t;
 
 #define FW_LAND_ROUNDOUT_TIME_S 2.0f    // sink-rate flare: sink = height / this, down to the flare sink rate
-#define FW_LAND_FLARE_LEAD_S    0.6f    // the height it is taken from, ahead by the time the pitch loop and the flight path take
 
 typedef struct {
     timeUs_t loiterStartTime;
