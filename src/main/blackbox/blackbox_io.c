@@ -543,7 +543,7 @@ static bool blackboxSDCardBeginLog(void)
         break;
 
     case BLACKBOX_SDCARD_READY_TO_CREATE_LOG:
-        if (blackboxConfig()->sdcardWraparound && afatfs_isFull() && !blackboxSDCard.wraparoundGaveUp) {
+        if (afatfs_isFull() && !blackboxSDCard.wraparoundGaveUp) {
             blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
             afatfs_fopen(".", "r", blackboxOldestLogDirOpened);
         } else {
@@ -716,8 +716,8 @@ bool isBlackboxDeviceFull(void)
 
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-        // With wraparound enabled, a full card is only "full" once reclaiming has failed
-        return afatfs_isFull() && (!blackboxConfig()->sdcardWraparound || blackboxSDCard.wraparoundGaveUp);
+        // A full card is only "full" once wraparound has failed to reclaim space
+        return afatfs_isFull() && blackboxSDCard.wraparoundGaveUp;
 #endif
 
 #if defined (SITL_BUILD)
@@ -737,7 +737,6 @@ bool isBlackboxDeviceFull(void)
 bool blackboxDeviceNeedsNewLog(void)
 {
     return blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD
-        && blackboxConfig()->sdcardWraparound
         && afatfs_isFull()
         && !blackboxSDCard.wraparoundGaveUp;
 }
