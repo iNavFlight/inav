@@ -422,7 +422,8 @@ typedef enum {
     FW_AUTOLAND_WP_COUNT,
 } fwAutolandWaypoint_t;
 
-#define FW_LAND_ROUNDOUT_TIME_S 1.5f    // sink-rate flare: sink = height / this, down to the flare sink rate
+#define FW_LAND_ROUNDOUT_TIME_S 2.0f    // sink-rate flare: sink = height / this, down to the flare sink rate
+#define FW_LAND_FLARE_LEAD_S    0.6f    // the height it is taken from, ahead by the time the pitch loop and the flight path take
 
 typedef struct {
     timeUs_t loiterStartTime;
@@ -667,6 +668,7 @@ uint32_t navGetFwPlannedTurnRadius(void);
 uint32_t navGetFwPlannedTurnRadiusAt(float speed);
 uint32_t navGetFwPlannedTurnLead(void);
 uint16_t navGetFwLandApproachSpeed(void);
+float navGetFwLandClimbRate(void);
 int8_t navGetFwLoiterDirection(void);
 bool navIsFwLoiterEstablished(void);
 

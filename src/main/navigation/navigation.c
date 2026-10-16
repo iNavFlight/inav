@@ -4028,7 +4028,8 @@ static void fwLandUpdateSinkFlare(void)
     const float floorSink = MAX((float)navFwAutolandConfig()->flareSink, 1.0f);
     const float floorHeight = floorSink * FW_LAND_ROUNDOUT_TIME_S;
     posControl.fwLandState.flareHeight = height;
-    posControl.fwLandState.flareSinkTarget = MAX(height / FW_LAND_ROUNDOUT_TIME_S, floorSink);
+    const float leadHeight = MAX(height + navGetFwLandClimbRate() * FW_LAND_FLARE_LEAD_S, 0.0f);
+    posControl.fwLandState.flareSinkTarget = MAX(leadHeight / FW_LAND_ROUNDOUT_TIME_S, floorSink);
     if (!posControl.fwLandState.throttleCutUs && height <= navFwAutolandConfig()->glideAltitude) {
         posControl.fwLandState.throttleCutUs = micros();
         posControl.fwLandState.flareTimeS = (height > floorHeight)

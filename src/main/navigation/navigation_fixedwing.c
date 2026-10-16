@@ -107,8 +107,8 @@
 #define FW_LAND_PITCH_TRIM_RATE          30.0f    // [pitch PID output/s per deg] glide/flare re-trim on the attitude error
 #define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
-#define FW_LAND_FLARE_PATH_P             2.0f     // [deg of pitch per deg of flight path error] sink-rate flare
-#define FW_LAND_FLARE_PATH_I_S           0.5f     // [s] its integral adds the angle of attack the slowing aircraft needs
+#define FW_LAND_FLARE_PATH_P             0.7f     // [deg of pitch per deg of flight path error] sink-rate flare
+#define FW_LAND_FLARE_PATH_I_S           1.0f     // [s] its integral holds the angle of attack, which grows as the aircraft slows
 
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
@@ -1818,8 +1818,15 @@ static void fwLandRetrimPitch(float pitchDeg, timeUs_t currentTimeUs)
     }
 }
 
-// Sink-rate glide and flare pitch [deg, nose up], from the flight path angle error: a degree of it is about a degree of
-// pitch on any aircraft, where the altitude controller tuned for cruise asked under a degree for the whole flare
+// over the runway the rangefinder's: the baro and GPS estimate lags a few tenths of a metre per second there
+float navGetFwLandClimbRate(void)
+{
+    return posControl.flags.estAglStatus == EST_TRUSTED ? posControl.actualState.agl.vel.z : posControl.actualState.abs.vel.z;
+}
+
+// Sink-rate glide and flare pitch [deg, nose up]: the flight path angle of the target sink rate plus the angle of attack,
+// which the integral of the path error finds. A PI on the path error alone trailed the round-out by the second the pitch
+// loop and the flight path take and swung the nose about it
 static float fwLandFlarePitch(timeUs_t currentTimeUs)
 {
     static float integral;
@@ -1827,18 +1834,17 @@ static float fwLandFlarePitch(timeUs_t currentTimeUs)
     const float dt = US2S(currentTimeUs - previousTimeUs);
     previousTimeUs = currentTimeUs;
     const float speed = MAX(posControl.actualState.velXY, 100.0f);
-    // over the runway the rangefinder's: the baro and GPS estimate lags a few tenths of a metre per second there
-    const float climbRate = posControl.flags.estAglStatus == EST_TRUSTED ? posControl.actualState.agl.vel.z : navGetCurrentActualPositionAndVelocity()->vel.z;
-    const float pathError = RADIANS_TO_DEGREES((-posControl.fwLandState.flareSinkTarget - climbRate) / speed);
+    const float targetPath = RADIANS_TO_DEGREES(-posControl.fwLandState.flareSinkTarget / speed);
+    const float pathError = targetPath - RADIANS_TO_DEGREES(navGetFwLandClimbRate() / speed);
     const float noseUpLimit = navFwAutolandConfig()->flarePitch;
     const float noseDownLimit = -(float)navConfig()->fw.max_dive_angle;
     if (dt > FW_LAND_PITCH_TRIM_GAP_S) {
         // a new glide: from the pitch the aircraft holds, without a step
-        integral = -DECIDEGREES_TO_DEGREES((float)attitude.values.pitch) - FW_LAND_FLARE_PATH_P * pathError;
+        integral = -DECIDEGREES_TO_DEGREES((float)attitude.values.pitch) - targetPath - FW_LAND_FLARE_PATH_P * pathError;
     } else {
         integral = constrainf(integral + pathError * dt / FW_LAND_FLARE_PATH_I_S, noseDownLimit, noseUpLimit);
     }
-    return constrainf(integral + FW_LAND_FLARE_PATH_P * pathError, noseDownLimit, noseUpLimit);
+    return constrainf(targetPath + integral + FW_LAND_FLARE_PATH_P * pathError, noseDownLimit, noseUpLimit);
 }
 #endif
 
