@@ -422,7 +422,7 @@ typedef enum {
     FW_AUTOLAND_WP_COUNT,
 } fwAutolandWaypoint_t;
 
-#define FW_LAND_ROUNDOUT_TIME_S 2.0f    // sink-rate flare: sink = height / this, down to the flare sink rate
+#define FW_LAND_ROUNDOUT_TIME_S 2.0f    // sink-rate flare: sink = height / this + the flare sink rate
 
 typedef struct {
     timeUs_t loiterStartTime;

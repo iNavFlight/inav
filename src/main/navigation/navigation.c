@@ -4009,31 +4009,30 @@ static float fwLandCircuitPathAltitude(float toGo, float flown)
     const float slope = (finalAlt - landAlt) / straight;
     float height = slope * toGo;
     if (navFwAutolandConfig()->flareSink) {
-        // Under power the final rounds out where its sink rate equals height / FW_LAND_ROUNDOUT_TIME_S, and the sink
-        // eases with the height from there: at the throttle cut it is a fraction of the final's, so the flare
-        // raises the nose a little instead of at once at speed
+        // Under power the final rounds out where its sink rate equals height / FW_LAND_ROUNDOUT_TIME_S plus the flare
+        // sink, and follows that down to the flare sink at the ground: the nose comes up a little at a time, with no float
         const float roundOut = posControl.actualState.velXY * FW_LAND_ROUNDOUT_TIME_S;
-        if (toGo < roundOut) {
-            height = slope * roundOut * expf(toGo / roundOut - 1.0f);
+        const float sinkHeight = navFwAutolandConfig()->flareSink * FW_LAND_ROUNDOUT_TIME_S;
+        const float start = (slope * roundOut - sinkHeight) / MAX(slope, 0.001f);
+        if (start > 0.0f && toGo < start) {
+            height = slope * roundOut * expf((toGo - start) / roundOut) - sinkHeight;
         }
     }
     return MIN(legs, landAlt + height);
 }
 
 // The sink-rate glide and flare, each cycle: the sink rate the round-out holds over the rangefinder's height, down to
-// nav_fw_land_flare_sink, and the power taken off from the glide altitude over the time left to the ground
+// nav_fw_land_flare_sink at the ground, and the power taken off from the glide altitude over the time left to it
 static void fwLandUpdateSinkFlare(void)
 {
     const float height = MAX(getLandAltitude() - posControl.fwLandState.landAltAgl, 0.0f);
-    const float floorSink = MAX((float)navFwAutolandConfig()->flareSink, 1.0f);
-    const float floorHeight = floorSink * FW_LAND_ROUNDOUT_TIME_S;
+    const float flareSink = MAX((float)navFwAutolandConfig()->flareSink, 1.0f);
+    const float sinkHeight = flareSink * FW_LAND_ROUNDOUT_TIME_S;
     posControl.fwLandState.flareHeight = height;
-    posControl.fwLandState.flareSinkTarget = MAX(height / FW_LAND_ROUNDOUT_TIME_S, floorSink);
+    posControl.fwLandState.flareSinkTarget = height / FW_LAND_ROUNDOUT_TIME_S + flareSink;
     if (!posControl.fwLandState.throttleCutUs && height <= navFwAutolandConfig()->glideAltitude) {
         posControl.fwLandState.throttleCutUs = micros();
-        posControl.fwLandState.flareTimeS = (height > floorHeight)
-            ? FW_LAND_ROUNDOUT_TIME_S * (logf(height / floorHeight) + 1.0f)
-            : height / floorSink;
+        posControl.fwLandState.flareTimeS = FW_LAND_ROUNDOUT_TIME_S * logf((height + sinkHeight) / sinkHeight);
     }
 }
 
@@ -4167,18 +4166,19 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? posControl.fwLandState.turnRadius : 0);
                 // The glide path reaches the ground short of the site by the aim offset: the float after the
                 // throttle cut lands the aircraft on the site instead of past it
-                // The round-out and the flare sink carry the touchdown past where the final's straight line meets the
-                // ground, by lambda * ln(round-out height / flare sink height): the line is aimed short by as much, so
-                // the wheels touch at the aim point
+                // The round-out carries the touchdown past where the final's straight line meets the ground: it starts
+                // round-out height / slope before that and touches lambda * ln(final sink / flare sink) after its start.
+                // The line is aimed short by the difference, so the wheels touch at the aim point
                 float roundOutRun = 0.0f;
                 posControl.fwLandState.roundOutHeight = 0.0f;
                 if (offset && navFwAutolandConfig()->flareSink) {
                     const uint16_t approachSpeed = navGetFwLandApproachSpeed();
                     const float lambda = (approachSpeed ? approachSpeed : posControl.actualState.velXY) * FW_LAND_ROUNDOUT_TIME_S;
-                    const float roundOutHeight = (finalAlt - posControl.fwLandState.landAltAgl) * lambda / MAX(navFwAutolandConfig()->approachLength, 1U);
-                    const float floorHeight = navFwAutolandConfig()->flareSink * FW_LAND_ROUNDOUT_TIME_S;
-                    if (roundOutHeight > floorHeight) {
-                        roundOutRun = lambda * logf(roundOutHeight / floorHeight);
+                    const float slope = (finalAlt - posControl.fwLandState.landAltAgl) / MAX(navFwAutolandConfig()->approachLength, 1U);
+                    const float sinkHeight = navFwAutolandConfig()->flareSink * FW_LAND_ROUNDOUT_TIME_S;
+                    const float roundOutHeight = slope * lambda - sinkHeight;
+                    if (roundOutHeight > 0.0f) {
+                        roundOutRun = lambda * logf((roundOutHeight + sinkHeight) / sinkHeight) - roundOutHeight / slope;
                         posControl.fwLandState.roundOutHeight = roundOutHeight;
                     }
                 }
