@@ -3813,10 +3813,21 @@ static int32_t fwLandCircuitSide(uint8_t approachIdx, int32_t approachHeading)
     return wrap_36000(ABS(approachHeading) + (approach->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT ? -9000 : 9000));
 }
 
+// The radius the wind circle is really flown at: the loiter controller never turns tighter than the coordinated
+// turn at the current speed and bank, so a small setting at cruise speed gives a much wider circle. Frozen when the
+// landing starts, so the circle does not move under the aircraft
+static uint32_t fwLandCircleRadius(void)
+{
+    if (posControl.fwLandState.circleRadius) {
+        return posControl.fwLandState.circleRadius;
+    }
+    return MAX((uint32_t)fwLandLoiterRadius(), navGetFwPlannedTurnRadius());
+}
+
 // Centre of the circuit's wind circle: abeam the land site on the free side, its edge a downwind offset away
 static void fwLandCircuitCenter(const fpVector3_t *landPos, uint8_t approachIdx, fpVector3_t *center)
 {
-    calculateFarAwayPos(center, landPos, fwLandCircuitSide(approachIdx, 0), navFwAutolandConfig()->downwindOffset + fwLandLoiterRadius());
+    calculateFarAwayPos(center, landPos, fwLandCircuitSide(approachIdx, 0), navFwAutolandConfig()->downwindOffset + fwLandCircleRadius());
 }
 
 // The wind circle: over the land site, or the circuit's
@@ -3847,7 +3858,7 @@ static bool fwLandCircuitRthTarget(fpVector3_t *target)
     // The far side of the circle, so the aircraft joins it tangentially there and never crosses it
     fpVector3_t center;
     fwLandCircuitCenter(&posControl.safehomeState.nearestSafeHome, idx, &center);
-    calculateFarAwayPos(target, &center, fwLandCircuitSide(idx, 0), fwLandLoiterRadius());
+    calculateFarAwayPos(target, &center, fwLandCircuitSide(idx, 0), fwLandCircleRadius());
     return true;
 #else
     UNUSED(target);
@@ -3868,6 +3879,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
         posControl.fwLandState.loiterStartTime = now;
         posControl.fwLandState.climbAltTarget = getEstimatedActualPosition(Z);
         posControl.fwLandState.climbAltTimeUs = now;
+        posControl.fwLandState.circleRadius = 0;
+        posControl.fwLandState.circleRadius = fwLandCircleRadius();
     }
 
     if (ABS(getEstimatedActualPosition(Z) - posControl.fwLandState.landAproachAltAgl) < (navConfig()->general.waypoint_enforce_altitude > 0 ? navConfig()->general.waypoint_enforce_altitude : FW_LAND_LOITER_ALT_TOLERANCE)) {
@@ -3991,7 +4004,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                     // altitude to the final altitude
                     const bool rightOfLanding = wrap_18000(dir - posControl.fwLandState.landingDirection) > 0;
                     const bool inner = rightOfLanding ? navGetFwLoiterDirection() < 0 : navGetFwLoiterDirection() > 0;
-                    const uint32_t downwindDistance = offset + (inner ? 0 : 2 * fwLandLoiterRadius());
+                    const uint32_t downwindDistance = offset + (inner ? 0 : 2 * fwLandCircleRadius());
                     calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, downwindDistance);
                     tmpPos.z = approachAlt - (approachAlt - finalAlt) * (float)finalLength / (finalLength + downwindDistance);
                 } else {
@@ -7280,6 +7293,7 @@ static void resetFwAutoland(void)
     posControl.fwLandState.landAltAgl = 0;
     posControl.fwLandState.landAproachAltAgl = 0;
     posControl.fwLandState.loiterStartTime = 0;
+    posControl.fwLandState.circleRadius = 0;
     posControl.fwLandState.approachSettingIdx = 0;
     posControl.fwLandState.landPosHeading = -1;
     posControl.fwLandState.landState = FW_AUTOLAND_STATE_IDLE;

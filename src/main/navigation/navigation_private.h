@@ -432,6 +432,7 @@ typedef struct {
     float climbAltTarget;
     timeUs_t climbAltTimeUs;
     uint32_t turnRadius;
+    uint32_t circleRadius;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;
     bool landAborted;
