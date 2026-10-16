@@ -1927,7 +1927,11 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         }
 
         if (sinkFlare) {
-            const float noseUp = fwLandFlarePitch(currentTimeUs);
+            float noseUp = fwLandFlarePitch(currentTimeUs);
+            // the wheels touch with the nose a little up: at the flare sink, slow and low, never below the glide pitch
+            if (posControl.fwLandState.flareSinkTarget <= navFwAutolandConfig()->flareSink) {
+                noseUp = MAX(noseUp, MIN(navFwAutolandConfig()->glidePitch, (int8_t)navFwAutolandConfig()->flarePitch));
+            }
             fwLandRetrimPitch(noseUp, currentTimeUs);
             rcCommand[PITCH] = -pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(noseUp), pidProfile()->max_angle_inclination[FD_PITCH]);
         } else if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
