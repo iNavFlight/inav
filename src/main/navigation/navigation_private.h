@@ -441,6 +441,7 @@ typedef struct {
     fpVector3_t aimPos;
     float pathLength;
     float pathFlown;
+    float pathStartAlt;
     timeUs_t pathTimeUs;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;

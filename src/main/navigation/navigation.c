@@ -3982,17 +3982,17 @@ static float fwLandCircuitPathToGo(void)
     return along + fabsf(dx * uy - dy * ux) + after;
 }
 
-// The circuit's descent path [cm]: the legs descend evenly from the circle altitude to the final altitude with the
-// distance flown since the circle, which has no step where the aircraft cuts a corner (the distance still to go
-// jumps there) and runs out a little early since it does, so the turn onto the final is level; the final straight
-// goes from the final altitude to the ground at the aim point
+// The circuit's descent path [cm]: the legs descend evenly from the altitude the circle is left at to the final
+// altitude with the distance flown since the circle, which has no step where the aircraft cuts a corner (the distance
+// still to go jumps there) and runs out a little early since it does, so the turn onto the final is level; the final
+// straight goes from the final altitude to the ground at the aim point
 static float fwLandCircuitPathAltitude(float toGo, float flown)
 {
     const float landAlt = posControl.fwLandState.landAltAgl;
     const float finalAlt = fwLandFinalAlt();
     const float straight = MAX((float)navFwAutolandConfig()->approachLength, 1.0f);
     const float before = MAX(posControl.fwLandState.pathLength - straight, 1.0f);
-    const float legs = finalAlt + (posControl.fwLandState.landAproachAltAgl - finalAlt) * constrainf(1.0f - flown / before, 0.0f, 1.0f);
+    const float legs = finalAlt + (posControl.fwLandState.pathStartAlt - finalAlt) * constrainf(1.0f - flown / before, 0.0f, 1.0f);
     return MIN(legs, landAlt + (finalAlt - landAlt) * toGo / straight);
 }
 
@@ -4178,6 +4178,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 posControl.fwLandState.aimPos = aimPos;
                 posControl.fwLandState.pathLength = fwLandCircuitPathToGo();
                 posControl.fwLandState.pathFlown = 0.0f;
+                // from where the aircraft is, not the circle altitude: a step down there was flown as a dive into
+                // the first turn
+                posControl.fwLandState.pathStartAlt = MAX(getEstimatedActualPosition(Z), (float)finalAlt);
                 posControl.fwLandState.pathTimeUs = micros();
 
                 return NAV_FSM_EVENT_SUCCESS;
