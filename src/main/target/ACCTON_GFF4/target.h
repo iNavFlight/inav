@@ -56,7 +56,7 @@
 #define IMU_ICM42605_ALIGN              CW0_DEG
 #define ICM42605_SPI_BUS                BUS_SPI1
 #define ICM42605_CS_PIN                 PA4
-#define GYRO_1_EXTI_PIN                 PC15
+#define ICM42605_EXTI_PIN                PC15
 
 // ************** OSD ****************************
 #define USE_MAX7456
