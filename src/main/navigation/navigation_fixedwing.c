@@ -107,8 +107,8 @@
 #define FW_LAND_PITCH_TRIM_RATE          30.0f    // [pitch PID output/s per deg] glide/flare re-trim on the attitude error
 #define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
-#define FW_LAND_FLARE_PATH_P             2.0f     // [deg of pitch per deg of flight path error] sink-rate flare
-#define FW_LAND_FLARE_PATH_I_S           0.5f     // [s] its integral adds the angle of attack the slowing aircraft needs
+#define FW_LAND_FLARE_PATH_P             3.0f     // [deg of pitch per deg of flight path error] sink-rate flare
+#define FW_LAND_FLARE_PATH_I_S           0.35f    // [s] its integral adds the angle of attack the slowing aircraft needs
 
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
