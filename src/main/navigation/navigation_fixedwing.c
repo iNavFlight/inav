@@ -104,7 +104,7 @@
 
 #define FW_LAND_ROLLOUT_YAW_RATE_PER_DEG 0.5f     // [deg/s per deg] heading hold after the throttle cut: 2 s time constant
 #define FW_LAND_ROLLOUT_YAW_RATE_MAX     8.0f     // [deg/s]
-#define FW_LAND_PITCH_TRIM_RATE          10.0f    // [pitch PID output/s per deg] glide/flare re-trim on the attitude error
+#define FW_LAND_PITCH_TRIM_RATE          30.0f    // [pitch PID output/s per deg] glide/flare re-trim on the attitude error
 #define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
 
