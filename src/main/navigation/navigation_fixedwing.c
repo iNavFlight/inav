@@ -635,7 +635,13 @@ static float getFwCoordinatedTurnRadius(void)
 {
     const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);   // cm/s
     const float bankRad = DEGREES_TO_RADIANS(getFwPlanningBankDeg());                // plan for the target bank
-    const float radius = (speed * speed) / (GRAVITY_CMSS * tan_approx(bankRad));     // cm
+    float radius = (speed * speed) / (GRAVITY_CMSS * tan_approx(bankRad));           // cm
+#ifdef USE_FW_AUTOLAND
+    // The landing circuit placed its turns for the wind circle's radius: flown that wide, not at the full bank
+    if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH && navFwAutolandConfig()->downwindOffset) {
+        radius = MAX(radius, (float)posControl.fwLandState.circleRadius);
+    }
+#endif
     return constrainf(radius, NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX);
 }
 

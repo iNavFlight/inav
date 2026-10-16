@@ -3961,18 +3961,18 @@ static float fwLandCircuitPathToGo(void)
     return along + fabsf(dx * uy - dy * ux) + after;
 }
 
-// The circuit's descent path [cm]: the final straight goes from the final altitude to the ground at the aim point,
-// the legs before it from the circle altitude to the final altitude, each at an even slope along the path
-static float fwLandCircuitPathAltitude(float toGo)
+// The circuit's descent path [cm]: the legs descend evenly from the circle altitude to the final altitude with the
+// distance flown since the circle, which has no step where the aircraft cuts a corner (the distance still to go
+// jumps there) and runs out a little early since it does, so the turn onto the final is level; the final straight
+// goes from the final altitude to the ground at the aim point
+static float fwLandCircuitPathAltitude(float toGo, float flown)
 {
     const float landAlt = posControl.fwLandState.landAltAgl;
     const float finalAlt = fwLandFinalAlt();
     const float straight = MAX((float)navFwAutolandConfig()->approachLength, 1.0f);
-    if (toGo <= straight) {
-        return landAlt + (finalAlt - landAlt) * toGo / straight;
-    }
     const float before = MAX(posControl.fwLandState.pathLength - straight, 1.0f);
-    return finalAlt + (posControl.fwLandState.landAproachAltAgl - finalAlt) * MIN((toGo - straight) / before, 1.0f);
+    const float legs = finalAlt + (posControl.fwLandState.landAproachAltAgl - finalAlt) * constrainf(1.0f - flown / before, 0.0f, 1.0f);
+    return MIN(legs, landAlt + (finalAlt - landAlt) * toGo / straight);
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER(navigationFSMState_t previousState)
@@ -4133,6 +4133,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 posControl.fwLandState.landState = FW_AUTOLAND_STATE_DOWNWIND;
                 posControl.fwLandState.aimPos = aimPos;
                 posControl.fwLandState.pathLength = fwLandCircuitPathToGo();
+                posControl.fwLandState.pathFlown = 0.0f;
+                posControl.fwLandState.pathTimeUs = micros();
 
                 return NAV_FSM_EVENT_SUCCESS;
             } else {
@@ -4189,7 +4191,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
     tmpWaypoint.x = posControl.activeWaypoint.pos.x;
     tmpWaypoint.y = posControl.activeWaypoint.pos.y;
     if (navFwAutolandConfig()->downwindOffset) {
-        tmpWaypoint.z = fwLandCircuitPathAltitude(fwLandCircuitPathToGo());
+        // The altitude controller asks a climb rate proportional to the altitude error, so on a sloped path it trails
+        // by 100 / nav_fw_alt_control_response seconds: the target leads by as much, whatever the aircraft
+        const float lead = posControl.actualState.velXY * 100.0f / pidProfile()->fwAltControlResponseFactor;
+        const timeUs_t now = micros();
+        posControl.fwLandState.pathFlown += posControl.actualState.velXY * US2S(now - posControl.fwLandState.pathTimeUs);
+        posControl.fwLandState.pathTimeUs = now;
+        tmpWaypoint.z = fwLandCircuitPathAltitude(fwLandCircuitPathToGo() - lead, posControl.fwLandState.pathFlown + lead);
     } else {
         tmpWaypoint.z = scaleRangef(constrainf(posControl.wpDistance, posControl.wpInitialDistance / 10.0f, posControl.wpInitialDistance),
             posControl.wpInitialDistance, posControl.wpInitialDistance / 10.0f,

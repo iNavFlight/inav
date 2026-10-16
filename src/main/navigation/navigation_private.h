@@ -439,6 +439,8 @@ typedef struct {
     uint32_t circleCount;
     fpVector3_t aimPos;
     float pathLength;
+    float pathFlown;
+    timeUs_t pathTimeUs;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;
     bool landAborted;
