@@ -693,8 +693,8 @@ static uint16_t blackboxIFrameIndex;
 static uint16_t blackboxSlowFrameIterationTimer;
 static bool blackboxLoggedAnyFrames;
 #ifdef USE_SDCARD
-// Set while closing the current log in order to immediately open a new one (SD wraparound), rather than stopping.
-// A new file after a split has no serial port to wait for, so its header can be sent without the usual initial delay.
+// Set while closing the current log to open a new one (SD wraparound) instead of stopping.
+// Skips the header start delay, which exists only for serial devices.
 static bool blackboxSplitting;
 #endif
 
@@ -2496,7 +2496,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
         break;
     }
 
-    // Can't grow but the card has room to reclaim: close the log, it goes on in a new one (SD wraparound)
+    // SD wraparound: close this log; the new one is opened by BLACKBOX_STATE_PREPARE_LOG_FILE
 #ifdef USE_SDCARD
     if ((blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_PAUSED) && blackboxDeviceNeedsNewLog()) {
         blackboxSplitting = true;
