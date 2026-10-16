@@ -4252,7 +4252,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
         posControl.cruise.previousCourse = posControl.cruise.course;
         posControl.cruise.lastCourseAdjustmentTime = 0;
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_GLIDE;
-        posControl.fwLandState.throttleCutUs = 0;
+        posControl.fwLandState.throttleCutUs = micros();
+        // the time the sink-rate flare takes from here to the ground: down to the flare sink, then at it
+        const float floorHeight = navFwAutolandConfig()->flareSink * FW_LAND_ROUNDOUT_TIME_S;
+        const float height = MAX(getLandAltitude() - posControl.fwLandState.landAltAgl, 1.0f);
+        posControl.fwLandState.flareTimeS = (height > floorHeight)
+            ? FW_LAND_ROUNDOUT_TIME_S * (logf(height / floorHeight) + 1.0f)
+            : height / MAX(navFwAutolandConfig()->flareSink, 1U);
         return NAV_FSM_EVENT_SUCCESS;
     } else if (isWaypointReached(&posControl.fwLandState.landWaypoints[posControl.fwLandState.landCurrentWp], &posControl.activeWaypoint.bearing)) {
         if (posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_DOWNWIND) {

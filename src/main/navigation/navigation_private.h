@@ -446,6 +446,7 @@ typedef struct {
     float pathStartAlt;
     int16_t approachThrottle;
     timeUs_t throttleCutUs;
+    float flareTimeS;
     float flareSinkTarget;
     timeUs_t pathTimeUs;
     uint8_t approachSettingIdx;

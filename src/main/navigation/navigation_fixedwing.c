@@ -1827,7 +1827,9 @@ static float fwLandFlarePitch(timeUs_t currentTimeUs)
     const float dt = US2S(currentTimeUs - previousTimeUs);
     previousTimeUs = currentTimeUs;
     const float speed = MAX(posControl.actualState.velXY, 100.0f);
-    const float pathError = RADIANS_TO_DEGREES((-posControl.fwLandState.flareSinkTarget - navGetCurrentActualPositionAndVelocity()->vel.z) / speed);
+    // over the runway the rangefinder's: the baro and GPS estimate lags a few tenths of a metre per second there
+    const float climbRate = posControl.flags.estAglStatus == EST_TRUSTED ? posControl.actualState.agl.vel.z : navGetCurrentActualPositionAndVelocity()->vel.z;
+    const float pathError = RADIANS_TO_DEGREES((-posControl.fwLandState.flareSinkTarget - climbRate) / speed);
     const float noseUpLimit = navFwAutolandConfig()->flarePitch;
     const float noseDownLimit = -(float)navConfig()->fw.max_dive_angle;
     if (dt > FW_LAND_PITCH_TRIM_GAP_S) {
@@ -1913,14 +1915,10 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
     if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
         const bool sinkFlare = navFwAutolandConfig()->flareSink
             && (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE);
-        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled. The sink-rate flare keeps the
-        // approach power until the sink rate is down to the flare sink, then takes it off over the time that sink takes
-        // to the ground: cut at once at speed above the runway it dropped the nose, and the aircraft with it
-        if (sinkFlare && !posControl.fwLandState.throttleCutUs && posControl.fwLandState.flareSinkTarget <= navFwAutolandConfig()->flareSink) {
-            posControl.fwLandState.throttleCutUs = currentTimeUs;
-        }
-        const float powerLeft = posControl.fwLandState.throttleCutUs
-            ? 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / FW_LAND_ROUNDOUT_TIME_S : 1.0f;
+        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled. The sink-rate flare takes the
+        // approach power off over the time it takes to the ground: cut at once at speed above the runway it dropped the
+        // nose, and the aircraft with it; held to the ground it touched down at the approach speed, nose level
+        const float powerLeft = 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / MAX(posControl.fwLandState.flareTimeS, 0.5f);
         if (sinkFlare && !STATE(LANDING_DETECTED) && powerLeft > 0.0f) {
             const uint16_t idle = getThrottleIdleValue();
             rcCommand[THROTTLE] = setDesiredThrottle(idle + (MAX(posControl.fwLandState.approachThrottle, idle) - idle) * powerLeft, false);
