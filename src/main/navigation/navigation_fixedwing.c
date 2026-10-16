@@ -112,6 +112,7 @@
 #define NAV_FW_LOITER_CAPTURE_BAND       0.15f    // fraction of R: engage the loiter circle controller inside this radial band
 #define NAV_FW_LOITER_CAPTURE_ALIGN_CD   4500     // [centideg] and only roughly tangential to the circle
 #define NAV_FW_LOITER_RELEASE_BAND       0.5f     // fraction of R: grossly displaced -> hand back to the carrot guidance
+#define NAV_FW_LOITER_HEADING_GAIN       1.0f     // [centideg bank / centideg tangent error] damping ~0.75 on the circle (0.3: ~0.2)
 
 // If this is enabled navigation won't be applied if velocity is below 3 m/s
 //#define NAV_FW_LIMIT_MIN_FLY_VELOCITY
@@ -845,7 +846,7 @@ static void fwArcStageSecondArc(float o2x, float o2y, float nAng, float r, int32
 // Steady arc law: coordinated bank for the live speed (wind changes v along the arc) plus radial
 // and tangent-heading feedback. Shared by the WP turn arc and the loiter circle.
 static float fwArcLawCd(float px, float py, float cx, float cy, float r, int8_t dir,
-                        int32_t cog, float v, float *eROut, int32_t *eHOut)
+                        int32_t cog, float v, float headingGain, float *eROut, int32_t *eHOut)
 {
     const float dx = px - cx;
     const float dy = py - cy;
@@ -858,7 +859,7 @@ static float fwArcLawCd(float px, float py, float cx, float cy, float r, int8_t 
     const float phiLiveCd = fwBankForRadiusCd(v, r);
     *eROut = eR;
     *eHOut = eH;
-    return dir * (phiLiveCd + NAV_FW_ARC_RADIAL_GAIN * eR) + NAV_FW_ARC_HEADING_GAIN * (float)eH;
+    return dir * (phiLiveCd + NAV_FW_ARC_RADIAL_GAIN * eR) + headingGain * (float)eH;
 }
 
 static void fwArcDisengageIdle(void)
@@ -1186,7 +1187,8 @@ static void fwArcStepSteady(const fwArcCtx_t *c, int32_t hdgErrOut, float psiLea
 {
     float eR;
     int32_t eH;
-    const float steadyCd = fwArcLawCd(c->pos->x, c->pos->y, fwTurn.arc.cx, fwTurn.arc.cy, fwTurn.arc.r, fwTurn.arc.dir, c->cog, c->v, &eR, &eH);
+    const float steadyCd = fwArcLawCd(c->pos->x, c->pos->y, fwTurn.arc.cx, fwTurn.arc.cy, fwTurn.arc.r, fwTurn.arc.dir, c->cog, c->v,
+                                      NAV_FW_ARC_HEADING_GAIN, &eR, &eH);
     fwTurn.arc.steadyMs += c->dtMs;
     const float q = (fwTurn.arc.tEaseMs > 1.0f) ? constrainf(fwTurn.arc.steadyMs / fwTurn.arc.tEaseMs, 0.0f, 1.0f) : 1.0f;
     // Two-sided slew limit: on a tight arc the tangent bearing is ill-conditioned near the centre
@@ -1323,7 +1325,7 @@ static void updateFwLoiterArc(timeDelta_t deltaMicros)
     float eR;
     int32_t eH;
     const float targetCd = fwArcLawCd(pos->x, pos->y, posControl.desiredState.pos.x, posControl.desiredState.pos.y,
-                                      arcRadius, dir, posControl.actualState.cog, v, &eR, &eH);
+                                      arcRadius, dir, posControl.actualState.cog, v, NAV_FW_LOITER_HEADING_GAIN, &eR, &eH);
 
     if (!fwTurn.loiter.established) {
         if (fabsf(eR) < NAV_FW_LOITER_CAPTURE_BAND * arcRadius && ABS(eH) < NAV_FW_LOITER_CAPTURE_ALIGN_CD) {
