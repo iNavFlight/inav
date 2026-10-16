@@ -86,6 +86,9 @@ In degrees. Min: 0, Max: 45, Default: 0
 * `nav_fw_land_flare_sink`: Sink rate the flare holds through the altitude controller instead of holding the flare pitch; the commanded pitch is never lower than `nav_fw_land_flare_pitch`. To keep a small sink rate while it slows down at idle the aircraft has to raise its nose, so it touches down nose high; an aircraft that balloons gets less nose up, down to the flare pitch.
   In cm/s. Min: 0, Max: 500, Default: 0 (pitch flare)
 
+* `nav_fw_land_approach_speed`: Airspeed the landing holds with the throttle, through the Auto Speed controller, from the wind circle to the throttle cut (kept within `fw_auto_speed_min_speed` and `fw_auto_speed_max_speed`). The wind circle is planned for it instead of the speed the RTH arrives with, so with flaps a lower approach speed gives a smaller circle, gentler turns and a slower touchdown. It needs a valid airspeed: a pitot, or `pitot_hardware` VIRTUAL, which estimates it from the GPS and the wind estimate. It is never held on ground speed: downwind, ground speed above the airspeed would fly the aircraft slower than set. Without a valid airspeed, or at 0, the throttle follows the pitch as in the rest of the navigation.
+  In cm/s. Min: 0, Max: 5000, Default: 0
+
 * `nav_fw_land_max_tailwind`: Max. tailwind if no landing direction with downwind is available. Wind strengths below this value are ignored (error tolerance in the wind measurement). Landing then takes place in the main direction. If, for example, 90 degrees is configured, landing takes place in this direction, NOT in 270 degrees (see above).
 In cm/s. Min: 0; Max: 3000, Default: 140
 

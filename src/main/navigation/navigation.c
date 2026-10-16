@@ -3842,7 +3842,9 @@ static uint32_t fwLandCircleRadius(void)
     if (posControl.fwLandState.circleRadius) {
         return posControl.fwLandState.circleRadius;
     }
-    return MAX((uint32_t)fwLandLoiterRadius(), navGetFwPlannedTurnRadius());
+    // planned for the approach speed the circle is flown at, not the RTH speed the landing starts with
+    const uint16_t approachSpeed = navGetFwLandApproachSpeed();
+    return MAX((uint32_t)fwLandLoiterRadius(), approachSpeed ? navGetFwPlannedTurnRadiusAt(approachSpeed) : navGetFwPlannedTurnRadius());
 }
 
 // Centre of the circuit's wind circle: abeam the land site on the free side, its edge a downwind offset away

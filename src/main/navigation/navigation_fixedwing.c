@@ -630,12 +630,43 @@ static navFwWpTurnMode_e fwEffectiveTurnMode(void)
                                                                   : navConfig()->fw.wp_turn_mode;
 }
 
+// The landing's approach airspeed [cm/s], 0 when it cannot be held: never on ground speed, which downwind would fly
+// the aircraft slower than set
+uint16_t navGetFwLandApproachSpeed(void)
+{
+#if defined(USE_FW_AUTOLAND) && defined(USE_PITOT)
+    if (navFwAutolandConfig()->approachSpeed && pitotGetValidForAirspeed()) {
+        return navFwAutolandConfig()->approachSpeed;
+    }
+#endif
+    return 0;
+}
+
+// held from the wind circle to the throttle cut
+static uint16_t fwLandHeldApproachSpeed(void)
+{
+    const bool held = posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER || posControl.navState == NAV_STATE_FW_LANDING_LOITER
+        || posControl.navState == NAV_STATE_FW_LANDING_APPROACH;
+    return held ? navGetFwLandApproachSpeed() : 0;
+}
+
+static float fwCoordinatedTurnRadiusAt(float speed)
+{
+    speed = MAX(speed, NAV_FW_TURN_MIN_SPEED);                                       // cm/s
+    const float bankRad = DEGREES_TO_RADIANS(getFwPlanningBankDeg());                // plan for the target bank
+    return (speed * speed) / (GRAVITY_CMSS * tan_approx(bankRad));                   // cm
+}
+
+// Coordinated turn [cm] at the landing's approach speed, for the wind circle planned before the aircraft slows to it
+uint32_t navGetFwPlannedTurnRadiusAt(float speed)
+{
+    return lrintf(constrainf(fwCoordinatedTurnRadiusAt(speed), NAV_FW_TURN_RADIUS_MIN, NAV_FW_TURN_RADIUS_MAX));
+}
+
 // Coordinated-turn radius R = V^2/(g*tan(phi)) [cm], clamped. Times the FLY_BY turn for any speed.
 static float getFwCoordinatedTurnRadius(void)
 {
-    const float speed = MAX(posControl.actualState.velXY, NAV_FW_TURN_MIN_SPEED);   // cm/s
-    const float bankRad = DEGREES_TO_RADIANS(getFwPlanningBankDeg());                // plan for the target bank
-    float radius = (speed * speed) / (GRAVITY_CMSS * tan_approx(bankRad));           // cm
+    float radius = fwCoordinatedTurnRadiusAt(posControl.actualState.velXY);
 #ifdef USE_FW_AUTOLAND
     // The landing circuit placed its turns for the wind circle's radius: flown that wide, not at the full bank
     if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH && navFwAutolandConfig()->downwindOffset) {
@@ -2025,6 +2056,9 @@ static int8_t isAutoSpeedRequiredByNav(void)
     if (FLIGHT_MODE(NAV_WP_MODE) && getActiveSpeed() > 0) {
         result = FW_AUTO_SPD_GROUND;
     }
+    if (fwLandHeldApproachSpeed()) {
+        result = FW_AUTO_SPD_AIR;
+    }
 
     return result;
 }
@@ -2097,7 +2131,8 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
         if (IS_RC_MODE_ACTIVE(BOXAUTOSPEED)) {
             posControl.desiredState.autoSpeedDemand = scaleRange(rxGetChannelValue(navConfig()->fw.auto_speed_channel - 1), PWM_RANGE_MIN, PWM_RANGE_MAX, minSpeed, maxSpeed);
         } else {
-            posControl.desiredState.autoSpeedDemand = constrain(getActiveSpeed(), minSpeed, maxSpeed);
+            const uint16_t landSpeed = fwLandHeldApproachSpeed();
+            posControl.desiredState.autoSpeedDemand = constrain(landSpeed ? landSpeed : getActiveSpeed(), minSpeed, maxSpeed);
             useAirSpeed = isAutoSpeedRequiredByNav() == FW_AUTO_SPD_AIR;
         }
 

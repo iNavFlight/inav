@@ -4742,6 +4742,12 @@ groups:
         field: flareSink
         min: 0
         max: 500
+      - name: nav_fw_land_approach_speed
+        description: "Airspeed [cm/s] the landing holds with the throttle, through the Auto Speed controller, from the wind circle to the throttle cut, within `fw_auto_speed_min_speed` and `fw_auto_speed_max_speed`; the wind circle is planned for it. With flaps it can be lower than the cruise speed: a smaller circle, gentler turns and a slower touchdown. It needs a valid airspeed (a pitot, or `pitot_hardware` VIRTUAL with a wind estimate) and is never held on ground speed, which downwind would fly the aircraft slower than set; without it, or at 0, the throttle follows the pitch as in the rest of the navigation."
+        default_value: 0
+        field: approachSpeed
+        min: 0
+        max: 5000
   - name: PG_GIMBAL_CONFIG
     type: gimbalConfig_t
     headers: ["drivers/gimbal_common.h"]

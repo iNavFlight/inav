@@ -3860,6 +3860,16 @@ Length of the final approach
 
 ---
 
+### nav_fw_land_approach_speed
+
+Airspeed [cm/s] the landing holds with the throttle, through the Auto Speed controller, from the wind circle to the throttle cut, within `fw_auto_speed_min_speed` and `fw_auto_speed_max_speed`; the wind circle is planned for it. With flaps it can be lower than the cruise speed: a smaller circle, gentler turns and a slower touchdown. It needs a valid airspeed (a pitot, or `pitot_hardware` VIRTUAL with a wind estimate) and is never held on ground speed, which downwind would fly the aircraft slower than set; without it, or at 0, the throttle follows the pitch as in the rest of the navigation.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 5000 |
+
+---
+
 ### nav_fw_land_dive_angle
 
 Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees
