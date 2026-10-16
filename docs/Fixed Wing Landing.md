@@ -43,7 +43,7 @@ The following graphics illustrate the process:
 All settings can also be conveniently made in the Configurator via Mission Control.
 
 CLI command `fwapproach`:
-`fwapproach <index> <Approach altitude> <Land altitude> <Approach direction> <approach heading 1> <approach heading 2> <sea level> [<aim 1> <aim 1 reverse> <aim 2> <aim 2 reverse>]`
+`fwapproach <index> <Approach altitude> <Land altitude> <Approach direction> <approach heading 1> <approach heading 2> <sea level> [<runway start 1> <1 reverse> <2> <2 reverse> <height 1> <1 reverse> <2> <2 reverse>]`
 
 `fwapproach` has 17 slots in which landing parameters can be stored. In slot 0-7 the landing parameters for Safehome are stored, in 8 - 16 the parameters for waypoint missions. Only one landing point per mission can be saved. 
 
@@ -56,7 +56,7 @@ A positive value means that you can approach in both directions, a negative valu
 Example: 90 degrees: It is possible to land in 90 degrees as well as in 270 degrees. -90 means that you can only land in a 90 degree direction.
 This means that practically 4 landing directions can be saved.
 * Sea Level: 0 - Deactivated, 1 - Activated. If activated, approach and land altitude refer to normal zero (sea level), otherwise relative altitude to the altitude during first GPS fix.
-* Aim offsets: optional, in metres (0 - 255), the touchdown point before the landing site for each landing direction: heading 1, its reverse, heading 2, its reverse. The two ends of a runway rarely want the same point (the ground before them, obstacles, the runway left to roll out on). 0 uses `nav_fw_land_aim_offset`. Since INAV 11.0; the slots return to their defaults once on the update.
+* Runway starts and heights: optional, for each landing direction (heading 1, its reverse, heading 2, its reverse) where the runway begins before the landing site, in metres (0 - 255), then the height the final crosses it at, in decimetres (0 - 255, 20 = 2 m). The final is placed so that it passes over the runway start at that height, on the round-out of the sink-rate flare when that is lower, and the wheels touch where the flare ends: the ground before a runway (a ploughed field, obstacles) is crossed high enough and the flare is flown over the runway. 0 as runway start uses `nav_fw_land_aim_offset` as the touchdown point. Since INAV 11.0; the slots return to their defaults once on the update.
 
 > [!CAUTION]
 > The Configuator automatically determines the ground altitude based on databases on the Internet, which may be inaccurate. Please always compare with the measured GPS altitude at the landing site to avoid crashes.

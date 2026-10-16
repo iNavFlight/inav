@@ -3827,15 +3827,13 @@ static int32_t fwLandCircuitSide(uint8_t approachIdx, int32_t approachHeading)
     return wrap_36000(ABS(approachHeading) + (approach->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT ? -9000 : 9000));
 }
 
-// The touchdown point's distance before the site [cm] for the landing direction chosen: the runway's own for that
-// heading and way, nav_fw_land_aim_offset where it is 0
-static uint32_t fwLandAimOffset(int32_t approachHeading)
+// The landing direction's slot in the approach's runway settings: heading 1, its reverse, heading 2, its reverse
+static uint8_t fwLandRunwaySlot(int32_t approachHeading)
 {
     const navFwAutolandApproach_t *approach = fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx);
     const bool second = ABS(approachHeading) != ABS(DEGREES_TO_CENTIDEGREES(approach->landApproachHeading1));
     const bool reverse = posControl.fwLandState.landingDirection != wrap_36000(ABS(approachHeading));
-    const uint8_t own = approach->landAimOffset[(second ? 2 : 0) + (reverse ? 1 : 0)];
-    return own ? (uint32_t)own * 100 : navFwAutolandConfig()->aimOffset;
+    return (second ? 2 : 0) + (reverse ? 1 : 0);
 }
 
 // The wind circle turns towards the runway for the landing direction chosen: its downwind heading is on its near side
@@ -4165,28 +4163,39 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                     posControl.fwLandState.turnRadius = MAX(posControl.fwLandState.turnRadius, posControl.fwLandState.circleRadius);
                 }
                 const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? posControl.fwLandState.turnRadius : 0);
-                // The glide path reaches the ground short of the site by the aim offset: the float after the
-                // throttle cut lands the aircraft on the site instead of past it
                 // The round-out and the flare sink carry the touchdown past where the final's straight line meets the
-                // ground, by lambda * ln(round-out height / flare sink height): the line is aimed short by as much, so
-                // the wheels touch at the aim point
+                // ground, by lambda * ln(round-out height / flare sink height)
+                const float finalHeight = finalAlt - posControl.fwLandState.landAltAgl;
+                const float slope = finalHeight / MAX(navFwAutolandConfig()->approachLength, 1U);
                 float roundOutRun = 0.0f;
+                float lambda = 0.0f;
+                float floorHeight = 0.0f;
                 posControl.fwLandState.roundOutHeight = 0.0f;
                 if (offset && navFwAutolandConfig()->flareSink) {
                     const uint16_t approachSpeed = navGetFwLandApproachSpeed();
-                    const float lambda = (approachSpeed ? approachSpeed : posControl.actualState.velXY) * FW_LAND_ROUNDOUT_TIME_S;
-                    const float roundOutHeight = (finalAlt - posControl.fwLandState.landAltAgl) * lambda / MAX(navFwAutolandConfig()->approachLength, 1U);
-                    const float floorHeight = navFwAutolandConfig()->flareSink * FW_LAND_ROUNDOUT_TIME_S;
-                    if (roundOutHeight > floorHeight) {
-                        roundOutRun = lambda * logf(roundOutHeight / floorHeight);
-                        posControl.fwLandState.roundOutHeight = roundOutHeight;
+                    lambda = (approachSpeed ? approachSpeed : posControl.actualState.velXY) * FW_LAND_ROUNDOUT_TIME_S;
+                    floorHeight = navFwAutolandConfig()->flareSink * FW_LAND_ROUNDOUT_TIME_S;
+                    if (slope * lambda > floorHeight) {
+                        roundOutRun = lambda * logf(slope * lambda / floorHeight);
+                        posControl.fwLandState.roundOutHeight = slope * lambda;
                     }
                 }
-                fpVector3_t aimPos = posControl.fwLandState.landPos;
-                const uint32_t aimOffset = fwLandAimOffset(approachHeading);
-                if (aimOffset || roundOutRun > 0.0f) {
-                    calculateFarAwayPos(&aimPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), aimOffset + roundOutRun);
+                // Where that line meets the ground, before the site [cm]. With the runway start set the final crosses
+                // it at its height, on the line or on the round-out below it, and the touchdown falls where the flare
+                // ends; else the wheels touch nav_fw_land_aim_offset before the site
+                const navFwAutolandApproach_t *runway = fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx);
+                const uint8_t slot = fwLandRunwaySlot(approachHeading);
+                float lineGround = navFwAutolandConfig()->aimOffset + roundOutRun;
+                if (runway->runwayStart[slot]) {
+                    const float roundOutHeight = posControl.fwLandState.roundOutHeight;
+                    const float height = MIN(runway->runwayStartHeight[slot] * 10.0f, finalHeight);
+                    const float toGo = (roundOutHeight > 0.0f && height < roundOutHeight)
+                        ? lambda * (1.0f + logf(MAX(height, floorHeight) / roundOutHeight))
+                        : height / MAX(slope, 0.001f);
+                    lineGround = runway->runwayStart[slot] * 100.0f - toGo;
                 }
+                fpVector3_t aimPos = posControl.fwLandState.landPos;
+                calculateFarAwayPos(&aimPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), lrintf(lineGround));
 
                 calculateFarAwayPos(&tmpPos, &aimPos, posControl.fwLandState.landingDirection, finalLength);
                 tmpPos.z = posControl.fwLandState.landAltAgl - finalAlt;

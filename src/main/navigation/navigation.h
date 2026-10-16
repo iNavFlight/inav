@@ -95,7 +95,9 @@ typedef struct {
     fwAutolandApproachDirection_e approachDirection;
     int16_t landApproachHeading1;
     int16_t landApproachHeading2;
-    uint8_t landAimOffset[4];   // [m] heading 1, its reverse, heading 2, its reverse; 0: nav_fw_land_aim_offset
+    // heading 1, its reverse, heading 2, its reverse
+    uint8_t runwayStart[4];         // [m] where the runway begins before the site; 0: nav_fw_land_aim_offset
+    uint8_t runwayStartHeight[4];   // [dm] height the final crosses the runway start at
 } navFwAutolandApproach_t;
 
 PG_DECLARE_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig);

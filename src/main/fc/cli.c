@@ -1433,7 +1433,7 @@ static void cliTempSensor(char *cmdline)
 #ifdef USE_FW_AUTOLAND
 static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproach_t *navFwAutolandApproach, const navFwAutolandApproach_t *defaultFwAutolandApproach)
 {
-    const char *format = "fwapproach %u %d %d %u %d %d %u %u %u %u %u";
+    const char *format = "fwapproach %u %d %d %u %d %d %u %u %u %u %u %u %u %u %u";
     for (uint8_t i = 0; i < MAX_FW_LAND_APPOACH_SETTINGS; i++) {
         bool equalsDefault = false;
         if (defaultFwAutolandApproach) {
@@ -1443,16 +1443,19 @@ static void printFwAutolandApproach(uint8_t dumpMask, const navFwAutolandApproac
                && navFwAutolandApproach[i].landApproachHeading1 == defaultFwAutolandApproach[i].landApproachHeading1
                && navFwAutolandApproach[i].landApproachHeading2 == defaultFwAutolandApproach[i].landApproachHeading2
                && navFwAutolandApproach[i].isSeaLevelRef == defaultFwAutolandApproach[i].isSeaLevelRef
-               && memcmp(navFwAutolandApproach[i].landAimOffset, defaultFwAutolandApproach[i].landAimOffset, sizeof(navFwAutolandApproach[i].landAimOffset)) == 0;
-            const uint8_t *aim = defaultFwAutolandApproach[i].landAimOffset;
+               && memcmp(navFwAutolandApproach[i].runwayStart, defaultFwAutolandApproach[i].runwayStart, sizeof(navFwAutolandApproach[i].runwayStart)) == 0
+               && memcmp(navFwAutolandApproach[i].runwayStartHeight, defaultFwAutolandApproach[i].runwayStartHeight, sizeof(navFwAutolandApproach[i].runwayStartHeight)) == 0;
+            const uint8_t *start = defaultFwAutolandApproach[i].runwayStart;
+            const uint8_t *height = defaultFwAutolandApproach[i].runwayStartHeight;
             cliDefaultPrintLinef(dumpMask, equalsDefault, format, i,
                defaultFwAutolandApproach[i].approachAlt, defaultFwAutolandApproach[i].landAlt, defaultFwAutolandApproach[i].approachDirection, defaultFwAutolandApproach[i].landApproachHeading1, defaultFwAutolandApproach[i].landApproachHeading2, defaultFwAutolandApproach[i].isSeaLevelRef,
-               aim[0], aim[1], aim[2], aim[3]);
+               start[0], start[1], start[2], start[3], height[0], height[1], height[2], height[3]);
         }
-        const uint8_t *aim = navFwAutolandApproach[i].landAimOffset;
+        const uint8_t *start = navFwAutolandApproach[i].runwayStart;
+        const uint8_t *height = navFwAutolandApproach[i].runwayStartHeight;
         cliDumpPrintLinef(dumpMask, equalsDefault, format, i,
             navFwAutolandApproach[i].approachAlt, navFwAutolandApproach[i].landAlt, navFwAutolandApproach[i].approachDirection, navFwAutolandApproach[i].landApproachHeading1, navFwAutolandApproach[i].landApproachHeading2, navFwAutolandApproach[i].isSeaLevelRef,
-            aim[0], aim[1], aim[2], aim[3]);
+            start[0], start[1], start[2], start[3], height[0], height[1], height[2], height[3]);
     }
 }
 
@@ -1465,8 +1468,8 @@ static void cliFwAutolandApproach(char * cmdline)
     } else {
         int32_t approachAlt = 0, heading1 = 0, heading2 = 0, landDirection = 0, landAlt = 0;
         bool isSeaLevelRef = false;
-        uint8_t aimOffset[4] = { 0 };
-        uint8_t aimOffsetCount = 0;
+        uint8_t runway[8] = { 0 };
+        uint8_t runwayCount = 0;
         uint8_t validArgumentCount = 0;
         const char *ptr = cmdline;
         int8_t i = fastA2I(ptr);
@@ -1521,14 +1524,14 @@ static void cliFwAutolandApproach(char * cmdline)
                 validArgumentCount++;
             }
 
-            // the aim offsets [m] of the four landing directions, optional so the older lines still load
-            while (aimOffsetCount < 4 && (ptr = nextArg(ptr))) {
-                const int32_t offset = fastA2I(ptr);
-                if (offset < 0 || offset > 255) {
+            // the runway start [m] and its height [dm] of the four landing directions, optional so the older lines load
+            while (runwayCount < 8 && (ptr = nextArg(ptr))) {
+                const int32_t value = fastA2I(ptr);
+                if (value < 0 || value > 255) {
                     cliShowParseError();
                     return;
                 }
-                aimOffset[aimOffsetCount++] = offset;
+                runway[runwayCount++] = value;
             }
 
             if ((ptr = nextArg(ptr))) {
@@ -1536,10 +1539,11 @@ static void cliFwAutolandApproach(char * cmdline)
                 validArgumentCount++;
             }
 
-            if (validArgumentCount != 6 || (aimOffsetCount != 0 && aimOffsetCount != 4)) {
+            if (validArgumentCount != 6 || (runwayCount != 0 && runwayCount != 8)) {
                 cliShowParseError();
             } else {
-                memcpy(fwAutolandApproachConfigMutable(i)->landAimOffset, aimOffset, sizeof(aimOffset));
+                memcpy(fwAutolandApproachConfigMutable(i)->runwayStart, runway, 4);
+                memcpy(fwAutolandApproachConfigMutable(i)->runwayStartHeight, runway + 4, 4);
                 fwAutolandApproachConfigMutable(i)->approachAlt = approachAlt;
                 fwAutolandApproachConfigMutable(i)->landAlt = landAlt;
                 fwAutolandApproachConfigMutable(i)->approachDirection = (fwAutolandApproachDirection_e)landDirection;
