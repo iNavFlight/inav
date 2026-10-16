@@ -18,6 +18,7 @@ This enables up to 4 different approach directions, based on the landing site an
 6. Final Approach: The engine power is reduced using "Pitch2throttle modifier" to reduce speed and the altitude is gradually reduced towards "Land Altitude" while approaching the Safehome coordinates.
 7. Glide: When "Glide Altitude" is reached, the motor is switched off and the pitch angle of "Glide Pitch" is held.
 7. Flare: Only if a LIDAR/Rangefinder sensor is present: the motor remains switched off and the pitch angle of "Flare Pitch" is held
+   From the glide on, the rudder gently holds the landing direction (2 s time constant, at most 8 degrees per second), so a tail or nose wheel steered by the rudder keeps the roll-out straight.
 8. Landing: As soon as INAV has detected the landing, it is automatically disarmed, see setting `nav_disarm_on_landing`.
 
 All turns between the approach legs are flown as coordinated FLY_BY corner cuts: the turn start is anticipated from the aircraft's actual turn radius (speed and `nav_fw_bank_angle`) so the plane rolls out already aligned on the next leg. This applies during the landing approach regardless of the configured `nav_fw_wp_turn_mode`.

@@ -102,6 +102,9 @@
 
 #define NAV_FW_CROSSTRACK_RATE_CUTOFF_HZ 3.0f     // cross-track error rate LPF
 
+#define FW_LAND_ROLLOUT_YAW_RATE_PER_DEG 0.5f     // [deg/s per deg] heading hold after the throttle cut: 2 s time constant
+#define FW_LAND_ROLLOUT_YAW_RATE_MAX     8.0f     // [deg/s]
+
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
 #define NAV_FW_FF_HEADING_FULL_CD        3000.0f  // heading error for full WP-turn FF
@@ -1632,6 +1635,15 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
      */
     if (STATE(FW_HEADING_USE_YAW)) {
         posControl.rcAdjustment[YAW] = processHeadingYawController(deltaMicros, navHeadingError, errorIsDecreasing);
+#ifdef USE_FW_AUTOLAND
+    } else if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
+        // On the runway the wheels steer with the rudder, not with the bank: a gentle heading hold on the landing
+        // direction keeps the roll-out straight without a swerve that could put a wing down
+        const float headingErrorDeg = CENTIDEGREES_TO_DEGREES((float)wrap_18000(posControl.desiredState.yaw - posControl.actualState.yaw));
+        const float yawRateDps = constrainf(headingErrorDeg * FW_LAND_ROLLOUT_YAW_RATE_PER_DEG, -FW_LAND_ROLLOUT_YAW_RATE_MAX, FW_LAND_ROLLOUT_YAW_RATE_MAX);
+        const uint8_t yawRate = currentControlProfile->stabilized.rates[FD_YAW];
+        posControl.rcAdjustment[YAW] = yawRate ? lrintf(yawRateDps * 50.0f / yawRate) : 0;    // rate = rcCommand * rate * 10 / 500
+#endif
     } else {
         posControl.rcAdjustment[YAW] = 0;
     }
