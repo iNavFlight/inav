@@ -3468,6 +3468,8 @@ uint32_t afatfs_getFreeSpaceKB(void)
     return afatfs.freeFile.logicalSize / 1024 + afatfs.freeCountClusters * afatfs.sectorsPerCluster / 2;
 }
 
+static uint32_t afatfs_freeFileClusters(void);
+
 // Kept out of line, or LTO inlines it through afatfs_poll() into scheduler(), which is FAST_CODE
 static NOINLINE void afatfs_countFreeClustersContinue(void)
 {
@@ -3485,6 +3487,13 @@ static NOINLINE void afatfs_countFreeClustersContinue(void)
     }
     if (paused) {
         afatfs.freeCountDueUs = now + AFATFS_FREE_COUNT_GAP_US;
+        return;
+    }
+
+    // The freefile's own chain holds no free cluster: its FAT sectors needn't be read
+    const uint32_t freeFileEnd = afatfs.freeFile.firstCluster + afatfs_freeFileClusters();
+    if (afatfs.freeCountNextCluster >= afatfs.freeFile.firstCluster && afatfs.freeCountNextCluster < freeFileEnd) {
+        afatfs.freeCountNextCluster = MIN(freeFileEnd, endCluster);
         return;
     }
 

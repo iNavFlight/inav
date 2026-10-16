@@ -1362,7 +1362,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `fsError` | `uint8_t` | 1 | - | Last filesystem error code (`afatfs_getLastError()`). 0 if `USE_SDCARD` disabled |
 | `freeSpaceKB` | `uint32_t` | 4 | - | Free space in KiB for the next log: the freefile (`afatfs_getContiguousFreeSpace() / 1024`), at most 4 GiB. 0 if `USE_SDCARD` disabled |
 | `totalSpaceKB` | `uint32_t` | 4 | - | Total space in KiB (`sdcard_getMetadata()->numBlocks / 2`). 0 if `USE_SDCARD` disabled |
-| `cardFreeSpaceKB` | `uint32_t` | 4 | - | Free space of the whole card in KiB (`afatfs_getFreeSpaceKB()`): the freefile plus the free clusters outside it, which the freefile grows into at later boots. Counted in the background after mount while no file is open; 0xFFFFFFFF until the count has finished, or for good if a FAT sector could not be read. 0 if `USE_SDCARD` disabled |
+| `cardFreeSpaceKB` | `uint32_t` | 4 | - | Free space of the whole card in KiB (`afatfs_getFreeSpaceKB()`): the freefile plus the free clusters outside it, which the freefile grows into at later boots. Counted in the background after mount while no file is open; 0xFFFFFFFF until the count has finished, while the card is not ready, or for good if a FAT sector could not be read. 0 if `USE_SDCARD` disabled |
 
 **Notes:** Requires `USE_SDCARD` and `USE_ASYNCFATFS`.
 
