@@ -3932,7 +3932,7 @@ Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder
 
 ### nav_fw_land_flare_sink
 
-Sink rate [cm/s] the flare holds through the altitude controller, from `nav_fw_land_flare_alt` to the touchdown, with `nav_fw_land_flare_pitch` as the lowest pitch it commands. Holding a small sink rate raises the nose as the aircraft slows down at idle, and gives less nose up to an aircraft that balloons. 0 keeps the pitch flare.
+Sink rate [cm/s] the landing touches down with. Set, the final of the landing circuit rounds out under power where its sink rate equals the height / 2.5 s, and from the throttle cut at `nav_fw_land_glide_alt` the altitude controller holds a sink rate easing with the height down to this one, raising the nose as the aircraft slows down, up to `nav_fw_land_flare_pitch` (the highest pitch it commands; `nav_fw_land_glide_pitch` is not used). With a low throttle cut the aircraft touches down nose up and slowly without floating at speed. 0 keeps the pitch glide and flare.
 
 | Default | Min | Max |
 | --- | --- | --- |

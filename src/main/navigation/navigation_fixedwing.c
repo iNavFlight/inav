@@ -1891,17 +1891,21 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
         ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
 
-        if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
+        const bool sinkFlare = navFwAutolandConfig()->flareSink
+            && (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE);
+        if (sinkFlare) {
+            // From the throttle cut the altitude controller holds the sink rate, raising the nose as the aircraft
+            // slows down, up to the flare pitch: a fixed pitch reached at speed floats the aircraft until it stalls
+            const int16_t noseUp = MIN(constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle)),
+                DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch));
+            fwLandRetrimPitch(DECIDEGREES_TO_DEGREES(noseUp), currentTimeUs);
+            rcCommand[PITCH] = -pidAngleToRcCommand(noseUp, pidProfile()->max_angle_inclination[FD_PITCH]);
+        } else if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
             fwLandRetrimPitch(navFwAutolandConfig()->glidePitch, currentTimeUs);
             rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->glidePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
-        }
-
-        if (posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
+        } else if (posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
             fwLandRetrimPitch(navFwAutolandConfig()->flarePitch, currentTimeUs);
-            const int16_t flarePitchCommand = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
-            // With a flare sink rate the altitude controller raises the nose further as the aircraft slows down,
-            // never lower than the flare pitch (a negative command is nose up)
-            rcCommand[PITCH] = navFwAutolandConfig()->flareSink ? MIN(rcCommand[PITCH], flarePitchCommand) : flarePitchCommand;
+            rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
         }
     }
 #endif
@@ -2218,8 +2222,8 @@ void resetFixedWingHeadingController(void)
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
 {
 #ifdef USE_FW_AUTOLAND
-    // A flare holding a sink rate is flown by the altitude controller
-    if (posControl.navState == NAV_STATE_FW_LANDING_FLARE && navFwAutolandConfig()->flareSink) {
+    // A glide and flare holding a sink rate are flown by the altitude controller
+    if ((posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) && navFwAutolandConfig()->flareSink) {
         navStateFlags |= NAV_CTL_ALT;
     }
 #endif

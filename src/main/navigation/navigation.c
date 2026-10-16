@@ -96,6 +96,7 @@
 #define FW_LAND_CIRCUIT_REAIM_DISTANCE 2000.0f  // cm
 #define FW_LAND_CIRCLE_DESCENT_RATE 50.0f       // cm/s
 #define FW_LAND_CIRCLE_EXIT_STRAIGHT_S 1.5f     // straight out of a circle left heading out, to roll level
+#define FW_LAND_ROUNDOUT_TIME_S 2.5f            // sink-rate flare: sink = height / this, down to the flare sink rate
 
 #define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
 #define FW_COURSE_LOCK_FORCE_TIMEOUT_MS 2500 // failsafe: force the lock this long after stick centre even if still banked
@@ -3987,7 +3988,7 @@ static float fwLandCircuitPathToGo(void)
 // The circuit's descent path [cm]: the legs descend evenly from the altitude the circle is left at to the final
 // altitude with the distance flown since the circle, which has no step where the aircraft cuts a corner (the distance
 // still to go jumps there) and runs out a little early since it does, so the turn onto the final is level; the final
-// straight goes from the final altitude to the ground at the aim point
+// straight goes from the final altitude towards the ground at the aim point
 static float fwLandCircuitPathAltitude(float toGo, float flown)
 {
     const float landAlt = posControl.fwLandState.landAltAgl;
@@ -3995,7 +3996,25 @@ static float fwLandCircuitPathAltitude(float toGo, float flown)
     const float straight = MAX((float)navFwAutolandConfig()->approachLength, 1.0f);
     const float before = MAX(posControl.fwLandState.pathLength - straight, 1.0f);
     const float legs = finalAlt + (posControl.fwLandState.pathStartAlt - finalAlt) * constrainf(1.0f - flown / before, 0.0f, 1.0f);
-    return MIN(legs, landAlt + (finalAlt - landAlt) * toGo / straight);
+    const float slope = (finalAlt - landAlt) / straight;
+    float height = slope * toGo;
+    if (navFwAutolandConfig()->flareSink) {
+        // Under power the final rounds out where its sink rate equals height / FW_LAND_ROUNDOUT_TIME_S, and the sink
+        // eases with the height from there: at the throttle cut it is a fraction of the final's, so the flare
+        // raises the nose a little instead of at once at speed
+        const float roundOut = posControl.actualState.velXY * FW_LAND_ROUNDOUT_TIME_S;
+        if (toGo < roundOut) {
+            height = slope * roundOut * expf(toGo / roundOut - 1.0f);
+        }
+    }
+    return MIN(legs, landAlt + height);
+}
+
+// Sink rate [cm/s] the throttle-cut glide and the flare hold: the round-out's, down to nav_fw_land_flare_sink
+static float fwLandFlareSinkRate(void)
+{
+    const float height = MAX(getLandAltitude() - posControl.fwLandState.landAltAgl, 0.0f);
+    return MAX(height / FW_LAND_ROUNDOUT_TIME_S, (float)navFwAutolandConfig()->flareSink);
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER(navigationFSMState_t previousState)
@@ -4278,6 +4297,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(naviga
         return NAV_FSM_EVENT_SUCCESS;
     }
 
+    if (navFwAutolandConfig()->flareSink) {
+        updateClimbRateToAltitudeController(-fwLandFlareSinkRate(), 0, ROC_TO_ALT_CONSTANT);
+    }
     setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
     return NAV_FSM_EVENT_NONE;
 }
@@ -4291,7 +4313,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FLARE(naviga
     }
 
     if (navFwAutolandConfig()->flareSink) {
-        updateClimbRateToAltitudeController(-(float)navFwAutolandConfig()->flareSink, 0, ROC_TO_ALT_CONSTANT);
+        updateClimbRateToAltitudeController(-fwLandFlareSinkRate(), 0, ROC_TO_ALT_CONSTANT);
     }
     setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
 
