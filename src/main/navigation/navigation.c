@@ -4229,6 +4229,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FLARE(naviga
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED;
     }
 
+    if (navFwAutolandConfig()->flareSink) {
+        updateClimbRateToAltitudeController(-(float)navFwAutolandConfig()->flareSink, 0, ROC_TO_ALT_CONSTANT);
+    }
     setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
 
     return NAV_FSM_EVENT_NONE;

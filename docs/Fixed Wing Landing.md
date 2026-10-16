@@ -82,6 +82,9 @@ In degrees. Min: 0, Max: 45, Default: 0
 * `nav_fw_land_flare_pitch`: Pitch value for flare phase. 
   In degrees. Min: 0, Max: 45, Default: 8
 
+* `nav_fw_land_flare_sink`: Sink rate the flare holds through the altitude controller instead of holding the flare pitch; the commanded pitch is never lower than `nav_fw_land_flare_pitch`. To keep a small sink rate while it slows down at idle the aircraft has to raise its nose, so it touches down nose high; an aircraft that balloons gets less nose up, down to the flare pitch.
+  In cm/s. Min: 0, Max: 500, Default: 0 (pitch flare)
+
 * `nav_fw_land_max_tailwind`: Max. tailwind if no landing direction with downwind is available. Wind strengths below this value are ignored (error tolerance in the wind measurement). Landing then takes place in the main direction. If, for example, 90 degrees is configured, landing takes place in this direction, NOT in 270 degrees (see above).
 In cm/s. Min: 0; Max: 3000, Default: 140
 

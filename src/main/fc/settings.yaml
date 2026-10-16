@@ -4736,6 +4736,12 @@ groups:
         field: aimOffset
         min: 0
         max: 10000
+      - name: nav_fw_land_flare_sink
+        description: "Sink rate [cm/s] the flare holds through the altitude controller, from `nav_fw_land_flare_alt` to the touchdown, with `nav_fw_land_flare_pitch` as the lowest pitch it commands. Holding a small sink rate raises the nose as the aircraft slows down at idle, and gives less nose up to an aircraft that balloons. 0 keeps the pitch flare."
+        default_value: 0
+        field: flareSink
+        min: 0
+        max: 500
   - name: PG_GIMBAL_CONFIG
     type: gimbalConfig_t
     headers: ["drivers/gimbal_common.h"]
