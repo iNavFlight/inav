@@ -97,6 +97,11 @@ In cm. Min: 0, Max: 30000, Default: 0 (uses `nav_fw_loiter_radius`)
 * `nav_fw_land_final_alt`: Altitude above the landing site at the start of the final. The downwind and base legs descend linearly from the approach altitude to it.
 In cm. Min: 0, Max: 30000, Default: 0 (two thirds of the approach altitude)
 
+* `nav_fw_land_aim_offset`: The glide path meets the ground this far before the landing site, in either landing direction. After the throttle cut at `nav_fw_land_glide_alt` the aircraft floats while it slows down (a 1.2 m model at 14 m/s floats 50 to 60 m), so aiming short puts the touchdown on the site. Works with the classic approach too.
+In cm. Min: 0, Max: 10000, Default: 0
+
+An RTH that will land with the circuit flies to the far side of the wind circle instead of the landing site, joins the circle there and never crosses the runway.
+
 ### General paramters and tuning tips
 
 * `nav_fw_wp_tracking_accuracy`: Its highly recommended that this parameter is used and tuned well. Only with WP-Tracking enabled, the Aircraft will try to precisely align with the runway during approach. 

@@ -111,6 +111,7 @@ typedef struct navFwAutolandConfig_s
     uint16_t loiterRadius;
     uint16_t downwindOffset;
     uint16_t finalAlt;
+    uint32_t aimOffset;
 } navFwAutolandConfig_t;
 
 PG_DECLARE(navFwAutolandConfig_t, navFwAutolandConfig);

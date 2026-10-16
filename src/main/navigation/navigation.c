@@ -3844,7 +3844,10 @@ static bool fwLandCircuitRthTarget(fpVector3_t *target)
     if (approach->landApproachHeading1 == 0 && approach->landApproachHeading2 == 0) {
         return false;
     }
-    fwLandCircuitCenter(&posControl.safehomeState.nearestSafeHome, idx, target);
+    // The far side of the circle, so the aircraft joins it tangentially there and never crosses it
+    fpVector3_t center;
+    fwLandCircuitCenter(&posControl.safehomeState.nearestSafeHome, idx, &center);
+    calculateFarAwayPos(target, &center, fwLandCircuitSide(idx, 0), fwLandLoiterRadius());
     return true;
 #else
     UNUSED(target);
@@ -3966,12 +3969,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 // (arc plus roll-in, as the corner cut plans it), so its straight part is the approach length
                 posControl.fwLandState.turnRadius = MAX(fwLandLoiterRadius(), navGetFwPlannedTurnLead());
                 const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? posControl.fwLandState.turnRadius : 0);
+                // The glide path reaches the ground short of the site by the aim offset: the float after the
+                // throttle cut lands the aircraft on the site instead of past it
+                fpVector3_t aimPos = posControl.fwLandState.landPos;
+                if (navFwAutolandConfig()->aimOffset) {
+                    calculateFarAwayPos(&aimPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), navFwAutolandConfig()->aimOffset);
+                }
 
-                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landPos, posControl.fwLandState.landingDirection, finalLength);
+                calculateFarAwayPos(&tmpPos, &aimPos, posControl.fwLandState.landingDirection, finalLength);
                 tmpPos.z = posControl.fwLandState.landAltAgl - finalAlt;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_LAND] = tmpPos;
 
-                calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), finalLength);
+                calculateFarAwayPos(&tmpPos, &aimPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), finalLength);
                 tmpPos.z = finalAlt;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH] = tmpPos;
 

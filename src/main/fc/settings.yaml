@@ -4730,6 +4730,12 @@ groups:
         field: finalAlt
         min: 0
         max: 30000
+      - name: nav_fw_land_aim_offset
+        description: "The glide path meets the ground this far [cm] before the landing site, in either landing direction: the aircraft floats past that point while it slows down, and touches down nearer the site."
+        default_value: 0
+        field: aimOffset
+        min: 0
+        max: 10000
   - name: PG_GIMBAL_CONFIG
     type: gimbalConfig_t
     headers: ["drivers/gimbal_common.h"]

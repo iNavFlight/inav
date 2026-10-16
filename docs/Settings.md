@@ -3840,6 +3840,16 @@ P gain of Heading Hold controller (Fixedwing)
 
 ---
 
+### nav_fw_land_aim_offset
+
+The glide path meets the ground this far [cm] before the landing site, in either landing direction: the aircraft floats past that point while it slows down, and touches down nearer the site.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
 ### nav_fw_land_approach_length
 
 Length of the final approach
