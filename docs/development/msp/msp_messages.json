@@ -10114,6 +10114,12 @@
                         "ctype": "uint8_t",
                         "desc": "1 if altitudes are relative to sea level, 0 if relative to home",
                         "units": "Boolean"
+                    },
+                    {
+                        "name": "landAimOffset",
+                        "ctype": "uint8_t[4]",
+                        "desc": "Touchdown point before the site for landing along heading 1, its reverse, heading 2, its reverse; 0 uses `nav_fw_land_aim_offset`",
+                        "units": "m"
                     }
                 ]
             },
@@ -10167,11 +10173,17 @@
                         "ctype": "uint8_t",
                         "desc": "Sets altitude reference",
                         "units": "Boolean"
+                    },
+                    {
+                        "name": "landAimOffset",
+                        "ctype": "uint8_t[4]",
+                        "desc": "Optional: touchdown point before the site for landing along heading 1, its reverse, heading 2, its reverse; 0 uses `nav_fw_land_aim_offset`. Left as they are when not sent",
+                        "units": "m"
                     }
                 ]
             },
             "reply": null,
-            "notes": "Requires `USE_FW_AUTOLAND`. Expects 15 bytes. Returns error if index invalid.",
+            "notes": "Requires `USE_FW_AUTOLAND`. Expects 15 bytes, or 19 with the aim offsets. Returns error if index invalid.",
             "description": "Sets the configuration for a specific Fixed Wing Autoland approach."
         },
         "MSP2_INAV_GPS_UBLOX_COMMAND": {

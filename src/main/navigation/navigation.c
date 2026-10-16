@@ -122,7 +122,7 @@ radar_pois_t radar_pois[RADAR_MAX_POIS];
 #ifdef USE_FW_AUTOLAND
 PG_REGISTER_WITH_RESET_TEMPLATE(navFwAutolandConfig_t, navFwAutolandConfig, PG_FW_AUTOLAND_CONFIG, 0);
 
-PG_REGISTER_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig, PG_FW_AUTOLAND_APPROACH_CONFIG, 0);
+PG_REGISTER_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig, PG_FW_AUTOLAND_APPROACH_CONFIG, 1);
 
 PG_RESET_TEMPLATE(navFwAutolandConfig_t, navFwAutolandConfig,
     .approachLength = SETTING_NAV_FW_LAND_APPROACH_LENGTH_DEFAULT,
@@ -3827,6 +3827,17 @@ static int32_t fwLandCircuitSide(uint8_t approachIdx, int32_t approachHeading)
     return wrap_36000(ABS(approachHeading) + (approach->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT ? -9000 : 9000));
 }
 
+// The touchdown point's distance before the site [cm] for the landing direction chosen: the runway's own for that
+// heading and way, nav_fw_land_aim_offset where it is 0
+static uint32_t fwLandAimOffset(int32_t approachHeading)
+{
+    const navFwAutolandApproach_t *approach = fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx);
+    const bool second = ABS(approachHeading) != ABS(DEGREES_TO_CENTIDEGREES(approach->landApproachHeading1));
+    const bool reverse = posControl.fwLandState.landingDirection != wrap_36000(ABS(approachHeading));
+    const uint8_t own = approach->landAimOffset[(second ? 2 : 0) + (reverse ? 1 : 0)];
+    return own ? (uint32_t)own * 100 : navFwAutolandConfig()->aimOffset;
+}
+
 // The wind circle turns towards the runway for the landing direction chosen: its downwind heading is on its near side
 static bool fwLandCircleTurnsInward(int32_t side)
 {
@@ -4172,8 +4183,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                     }
                 }
                 fpVector3_t aimPos = posControl.fwLandState.landPos;
-                if (navFwAutolandConfig()->aimOffset || roundOutRun > 0.0f) {
-                    calculateFarAwayPos(&aimPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), navFwAutolandConfig()->aimOffset + roundOutRun);
+                const uint32_t aimOffset = fwLandAimOffset(approachHeading);
+                if (aimOffset || roundOutRun > 0.0f) {
+                    calculateFarAwayPos(&aimPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), aimOffset + roundOutRun);
                 }
 
                 calculateFarAwayPos(&tmpPos, &aimPos, posControl.fwLandState.landingDirection, finalLength);

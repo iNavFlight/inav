@@ -2071,6 +2071,9 @@ static mspResult_e mspFwApproachOutCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU16(dst, fwAutolandApproachConfig(idx)->landApproachHeading1);
         sbufWriteU16(dst, fwAutolandApproachConfig(idx)->landApproachHeading2);
         sbufWriteU8(dst, fwAutolandApproachConfig(idx)->isSeaLevelRef);
+        for (int i = 0; i < 4; i++) {
+            sbufWriteU8(dst, fwAutolandApproachConfig(idx)->landAimOffset[i]);
+        }
         return MSP_RESULT_ACK;
     } else {
          return MSP_RESULT_ERROR;
@@ -3965,6 +3968,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 fwAutolandApproachConfigMutable(i)->landApproachHeading2 = head2;
             }
             fwAutolandApproachConfigMutable(i)->isSeaLevelRef = sbufReadU8(src);
+            // the aim offsets, when sent: an older sender leaves them as they are
+            for (int k = 0; k < 4; k++) {
+                uint8_t offset;
+                if (sbufReadU8Safe(&offset, src)) {
+                    fwAutolandApproachConfigMutable(i)->landAimOffset[k] = offset;
+                }
+            }
         } else {
             return MSP_RESULT_ERROR;
         }
