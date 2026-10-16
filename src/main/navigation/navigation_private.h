@@ -422,6 +422,8 @@ typedef enum {
     FW_AUTOLAND_WP_COUNT,
 } fwAutolandWaypoint_t;
 
+#define FW_LAND_ROUNDOUT_TIME_S 2.5f    // sink-rate flare: sink = height / this, down to the flare sink rate
+
 typedef struct {
     timeUs_t loiterStartTime;
     fpVector3_t landWaypoints[FW_AUTOLAND_WP_COUNT];
@@ -444,6 +446,7 @@ typedef struct {
     float pathStartAlt;
     int16_t approachThrottle;
     timeUs_t throttleCutUs;
+    float flareSinkTarget;
     timeUs_t pathTimeUs;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;

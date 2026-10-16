@@ -96,7 +96,6 @@
 #define FW_LAND_CIRCUIT_REAIM_DISTANCE 2000.0f  // cm
 #define FW_LAND_CIRCLE_DESCENT_RATE 50.0f       // cm/s
 #define FW_LAND_CIRCLE_EXIT_STRAIGHT_S 1.5f     // straight out of a circle left heading out, to roll level
-#define FW_LAND_ROUNDOUT_TIME_S 2.5f            // sink-rate flare: sink = height / this, down to the flare sink rate
 
 #define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
 #define FW_COURSE_LOCK_FORCE_TIMEOUT_MS 2500 // failsafe: force the lock this long after stick centre even if still banked
@@ -4147,9 +4146,22 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? posControl.fwLandState.turnRadius : 0);
                 // The glide path reaches the ground short of the site by the aim offset: the float after the
                 // throttle cut lands the aircraft on the site instead of past it
+                // The round-out and the flare sink carry the touchdown past where the final's straight line meets the
+                // ground, by lambda * ln(round-out height / flare sink height): the line is aimed short by as much, so
+                // the wheels touch at the aim point
+                float roundOutRun = 0.0f;
+                if (offset && navFwAutolandConfig()->flareSink) {
+                    const uint16_t approachSpeed = navGetFwLandApproachSpeed();
+                    const float lambda = (approachSpeed ? approachSpeed : posControl.actualState.velXY) * FW_LAND_ROUNDOUT_TIME_S;
+                    const float roundOutHeight = (finalAlt - posControl.fwLandState.landAltAgl) * lambda / MAX(navFwAutolandConfig()->approachLength, 1U);
+                    const float floorHeight = navFwAutolandConfig()->flareSink * FW_LAND_ROUNDOUT_TIME_S;
+                    if (roundOutHeight > floorHeight) {
+                        roundOutRun = lambda * logf(roundOutHeight / floorHeight);
+                    }
+                }
                 fpVector3_t aimPos = posControl.fwLandState.landPos;
-                if (navFwAutolandConfig()->aimOffset) {
-                    calculateFarAwayPos(&aimPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), navFwAutolandConfig()->aimOffset);
+                if (navFwAutolandConfig()->aimOffset || roundOutRun > 0.0f) {
+                    calculateFarAwayPos(&aimPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), navFwAutolandConfig()->aimOffset + roundOutRun);
                 }
 
                 calculateFarAwayPos(&tmpPos, &aimPos, posControl.fwLandState.landingDirection, finalLength);
@@ -4240,7 +4252,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
         posControl.cruise.previousCourse = posControl.cruise.course;
         posControl.cruise.lastCourseAdjustmentTime = 0;
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_GLIDE;
-        posControl.fwLandState.throttleCutUs = micros();
+        posControl.fwLandState.throttleCutUs = 0;
         return NAV_FSM_EVENT_SUCCESS;
     } else if (isWaypointReached(&posControl.fwLandState.landWaypoints[posControl.fwLandState.landCurrentWp], &posControl.activeWaypoint.bearing)) {
         if (posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_DOWNWIND) {
@@ -4298,9 +4310,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(naviga
         return NAV_FSM_EVENT_SUCCESS;
     }
 
-    if (navFwAutolandConfig()->flareSink) {
-        updateClimbRateToAltitudeController(-fwLandFlareSinkRate(), 0, ROC_TO_ALT_CONSTANT);
-    }
+    posControl.fwLandState.flareSinkTarget = fwLandFlareSinkRate();
     setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
     return NAV_FSM_EVENT_NONE;
 }
@@ -4313,9 +4323,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FLARE(naviga
         return NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED;
     }
 
-    if (navFwAutolandConfig()->flareSink) {
-        updateClimbRateToAltitudeController(-fwLandFlareSinkRate(), 0, ROC_TO_ALT_CONSTANT);
-    }
+    posControl.fwLandState.flareSinkTarget = fwLandFlareSinkRate();
     setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
 
     return NAV_FSM_EVENT_NONE;

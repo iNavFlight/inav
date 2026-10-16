@@ -107,7 +107,8 @@
 #define FW_LAND_PITCH_TRIM_RATE          30.0f    // [pitch PID output/s per deg] glide/flare re-trim on the attitude error
 #define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
-#define FW_LAND_THROTTLE_RAMP_S          1.5f     // [s] sink-rate flare: power taken off over this from the throttle cut
+#define FW_LAND_FLARE_PATH_P             1.0f     // [deg of pitch per deg of flight path error] sink-rate flare
+#define FW_LAND_FLARE_PATH_I_S           1.0f     // [s] its integral adds the angle of attack the slowing aircraft needs
 
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
@@ -1816,6 +1817,27 @@ static void fwLandRetrimPitch(float pitchDeg, timeUs_t currentTimeUs)
         pendingTrim -= step;
     }
 }
+
+// Sink-rate glide and flare pitch [deg, nose up], from the flight path angle error: a degree of it is about a degree of
+// pitch on any aircraft, where the altitude controller tuned for cruise asked under a degree for the whole flare
+static float fwLandFlarePitch(timeUs_t currentTimeUs)
+{
+    static float integral;
+    static timeUs_t previousTimeUs;
+    const float dt = US2S(currentTimeUs - previousTimeUs);
+    previousTimeUs = currentTimeUs;
+    const float speed = MAX(posControl.actualState.velXY, 100.0f);
+    const float pathError = RADIANS_TO_DEGREES((-posControl.fwLandState.flareSinkTarget - navGetCurrentActualPositionAndVelocity()->vel.z) / speed);
+    const float noseUpLimit = navFwAutolandConfig()->flarePitch;
+    const float noseDownLimit = -(float)navConfig()->fw.max_dive_angle;
+    if (dt > FW_LAND_PITCH_TRIM_GAP_S) {
+        // a new glide: from the pitch the aircraft holds, without a step
+        integral = -DECIDEGREES_TO_DEGREES((float)attitude.values.pitch) - FW_LAND_FLARE_PATH_P * pathError;
+    } else {
+        integral = constrainf(integral + pathError * dt / FW_LAND_FLARE_PATH_I_S, noseDownLimit, noseUpLimit);
+    }
+    return constrainf(integral + FW_LAND_FLARE_PATH_P * pathError, noseDownLimit, noseUpLimit);
+}
 #endif
 
 void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
@@ -1891,9 +1913,14 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
     if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
         const bool sinkFlare = navFwAutolandConfig()->flareSink
             && (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE);
-        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled. The sink-rate flare takes the power
-        // off gradually: cut at once right above the runway it dropped the nose and the aircraft with it
-        const float powerLeft = 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / FW_LAND_THROTTLE_RAMP_S;
+        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled. The sink-rate flare keeps the
+        // approach power until the sink rate is down to the flare sink, then takes it off over the time that sink takes
+        // to the ground: cut at once at speed above the runway it dropped the nose, and the aircraft with it
+        if (sinkFlare && !posControl.fwLandState.throttleCutUs && posControl.fwLandState.flareSinkTarget <= navFwAutolandConfig()->flareSink) {
+            posControl.fwLandState.throttleCutUs = currentTimeUs;
+        }
+        const float powerLeft = posControl.fwLandState.throttleCutUs
+            ? 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / FW_LAND_ROUNDOUT_TIME_S : 1.0f;
         if (sinkFlare && !STATE(LANDING_DETECTED) && powerLeft > 0.0f) {
             const uint16_t idle = getThrottleIdleValue();
             rcCommand[THROTTLE] = setDesiredThrottle(idle + (MAX(posControl.fwLandState.approachThrottle, idle) - idle) * powerLeft, false);
@@ -1902,12 +1929,9 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         }
 
         if (sinkFlare) {
-            // From the throttle cut the altitude controller holds the sink rate, raising the nose as the aircraft
-            // slows down, up to the flare pitch: a fixed pitch reached at speed floats the aircraft until it stalls
-            const int16_t noseUp = MIN(constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle)),
-                DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->flarePitch));
-            fwLandRetrimPitch(DECIDEGREES_TO_DEGREES(noseUp), currentTimeUs);
-            rcCommand[PITCH] = -pidAngleToRcCommand(noseUp, pidProfile()->max_angle_inclination[FD_PITCH]);
+            const float noseUp = fwLandFlarePitch(currentTimeUs);
+            fwLandRetrimPitch(noseUp, currentTimeUs);
+            rcCommand[PITCH] = -pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(noseUp), pidProfile()->max_angle_inclination[FD_PITCH]);
         } else if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
             fwLandRetrimPitch(navFwAutolandConfig()->glidePitch, currentTimeUs);
             rcCommand[PITCH] = pidAngleToRcCommand(-DEGREES_TO_DECIDEGREES(navFwAutolandConfig()->glidePitch), pidProfile()->max_angle_inclination[FD_PITCH]);
@@ -2230,10 +2254,6 @@ void resetFixedWingHeadingController(void)
 void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags, timeUs_t currentTimeUs)
 {
 #ifdef USE_FW_AUTOLAND
-    // A glide and flare holding a sink rate are flown by the altitude controller
-    if ((posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) && navFwAutolandConfig()->flareSink) {
-        navStateFlags |= NAV_CTL_ALT;
-    }
 #endif
     if (navStateFlags & NAV_CTL_LAUNCH) {
         applyFixedWingLaunchController(currentTimeUs);

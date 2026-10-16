@@ -4737,7 +4737,7 @@ groups:
         min: 0
         max: 10000
       - name: nav_fw_land_flare_sink
-        description: "Sink rate [cm/s] the landing touches down with. Set, the final of the landing circuit rounds out under power where its sink rate equals the height / 2.5 s, and from the throttle cut at `nav_fw_land_glide_alt`, where the power comes off over 1.5 s instead of at once, the altitude controller holds a sink rate easing with the height down to this one, raising the nose as the aircraft slows down, up to `nav_fw_land_flare_pitch` (the highest pitch it commands; `nav_fw_land_glide_pitch` is not used). With a low throttle cut the aircraft touches down nose up and slowly without floating at speed. 0 keeps the pitch glide and flare."
+        description: "Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set, the final of the landing circuit rounds out under power where its sink rate equals the height / 2.5 s, easing with the height; from `nav_fw_land_glide_alt` the pitch follows the flight path angle of that sink rate, down to this one, raising the nose as the aircraft slows down up to `nav_fw_land_flare_pitch` (the highest pitch commanded; `nav_fw_land_glide_pitch` is not used). The approach power is held until the sink rate is down to this one and taken off over the 2.5 s left to the ground. The final is aimed short by the distance the round-out and this sink add, so the wheels touch at `nav_fw_land_aim_offset`. 0 keeps the pitch glide and flare."
         default_value: 0
         field: flareSink
         min: 0
