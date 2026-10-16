@@ -4240,6 +4240,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
         posControl.cruise.previousCourse = posControl.cruise.course;
         posControl.cruise.lastCourseAdjustmentTime = 0;
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_GLIDE;
+        posControl.fwLandState.throttleCutUs = micros();
         return NAV_FSM_EVENT_SUCCESS;
     } else if (isWaypointReached(&posControl.fwLandState.landWaypoints[posControl.fwLandState.landCurrentWp], &posControl.activeWaypoint.bearing)) {
         if (posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_DOWNWIND) {
@@ -6331,6 +6332,11 @@ void applyWaypointNavigationAndAltitudeHold(void)
         applyMulticopterNavigationController(navStateFlags, currentTimeUs);
     }
     applyAutoSpeedThrottleDemand(&rcCommand[THROTTLE], currentTimeUs);
+#ifdef USE_FW_AUTOLAND
+    if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH) {
+        posControl.fwLandState.approachThrottle = rcCommand[THROTTLE];
+    }
+#endif
 
     /* Consume position data */
     if (posControl.flags.horizontalPositionDataConsumed)

@@ -107,6 +107,7 @@
 #define FW_LAND_PITCH_TRIM_RATE          30.0f    // [pitch PID output/s per deg] glide/flare re-trim on the attitude error
 #define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
+#define FW_LAND_THROTTLE_RAMP_S          1.5f     // [s] sink-rate flare: power taken off over this from the throttle cut
 
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
@@ -1888,11 +1889,18 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 #ifdef USE_FW_AUTOLAND
     // Advanced autoland
     if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE || STATE(LANDING_DETECTED)) {
-        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled
-        ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
-
         const bool sinkFlare = navFwAutolandConfig()->flareSink
             && (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE);
+        // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled. The sink-rate flare takes the power
+        // off gradually: cut at once right above the runway it dropped the nose and the aircraft with it
+        const float powerLeft = 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / FW_LAND_THROTTLE_RAMP_S;
+        if (sinkFlare && !STATE(LANDING_DETECTED) && powerLeft > 0.0f) {
+            const uint16_t idle = getThrottleIdleValue();
+            rcCommand[THROTTLE] = setDesiredThrottle(idle + (MAX(posControl.fwLandState.approachThrottle, idle) - idle) * powerLeft, false);
+        } else {
+            ENABLE_STATE(NAV_MOTOR_STOP_OR_IDLE);
+        }
+
         if (sinkFlare) {
             // From the throttle cut the altitude controller holds the sink rate, raising the nose as the aircraft
             // slows down, up to the flare pitch: a fixed pitch reached at speed floats the aircraft until it stalls

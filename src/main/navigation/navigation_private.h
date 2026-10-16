@@ -442,6 +442,8 @@ typedef struct {
     float pathLength;
     float pathFlown;
     float pathStartAlt;
+    int16_t approachThrottle;
+    timeUs_t throttleCutUs;
     timeUs_t pathTimeUs;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;
