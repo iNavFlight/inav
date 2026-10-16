@@ -4009,11 +4009,29 @@ static float fwLandCircuitPathAltitude(float toGo, float flown)
     return MIN(legs, landAlt + height);
 }
 
-// Sink rate [cm/s] the throttle-cut glide and the flare hold: the round-out's, down to nav_fw_land_flare_sink
+// Sink rate [cm/s] the glide and the flare hold: height / tau, down to nav_fw_land_flare_sink. Tau is the round-out's,
+// or longer when the aircraft is short of the touchdown point (the final follows the baro altitude, the flare the
+// rangefinder's, and the ground before the runway is not level): the one that puts the wheels down there,
+// tau * (ln(height / (flare sink * tau)) + 1) = time left. Never shorter: a long touchdown stays a soft one
 static float fwLandFlareSinkRate(void)
 {
-    const float height = MAX(getLandAltitude() - posControl.fwLandState.landAltAgl, 0.0f);
-    return MAX(height / FW_LAND_ROUNDOUT_TIME_S, (float)navFwAutolandConfig()->flareSink);
+    const float height = MAX(getLandAltitude() - posControl.fwLandState.landAltAgl, 1.0f);
+    const float floorSink = MAX((float)navFwAutolandConfig()->flareSink, 1.0f);
+    const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+    const float dir = CENTIDEGREES_TO_RADIANS(posControl.fwLandState.landingDirection);
+    const float ahead = (posControl.fwLandState.touchdownPos.x - pos->x) * cos_approx(dir) + (posControl.fwLandState.touchdownPos.y - pos->y) * sin_approx(dir);
+    const float timeLeft = MAX(ahead, 0.0f) / MAX(posControl.actualState.velXY, 100.0f);
+    float shortest = FW_LAND_ROUNDOUT_TIME_S;
+    float longest = MAX(height / floorSink, shortest);
+    for (int i = 0; i < 10; i++) {
+        const float tau = (shortest + longest) / 2.0f;
+        if (tau * (logf(height / (floorSink * tau)) + 1.0f) < timeLeft) {
+            shortest = tau;
+        } else {
+            longest = tau;
+        }
+    }
+    return MAX(height / shortest, floorSink);
 }
 
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOITER(navigationFSMState_t previousState)
@@ -4159,6 +4177,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                         roundOutRun = lambda * logf(roundOutHeight / floorHeight);
                     }
                 }
+                calculateFarAwayPos(&posControl.fwLandState.touchdownPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), navFwAutolandConfig()->aimOffset);
                 fpVector3_t aimPos = posControl.fwLandState.landPos;
                 if (navFwAutolandConfig()->aimOffset || roundOutRun > 0.0f) {
                     calculateFarAwayPos(&aimPos, &posControl.fwLandState.landPos, wrap_36000(posControl.fwLandState.landingDirection + 18000), navFwAutolandConfig()->aimOffset + roundOutRun);

@@ -441,6 +441,7 @@ typedef struct {
     float circleBearing;
     uint32_t circleCount;
     fpVector3_t aimPos;
+    fpVector3_t touchdownPos;
     float pathLength;
     float pathFlown;
     float pathStartAlt;
