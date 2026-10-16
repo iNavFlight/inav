@@ -1648,7 +1648,8 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
         const float headingErrorDeg = CENTIDEGREES_TO_DEGREES((float)wrap_18000(posControl.desiredState.yaw - posControl.actualState.yaw));
         const float yawRateDps = constrainf(headingErrorDeg * FW_LAND_ROLLOUT_YAW_RATE_PER_DEG, -FW_LAND_ROLLOUT_YAW_RATE_MAX, FW_LAND_ROLLOUT_YAW_RATE_MAX);
         const uint8_t yawRate = currentControlProfile->stabilized.rates[FD_YAW];
-        posControl.rcAdjustment[YAW] = yawRate ? lrintf(yawRateDps * 50.0f / yawRate) : 0;    // rate = rcCommand * rate * 10 / 500
+        // rate = rcCommand * rate * 10 / 500; a negative yaw command turns right, as the heading PID's output
+        posControl.rcAdjustment[YAW] = yawRate ? -lrintf(yawRateDps * 50.0f / yawRate) : 0;
 #endif
     } else {
         posControl.rcAdjustment[YAW] = 0;
