@@ -645,11 +645,10 @@ int8_t navGetFwLoiterDirection(void)
     return loiterDirection();
 }
 
-// Radius [cm] the loiter controller is holding its circle at, 0 when it is not loitering
-uint32_t navGetFwLoiterHoldRadius(bool *established)
+// The loiter circle controller is flying the circle (not still approaching it)
+bool navIsFwLoiterEstablished(void)
 {
-    *established = fwTurn.loiter.ratchetActive && fwTurn.loiter.established;
-    return fwTurn.loiter.ratchetActive ? lrintf(fwTurn.loiter.activeRadius) : 0;
+    return fwTurn.loiter.established;
 }
 
 // Coordinated-turn feed-forward bank [centideg] for the active WP turn (loiter has its own circle controller).
@@ -1369,6 +1368,13 @@ static void calculateVirtualPositionTarget_FW(float trackingPeriod, timeDelta_t 
     // The fixed-radius loiter tracker needs a stable circle, not the wind-varying instantaneous value
     const bool inLoiter = (navGetCurrentStateFlags() & NAV_CTL_HOLD);
     const float bearingFromCenter = atan2_approx(-posErrorY, -posErrorX);
+#ifdef USE_FW_AUTOLAND
+    // The landing circuit places its wind circle for one radius and holds exactly that one: a radius following the
+    // speed (or the energy guard's bank) moves the circle's edge onto the runway
+    const bool landingCircle = navFwAutolandConfig()->downwindOffset &&
+        (posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER || posControl.navState == NAV_STATE_FW_LANDING_LOITER);
+    if (!landingCircle)
+#endif
     navLoiterRadius = getFwStableLoiterRadius(navLoiterRadius, bearingFromCenter, inLoiter, deltaMicros);
     fwTurn.loiter.activeRadius = (float)navLoiterRadius; // expose to the turn feed-forward
 

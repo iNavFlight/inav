@@ -94,6 +94,7 @@
 #define FW_LAND_DOWNWIND_HEADING_TOLERANCE 3000 // centidegrees
 #define FW_LAND_CIRCLE_JOIN_RADII 3.73f         // 1 / tan(15 deg): where the loiter controller starts flying onto its circle
 #define FW_LAND_CIRCUIT_REAIM_DISTANCE 2000.0f  // cm
+#define FW_LAND_CIRCLE_DESCENT_RATE 50.0f       // cm/s
 
 #define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
 #define FW_COURSE_LOCK_FORCE_TIMEOUT_MS 2500 // failsafe: force the lock this long after stick centre even if still banked
@@ -3825,19 +3826,13 @@ static int32_t fwLandCircuitSide(uint8_t approachIdx, int32_t approachHeading)
     return wrap_36000(ABS(approachHeading) + (approach->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT ? -9000 : 9000));
 }
 
-// The radius the wind circle is really flown at: the loiter controller never turns tighter than the coordinated
-// turn at the current speed and bank, so a small setting at cruise speed gives a much wider circle. While circling
-// it is the radius the controller holds (it follows the speed) plus how much wider it was really flown, so the edge
-// stays put as the circle grows; frozen when the circle is left, for the legs after it
+// The radius the wind circle is flown at: the aircraft cannot turn tighter than its coordinated turn at the current
+// speed and bank, so a small setting at cruise speed gives a much wider circle. Frozen when the landing starts, and
+// the loiter controller holds exactly this radius, so the circle does not move under the aircraft
 static uint32_t fwLandCircleRadius(void)
 {
     if (posControl.fwLandState.circleRadius) {
         return posControl.fwLandState.circleRadius;
-    }
-    bool established;
-    const uint32_t held = navGetFwLoiterHoldRadius(&established);
-    if (held && (posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER || posControl.navState == NAV_STATE_FW_LANDING_LOITER)) {
-        return held + lrintf(posControl.fwLandState.circleBias);
     }
     return MAX((uint32_t)fwLandLoiterRadius(), navGetFwPlannedTurnRadius());
 }
@@ -3861,19 +3856,17 @@ static fpVector3_t fwLandLoiterCenter(void)
 
 static void fwLandResetCircleMeasure(void)
 {
-    posControl.fwLandState.circleErrorSum = 0;
+    posControl.fwLandState.circleSum = 0;
     posControl.fwLandState.circleAngle = 0;
     posControl.fwLandState.circleCount = 0;
 }
 
-// The loiter controller holds its radius on the estimated position: after each full turn on the circle, the circle
-// moves out by how much wider than that radius it was really flown, so its edge stays a downwind offset from the
-// runway
+// Faster than planned the aircraft cannot bank enough for the radius and flies the circle wider: after each full
+// turn on the circle, the circle grows to the radius really flown and moves out with it, so its edge stays a
+// downwind offset from the runway
 static void fwLandMeasureCircle(void)
 {
-    bool established;
-    const uint32_t held = navGetFwLoiterHoldRadius(&established);
-    if (!navFwAutolandConfig()->downwindOffset || !established) {
+    if (!navFwAutolandConfig()->downwindOffset || !navIsFwLoiterEstablished()) {
         fwLandResetCircleMeasure();
         return;
     }
@@ -3892,11 +3885,12 @@ static void fwLandMeasureCircle(void)
         posControl.fwLandState.circleAngle += delta;
     }
     posControl.fwLandState.circleBearing = bearing;
-    posControl.fwLandState.circleErrorSum += calc_length_pythagorean_2D(dx, dy) - held;
+    posControl.fwLandState.circleSum += calc_length_pythagorean_2D(dx, dy);
     posControl.fwLandState.circleCount++;
 
     if (fabsf(posControl.fwLandState.circleAngle) >= 2.0f * M_PIf) {
-        posControl.fwLandState.circleBias = MAX(0.0f, posControl.fwLandState.circleErrorSum / posControl.fwLandState.circleCount);
+        const uint32_t flown = lrintf(posControl.fwLandState.circleSum / posControl.fwLandState.circleCount);
+        posControl.fwLandState.circleRadius = MAX(posControl.fwLandState.circleRadius, flown);
         fwLandResetCircleMeasure();
     }
 }
@@ -3995,7 +3989,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
         posControl.fwLandState.climbAltTarget = getEstimatedActualPosition(Z);
         posControl.fwLandState.climbAltTimeUs = now;
         posControl.fwLandState.circleRadius = 0;
-        posControl.fwLandState.circleBias = 0;
+        posControl.fwLandState.circleRadius = fwLandCircleRadius();
         fwLandResetCircleMeasure();
     }
     fwLandMeasureCircle();
@@ -4007,11 +4001,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
     }
 
     if (navFwAutolandConfig()->downwindOffset) {
-        // The circuit reaches the circle altitude on the circle itself, at the slope of its final: a step of the
-        // altitude target from the RTH altitude would be flown as a dive
-        const float finalAlt = navFwAutolandConfig()->finalAlt ? navFwAutolandConfig()->finalAlt : posControl.fwLandState.landAproachAltAgl / 3.0f * 2.0f;
-        const float rate = posControl.actualState.velXY * finalAlt / (navFwAutolandConfig()->approachLength + fwLandLoiterRadius());
-        const float step = rate * US2S(now - posControl.fwLandState.climbAltTimeUs);
+        // The circuit reaches the circle altitude on the circle itself, slowly: a step of the altitude target from the
+        // RTH altitude is flown as a dive, and the speed it builds widens the circle beyond its radius
+        const float step = FW_LAND_CIRCLE_DESCENT_RATE * US2S(now - posControl.fwLandState.climbAltTimeUs);
         posControl.fwLandState.climbAltTimeUs = now;
         posControl.fwLandState.climbAltTarget += constrainf(posControl.fwLandState.landAproachAltAgl - posControl.fwLandState.climbAltTarget, -step, step);
         fpVector3_t center = fwLandLoiterCenter();
@@ -4097,9 +4089,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 const int32_t finalAlt = fwLandFinalAlt();
                 const int32_t dir = fwLandCircuitSide(posControl.fwLandState.approachSettingIdx, approachHeading);
                 const uint32_t offset = navFwAutolandConfig()->downwindOffset;
-                if (offset) {
-                    posControl.fwLandState.circleRadius = fwLandCircleRadius();
-                }
                 // The circuit turns onto the final early by the space a 90 degree turn takes at this speed and bank
                 // (arc plus roll-in, as the corner cut plans it), so its straight part is the approach length
                 posControl.fwLandState.turnRadius = MAX(fwLandLoiterRadius(), navGetFwPlannedTurnLead());
@@ -5586,9 +5575,13 @@ uint32_t navigationGetLoiterRadius(void)
     }
 
 #ifdef USE_FW_AUTOLAND
-    if (navFwAutolandConfig()->loiterRadius &&
-        (posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER || posControl.navState == NAV_STATE_FW_LANDING_LOITER)) {
-        return navFwAutolandConfig()->loiterRadius;
+    if (posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER || posControl.navState == NAV_STATE_FW_LANDING_LOITER) {
+        if (navFwAutolandConfig()->downwindOffset && posControl.fwLandState.circleRadius) {
+            return posControl.fwLandState.circleRadius;
+        }
+        if (navFwAutolandConfig()->loiterRadius) {
+            return navFwAutolandConfig()->loiterRadius;
+        }
     }
 #endif
 
@@ -7426,7 +7419,6 @@ static void resetFwAutoland(void)
     posControl.fwLandState.landAproachAltAgl = 0;
     posControl.fwLandState.loiterStartTime = 0;
     posControl.fwLandState.circleRadius = 0;
-    posControl.fwLandState.circleBias = 0;
     posControl.fwLandState.rthToCircuit = false;
     fwLandResetCircleMeasure();
     posControl.fwLandState.approachSettingIdx = 0;

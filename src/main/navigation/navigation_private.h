@@ -433,8 +433,7 @@ typedef struct {
     timeUs_t climbAltTimeUs;
     uint32_t turnRadius;
     uint32_t circleRadius;
-    float circleBias;
-    float circleErrorSum;
+    float circleSum;
     float circleAngle;
     float circleBearing;
     uint32_t circleCount;
@@ -655,7 +654,7 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
 uint32_t navGetFwPlannedTurnRadius(void);
 uint32_t navGetFwPlannedTurnLead(void);
 int8_t navGetFwLoiterDirection(void);
-uint32_t navGetFwLoiterHoldRadius(bool *established);
+bool navIsFwLoiterEstablished(void);
 
 bool isFixedWingLandingDetected(void);
 
