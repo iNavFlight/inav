@@ -95,6 +95,7 @@
 #define FW_LAND_CIRCLE_JOIN_RADII 3.73f         // 1 / tan(15 deg): where the loiter controller starts flying onto its circle
 #define FW_LAND_CIRCUIT_REAIM_DISTANCE 2000.0f  // cm
 #define FW_LAND_CIRCLE_DESCENT_RATE 50.0f       // cm/s
+#define FW_LAND_CIRCLE_EXIT_STRAIGHT_S 1.5f     // straight out of a circle left heading out, to roll level
 
 #define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
 #define FW_COURSE_LOCK_FORCE_TIMEOUT_MS 2500 // failsafe: force the lock this long after stick centre even if still banked
@@ -3826,6 +3827,13 @@ static int32_t fwLandCircuitSide(uint8_t approachIdx, int32_t approachHeading)
     return wrap_36000(ABS(approachHeading) + (approach->approachDirection == FW_AUTOLAND_APPROACH_DIRECTION_LEFT ? -9000 : 9000));
 }
 
+// The wind circle turns towards the runway for the landing direction chosen: its downwind heading is on its near side
+static bool fwLandCircleTurnsInward(int32_t side)
+{
+    const bool rightOfLanding = wrap_18000(side - posControl.fwLandState.landingDirection) > 0;
+    return rightOfLanding ? navGetFwLoiterDirection() < 0 : navGetFwLoiterDirection() > 0;
+}
+
 // The radius the wind circle is flown at: the aircraft cannot turn tighter than its coordinated turn at the current
 // speed and bank, so a small setting at cruise speed gives a much wider circle. Frozen when the landing starts, and
 // the loiter controller holds exactly this radius, so the circle does not move under the aircraft
@@ -3951,6 +3959,19 @@ static float fwLandCircuitPathToGo(void)
         ux = (finalStart->x - turn->x) / baseLength;
         uy = (finalStart->y - turn->y) / baseLength;
         after = finalLength;
+    } else if (posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_DOWNWIND) {
+        // straight out of the circle to the downwind corner, square to the final
+        const fpVector3_t *corner = &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_DOWNWIND];
+        float vx = corner->x - finalStart->x;
+        float vy = corner->y - finalStart->y;
+        const float onFinal = vx * ux + vy * uy;
+        vx -= onFinal * ux;
+        vy -= onFinal * uy;
+        const float outward = MAX(calc_length_pythagorean_2D(vx, vy), 1.0f);
+        end = corner;
+        ux = vx / outward;
+        uy = vy / outward;
+        after = calc_length_pythagorean_2D(turn->x - corner->x, turn->y - corner->y) + baseLength + finalLength;
     }
     const float dx = end->x - pos->x;
     const float dy = end->y - pos->y;
@@ -4081,9 +4102,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
             // would wait another 30 s each time)
             if (posControl.fwLandState.landingDirection >= 0 && navFwAutolandConfig()->downwindOffset) {
                 const int32_t side = fwLandCircuitSide(posControl.fwLandState.approachSettingIdx, approachHeading);
-                const bool rightOfLanding = wrap_18000(side - posControl.fwLandState.landingDirection) > 0;
-                const bool inner = rightOfLanding ? navGetFwLoiterDirection() < 0 : navGetFwLoiterDirection() > 0;
-                const int32_t exitHeading = inner ? side : wrap_36000(posControl.fwLandState.landingDirection + 18000);
+                const int32_t exitHeading = fwLandCircleTurnsInward(side) ? side : wrap_36000(posControl.fwLandState.landingDirection + 18000);
                 if (ABS(wrap_18000(posControl.actualState.yaw - exitHeading)) > FW_LAND_DOWNWIND_HEADING_TOLERANCE) {
                     fpVector3_t tmpPoint = fwLandLoiterCenter();
                     setDesiredPosition(&tmpPoint, posControl.fwLandState.landPosHeading, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z | NAV_POS_UPDATE_HEADING);
@@ -4120,21 +4139,41 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 tmpPos.z = finalAlt;
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH] = tmpPos;
 
+                const bool inward = offset && fwLandCircleTurnsInward(dir);
                 if (offset) {
-                    // The downwind leg is the circle's far tangent, two radii out from it; base turn abeam the start
-                    // of the final; downwind and base descend together from the approach altitude to the final
-                    // altitude
-                    const uint32_t downwindDistance = offset + 2 * fwLandCircleRadius();
+                    // The downwind leg is the circle's far tangent, two radii out from it. A circle left heading out
+                    // is followed by a straight to roll level and a 90 degree turn onto the downwind, which then lies
+                    // out by both. Base turn abeam the start of the final; the legs descend together from the
+                    // approach altitude to the final altitude
+                    const uint32_t downwindDistance = inward
+                        ? offset + fwLandCircleRadius() + posControl.fwLandState.turnRadius + posControl.actualState.velXY * FW_LAND_CIRCLE_EXIT_STRAIGHT_S
+                        : offset + 2 * fwLandCircleRadius();
                     calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, downwindDistance);
                     tmpPos.z = approachAlt - (approachAlt - finalAlt) * (float)finalLength / (finalLength + downwindDistance);
+                    if (inward) {
+                        // the corner onto the downwind, straight out from where the circle is left
+                        const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+                        const float sideRad = CENTIDEGREES_TO_RADIANS(dir);
+                        const float lateral = (pos->x - posControl.fwLandState.landPos.x) * cos_approx(sideRad)
+                            + (pos->y - posControl.fwLandState.landPos.y) * sin_approx(sideRad);
+                        fpVector3_t corner;
+                        calculateFarAwayPos(&corner, pos, dir, MAX(downwindDistance - lateral, 0.0f));
+                        corner.z = approachAlt;
+                        posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_DOWNWIND] = corner;
+                    }
                 } else {
                     calculateFarAwayPos(&tmpPos, &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], dir, MAX((uint32_t)navConfig()->fw.loiter_radius * 4, navFwAutolandConfig()->approachLength / 2));
                     tmpPos.z = approachAlt;
                 }
                 posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN] = tmpPos;
 
-                setLandWaypoint(&posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN], &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH]);
-                posControl.fwLandState.landCurrentWp = FW_AUTOLAND_WP_TURN;
+                if (inward) {
+                    setLandWaypoint(&posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_DOWNWIND], &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN]);
+                    posControl.fwLandState.landCurrentWp = FW_AUTOLAND_WP_DOWNWIND;
+                } else {
+                    setLandWaypoint(&posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN], &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH]);
+                    posControl.fwLandState.landCurrentWp = FW_AUTOLAND_WP_TURN;
+                }
                 posControl.fwLandState.landState = FW_AUTOLAND_STATE_DOWNWIND;
                 posControl.fwLandState.aimPos = aimPos;
                 posControl.fwLandState.pathLength = fwLandCircuitPathToGo();
@@ -4179,7 +4218,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
         posControl.fwLandState.landState = FW_AUTOLAND_STATE_GLIDE;
         return NAV_FSM_EVENT_SUCCESS;
     } else if (isWaypointReached(&posControl.fwLandState.landWaypoints[posControl.fwLandState.landCurrentWp], &posControl.activeWaypoint.bearing)) {
-        if (posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_TURN) {
+        if (posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_DOWNWIND) {
+            setLandWaypoint(&posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_TURN], &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH]);
+            posControl.fwLandState.landCurrentWp = FW_AUTOLAND_WP_TURN;
+            return NAV_FSM_EVENT_NONE;
+        } else if (posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_TURN) {
             setLandWaypoint(&posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_FINAL_APPROACH], &posControl.fwLandState.landWaypoints[FW_AUTOLAND_WP_LAND]);
             posControl.fwLandState.landCurrentWp = FW_AUTOLAND_WP_FINAL_APPROACH;
             posControl.fwLandState.landState = FW_AUTOLAND_STATE_BASE_LEG;

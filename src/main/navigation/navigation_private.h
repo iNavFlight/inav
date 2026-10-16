@@ -415,6 +415,7 @@ typedef struct {
 
 #ifdef USE_FW_AUTOLAND
 typedef enum {
+    FW_AUTOLAND_WP_DOWNWIND,       // corner onto the downwind leg, when the circle is left heading out
     FW_AUTOLAND_WP_TURN,
     FW_AUTOLAND_WP_FINAL_APPROACH,
     FW_AUTOLAND_WP_LAND,
