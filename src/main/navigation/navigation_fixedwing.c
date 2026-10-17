@@ -114,6 +114,7 @@
 #define FW_LAND_FLARE_PATH_I_S           2.0f     // [s] its integral holds the angle of attack; faster, on the late climb rate, it swung the nose
 #define FW_LAND_FLARE_ACCEL_LEAD_S       0.2f     // [s] the estimated climb rate trails the true one by 0.2-0.3 s: lead from the vertical acceleration
 #define FW_LAND_FLARE_ACCEL_LPF_HZ       3.0f     // airframe vibration off that lead
+#define FW_LAND_FLARE_NOSE_DOWN_DEG      4.0f     // [deg] the flare's lowest pitch when the approach had the nose higher
 
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
@@ -1850,6 +1851,7 @@ static timeUs_t fwLandApproachPitchUs;
 static float fwLandFlarePitch(timeUs_t currentTimeUs)
 {
     static float integral;
+    static float noseDownLimit;
     static timeUs_t previousTimeUs;
     const float dt = US2S(currentTimeUs - previousTimeUs);
     previousTimeUs = currentTimeUs;
@@ -1864,12 +1866,13 @@ static float fwLandFlarePitch(timeUs_t currentTimeUs)
     const float targetPath = RADIANS_TO_DEGREES(-posControl.fwLandState.flareSinkTarget / speed);
     const float pathError = targetPath - RADIANS_TO_DEGREES(climbRate / speed);
     const float noseUpLimit = navFwAutolandConfig()->flarePitch;
-    const float noseDownLimit = -(float)navConfig()->fw.max_dive_angle;
     if (dt > FW_LAND_PITCH_TRIM_GAP_S) {
         // a new flare: from the pitch the approach commanded, without a step (from the attitude it dropped the nose
         // where the two differed)
         const float entryPitch = US2S(currentTimeUs - fwLandApproachPitchUs) < FW_LAND_PITCH_TRIM_GAP_S
             ? fwLandApproachPitch : -DECIDEGREES_TO_DEGREES((float)attitude.values.pitch);
+        // never further down than that, or 4 deg: ballooned at speed, the law dove to -9 deg at 1.5 m and hit at 2 m/s
+        noseDownLimit = MAX(MIN(entryPitch, -FW_LAND_FLARE_NOSE_DOWN_DEG), -(float)navConfig()->fw.max_dive_angle);
         integral = entryPitch - targetPath - FW_LAND_FLARE_PATH_P * pathError;
     } else {
         integral = constrainf(integral + pathError * dt / FW_LAND_FLARE_PATH_I_S, noseDownLimit, noseUpLimit);
