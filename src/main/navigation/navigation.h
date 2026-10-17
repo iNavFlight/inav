@@ -851,6 +851,7 @@ emergLandState_e getStateOfForcedEmergLanding(void);
 /* Getter functions which return data about the state of the navigation system */
 bool navigationRequiresAutoThrottleMode(void);
 bool navigationIsControllingThrottle(void);
+bool navigationIsFlyingFwAutoland(void);
 bool isFixedWingAutoThrottleManuallyIncreased(void);
 bool navigationIsFlyingAutonomousMode(void);
 bool navigationIsExecutingAnEmergencyLanding(void);
