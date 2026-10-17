@@ -109,6 +109,7 @@
 #define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
 #define FW_LAND_FLARE_VERT_ACCEL         400.0f   // [cm/s2] the flare's pitch rate limit at the speed (ArduPilot, PX4: 700)
+#define FW_LAND_ZERO_LIFT_AOA            -4.0f    // [deg] assumed with flaps, for the angle of attack the flare's slowing needs
 #define FW_LAND_FLARE_BANK_LIMIT         5.0f     // [deg] in the glide and flare (ArduPilot LEVEL_ROLL_LIMIT)
 #define FW_LAND_FLARE_PATH_P             0.7f     // [deg of pitch per deg of flight path error] sink-rate flare
 #define FW_LAND_FLARE_PATH_I_S           2.0f     // [s] its integral holds the angle of attack; faster, on the late climb rate, it swung the nose
@@ -1844,12 +1845,16 @@ static timeUs_t fwLandApproachPitchUs;
 static float fwLandFlarePitch(timeUs_t currentTimeUs)
 {
     static float integral;
+    static float entryAirspeed;
+    static float entryAoa;
     static timeUs_t previousTimeUs;
     const float dt = US2S(currentTimeUs - previousTimeUs);
     previousTimeUs = currentTimeUs;
     const float speed = MAX(posControl.actualState.velXY, 100.0f);
+    const float airspeed = MAX(pitotGetValidForAirspeed() ? getAirspeedEstimate() : posControl.actualState.velXY + navGetFwLandHeadwind(), 100.0f);
+    const float pathAngle = RADIANS_TO_DEGREES(navGetFwLandClimbRate() / speed);
     const float targetPath = RADIANS_TO_DEGREES(-posControl.fwLandState.flareSinkTarget / speed);
-    const float pathError = targetPath - RADIANS_TO_DEGREES(navGetFwLandClimbRate() / speed);
+    const float pathError = targetPath - pathAngle;
     const float noseUpLimit = navFwAutolandConfig()->flarePitch;
     const float noseDownLimit = -(float)navConfig()->fw.max_dive_angle;
     if (dt > FW_LAND_PITCH_TRIM_GAP_S) {
@@ -1858,10 +1863,16 @@ static float fwLandFlarePitch(timeUs_t currentTimeUs)
         const float entryPitch = US2S(currentTimeUs - fwLandApproachPitchUs) < FW_LAND_PITCH_TRIM_GAP_S
             ? fwLandApproachPitch : -DECIDEGREES_TO_DEGREES((float)attitude.values.pitch);
         integral = entryPitch - targetPath - FW_LAND_FLARE_PATH_P * pathError;
+        entryAirspeed = airspeed;
+        entryAoa = MAX(-DECIDEGREES_TO_DEGREES((float)attitude.values.pitch) - pathAngle, FW_LAND_ZERO_LIFT_AOA + 2.0f);
     } else {
         integral = constrainf(integral + pathError * dt / FW_LAND_FLARE_PATH_I_S, noseDownLimit, noseUpLimit);
     }
-    return constrainf(targetPath + integral + FW_LAND_FLARE_PATH_P * pathError, noseDownLimit, noseUpLimit);
+    // The lift holding the weight, (angle of attack - zero-lift one) grows with (entry airspeed / airspeed)^2 as the
+    // flare slows the aircraft, faster near the ground than the integral follows: it is fed forward
+    const float slowing = sq(entryAirspeed / airspeed) - 1.0f;
+    const float aoaRamp = constrainf((entryAoa - FW_LAND_ZERO_LIFT_AOA) * slowing, 0.0f, noseUpLimit);
+    return constrainf(targetPath + integral + aoaRamp + FW_LAND_FLARE_PATH_P * pathError, noseDownLimit, noseUpLimit);
 }
 #endif
 
