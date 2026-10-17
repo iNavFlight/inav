@@ -4096,12 +4096,18 @@ static navigationFSMEvent_t fwLandGoAround(void)
 // Stabilised approach gate (FSF ALAR 7.1): before the runway start the aircraft stays above its set height there less
 // a metre; at the runway start no more than 2 m above it, within its approach speed. Otherwise it goes around: low over
 // the ground before the runway, or long, slow or fast onto it
-static navigationFSMEvent_t fwLandRunwayStartGate(void)
+// Distance [cm] past the runway start along the landing direction, negative before it
+static float fwLandPastRunwayStart(void)
 {
     const float direction = CENTIDEGREES_TO_RADIANS(posControl.fwLandState.landingDirection);
     const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
-    const float along = (pos->x - posControl.fwLandState.runwayStartPos.x) * cos_approx(direction)
+    return (pos->x - posControl.fwLandState.runwayStartPos.x) * cos_approx(direction)
         + (pos->y - posControl.fwLandState.runwayStartPos.y) * sin_approx(direction);
+}
+
+static navigationFSMEvent_t fwLandRunwayStartGate(void)
+{
+    const float along = fwLandPastRunwayStart();
     const float height = getLandAltitude() - posControl.fwLandState.landAltAgl;
     if (along < 0.0f) {
         const timeUs_t now = micros();
@@ -4389,9 +4395,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
     }
 
     // The sink-rate flare starts where its law asks the sink the aircraft has, on the rangefinder's height when it has
-    // one; the pitch glide at nav_fw_land_glide_alt
+    // one; the pitch glide at nav_fw_land_glide_alt. With the runway start set, not on the final before it: there the
+    // rangefinder can take a hedge or raised ground for the runway, and the flare took the power off over the field
+    const bool beforeRunway = posControl.fwLandState.runwayStartHeight > 0.0f
+        && posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_LAND && fwLandPastRunwayStart() < 0.0f;
     const float glideStart = navFwAutolandConfig()->flareSink ? fwLandFlareStartHeight(-navGetFwLandClimbRate()) : navFwAutolandConfig()->glideAltitude;
-    if (getLandAltitude() <= fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landAlt + glideStart - (fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->isSeaLevelRef ? GPS_home.alt : 0)) {
+    if (!beforeRunway && getLandAltitude() <= fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landAlt + glideStart - (fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->isSeaLevelRef ? GPS_home.alt : 0)) {
         resetPositionController();
         posControl.cruise.course = posControl.fwLandState.landingDirection;
         posControl.cruise.previousCourse = posControl.cruise.course;
