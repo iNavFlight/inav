@@ -5015,10 +5015,10 @@
 | `OSD_GPS_EXTRA_STATS` | 169 |  |
 | `OSD_AUTO_SPEED` | 170 |  |
 | `OSD_TERRAIN_AGL` | 171 |  |
-| `OSD_CONTROL_PROFILE_NAME` | 172 |  |
-| `OSD_BATTERY_PROFILE_NAME` | 173 |  |
-| `OSD_MIXER_PROFILE_NAME` | 174 |  |
-| `OSD_ITEM_COUNT` | 175 |  |
+| `OSD_CONTROL_PROFILE_NAME` | 174 |  |
+| `OSD_BATTERY_PROFILE_NAME` | 175 |  |
+| `OSD_MIXER_PROFILE_NAME` | 176 |  |
+| `OSD_ITEM_COUNT` | 177 |  |
 
 ---
 ## <a id="enum-osd_sidebar_arrow_e"></a>`osd_sidebar_arrow_e`
