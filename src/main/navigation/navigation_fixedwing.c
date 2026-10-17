@@ -285,6 +285,9 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 #ifdef USE_FW_AUTOLAND
     if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH) {
         desiredClimbRate += posControl.fwLandState.pathClimbRate;
+        if (posControl.fwLandState.pathSinkLimit > 0.0f && posControl.fwLandState.pathClimbRate < 0.0f) {
+            desiredClimbRate = MAX(desiredClimbRate, posControl.fwLandState.pathSinkLimit * posControl.fwLandState.pathClimbRate);
+        }
     }
 #endif
 

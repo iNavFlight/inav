@@ -446,6 +446,7 @@ typedef struct {
     float pathFlown;
     float pathStartAlt;
     float pathClimbRate;            // [cm/s] the circuit path's, where the aircraft is
+    float pathSinkLimit;            // [times pathClimbRate] most descent asked on the final, 0 elsewhere
     int16_t approachThrottle;
     timeUs_t throttleCutUs;
     float flareTimeS;

@@ -105,6 +105,7 @@
 #define FW_LAND_CIRCLE_EXIT_STRAIGHT_S 1.5f     // straight out of a circle left heading out, to roll level
 #define FW_LAND_CENTERLINE_DEG_PER_M 1.5f       // [deg of course per m off the runway axis] glide and flare: ~3 s to it
 #define FW_LAND_CENTERLINE_MAX_DEG  6.0f
+#define FW_LAND_FINAL_SINK_MAX      1.5f        // [times the path's sink] most asked on the final: high, it lands longer
 
 #define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
 #define FW_COURSE_LOCK_FORCE_TIMEOUT_MS 2500 // failsafe: force the lock this long after stick centre even if still banked
@@ -4365,6 +4366,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 posControl.fwLandState.pathLength = fwLandCircuitPathToGo();
                 posControl.fwLandState.pathFlown = 0.0f;
                 posControl.fwLandState.pathClimbRate = 0.0f;
+                posControl.fwLandState.pathSinkLimit = 0.0f;
                 // from where the aircraft is, not the circle altitude: a step down there was flown as a dive into
                 // the first turn
                 posControl.fwLandState.pathStartAlt = MAX(getEstimatedActualPosition(Z), (float)finalAlt);
@@ -4453,12 +4455,16 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
         // the altitude error, it trailed a sloped path by its sink rate over the response, 1 to 2 m on the final
         posControl.fwLandState.pathClimbRate = (fwLandCircuitPathAltitude(toGo - 100.0f, posControl.fwLandState.pathFlown + 100.0f)
             - tmpWaypoint.z) / 100.0f * posControl.actualState.velXY;
+        // high on the final it does not dive at the ground (ArduPilot TECS_LAND_SINK): in a HITL headwind it went over the
+        // runway start 1.5 m high, dove at 3.5 m/s to the path and hit at 2.6; twice the path's sink still dove under it
+        posControl.fwLandState.pathSinkLimit = posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_LAND ? FW_LAND_FINAL_SINK_MAX : 0.0f;
         // a metre below the final's line the aircraft holds its altitude until it meets it, instead of climbing back
         if (posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_LAND && getEstimatedActualPosition(Z) < tmpWaypoint.z - 100.0f) {
             tmpWaypoint.z = getEstimatedActualPosition(Z);
             posControl.fwLandState.pathClimbRate = 0.0f;
         }
     } else {
+        posControl.fwLandState.pathSinkLimit = 0.0f;
         tmpWaypoint.z = scaleRangef(constrainf(posControl.wpDistance, posControl.wpInitialDistance / 10.0f, posControl.wpInitialDistance),
             posControl.wpInitialDistance, posControl.wpInitialDistance / 10.0f,
             posControl.wpInitialAltitude, posControl.activeWaypoint.pos.z);
