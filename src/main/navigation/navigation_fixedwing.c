@@ -37,6 +37,7 @@
 #include "sensors/pitotmeter.h"
 
 #include "flight/pid.h"
+#include "flight/wind_estimator.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
@@ -107,6 +108,8 @@
 #define FW_LAND_PITCH_TRIM_RATE          30.0f    // [pitch PID output/s per deg] glide/flare re-trim on the attitude error
 #define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
+#define FW_LAND_FLARE_VERT_ACCEL         400.0f   // [cm/s2] the flare's pitch rate limit at the speed (ArduPilot, PX4: 700)
+#define FW_LAND_FLARE_BANK_LIMIT         5.0f     // [deg] in the glide and flare (ArduPilot LEVEL_ROLL_LIMIT)
 #define FW_LAND_FLARE_PATH_P             0.7f     // [deg of pitch per deg of flight path error] sink-rate flare
 #define FW_LAND_FLARE_PATH_I_S           2.0f     // [s] its integral holds the angle of attack; faster, on the late climb rate, it swung the nose
 
@@ -277,6 +280,11 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
 {
 
     float desiredClimbRate = getDesiredClimbRate(posControl.desiredState.pos.z, deltaMicros);
+#ifdef USE_FW_AUTOLAND
+    if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH) {
+        desiredClimbRate += posControl.fwLandState.pathClimbRate;
+    }
+#endif
 
     // Reduce max allowed climb rate by 2/3 if performing loiter (stall prevention)
     if (navGetCurrentStateFlags() & NAV_CTL_HOLD && desiredClimbRate > 0.67f * navConfig()->fw.max_auto_climb_rate) {
@@ -644,12 +652,14 @@ uint16_t navGetFwLandApproachSpeed(void)
     return 0;
 }
 
-// held from the wind circle to the throttle cut
+// held from the wind circle to the throttle cut, with half the headwind on top as pilots add: the gusts in it and the
+// slower groundspeed it leaves
 static uint16_t fwLandHeldApproachSpeed(void)
 {
     const bool held = posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER || posControl.navState == NAV_STATE_FW_LANDING_LOITER
         || posControl.navState == NAV_STATE_FW_LANDING_APPROACH;
-    return held ? navGetFwLandApproachSpeed() : 0;
+    const uint16_t speed = held ? navGetFwLandApproachSpeed() : 0;
+    return speed ? speed + lrintf(MAX(navGetFwLandHeadwind(), 0.0f) * FW_LAND_WIND_COMP) : 0;
 }
 
 static float fwCoordinatedTurnRadiusAt(float speed)
@@ -1824,6 +1834,10 @@ float navGetFwLandClimbRate(void)
     return posControl.flags.estAglStatus == EST_TRUSTED ? posControl.actualState.agl.vel.z : posControl.actualState.abs.vel.z;
 }
 
+// the pitch the approach last commanded [deg, nose up]: the flare starts from it
+static float fwLandApproachPitch;
+static timeUs_t fwLandApproachPitchUs;
+
 // Sink-rate glide and flare pitch [deg, nose up]: the flight path angle of the target sink rate plus the angle of attack,
 // which the integral of the path error finds. A PI on the path error alone trailed the round-out by the second the pitch
 // loop and the flight path take and swung the nose about it
@@ -1839,8 +1853,11 @@ static float fwLandFlarePitch(timeUs_t currentTimeUs)
     const float noseUpLimit = navFwAutolandConfig()->flarePitch;
     const float noseDownLimit = -(float)navConfig()->fw.max_dive_angle;
     if (dt > FW_LAND_PITCH_TRIM_GAP_S) {
-        // a new glide: from the pitch the aircraft holds, without a step
-        integral = -DECIDEGREES_TO_DEGREES((float)attitude.values.pitch) - targetPath - FW_LAND_FLARE_PATH_P * pathError;
+        // a new flare: from the pitch the approach commanded, without a step (from the attitude it dropped the nose
+        // where the two differed)
+        const float entryPitch = US2S(currentTimeUs - fwLandApproachPitchUs) < FW_LAND_PITCH_TRIM_GAP_S
+            ? fwLandApproachPitch : -DECIDEGREES_TO_DEGREES((float)attitude.values.pitch);
+        integral = entryPitch - targetPath - FW_LAND_FLARE_PATH_P * pathError;
     } else {
         integral = constrainf(integral + pathError * dt / FW_LAND_FLARE_PATH_I_S, noseDownLimit, noseUpLimit);
     }
@@ -1859,7 +1876,13 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
 
     if (isRollAdjustmentValid && (navStateFlags & NAV_CTL_POS)) {
         // ROLL >0 right, <0 left
-        const int16_t navBankLimitDeciDeg = (int16_t)lrintf(DEGREES_TO_DECIDEGREES(getFwControlBankLimit()));
+        float bankLimit = getFwControlBankLimit();
+#ifdef USE_FW_AUTOLAND
+        if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE) {
+            bankLimit = MIN(bankLimit, FW_LAND_FLARE_BANK_LIMIT);
+        }
+#endif
+        const int16_t navBankLimitDeciDeg = (int16_t)lrintf(DEGREES_TO_DECIDEGREES(bankLimit));
         int16_t rollCorrection = constrain(posControl.rcAdjustment[ROLL], -navBankLimitDeciDeg, navBankLimitDeciDeg);
         rcCommand[ROLL] = pidAngleToRcCommand(rollCorrection, pidProfile()->max_angle_inclination[FD_ROLL]);
     }
@@ -1872,6 +1895,12 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         // PITCH >0 dive, <0 climb
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
+#ifdef USE_FW_AUTOLAND
+        if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH) {
+            fwLandApproachPitch = DECIDEGREES_TO_DEGREES(pitchCorrection);
+            fwLandApproachPitchUs = currentTimeUs;
+        }
+#endif
 
         if (isFixedwingAutoSpeedActive()) {
             isAutoThrottleManuallyIncreased = false;
@@ -1937,11 +1966,21 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             float noseUp = fwLandFlarePitch(currentTimeUs);
             // the wheels touch with the nose a little up: below the height of the flare sink the lowest pitch rises
             // to the glide pitch at the ground, slow and low (at the speed of the final a floor floated the aircraft)
-            const float floorHeight = MAX(navFwAutolandConfig()->flareSink, 1U) * FW_LAND_ROUNDOUT_TIME_S;
+            const float floorHeight = MAX(navFwAutolandConfig()->flareSink, 1U) * navFwAutolandConfig()->flareTime * 0.1f;
             if (posControl.fwLandState.flareHeight < floorHeight) {
                 const float touchdownPitch = MIN(navFwAutolandConfig()->glidePitch, (int8_t)navFwAutolandConfig()->flarePitch);
                 noseUp = MAX(noseUp, touchdownPitch * (1.0f - posControl.fwLandState.flareHeight / floorHeight));
             }
+            // the nose moves no faster than a vertical acceleration allows at the speed (ArduPilot and PX4 VERT_ACC)
+            static float previousNoseUp;
+            static timeUs_t previousNoseUs;
+            const float dtNose = US2S(currentTimeUs - previousNoseUs);
+            previousNoseUs = currentTimeUs;
+            if (dtNose <= FW_LAND_PITCH_TRIM_GAP_S) {
+                const float step = RADIANS_TO_DEGREES(FW_LAND_FLARE_VERT_ACCEL / MAX(posControl.actualState.velXY, 100.0f)) * dtNose;
+                noseUp = constrainf(noseUp, previousNoseUp - step, previousNoseUp + step);
+            }
+            previousNoseUp = noseUp;
             fwLandRetrimPitch(noseUp, currentTimeUs);
             rcCommand[PITCH] = -pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(noseUp), pidProfile()->max_angle_inclination[FD_PITCH]);
         } else if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {

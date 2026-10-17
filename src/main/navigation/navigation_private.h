@@ -183,6 +183,7 @@ typedef enum {
 
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_ABORT = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_2,
+    NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_FW_LANDING_GO_AROUND = NAV_FSM_EVENT_STATE_SPECIFIC_3,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_HOLD_TIME = NAV_FSM_EVENT_STATE_SPECIFIC_1,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_RTH_LAND = NAV_FSM_EVENT_STATE_SPECIFIC_2,
     NAV_FSM_EVENT_SWITCH_TO_WAYPOINT_FINISHED = NAV_FSM_EVENT_STATE_SPECIFIC_3,
@@ -422,7 +423,7 @@ typedef enum {
     FW_AUTOLAND_WP_COUNT,
 } fwAutolandWaypoint_t;
 
-#define FW_LAND_ROUNDOUT_TIME_S 2.0f    // sink-rate flare: sink = height / this, down to the flare sink rate
+#define FW_LAND_WIND_COMP       0.5f    // of the headwind, added to the approach speed
 
 typedef struct {
     timeUs_t loiterStartTime;
@@ -444,16 +445,24 @@ typedef struct {
     float pathLength;
     float pathFlown;
     float pathStartAlt;
+    float pathClimbRate;            // [cm/s] the circuit path's, where the aircraft is
     int16_t approachThrottle;
     timeUs_t throttleCutUs;
     float flareTimeS;
     float flareSinkTarget;
     float flareHeight;
-    float roundOutHeight;
+    float flareEntryHeight;
+    float flareEntryOffset;         // [cm/s] the sink at the flare start over its law's, blended out
+    fpVector3_t runwayStartPos;
+    float runwayStartHeight;        // [cm] over the runway start; 0: no gate
+    timeUs_t gateLowUs;
     timeUs_t pathTimeUs;
     uint8_t approachSettingIdx;
     fwAutolandWaypoint_t landCurrentWp;
     bool landAborted;
+    bool runwayStartPassed;
+    bool goingAround;
+    uint8_t goArounds;
     bool landWp;
     bool rthToCircuit;
     fwAutolandState_t landState;
@@ -668,6 +677,7 @@ uint32_t navGetFwPlannedTurnRadiusAt(float speed);
 uint32_t navGetFwPlannedTurnLead(void);
 uint16_t navGetFwLandApproachSpeed(void);
 float navGetFwLandClimbRate(void);
+float navGetFwLandHeadwind(void);
 int8_t navGetFwLoiterDirection(void);
 bool navIsFwLoiterEstablished(void);
 

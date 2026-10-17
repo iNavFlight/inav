@@ -117,6 +117,7 @@ typedef struct navFwAutolandConfig_s
     uint32_t aimOffset;
     uint16_t flareSink;
     uint16_t approachSpeed;
+    uint8_t flareTime;
 } navFwAutolandConfig_t;
 
 PG_DECLARE(navFwAutolandConfig_t, navFwAutolandConfig);

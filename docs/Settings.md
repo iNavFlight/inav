@@ -3862,7 +3862,7 @@ Length of the final approach
 
 ### nav_fw_land_approach_speed
 
-Airspeed [cm/s] the landing holds with the throttle, through the Auto Speed controller, from the wind circle to the throttle cut, within `fw_auto_speed_min_speed` and `fw_auto_speed_max_speed`; the wind circle is planned for it. With flaps it can be lower than the cruise speed: a smaller circle, gentler turns and a slower touchdown. On the descending legs the throttle may go below `nav_fw_min_thr`, down to idle, to hold it. It needs a valid airspeed (a pitot, or `pitot_hardware` VIRTUAL with a wind estimate) and is never held on ground speed, which downwind would fly the aircraft slower than set; without it, or at 0, the throttle follows the pitch as in the rest of the navigation.
+Airspeed [cm/s] the landing holds with the throttle, through the Auto Speed controller, from the wind circle to the throttle cut, within `fw_auto_speed_min_speed` and `fw_auto_speed_max_speed`; the wind circle is planned for it. With flaps it can be lower than the cruise speed: a smaller circle, gentler turns and a slower touchdown. Half the headwind along the final is added to it. On the descending legs the throttle may go below `nav_fw_min_thr`, down to idle, to hold it. It needs a valid airspeed (a pitot, or `pitot_hardware` VIRTUAL with a wind estimate) and is never held on ground speed, which downwind would fly the aircraft slower than set; without it, or at 0, the throttle follows the pitch as in the rest of the navigation.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3932,11 +3932,21 @@ Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder
 
 ### nav_fw_land_flare_sink
 
-Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set, the final of the landing circuit rounds out under power where its sink rate equals the height / 2 s, easing with the height; from `nav_fw_land_glide_alt` the pitch follows the flight path angle of that sink rate, down to this one, raising the nose as the aircraft slows down up to `nav_fw_land_flare_pitch` (the highest pitch commanded); below the height of this sink rate the lowest pitch rises to `nav_fw_land_glide_pitch` at the ground, so the wheels touch nose up. With a healthy rangefinder the round-out is flown on its height from the start. From `nav_fw_land_glide_alt` the approach power is taken off over the time the flare takes to the ground, so the aircraft slows down while the nose comes up. The final is aimed short by the distance the round-out and this sink add, so the wheels touch at `nav_fw_land_aim_offset`. 0 keeps the pitch glide and flare.
+Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set, the landing flares on its sink rate: it asks (height + this x `nav_fw_land_flare_time`) / `nav_fw_land_flare_time`, starting where that equals the sink the aircraft has and blending from it, so it ends at this sink on the ground; the pitch is the flight path angle of that sink plus the angle of attack, up to `nav_fw_land_flare_pitch`, and the power comes off over the flare. The final is aimed short by the flare's run, so the wheels touch at `nav_fw_land_aim_offset`. 0 keeps the pitch glide and flare.
 
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 500 |
+
+---
+
+### nav_fw_land_flare_time
+
+Time constant [ds] of the sink-rate flare (`nav_fw_land_flare_sink` set): its target sink is (height + this x the flare sink) / this, so it ends at the flare sink on the ground, and it starts where that target equals the sink the aircraft has, between `nav_fw_land_flare_alt` and twice `nav_fw_land_glide_alt`. Longer is gentler and longer over the ground; it should be at least twice the time the aircraft takes to answer a pitch command with its flight path, about a second on a small model.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 5 | 60 |
 
 ---
 
