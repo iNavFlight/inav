@@ -109,8 +109,8 @@
 #define FW_LAND_PITCH_TRIM_MIN_AGL       30.0f    // [cm] below this the wheels are on the runway
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
 #define FW_LAND_FLARE_VERT_ACCEL         400.0f   // [cm/s2] the flare's pitch rate limit at the speed (ArduPilot, PX4: 700)
-#define FW_LAND_FLARE_MIN_SPEED          0.95f    // of the approach speed, held with power in the flare
-#define FW_LAND_FLARE_SPEED_BAND         100.0f   // [cm/s] under it the cruise throttle, twice as much the maximum
+#define FW_LAND_FLARE_MIN_SPEED          0.9f     // of the approach speed, held with power in the flare
+#define FW_LAND_FLARE_SPEED_BAND         200.0f   // [cm/s] under it, the cruise throttle
 #define FW_LAND_ZERO_LIFT_AOA            -4.0f    // [deg] assumed with flaps, for the angle of attack the flare's slowing needs
 #define FW_LAND_FLARE_BANK_LIMIT         5.0f     // [deg] in the glide and flare (ArduPilot LEVEL_ROLL_LIMIT)
 #define FW_LAND_FLARE_PATH_P             0.7f     // [deg of pitch per deg of flight path error] sink-rate flare
@@ -1978,8 +1978,8 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             const uint16_t approachSpeed = navGetFwLandApproachSpeed();
             const float lastHeight = MAX(navFwAutolandConfig()->flareSink, 1U) * navFwAutolandConfig()->flareTime * 0.1f;
             if (approachSpeed && pitotGetValidForAirspeed() && posControl.fwLandState.flareHeight > lastHeight) {
-                const float deficit = constrainf((approachSpeed * FW_LAND_FLARE_MIN_SPEED - getAirspeedEstimate()) / FW_LAND_FLARE_SPEED_BAND, 0.0f, 2.0f);
-                throttle = MAX(throttle, MIN(idle + (MAX(cruiseThrottle, idle) - idle) * deficit, maxThrottle));
+                const float deficit = constrainf((approachSpeed * FW_LAND_FLARE_MIN_SPEED - getAirspeedEstimate()) / FW_LAND_FLARE_SPEED_BAND, 0.0f, 1.0f);
+                throttle = MAX(throttle, idle + (MAX(cruiseThrottle, idle) - idle) * deficit);
             }
         }
         if (throttle > idle) {
