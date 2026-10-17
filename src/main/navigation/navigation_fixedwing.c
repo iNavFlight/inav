@@ -112,6 +112,8 @@
 #define FW_LAND_FLARE_BANK_LIMIT         5.0f     // [deg] in the glide and flare (ArduPilot LEVEL_ROLL_LIMIT)
 #define FW_LAND_FLARE_PATH_P             0.7f     // [deg of pitch per deg of flight path error] sink-rate flare
 #define FW_LAND_FLARE_PATH_I_S           2.0f     // [s] its integral holds the angle of attack; faster, on the late climb rate, it swung the nose
+#define FW_LAND_FLARE_ACCEL_LEAD_S       0.2f     // [s] the estimated climb rate trails the true one by 0.2-0.3 s: lead from the vertical acceleration
+#define FW_LAND_FLARE_ACCEL_LPF_HZ       3.0f     // airframe vibration off that lead
 
 // Turn-coordination feed-forward: heading-error window over which the WP-turn FF tapers in (centideg)
 #define NAV_FW_FF_HEADING_DEADBAND_CD    500.0f   // below this heading error: no WP-turn FF
@@ -1847,9 +1849,16 @@ static float fwLandFlarePitch(timeUs_t currentTimeUs)
     static timeUs_t previousTimeUs;
     const float dt = US2S(currentTimeUs - previousTimeUs);
     previousTimeUs = currentTimeUs;
+    static pt1Filter_t verticalAccelFilter;
+    if (dt > FW_LAND_PITCH_TRIM_GAP_S) {
+        pt1FilterSetCutoff(&verticalAccelFilter, FW_LAND_FLARE_ACCEL_LPF_HZ);
+        pt1FilterReset(&verticalAccelFilter, navAccNEU[Z]);
+    }
+    const float verticalAccel = pt1FilterApply3(&verticalAccelFilter, navAccNEU[Z], dt);
+    const float climbRate = navGetFwLandClimbRate() + FW_LAND_FLARE_ACCEL_LEAD_S * verticalAccel;
     const float speed = MAX(posControl.actualState.velXY, 100.0f);
     const float targetPath = RADIANS_TO_DEGREES(-posControl.fwLandState.flareSinkTarget / speed);
-    const float pathError = targetPath - RADIANS_TO_DEGREES(navGetFwLandClimbRate() / speed);
+    const float pathError = targetPath - RADIANS_TO_DEGREES(climbRate / speed);
     const float noseUpLimit = navFwAutolandConfig()->flarePitch;
     const float noseDownLimit = -(float)navConfig()->fw.max_dive_angle;
     if (dt > FW_LAND_PITCH_TRIM_GAP_S) {
