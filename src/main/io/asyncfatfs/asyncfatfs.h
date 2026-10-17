@@ -94,6 +94,10 @@ uint32_t afatfs_getContiguousFreeSpace(void);
 #define AFATFS_FREE_SPACE_UNKNOWN 0xFFFFFFFF
 uint32_t afatfs_getFreeSpaceKB(void);
 bool afatfs_isFull(void);
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+bool afatfs_freeFileCanContinue(void);
+bool afatfs_freeFileHasRoom(void);
+#endif
 
 afatfsFilesystemState_e afatfs_getFilesystemState(void);
 afatfsError_e afatfs_getLastError(void);
