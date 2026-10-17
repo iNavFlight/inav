@@ -4018,14 +4018,15 @@ static float fwLandCircuitPathAltitude(float toGo, float flown)
     return MIN(legs, landAlt + slope * toGo);
 }
 
-// The sink-rate flare's time constant [s] and its bias [cm]: target sink = (height + bias) / time constant, the
-// airliner flare law, which ends at nav_fw_land_flare_sink on the ground in a finite time
+// The sink-rate flare's time constant [s], and the height [cm] below which it holds nav_fw_land_flare_sink: target
+// sink = height / time constant down to it. The airliner law with a bias, (height + bias) / time constant, asked
+// 0.3 m/s at 0.3 m and touched down at 0.35-0.5 m/s in HITL against 0.25 with the floor
 static float fwLandFlareTime(void)
 {
     return navFwAutolandConfig()->flareTime * 0.1f;
 }
 
-static float fwLandFlareBias(void)
+static float fwLandFlareFloorHeight(void)
 {
     return MAX((float)navFwAutolandConfig()->flareSink, 1.0f) * fwLandFlareTime();
 }
@@ -4034,8 +4035,15 @@ static float fwLandFlareBias(void)
 // or wind (ArduPilot LAND_FLARE_SEC, PX4 FW_LND_FL_TIME)
 static float fwLandFlareStartHeight(float sink)
 {
-    return constrainf(sink * fwLandFlareTime() - fwLandFlareBias(), navFwAutolandConfig()->flareAltitude,
-        2.0f * navFwAutolandConfig()->glideAltitude);
+    return constrainf(sink * fwLandFlareTime(), navFwAutolandConfig()->flareAltitude, 2.0f * navFwAutolandConfig()->glideAltitude);
+}
+
+// Time [s] the flare takes from a height [cm] to the ground
+static float fwLandFlareDuration(float height)
+{
+    const float floorHeight = fwLandFlareFloorHeight();
+    return height > floorHeight ? fwLandFlareTime() * (logf(height / floorHeight) + 1.0f)
+        : height / MAX((float)navFwAutolandConfig()->flareSink, 1.0f);
 }
 
 // Headwind [cm/s] along the landing direction
@@ -4062,13 +4070,12 @@ static float fwLandFinalGroundSpeed(void)
 static void fwLandUpdateSinkFlare(void)
 {
     const float height = MAX(getLandAltitude() - posControl.fwLandState.landAltAgl, 0.0f);
-    const float bias = fwLandFlareBias();
-    const float lawSink = (height + bias) / fwLandFlareTime();
+    const float lawSink = MAX(height / fwLandFlareTime(), (float)navFwAutolandConfig()->flareSink);
     if (!posControl.fwLandState.throttleCutUs) {
         posControl.fwLandState.throttleCutUs = micros();
         posControl.fwLandState.flareEntryHeight = MAX(height, 1.0f);
         posControl.fwLandState.flareEntryOffset = -navGetFwLandClimbRate() - lawSink;
-        posControl.fwLandState.flareTimeS = fwLandFlareTime() * logf((height + bias) / bias);
+        posControl.fwLandState.flareTimeS = fwLandFlareDuration(height);
     }
     const float half = posControl.fwLandState.flareEntryHeight * 0.5f;
     posControl.fwLandState.flareHeight = height;
@@ -4270,8 +4277,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 if (offset && navFwAutolandConfig()->flareSink) {
                     const float groundSpeed = fwLandFinalGroundSpeed();
                     const float start = fwLandFlareStartHeight(slope * groundSpeed);
-                    const float bias = fwLandFlareBias();
-                    flareRun = groundSpeed * fwLandFlareTime() * logf((start + bias) / bias) - start / MAX(slope, 0.001f);
+                    flareRun = groundSpeed * fwLandFlareDuration(start) - start / MAX(slope, 0.001f);
                 }
                 // Where the line meets the ground, before the site [cm]: with the runway start set the line crosses it
                 // at its height and the gate checks it there, else the wheels touch nav_fw_land_aim_offset before the site

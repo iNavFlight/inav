@@ -3932,7 +3932,7 @@ Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder
 
 ### nav_fw_land_flare_sink
 
-Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set, the landing flares on its sink rate: it asks (height + this x `nav_fw_land_flare_time`) / `nav_fw_land_flare_time`, starting where that equals the sink the aircraft has and blending from it, so it ends at this sink on the ground; the pitch is the flight path angle of that sink plus the angle of attack, up to `nav_fw_land_flare_pitch`, and the power comes off over the flare. The final is aimed short by the flare's run, so the wheels touch at `nav_fw_land_aim_offset`. 0 keeps the pitch glide and flare.
+Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set, the landing flares on its sink rate: it asks the height / `nav_fw_land_flare_time` down to this sink, held from there to the ground, starting where that equals the sink the aircraft has and blending from it; the pitch is the flight path angle of that sink plus the angle of attack, up to `nav_fw_land_flare_pitch`, and the power comes off over the flare. The final is aimed short by the flare's run, so the wheels touch at `nav_fw_land_aim_offset`. 0 keeps the pitch glide and flare.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3942,7 +3942,7 @@ Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set,
 
 ### nav_fw_land_flare_time
 
-Time constant [ds] of the sink-rate flare (`nav_fw_land_flare_sink` set): its target sink is (height + this x the flare sink) / this, so it ends at the flare sink on the ground, and it starts where that target equals the sink the aircraft has, between `nav_fw_land_flare_alt` and twice `nav_fw_land_glide_alt`. Longer is gentler and longer over the ground; it should be at least twice the time the aircraft takes to answer a pitch command with its flight path, about a second on a small model.
+Time constant [ds] of the sink-rate flare (`nav_fw_land_flare_sink` set): its target sink is the height / this down to the flare sink, and it starts where that target equals the sink the aircraft has, between `nav_fw_land_flare_alt` and twice `nav_fw_land_glide_alt`. Longer is gentler and longer over the ground; it should be at least twice the time the aircraft takes to answer a pitch command with its flight path, about a second on a small model.
 
 | Default | Min | Max |
 | --- | --- | --- |
