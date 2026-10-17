@@ -194,7 +194,7 @@ Available debug modes include:
 - `GPS` - GPS debugging
 - `ALTITUDE` - Altitude estimation debugging
 - `MAG` - Raw, uncalibrated magnetometer samples (useful for external compass calibration)
-- `RPM_FILTER` - Per-motor RPM as seen by the RPM filter, motors 1-8 in `debug[0]`-`debug[7]` (needs the RPM filter enabled, so bidirectional DShot or ESC telemetry)
+- `RPM_FILTER` - Raw per-motor eRPM/100 (same unit as Betaflight's `eRPM[]` blackbox field, before the RPM filter's smoothing), motors 1-8 in `debug[0]`-`debug[7]`; RPM = value * 100 / (`motor_poles` / 2). Needs the RPM filter enabled, so bidirectional DShot or ESC telemetry. `src/utils/blackbox_rpm_to_erpm.py` renames the fields to `eRPM[]` for PIDtoolbox
 - And 20+ other modes for specific subsystems
 
 To use debug mode logging:

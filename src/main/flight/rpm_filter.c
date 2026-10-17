@@ -187,6 +187,8 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
     UNUSED(currentTimeUs);
 
     uint8_t motorCount = getMotorCount();
+    // Debug holds eRPM/100 like Betaflight's eRPM[] blackbox field, so log tools can reuse it
+    const float hzToErpm100 = 60.0f * (motorConfig()->motorPoleCount / 2.0f) / ERPM_PER_LSB;
     /*
      * For each motor, read its frequency, filter it and update the notches. Both sources
      * hand over their latest raw value; the LPF runs here, at this task's fixed rate, so its
@@ -208,13 +210,13 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
             motorFrequency = 0.0f;
 #endif
         }
+        // Raw telemetry before the LPF; blackbox has no per-motor field
+        if (i < DEBUG32_VALUE_COUNT) {
+            DEBUG_SET(DEBUG_RPM_FILTER, i, lrintf(motorFrequency * hzToErpm100));
+        }
+
         const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], motorFrequency);
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
-
-        // Per-motor RPM as the notch sees it (after the LPF); blackbox has no per-motor field
-        if (i < DEBUG32_VALUE_COUNT) {
-            DEBUG_SET(DEBUG_RPM_FILTER, i, lrintf(baseFrequency * 60.0f));
-        }
     }
 }
 
