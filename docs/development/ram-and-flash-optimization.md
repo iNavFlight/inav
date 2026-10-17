@@ -66,6 +66,71 @@ Example: the LED driver's 42-element reset/latch preamble became a
 the idle-tail became a direct write to the timer's preload-buffered
 compare register.
 
+### Every element of a PG array costs RAM twice
+
+`PG_REGISTER_ARRAY` defines two full-size arrays: `_SystemArray`, which the
+firmware uses, and `_CopyArray`, which the CLI fills to compute `diff`.
+Single parameter groups have the same `_System`/`_Copy` pair. The ceiling
+of a configurable list is therefore paid twice on every board, however
+few entries the user configures. Choose ceilings such as
+`NAV_MAX_WAYPOINTS` and `MAX_VERTICES_IN_CONFIG` deliberately.
+
+Example: the 120 waypoints are 2 × 2,400 B and the 126 geozone vertices
+2 × 1,512 B on MATEKF405.
+
+### Size fixed tables for real use, and define what happens when they are full
+
+A table sized for the theoretical maximum costs RAM on every board for a
+case nobody flies. Pick the size from the realistic use case and state the
+full-table behaviour (drop, evict, refuse) in a comment at the limit, so
+the next reader sees that the ceiling is a decision.
+
+Example (PR #12015): `MAVLINK_MAX_ROUTES` was 32 entries of 12 B. 8 covers
+a ground station, a radio and a few companion devices; a peer that finds
+the table full still receives broadcasts and can talk to the FC, but gets
+no targeted forwarding between ports. That saved 288 B of RAM on every
+MAVLink target.
+
+## Where static data lives
+
+### Put large CPU-only buffers in FASTRAM on F405, F427 and AT32F43x
+
+On these MCUs the main `RAM` region fills first while a second region has
+room. `FASTRAM` places a variable in `.fastram_bss`, which the linker
+scripts map to CCM on F405/F427 and to RAM1 on AT32F43x (the
+`REGION_ALIAS("FASTRAM", ...)` lines in `src/main/target/link/`). On F411
+and F446 it maps to plain `RAM` and gains nothing. Two conditions: no DMA
+may access the buffer, because F4 DMA cannot reach CCM, and on F405/F427
+the stack lives in CCM too, so leave it headroom.
+
+Example (PR #12015): the USB MSC data buffer (4 KB) and the emfat log
+directory (about 9 KB) moved to FASTRAM; the `RAM` region of
+NEUTRONRCF435WING went from 95.7 % to 85.3 %. The F4 USB core copies MSC
+data through its FIFO by CPU, so CCM works; boards with an SDIO SD card
+keep the MSC buffer in `RAM` because SDIO uses DMA.
+
+### Don't give a FASTRAM variable an initial value
+
+`.fastram_bss` is a `NOLOAD` section, so an initialiser is never loaded and
+nothing warns about it. The STM32 startup code zeroes the section; the
+AT32 startup code (`startup_at32f435_437.s`) clears only `.bss`, so there a
+FASTRAM variable starts with whatever the RAM held. Set start values in
+init code, on AT32 including zero.
+
+Example: `STATIC_FASTRAM float tpaFactorprev=-1.0f;` in `flight/pid.c`
+starts at 0 on STM32, not -1; the section is `NOBITS` in the linked image.
+
+### Don't use malloc to save static RAM
+
+The newlib heap starts in the stack's region (`end` in `._user_heap_stack`)
+and grows toward the stack. The linked libnosys `_sbrk()` has no limit
+check, so every heap block silently takes stack headroom. On AT32F43x that
+region is the tight `RAM`. `malloc` is not linked into the F405 and
+AT32F435 images at all, so the first call also adds it to flash.
+
+Example: PR #12015 planned to `malloc` the MSC buffer and placed it in
+FASTRAM instead, for these reasons.
+
 ## Bounding work
 
 ### Bound work to what's actually configured
@@ -169,6 +234,61 @@ each inlines into its one or two callers or gets discarded, and each has a
 unit test that exercises the logic without linking the surrounding
 subsystem.
 
+## Library functions
+
+### Don't call double-precision math functions
+
+Every MCU target is built for a single-precision FPU
+(`-mfpu=fpv4-sp-d16` on Cortex-M4, `-mfpu=fpv5-sp-d16` on Cortex-M7/M33,
+H7 included), so `double` arithmetic runs in software. `atan2()`, `sin()`,
+`pow()` and the other functions without the `f` suffix link libm's double
+implementation plus libgcc's soft-double routines. `-Wdouble-promotion`
+does not catch it when the arguments are integers, because no `float` is
+promoted. Use the `f` variants.
+
+Example (PR #12012): `osd.c` called `atan2()` with an `int32_t` and a
+`uint32_t` for the tracker elevation; `atan2f()` saved 2,792 B on
+MATEKF722 and about 1.4 KB on the other reference targets.
+
+### Don't use `%f` in printf-style formats
+
+A `%f` argument is passed as `double`, so every call site converts its
+value in software and keeps libgcc's soft-double routines linked. This
+applies to CLI output, `LOG_*` and `tfp_sprintf`. Print scaled integers
+instead, e.g. `"%d.%02d", v / 100, v % 100`.
+
+Example (PR #12012): three GPS lines of the CLI `status` command and one
+pitot `LOG_DEBUG` were the only `%f` users; fixed-point output saved 876 B
+on MATEKF722. On targets where other code still used double arithmetic,
+the saving was below 50 B.
+
+### Don't link a large library function for a small job
+
+Some newlib functions are far bigger than the job INAV gives them: `qsort`
+is about 1.5 KB, the two-way `strstr`/`strnstr` search about 3 KB. For
+small arrays use an insertion sort or a single partition pass; for string
+searches use `sl_strstr()`/`sl_strnstr()` from `common/string_light.h`.
+Library code leaves the image only with its last caller, so one new call in
+a feature can bring back kilobytes that nothing else needs.
+
+Example (PR #12012): battery profile detection (three entries) and geozone
+init were the only `qsort` callers; replacing both saved 1,472 B on
+MATEKF722, while replacing either one alone would have kept `qsort`
+linked. Replacing every `strstr`/`strnstr` caller saved 3,008 B.
+
+### Use the approximations in `common/maths.h` where their precision is enough
+
+`sin_approx()`, `cos_approx()` and `atan2_approx()` replace libm's
+`sinf()`/`cosf()`/`atan2f()`; the libm versions also link a large-argument
+range reduction with its lookup table. Check the valid range:
+`sin_approx()` returns 0 for |x| ≥ 33 rad. When the result becomes whole
+degrees, round with `lrintf()` instead of truncating; that halves the
+worst-case error, and a tiny approximation error just below an exact
+integer angle no longer costs a whole degree.
+
+Example (PR #12012): the wind estimator and the OSD tracker switched to
+the approximations, saving 4,808 B on MATEKF722.
+
 ## State machines
 
 ### Extend an enum-indexed dispatch table — don't grow an if/else-if chain
@@ -196,6 +316,19 @@ in `terrainNavHoldState_t` (64 B on MATEKF765, verified via nm) plus one
 small output struct — the whole feature's static RAM is ~100 B, not
 scattered buffers. `terrain_nav_hold_core.c` is pure logic with zero
 file-scope state; `terrain_nav_hold.c` owns the single state struct.
+
+### Order fields by size in large const tables of structs
+
+Padding is paid once per entry, so a badly ordered struct in a table with
+dozens of entries multiplies the waste. Put 4-byte fields (pointers,
+`uint32_t`) first, then 2-byte fields, then 1-byte fields and byte arrays.
+The ARM builds use small enums, so an enum field is one byte when all its
+values fit in one.
+
+Example (PR #12012): `navigationFSMStateDescriptor_t`
+(`navigation/navigation_private.h`) had three 1-byte enum fields between
+word-sized ones. Moving them behind the word-sized fields shrank each of
+the 49 `navFSM` entries from 48 to 44 B, 196 B on MATEKF722.
 
 ## Duplication: state vs code
 

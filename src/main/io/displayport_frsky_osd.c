@@ -150,8 +150,7 @@ static int writeFontCharacter(displayPort_t *instance, uint16_t addr, const osdC
 {
     UNUSED(instance);
 
-    frskyOSDWriteFontCharacter(addr, chr);
-    return 0;
+    return frskyOSDWriteFontCharacter(addr, chr) ? 0 : -1;
 }
 
 static bool isReady(displayPort_t *instance)

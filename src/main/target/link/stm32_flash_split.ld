@@ -141,6 +141,12 @@ SECTIONS
   /* User_heap_stack section, used to check that there is enough RAM left */
   _heap_stack_end = ORIGIN(STACKRAM)+LENGTH(STACKRAM) - 8; /* 8 bytes to allow for alignment */
   _heap_stack_begin = _heap_stack_end - _Min_Stack_Size  - _Min_Heap_Size;
+
+  /* .bss (placed earlier) and this section share the STACKRAM region on
+     F411/F446 (STACKRAM aliases RAM here); nothing else stops .bss
+     growing into the reserved stack/heap space it precedes in memory. */
+  ASSERT(_ebss <= _heap_stack_begin, "F411/F446: .bss overlaps the reserved stack/heap region - reduce .bss or free RAM headroom (see inav#12034)")
+
   . = _heap_stack_begin;
   ._user_heap_stack :
   {

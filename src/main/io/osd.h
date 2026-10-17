@@ -161,6 +161,7 @@
 
 #if defined(USE_GEOZONE)
 #define OSD_MSG_NFZ                 "NO FLY ZONE"
+#define OSD_MSG_GEOZONE_MISCONFIG   "GEOZONE MISCONFIGURED"
 #define OSD_MSG_LEAVING_FZ          "LEAVING FZ IN %s"
 #define OSD_MSG_OUTSIDE_FZ          "OUTSIDE FZ"
 #define OSD_MSG_ENTERING_NFZ        "ENTERING NFZ IN %s %s"

@@ -166,8 +166,7 @@ static int writeFontCharacter(displayPort_t *instance, uint16_t addr, const osdC
 {
     UNUSED(instance);
 
-    max7456WriteNvm(addr, chr);
-    return 0;
+    return max7456WriteNvm(addr, chr) ? 0 : -1;
 }
 
 static const displayPortVTable_t max7456VTable = {

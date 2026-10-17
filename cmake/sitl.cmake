@@ -164,20 +164,5 @@ function (target_sitl name)
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})
     #clean_<target>
-    set(generator_cmd "")
-    if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-        set(generator_cmd "make")
-    elseif(CMAKE_GENERATOR STREQUAL "Ninja")
-        set(generator_cmd "ninja")
-    endif()
-    if (NOT generator_cmd STREQUAL "")
-        set(clean_target "clean_${name}")
-        add_custom_target(${clean_target}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND ${generator_cmd} clean
-            COMMENT "Removing intermediate files for ${name}")
-        set_target_properties(${clean_target} PROPERTIES
-            EXCLUDE_FROM_ALL ON
-            EXCLUDE_FROM_DEFAULT_BUILD ON)
-    endif()
+    add_clean_target(${name} EXECUTABLES ${exe_target} FILES ${exe_filename})
 endfunction()

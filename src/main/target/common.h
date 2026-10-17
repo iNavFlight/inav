@@ -312,7 +312,6 @@
 #ifndef USE_LOG
 #define USE_LOG
 #endif
-#define USE_BOOTLOG 2048
 #ifndef USE_STATS
 #define USE_STATS
 #endif
@@ -433,8 +432,8 @@
 #define USE_HEADTRACKER_MSP
 #endif
 
-#if defined(STM32F7) || defined(STM32H7)
-// needs bi-direction inverter, not available on F4 hardware.
+#if defined(STM32F7) || defined(STM32H7) || defined(RP2350)
+// needs bi-directional inverter; not available on F4 or AT32F43x hardware
 #define USE_TELEMETRY_SBUS2
 #endif
 

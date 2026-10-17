@@ -31,12 +31,6 @@ static uint8_t mavlinkMissionUploadWaypointCount;
 static uint8_t mavlinkMissionUploadSequenceWaypointNumbers[MAVLINK_MISSION_UPLOAD_MAX_ITEMS];
 static int16_t mavlinkMissionCurrentSpeedCmS;
 
-typedef struct mavlinkMissionSnapshot_s {
-    uint8_t waypointCount;
-    bool missionCompleted;
-    navWaypoint_t waypoints[NAV_MAX_WAYPOINTS];
-} mavlinkMissionSnapshot_t;
-
 static void mavlinkClearMissionUploadBuffer(void)
 {
     memset(mavlinkMissionUploadWaypoints, 0, sizeof(mavlinkMissionUploadWaypoints));
@@ -172,37 +166,11 @@ static bool mavlinkPersistMission(void)
 #endif
 }
 
-static void mavlinkSnapshotMission(mavlinkMissionSnapshot_t *snapshot)
-{
-    snapshot->waypointCount = getWaypointCount();
-    snapshot->missionCompleted = mavlinkContext.missionCompleted;
-    for (uint8_t i = 0; i < snapshot->waypointCount; i++) {
-        getWaypoint(i + 1, &snapshot->waypoints[i]);
-    }
-}
-
-static void mavlinkRestoreMission(const mavlinkMissionSnapshot_t *snapshot)
-{
-    resetWaypointList();
-    for (uint8_t i = 0; i < snapshot->waypointCount; i++) {
-        setWaypoint(i + 1, &snapshot->waypoints[i]);
-    }
-    mavlinkContext.missionCompleted = snapshot->missionCompleted;
-}
-
 static bool mavlinkClearPersistedMission(void)
 {
-    mavlinkMissionSnapshot_t previousMission;
-    mavlinkSnapshotMission(&previousMission);
-
     resetWaypointList();
     mavlinkContext.missionCompleted = false;
-    if (mavlinkPersistMission()) {
-        return true;
-    }
-
-    mavlinkRestoreMission(&previousMission);
-    return false;
+    return mavlinkPersistMission();
 }
 
 static bool mavlinkMissionCoordinateIsValid(int32_t lat, int32_t lon)
@@ -415,14 +383,24 @@ static bool mavlinkCommitMissionUpload(void)
         return false;
     }
 
+    /* setWaypoint() silently no-ops while NAV_WP_MODE is active, and that flight
+     * mode flag is not cleared synchronously with disarm() - only later, when the
+     * nav task next runs switchNavigationFlightModes(). Catching it here, before
+     * mavlinkClearPersistedMission()/resetWaypointList() touch anything, rejects
+     * an upload that lands in that window instead of silently wiping the mission.
+     * This must run before the waypointCount == 0 check below too: an upload
+     * that resolves to zero real waypoints (e.g. a single DO_CHANGE_SPEED item)
+     * is not the same as an explicit MISSION_CLEAR_ALL/MISSION_COUNT(0), and
+     * must not bypass the guard by taking the clear path. */
+    if (FLIGHT_MODE(NAV_WP_MODE)) {
+        return false;
+    }
+
     if (mavlinkMissionUploadWaypointCount == 0) {
         return mavlinkClearPersistedMission();
     }
 
     mavlinkMissionUploadWaypoints[mavlinkMissionUploadWaypointCount - 1].flag = NAV_WP_FLAG_LAST;
-
-    mavlinkMissionSnapshot_t previousMission;
-    mavlinkSnapshotMission(&previousMission);
 
     resetWaypointList();
 
@@ -431,7 +409,6 @@ static bool mavlinkCommitMissionUpload(void)
     }
 
     if (!isWaypointListValid() || !mavlinkPersistMission()) {
-        mavlinkRestoreMission(&previousMission);
         return false;
     }
 
@@ -471,16 +448,10 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         currentTimeMs - mavMissionTransfer.lastActivityMs >= MAVLINK_MISSION_DOWNLOAD_TIMEOUT_MS) {
         mavlinkResetMissionTransfer();
     }
+}
 
-    if (currentTimeMs - mavlinkContext.lastMissionCurrentMs < MAVLINK_MISSION_CURRENT_INTERVAL_MS) {
-        return;
-    }
-
-    const uint8_t sendMask = mavlinkActivePortMask();
-    if (sendMask == 0) {
-        return;
-    }
-
+void mavlinkSendMissionCurrent(void)
+{
     const uint16_t total = getWaypointCount();
     const bool active = FLIGHT_MODE(NAV_WP_MODE);
     const uint16_t seq = total > 0 && active && getActiveWpNumber() > 0 ? getActiveWpNumber() - 1 : 0;
@@ -492,7 +463,7 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         // LAND) the FSM parks in NAV_STATE_WAYPOINT_FINISHED, which still
         // maps to NAV_WP_MODE - a landed vehicle must not report ACTIVE
         // until the pilot flips the mode switch. A re-flight clears
-        // missionCompleted on the WP-mode rising edge above.
+        // missionCompleted on the WP-mode rising edge in mavlinkMissionUpdate().
         missionState = MISSION_STATE_COMPLETE;
     } else if (active) {
         missionState = MISSION_STATE_ACTIVE;
@@ -500,7 +471,6 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         missionState = MISSION_STATE_NOT_STARTED;
     }
 
-    mavSendMask = sendMask;
     mavlink_msg_mission_current_pack(
         mavlinkGetCommonConfig()->sysid,
         MAV_COMP_ID_AUTOPILOT1,
@@ -513,8 +483,6 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         0,
         0);
     mavlinkSendMessage();
-    mavSendMask = 0;
-    mavlinkContext.lastMissionCurrentMs = currentTimeMs;
 }
 
 static bool mavlinkHandleArmedGuidedMissionItem(

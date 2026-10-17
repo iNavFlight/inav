@@ -1486,20 +1486,19 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
         virtualCoursePoint.y = posControl.activeWaypoint.pos.y - posControl.wpDistance * wpUy;
         navCrossTrackError = calculateDistanceToDestination(&virtualCoursePoint);
 
+        if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(20) && fabsf(previousCrossTrackError - navCrossTrackError) > 10.0f) {
+            const float crossTrackErrorDtSec =  US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
+            if (fabsf(previousCrossTrackError - navCrossTrackError) < 500.0f) {
+                crossTrackErrorRate = (previousCrossTrackError - navCrossTrackError) / crossTrackErrorDtSec;
+            }
+            crossTrackErrorRate = pt1FilterApply3(&fwCrossTrackErrorRateFilterState, crossTrackErrorRate, crossTrackErrorDtSec);
+            previousCrossTrackErrorUpdateTime = currentTimeUs;
+            previousCrossTrackError = navCrossTrackError;
+        }
+
         /* If waypoint tracking enabled force craft toward and closely track along waypoint course line.
          * Suppressed while the arc coordinator drives a turn (it tracks the arc, not the straight leg). */
         if (navConfig()->fw.wp_tracking_accuracy && !needToCalculateCircularLoiter && !fwTurn.arc.active) {
-            if ((currentTimeUs - previousCrossTrackErrorUpdateTime) >= HZ2US(20) && fabsf(previousCrossTrackError - navCrossTrackError) > 10.0f) {
-                const float crossTrackErrorDtSec =  US2S(currentTimeUs - previousCrossTrackErrorUpdateTime);
-                if (fabsf(previousCrossTrackError - navCrossTrackError) < 500.0f) {
-                    crossTrackErrorRate = (previousCrossTrackError - navCrossTrackError) / crossTrackErrorDtSec;
-                }
-                // Cutoff set here, not only at controller reset: an unset RC leaves alpha at 1 (no filtering)
-                pt1FilterSetCutoff(&fwCrossTrackErrorRateFilterState, NAV_FW_CROSSTRACK_RATE_CUTOFF_HZ);
-                crossTrackErrorRate = pt1FilterApply3(&fwCrossTrackErrorRateFilterState, crossTrackErrorRate, crossTrackErrorDtSec);
-                previousCrossTrackErrorUpdateTime = currentTimeUs;
-                previousCrossTrackError = navCrossTrackError;
-            }
 
             uint16_t trackingDeadband = METERS_TO_CENTIMETERS(navConfig()->fw.wp_tracking_accuracy);
 
@@ -1517,19 +1516,6 @@ static void updatePositionHeadingController_FW(timeUs_t currentTimeUs, timeDelta
                 adjustmentFactor = constrainf(adjustmentFactor, -limit, limit);
                 virtualTargetBearing = wrap_36000(posControl.activeWaypoint.bearing - adjustmentFactor);
             }
-        } else {
-            // Seed the convergence estimate from the geometric closing speed: re-engaging with a
-            // zero rate reads as "not converging" and commands the full correction in one step
-            previousCrossTrackError = navCrossTrackError;
-            previousCrossTrackErrorUpdateTime = currentTimeUs;
-            const fpVector3_t *trackPos = &navGetCurrentActualPositionAndVelocity()->pos;
-            float legUx, legUy;
-            fwBearingUnit(posControl.activeWaypoint.bearing, &legUx, &legUy);
-            const float offLeg = fwOffLegCm(trackPos->x, trackPos->y,
-                                            virtualCoursePoint.x, virtualCoursePoint.y, legUx, legUy);
-            const float cogOffRad = CENTIDEGREES_TO_RADIANS((float)wrap_18000(posControl.actualState.cog - posControl.activeWaypoint.bearing));
-            crossTrackErrorRate = -SIGN(offLeg) * posControl.actualState.velXY * sin_approx(cogOffRad);
-            pt1FilterReset(&fwCrossTrackErrorRateFilterState, crossTrackErrorRate);
         }
     }
     /*

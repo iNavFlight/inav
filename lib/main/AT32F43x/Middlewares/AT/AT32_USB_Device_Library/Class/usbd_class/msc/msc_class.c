@@ -27,6 +27,7 @@
 #include "msc_class.h"
 #include "msc_desc.h"
 #include "msc_bot_scsi.h"
+#include "build/build_config.h"
 
 /** @addtogroup AT32F435_437_middlewares_usbd_class
   * @{
@@ -51,7 +52,7 @@ static usb_sts_type class_out_handler(void *udev, uint8_t ept_num);
 static usb_sts_type class_sof_handler(void *udev);
 static usb_sts_type class_event_handler(void *udev, usbd_event_type event);
 
-msc_type msc_struct;
+FASTRAM msc_type msc_struct;
 
 /* usb device class handler */
 usbd_class_handler msc_class_handler =
