@@ -63,7 +63,7 @@ static void sdcardSpi_deselect(void)
     //spiTransferByte(SDCARD_SPI_INSTANCE, 0xFF);
 
     int timeout = 100000;
-    while (busIsBusy(sdcard.dev)) {
+    while (busIsBusy(sdcard.dev, NULL)) {
         if (timeout-- == 0) {
             sdcard.failureCount++;
             if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES) {
@@ -872,7 +872,7 @@ void sdcardSpi_init(void)
 
     // Wait for that transmission to finish before we enable the SDCard, so it receives the required number of cycles:
     int time = 100000;
-    while (busIsBusy(sdcard.dev)) {
+    while (busIsBusy(sdcard.dev, NULL)) {
         if (time-- == 0) {
             busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
             busDeviceDeInit(sdcard.dev);
