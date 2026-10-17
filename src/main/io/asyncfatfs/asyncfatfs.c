@@ -3567,6 +3567,10 @@ static NOINLINE void afatfs_countFreeClustersContinue(void)
     for (int i = 0; i < AFATFS_MAX_OPEN_FILES; i++) {
         paused |= afatfs.openFiles[i].type != AFATFS_FILE_TYPE_NONE;
     }
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+    // and while the refill works on the FAT: its reads would hold one of the count's past the unreadable timeout
+    paused |= afatfs.refill.phase != AFATFS_REFILL_IDLE;
+#endif
     if (paused) {
         afatfs.freeCountDueUs = now + AFATFS_FREE_COUNT_GAP_US;
         return;
@@ -4302,6 +4306,13 @@ static NOINLINE void afatfs_freeFileRefillPoll(void)
                 status = afatfs_saveDirectoryEntry(&afatfs.freeFile, AFATFS_SAVE_DIRECTORY_NORMAL);
 
                 if (status == AFATFS_OPERATION_SUCCESS) {
+                    // The refill writes the FAT itself, past afatfs_freeCountAdjust(): count again once no file is open
+                    if (afatfs.freeCountNextCluster != UINT32_MAX) {
+                        afatfs.freeCountNextCluster = FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;
+                        afatfs.freeCountClusters = 0;
+                        // As at mount: a time left from the last count would pass for an unreadable sector
+                        afatfs.freeCountDueUs = micros();
+                    }
                     if (refill->moving) {
                         refill->moving = false;
                         refill->blockFound = false;
