@@ -289,6 +289,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
         if (posControl.fwLandState.pathSinkLimit > 0.0f && posControl.fwLandState.pathClimbRate < 0.0f) {
             desiredClimbRate = MAX(desiredClimbRate, posControl.fwLandState.pathSinkLimit * posControl.fwLandState.pathClimbRate);
         }
+        DEBUG_SET(DEBUG_AUTOLAND, 7, lrintf(desiredClimbRate));
     }
 #endif
 
@@ -1862,6 +1863,7 @@ static float fwLandFlarePitch(timeUs_t currentTimeUs)
     }
     const float verticalAccel = pt1FilterApply3(&verticalAccelFilter, navAccNEU[Z], dt);
     const float climbRate = navGetFwLandClimbRate() + FW_LAND_FLARE_ACCEL_LEAD_S * verticalAccel;
+    DEBUG_SET(DEBUG_AUTOLAND, 3, lrintf(climbRate));
     const float speed = MAX(posControl.actualState.velXY, 100.0f);
     const float targetPath = RADIANS_TO_DEGREES(-posControl.fwLandState.flareSinkTarget / speed);
     const float pathError = targetPath - RADIANS_TO_DEGREES(climbRate / speed);
@@ -1998,6 +2000,7 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
             }
             previousNoseUp = noseUp;
             fwLandRetrimPitch(noseUp, currentTimeUs);
+            DEBUG_SET(DEBUG_AUTOLAND, 4, lrintf(noseUp * 10.0f));
             rcCommand[PITCH] = -pidAngleToRcCommand(DEGREES_TO_DECIDEGREES(noseUp), pidProfile()->max_angle_inclination[FD_PITCH]);
         } else if (posControl.navState == NAV_STATE_FW_LANDING_GLIDE) {
             fwLandRetrimPitch(navFwAutolandConfig()->glidePitch, currentTimeUs);

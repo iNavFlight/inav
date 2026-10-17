@@ -4083,6 +4083,9 @@ static void fwLandUpdateSinkFlare(void)
     const float half = posControl.fwLandState.flareEntryHeight * 0.5f;
     posControl.fwLandState.flareHeight = height;
     posControl.fwLandState.flareSinkTarget = MAX(lawSink + posControl.fwLandState.flareEntryOffset * constrainf((height - half) / half, 0.0f, 1.0f), 0.0f);
+    DEBUG_SET(DEBUG_AUTOLAND, 0, posControl.fwLandState.landState);
+    DEBUG_SET(DEBUG_AUTOLAND, 1, lrintf(height));
+    DEBUG_SET(DEBUG_AUTOLAND, 2, lrintf(posControl.fwLandState.flareSinkTarget));
 }
 
 static navigationFSMEvent_t fwLandGoAround(void)
@@ -4117,6 +4120,7 @@ static int32_t fwLandCenterlineCourse(void)
     const float rightOfAxis = (pos->y - posControl.fwLandState.landPos.y) * cos_approx(direction)
         - (pos->x - posControl.fwLandState.landPos.x) * sin_approx(direction);
     const float correction = constrainf(-rightOfAxis * 0.01f * FW_LAND_CENTERLINE_DEG_PER_M, -FW_LAND_CENTERLINE_MAX_DEG, FW_LAND_CENTERLINE_MAX_DEG);
+    DEBUG_SET(DEBUG_AUTOLAND, 6, lrintf(rightOfAxis));
     return wrap_36000(posControl.fwLandState.landingDirection + lrintf(DEGREES_TO_CENTIDEGREES(correction)));
 }
 
@@ -4416,6 +4420,12 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_APPROACH(nav
     const bool beforeRunway = posControl.fwLandState.runwayStartHeight > 0.0f
         && posControl.fwLandState.landCurrentWp == FW_AUTOLAND_WP_LAND && fwLandPastRunwayStart() < 0.0f;
     const float glideStart = navFwAutolandConfig()->flareSink ? fwLandFlareStartHeight(-navGetFwLandClimbRate()) : navFwAutolandConfig()->glideAltitude;
+    DEBUG_SET(DEBUG_AUTOLAND, 0, posControl.fwLandState.landState);
+    DEBUG_SET(DEBUG_AUTOLAND, 1, lrintf(getLandAltitude() - posControl.fwLandState.landAltAgl));
+    DEBUG_SET(DEBUG_AUTOLAND, 2, lrintf(posControl.fwLandState.pathClimbRate));
+    DEBUG_SET(DEBUG_AUTOLAND, 3, lrintf(navGetFwLandClimbRate()));
+    DEBUG_SET(DEBUG_AUTOLAND, 5, lrintf(glideStart));
+    DEBUG_SET(DEBUG_AUTOLAND, 6, posControl.fwLandState.runwayStartHeight > 0.0f ? lrintf(fwLandPastRunwayStart()) : 0);
     if (!beforeRunway && getLandAltitude() <= fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landAlt + glideStart - (fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->isSeaLevelRef ? GPS_home.alt : 0)) {
         resetPositionController();
         posControl.cruise.course = posControl.fwLandState.landingDirection;

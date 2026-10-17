@@ -150,3 +150,7 @@ The current landing state can be retrieved via ID 41 in "Flight" (FW Land State)
 | 4 | Final Approach |
 | 5 | Glide |
 | 6 | Flare |
+
+## Debug
+
+`debug_mode = AUTOLAND` logs the landing in the blackbox debug fields: 0 the landing state (as `fwAutolandState_t`), 1 the height above the landing site the landing flies on [cm], 2 on the circuit the path's climb rate and in the glide and flare the sink rate asked [cm/s], 3 the climb rate flown on (in the flare with its lead) [cm/s], 4 the flare's pitch command [0.1 deg], 5 the height the glide starts at [cm], 6 on the final the distance past the runway start and in the glide and flare the distance right of the runway axis [cm], 7 the climb rate the altitude controller is asked on the circuit [cm/s].
