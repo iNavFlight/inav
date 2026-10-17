@@ -103,6 +103,8 @@
 #define FW_LAND_MAX_GO_AROUNDS      2           // then the landing is aborted
 #define FW_LAND_GO_AROUND_ALT       1000.0f     // [cm] climbed straight ahead before turning
 #define FW_LAND_CIRCLE_EXIT_STRAIGHT_S 1.5f     // straight out of a circle left heading out, to roll level
+#define FW_LAND_CENTERLINE_DEG_PER_M 1.5f       // [deg of course per m off the runway axis] glide and flare: ~3 s to it
+#define FW_LAND_CENTERLINE_MAX_DEG  6.0f
 
 #define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
 #define FW_COURSE_LOCK_FORCE_TIMEOUT_MS 2500 // failsafe: force the lock this long after stick centre even if still banked
@@ -4105,6 +4107,18 @@ static float fwLandPastRunwayStart(void)
         + (pos->y - posControl.fwLandState.runwayStartPos.y) * sin_approx(direction);
 }
 
+// The landing direction turned towards the runway axis through the site: on the heading alone the glide and flare kept
+// the 2-3 m the turn onto the final had left, and the roll-out drifted further
+static int32_t fwLandCenterlineCourse(void)
+{
+    const float direction = CENTIDEGREES_TO_RADIANS(posControl.fwLandState.landingDirection);
+    const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+    const float rightOfAxis = (pos->y - posControl.fwLandState.landPos.y) * cos_approx(direction)
+        - (pos->x - posControl.fwLandState.landPos.x) * sin_approx(direction);
+    const float correction = constrainf(-rightOfAxis * 0.01f * FW_LAND_CENTERLINE_DEG_PER_M, -FW_LAND_CENTERLINE_MAX_DEG, FW_LAND_CENTERLINE_MAX_DEG);
+    return wrap_36000(posControl.fwLandState.landingDirection + lrintf(DEGREES_TO_CENTIDEGREES(correction)));
+}
+
 static navigationFSMEvent_t fwLandRunwayStartGate(void)
 {
     const float along = fwLandPastRunwayStart();
@@ -4472,7 +4486,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_GLIDE(naviga
     }
 
     fwLandUpdateSinkFlare();
-    setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
+    setDesiredPosition(NULL, fwLandCenterlineCourse(), NAV_POS_UPDATE_HEADING);
     return NAV_FSM_EVENT_NONE;
 }
 
@@ -4485,7 +4499,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_FLARE(naviga
     }
 
     fwLandUpdateSinkFlare();
-    setDesiredPosition(NULL, posControl.cruise.course, NAV_POS_UPDATE_HEADING);
+    setDesiredPosition(NULL, fwLandCenterlineCourse(), NAV_POS_UPDATE_HEADING);
 
     return NAV_FSM_EVENT_NONE;
 }
