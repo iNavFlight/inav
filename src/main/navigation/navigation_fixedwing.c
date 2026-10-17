@@ -2182,6 +2182,10 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
             const uint16_t landSpeed = fwLandHeldApproachSpeed();
             posControl.desiredState.autoSpeedDemand = constrain(landSpeed ? landSpeed : getActiveSpeed(), minSpeed, maxSpeed);
             useAirSpeed = isAutoSpeedRequiredByNav() == FW_AUTO_SPD_AIR;
+            // descending to the runway with flaps the aircraft can be too fast at nav_fw_min_thr: down to idle there
+            if (landSpeed && posControl.navState == NAV_STATE_FW_LANDING_APPROACH) {
+                minThrottle = getThrottleIdleValue();
+            }
         }
 
         uint16_t actualSpeed = posControl.actualState.vel3D;
