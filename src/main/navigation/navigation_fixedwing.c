@@ -1830,10 +1830,11 @@ static void fwLandRetrimPitch(float pitchDeg, timeUs_t currentTimeUs)
     }
 }
 
-// over the runway the rangefinder's: the baro and GPS estimate lags a few tenths of a metre per second there
+// The inertial one (accelerometer with baro and GPS), as ArduPilot and PX4 flare on: the rangefinder's took the back of
+// a hedge before the runway for a climb, and it changed source halfway down the flare
 float navGetFwLandClimbRate(void)
 {
-    return posControl.flags.estAglStatus == EST_TRUSTED ? posControl.actualState.agl.vel.z : posControl.actualState.abs.vel.z;
+    return posControl.actualState.abs.vel.z;
 }
 
 // the pitch the approach last commanded [deg, nose up]: the flare starts from it
