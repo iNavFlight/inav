@@ -1803,8 +1803,8 @@ static void fwLandRetrimPitch(float pitchDeg, timeUs_t currentTimeUs)
     static timeUs_t previousTimeUs;
     const float dt = US2S(currentTimeUs - previousTimeUs);
     previousTimeUs = currentTimeUs;
-    if (dt > FW_LAND_PITCH_TRIM_GAP_S || posControl.flags.estAglStatus != EST_TRUSTED
-        || posControl.actualState.agl.pos.z <= FW_LAND_PITCH_TRIM_MIN_AGL) {
+    if (dt > FW_LAND_PITCH_TRIM_GAP_S
+        || (posControl.flags.estAglStatus == EST_TRUSTED && posControl.actualState.agl.pos.z <= FW_LAND_PITCH_TRIM_MIN_AGL)) {
         pendingTrim = 0.0f;
         return;
     }
@@ -1872,6 +1872,12 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         // PITCH >0 dive, <0 climb
         int16_t pitchCorrection = constrain(posControl.rcAdjustment[PITCH], -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle), DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle));
         rcCommand[PITCH] = -pidAngleToRcCommand(pitchCorrection, pidProfile()->max_angle_inclination[FD_PITCH]);
+#ifdef USE_FW_AUTOLAND
+        // down to idle power the pitch trim moves by degrees and the I-term lock, on the error that makes, held it there
+        if (posControl.navState == NAV_STATE_FW_LANDING_APPROACH) {
+            fwLandRetrimPitch(DECIDEGREES_TO_DEGREES(pitchCorrection), currentTimeUs);
+        }
+#endif
 
         if (isFixedwingAutoSpeedActive()) {
             isAutoThrottleManuallyIncreased = false;
