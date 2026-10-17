@@ -230,6 +230,11 @@ void imuSetMagneticDeclination(float declinationDeg)
     vCorrectedMagNorth.z = 0;
 }
 
+float imuGetMagneticDeclination(void)
+{
+    return atan2_approx(-vCorrectedMagNorth.y, vCorrectedMagNorth.x);
+}
+
 RP2350_FAST_CODE void imuTransformVectorBodyToEarth(fpVector3_t * v)
 {
     // From body frame to earth frame

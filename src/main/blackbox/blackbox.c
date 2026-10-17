@@ -560,6 +560,10 @@ static const blackboxConditionalFieldDefinition_t blackboxSlowFields[] = {
     {"magBiasFlags",          -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
     {"magBiasSectors",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
     {"magBiasSpread",         -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasField",           0, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasField",           1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasField",           2, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasYawTrim",        -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
 #endif
 };
 
@@ -1556,6 +1560,8 @@ static void writeSlowFrame(void)
         blackboxWriteUnsignedVB(slowHistory.magLearn.flags);
         blackboxWriteUnsignedVB(slowHistory.magLearn.sectors);
         blackboxWriteUnsignedVB(slowHistory.magLearn.spread);
+        blackboxWriteSigned16VBArray(slowHistory.magLearn.field, XYZ_AXIS_COUNT);
+        blackboxWriteSignedVB(slowHistory.magLearn.yawTrimDelta);
     }
 #endif
 
@@ -2250,6 +2256,7 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("mag_zero", "%d,%d,%d",                  compassConfig()->magZero.raw[X],
                                                                             compassConfig()->magZero.raw[Y],
                                                                             compassConfig()->magZero.raw[Z]);
+        BLACKBOX_PRINT_HEADER_LINE("mag_yaw_trim", "%d",                    compassConfig()->magYawTrim);
 #endif
 #else
         BLACKBOX_PRINT_HEADER_LINE("mag_hardware", "%d",                    MAG_NONE);

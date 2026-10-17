@@ -83,6 +83,7 @@ typedef enum
 void imuConfigure(void);
 
 void imuSetMagneticDeclination(float declinationDeg);
+float imuGetMagneticDeclination(void);   // rad, east positive, as the AHRS applies it
 void imuUpdateAttitude(timeUs_t currentTimeUs);
 void imuUpdateAccelerometer(void);
 float calculateCosTiltAngle(void);

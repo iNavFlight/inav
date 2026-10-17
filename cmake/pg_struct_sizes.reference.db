@@ -4,7 +4,7 @@ barometerConfig_t                8 5
 batteryMetersConfig_t           24 4
 beeperConfig_t                  12 2
 blackboxConfig_t                16 4
-compassConfig_t                 24 6
+compassConfig_t                 28 7
 displayConfig_t                  1 0
 djiOsdConfig_t                   6 3
 escSensorConfig_t                4 1

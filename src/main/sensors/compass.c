@@ -58,7 +58,9 @@
 #include "io/gps.h"
 #include "io/beeper.h"
 
+#include "flight/gsf_yaw.h"
 #include "flight/imu.h"
+#include "flight/mixer_profile.h"
 
 #include "navigation/navigation.h"
 
@@ -89,8 +91,13 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .magGain = {SETTING_MAGGAIN_X_DEFAULT, SETTING_MAGGAIN_Y_DEFAULT, SETTING_MAGGAIN_Z_DEFAULT},
 #ifdef USE_MAG_LEARN
     .magLearn = SETTING_MAG_LEARN_DEFAULT,
+    .magYawTrim = SETTING_MAG_YAW_TRIM_DEFAULT,
 #endif
 );
+
+#ifdef USE_MAG_LEARN
+STATIC_ASSERT(SETTING_MAG_YAW_TRIM_MAX == MAG_LEARN_MAX_YAW_TRIM && SETTING_MAG_YAW_TRIM_MIN == -MAG_LEARN_MAX_YAW_TRIM, mag_yaw_trim_range);
+#endif
 
 static bool magUpdatedAtLeastOnce = false;
 static timeUs_t calStartedAt = 0;
@@ -434,10 +441,91 @@ static void compassApplyDetectedOrientation(int16_t rollDD, int16_t pitchDD, int
         compassConfigMutable()->pitchDeciDegrees = pitchDD;
         compassConfigMutable()->yawDeciDegrees = yawDD;
     }
+#ifdef USE_MAG_LEARN
+    // A trim learned for the old mounting would turn the new one
+    compassConfigMutable()->magYawTrim = 0;
+#endif
     compassRefreshAlignment();
 }
 
+// The reading and mag_learn's alignment matrix both go through here, so the fit undoes exactly what was applied
+static void compassAlign(float v[XYZ_AXIS_COUNT])
+{
+    if (mag.dev.magAlign.useExternal) {
+        const fpVector3_t in = { .x = v[X], .y = v[Y], .z = v[Z] };
+        fpVector3_t rotated;
+        rotationMatrixRotateVector(&rotated, &in, &mag.dev.magAlign.externalRotation);
+        applyTailSitterAlignment(&rotated);
+        v[X] = rotated.x;
+        v[Y] = rotated.y;
+        v[Z] = rotated.z;
+    } else {
+        applySensorAlignment(v, v, mag.dev.magAlign.onBoard);
+        applyBoardAlignment(v);
+    }
 #ifdef USE_MAG_LEARN
+    // mag_yaw_trim turns the reading about the airplane's vertical, positive clockwise; in tailsitter hover that is x
+    if (compassConfig()->magYawTrim) {
+        fpVector3_t up = { .v = { 0.0f, 0.0f, 1.0f } };
+        applyTailSitterAlignment(&up);
+        const float a = DECIDEGREES_TO_RADIANS(compassConfig()->magYawTrim);
+        const float c = cos_approx(a);
+        const float s = sin_approx(a);
+        const float along = (1.0f - c) * (up.x * v[X] + up.y * v[Y] + up.z * v[Z]);
+        const float cross[3] = { up.y * v[Z] - up.z * v[Y], up.z * v[X] - up.x * v[Z], up.x * v[Y] - up.y * v[X] };
+        for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+            v[axis] = c * v[axis] + s * cross[axis] + along * up.v[axis];
+        }
+    }
+#endif
+}
+
+#ifdef USE_MAG_LEARN
+static void compassLearnEvaluate(void)
+{
+    // The alignment as a matrix, for the fit to take its offsets back to sensor axes
+    float align[3][3];
+    for (int j = 0; j < 3; j++) {
+        float v[XYZ_AXIS_COUNT] = { 0.0f, 0.0f, 0.0f };
+        v[j] = 1024.0f;     // applyBoardAlignment rounds to whole counts
+        compassAlign(v);
+        for (int k = 0; k < 3; k++) {
+            align[k][j] = v[k] / 1024.0f;
+        }
+    }
+    magLearnEvaluate(compassConfig()->magZero.raw, compassConfig()->magGain, align, imuGetMagneticDeclination(),
+                     compassConfig()->magYawTrim);
+}
+
+#ifdef USE_GSF_YAW
+// A tailsitter's body axes turn at every transition: the attitude fit would mix two frames
+static bool compassLearnOnTailsitter(void)
+{
+    for (int i = 0; i < MAX_MIXER_PROFILE_COUNT; i++) {
+        if (mixerConfigByIndex(i)->tailsitterOrientationOffset) {
+            return true;
+        }
+    }
+    return false;
+}
+#endif
+
+static void compassLearnAddSample(void)
+{
+    float attitude[3][3];
+    float headingSigma = 0.0f;
+    bool haveHeading = false;
+#ifdef USE_GSF_YAW
+    const gsfYawStatus_t *gsf = gsfYawGetStatus();
+    if ((gsf->flags & GSF_YAW_USABLE) && gsf->yawSigma <= MAG_LEARN_ATTITUDE_MAX_SIGMA && !compassLearnOnTailsitter()) {
+        magLearnAttitude(rMat, gsf->yaw, attitude);
+        headingSigma = gsf->yawSigma;
+        haveHeading = true;
+    }
+#endif
+    magLearnAddSample(mag.magADC, mag.dev.magADCRaw, haveHeading ? attitude : NULL, headingSigma);
+}
+
 static void compassLearnUpdate(timeUs_t currentTimeUs)
 {
     static bool learnArmed;
@@ -459,14 +547,14 @@ static void compassLearnUpdate(timeUs_t currentTimeUs)
         }
         if (isProbablyStillFlying() && !STATE(LANDING_DETECTED)) {
             magLearnStatus.flags = (magLearnStatus.flags & ~MAG_LEARN_PAUSED) | MAG_LEARN_COLLECTING;
-            magLearnAddSample(mag.magADC, mag.dev.magADCRaw);
+            compassLearnAddSample();
         } else {
             magLearnStatus.flags = (magLearnStatus.flags & ~MAG_LEARN_COLLECTING) | MAG_LEARN_PAUSED;
         }
         // Refit about once a second so the blackbox shows the estimate and the checks evolving
         if (cmpTimeUs(currentTimeUs, lastFitAt) >= 1000000) {
             lastFitAt = currentTimeUs;
-            magLearnEvaluate(compassConfig()->magZero.raw, compassConfig()->magGain);
+            compassLearnEvaluate();
         }
     } else if (learnArmed) {
         learnArmed = false;
@@ -488,11 +576,12 @@ static void compassLearnUpdate(timeUs_t currentTimeUs)
             magLearnStatus.flags = (magLearnStatus.flags & ~MAG_LEARN_SAVE_DUE) | MAG_LEARN_DISARMED_FLYING;
             return;
         }
-        magLearnEvaluate(compassConfig()->magZero.raw, compassConfig()->magGain);
+        compassLearnEvaluate();
         if (magLearnStatus.flags & MAG_LEARN_SAVE_DUE) {
             for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
                 compassConfigMutable()->magZero.raw[axis] = constrain(compassConfig()->magZero.raw[axis] + magLearnStatus.delta[axis], INT16_MIN, INT16_MAX);
             }
+            compassConfigMutable()->magYawTrim += magLearnStatus.yawTrimDelta;
             magLearnStatus.flags |= MAG_LEARN_SAVED;
             saveConfigAndNotify();
         }
@@ -549,6 +638,10 @@ void compassUpdate(timeUs_t currentTimeUs)
             magPrev[axis] = 0;
             magAxisDeviation[axis] = 0;  // Gain is based on the biggest absolute deviation from the mag zero point. Gain computation starts at 0
         }
+#ifdef USE_MAG_LEARN
+        // A calibration usually follows a new mounting, for which the learned trim is wrong: mag_learn learns it again
+        compassConfigMutable()->magYawTrim = 0;
+#endif
 
         beeper(BEEPER_ACTION_SUCCESS);
 
@@ -638,26 +731,7 @@ void compassUpdate(timeUs_t currentTimeUs)
         mag.magADCUnaligned[axis] = mag.magADC[axis];
     }
 
-    if (mag.dev.magAlign.useExternal) {
-        const fpVector3_t v = {
-            .x = mag.magADC[X],
-            .y = mag.magADC[Y],
-            .z = mag.magADC[Z],
-         };
-
-        fpVector3_t rotated;
-
-        rotationMatrixRotateVector(&rotated, &v, &mag.dev.magAlign.externalRotation);
-        applyTailSitterAlignment(&rotated);
-         mag.magADC[X] = rotated.x;
-         mag.magADC[Y] = rotated.y;
-         mag.magADC[Z] = rotated.z;
-
-    } else {
-        // On-board compass
-        applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign.onBoard);
-        applyBoardAlignment(mag.magADC);
-    }
+    compassAlign(mag.magADC);
 
 #ifdef USE_MAG_LEARN
     compassLearnUpdate(currentTimeUs);

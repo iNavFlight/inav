@@ -3839,6 +3839,8 @@
 |---|---:|---|
 | `MAG_LEARN_COLLECTING` | 1 << 0 |  |
 | `MAG_LEARN_PAUSED` | 1 << 1 |  |
+| `MAG_LEARN_ATTITUDE_FIT` | 1 << 2 |  |
+| `MAG_LEARN_MISFIT` | 1 << 3 |  |
 | `MAG_LEARN_SAVE_DUE` | 1 << 4 |  |
 | `MAG_LEARN_FEW_SECTORS` | 1 << 5 |  |
 | `MAG_LEARN_FEW_HEADINGS` | 1 << 6 |  |
@@ -3847,6 +3849,9 @@
 | `MAG_LEARN_STEP_TOO_BIG` | 1 << 9 |  |
 | `MAG_LEARN_SAVED` | 1 << 10 |  |
 | `MAG_LEARN_DISARMED_FLYING` | 1 << 11 |  |
+| `MAG_LEARN_DECLINATION_OFF` | 1 << 12 |  |
+| `MAG_LEARN_FITS_DISAGREE` | 1 << 13 |  |
+| `MAG_LEARN_CONFIRMED` | 1 << 14 |  |
 
 ---
 ## <a id="enum-magsensor_e"></a>`magSensor_e`

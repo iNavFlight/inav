@@ -1772,6 +1772,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
             sbufWriteU16(dst, magLearnStatus.delta[i]);
         }
+        for (int i = 0; i < XYZ_AXIS_COUNT; i++) {
+            sbufWriteU16(dst, magLearnStatus.field[i]);
+        }
+        sbufWriteU16(dst, magLearnStatus.yawTrimDelta);
         break;
 #endif
 
