@@ -826,8 +826,6 @@ void processRx(timeUs_t currentTimeUs)
     }
 
     const rollPitchStatus_e rollPitchStatus = calculateRollPitchCenterStatus();
-    // the autoland goes down to idle power whatever the stick: the low-stick anti-windup held the pitch trim short of it
-    const bool itermThrottleLow = throttleIsLow && !navigationIsFlyingFwAutoland();
 
     // In MANUAL mode we reset integrators prevent I-term wind-up (PID output is not used in MANUAL)
     if (FLIGHT_MODE(MANUAL_MODE) || !ARMING_FLAG(ARMED)) {
@@ -835,7 +833,7 @@ void processRx(timeUs_t currentTimeUs)
         pidResetErrorAccumulators();
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER) {
-        if (itermThrottleLow) {
+        if (throttleIsLow) {
             if (STATE(AIRMODE_ACTIVE)) {
                 if ((rollPitchStatus == CENTERED) || (ifMotorstopFeatureEnabled() && !STATE(FIXED_WING_LEGACY))) {
                     ENABLE_STATE(ANTI_WINDUP);
@@ -854,7 +852,7 @@ void processRx(timeUs_t currentTimeUs)
         }
     }
     else if (rcControlsConfig()->airmodeHandlingType == STICK_CENTER_ONCE) {
-        if (itermThrottleLow) {
+        if (throttleIsLow) {
             if (STATE(AIRMODE_ACTIVE)) {
                 if ((rollPitchStatus == CENTERED) && !STATE(ANTI_WINDUP_DEACTIVATED)) {
                     ENABLE_STATE(ANTI_WINDUP);
@@ -878,7 +876,7 @@ void processRx(timeUs_t currentTimeUs)
     else if (rcControlsConfig()->airmodeHandlingType == THROTTLE_THRESHOLD) {
         DISABLE_STATE(ANTI_WINDUP);
         //This case applies only to MR when Airmode management is throttle threshold activated
-        if (itermThrottleLow && !STATE(AIRMODE_ACTIVE)) {
+        if (throttleIsLow && !STATE(AIRMODE_ACTIVE)) {
             pidResetErrorAccumulators();
         }
     }

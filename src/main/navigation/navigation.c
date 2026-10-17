@@ -7390,18 +7390,6 @@ bool navigationRequiresAutoThrottleMode(void)
            ((stateFlags & NAV_CTL_LAUNCH) && !navConfig()->fw.launch_manual_throttle);
 }
 
-// The fixed wing autoland in the air, from the climb to the wind circle to the flare
-bool navigationIsFlyingFwAutoland(void)
-{
-#ifdef USE_FW_AUTOLAND
-    return posControl.navState == NAV_STATE_FW_LANDING_CLIMB_TO_LOITER || posControl.navState == NAV_STATE_FW_LANDING_LOITER
-        || posControl.navState == NAV_STATE_FW_LANDING_APPROACH || posControl.navState == NAV_STATE_FW_LANDING_GLIDE
-        || posControl.navState == NAV_STATE_FW_LANDING_FLARE;
-#else
-    return false;
-#endif
-}
-
 bool navigationIsControllingThrottle(void)
 {
     if (isFixedwingAutoSpeedActive()) return true;
