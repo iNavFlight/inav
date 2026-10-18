@@ -107,6 +107,7 @@ typedef struct gsfYawAhrsInput_s {
     bool resetYaw;          // once: set the AHRS heading to yaw
 } gsfYawAhrsInput_t;
 
+void gsfYawInit(void);
 void gsfYawAccumulateImu(float dT);
 void gsfYawOnNewGpsData(void);
 void taskGsfYaw(timeUs_t currentTimeUs);
