@@ -2653,6 +2653,10 @@ static afatfsOperationStatus_e afatfs_ftruncateContinue(afatfsFilePtr_t file, bo
 
                 // Searches for unallocated regular clusters should be told about this free cluster now
                 afatfs.lastClusterAllocated = MIN(afatfs.lastClusterAllocated, opState->currentCluster - 1);
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+                // A deleted file is room for regular clusters again, and so for a new log
+                afatfs.refill.regularFull = false;
+#endif
             }
 
             opState->phase = AFATFS_TRUNCATE_FILE_SUCCESS;
