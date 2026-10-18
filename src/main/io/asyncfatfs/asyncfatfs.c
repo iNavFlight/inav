@@ -2875,6 +2875,26 @@ afatfsOperationStatus_e afatfs_deleteDirectoryEntryAt(afatfsDirEntryPointer_t *e
 }
 
 /**
+ * Mark the directory entry at `entryPos` deleted and clear its cluster and size. See asyncfatfs.h.
+ */
+afatfsOperationStatus_e afatfs_discardDirectoryEntryAt(afatfsDirEntryPointer_t *entryPos)
+{
+    uint8_t *sector;
+    afatfsOperationStatus_e status = afatfs_cacheSector(entryPos->sectorNumberPhysical, &sector, AFATFS_CACHE_READ | AFATFS_CACHE_WRITE, 0);
+
+    if (status == AFATFS_OPERATION_SUCCESS) {
+        fatDirectoryEntry_t *entry = (fatDirectoryEntry_t *) sector + entryPos->entryIndex;
+
+        entry->filename[0] = FAT_DELETED_FILE_MARKER;
+        entry->firstClusterHigh = 0;
+        entry->firstClusterLow = 0;
+        entry->fileSize = 0;
+    }
+
+    return status;
+}
+
+/**
  * True while any cache sector is dirty or a flush is in progress. See asyncfatfs.h.
  */
 bool afatfs_hasPendingWrites(void)

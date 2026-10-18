@@ -70,6 +70,13 @@ bool afatfs_fopen(const char *filename, const char *mode, afatfsFileCallback_t c
  */
 afatfsOperationStatus_e afatfs_deleteDirectoryEntryAt(afatfsDirEntryPointer_t *entryPos);
 /*
+ * Like afatfs_deleteDirectoryEntryAt(), but also clears the entry's first cluster and size so it no longer marks a
+ * region boundary. For an entry that must not be picked again; its clusters are left unowned.
+ *
+ * Returns AFATFS_OPERATION_IN_PROGRESS if the cache is busy; call again to retry.
+ */
+afatfsOperationStatus_e afatfs_discardDirectoryEntryAt(afatfsDirEntryPointer_t *entryPos);
+/*
  * True while any cache sector is dirty or a flush is in progress. Wait for this to go false before
  * afatfs_deleteDirectoryEntryAt() when reclaiming space, so the delete is flushed before the freefile relocation
  * (flushing is oldest-write-first); otherwise a power loss between the two writes would leave the freefile

@@ -100,6 +100,7 @@ static struct {
         BLACKBOX_SDCARD_READY_TO_CREATE_LOG,
         BLACKBOX_SDCARD_SCAN_FOR_OLDEST_LOG,
         BLACKBOX_SDCARD_DELETE_OLDEST_LOG,
+        BLACKBOX_SDCARD_DISCARD_UNUSABLE_LOG,
         BLACKBOX_SDCARD_RELOCATE_FREEFILE,
         BLACKBOX_SDCARD_READY_TO_LOG
     } state;
@@ -605,16 +606,21 @@ static bool blackboxSDCardBeginLog(void)
                     // Size is in bytes.
                     blackboxSDCard.oldestLogFileSize =
                         (nextBoundaryCluster - blackboxSDCard.oldestLogFirstCluster) * afatfs_freeFileClusterSize();
+                } else if (blackboxSDCard.oldestLogFirstCluster != UINT32_MAX && blackboxSDCard.oldestLogFirstCluster != 0) {
+                    // Nothing lies beyond the evicted log. Logs grow a whole supercluster at a time, so its allocation is
+                    // fileSize rounded up; fileSize alone would make a short last log look too small to reclaim and stall wraparound.
+                    const uint32_t superClusterSize = afatfs_freeFileSuperClusterSize();
+                    blackboxSDCard.oldestLogFileSize =
+                        MAX(blackboxSDCard.oldestLogFileSize + superClusterSize - 1, superClusterSize) / superClusterSize * superClusterSize;
                 }
-                // Else nothing lies beyond the evicted log; its own fileSize is used as a conservative size.
 
-                if (
-                    blackboxSDCard.oldestLogFirstCluster == UINT32_MAX || blackboxSDCard.oldestLogFirstCluster == 0
-                    || blackboxSDCard.oldestLogFileSize < afatfs_freeFileSuperClusterSize()
-                ) {
-                    // Nothing usable: no logs, no allocated clusters, or less than one supercluster
+                if (blackboxSDCard.oldestLogFirstCluster == UINT32_MAX || blackboxSDCard.oldestLogFirstCluster == 0) {
+                    // Nothing to reclaim: no logs
                     blackboxSDCard.wraparoundGaveUp = true;
                     blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
+                } else if (blackboxSDCard.oldestLogFileSize < afatfs_freeFileSuperClusterSize()) {
+                    // Too small to reclaim. Retrying would pick the same log every time, so drop it and rescan.
+                    blackboxSDCard.state = BLACKBOX_SDCARD_DISCARD_UNUSABLE_LOG;
                 } else {
                     blackboxSDCard.state = BLACKBOX_SDCARD_DELETE_OLDEST_LOG;
                 }
@@ -631,6 +637,13 @@ static bool blackboxSDCardBeginLog(void)
 
         if (afatfs_deleteDirectoryEntryAt(&blackboxSDCard.oldestLogEntryPos) == AFATFS_OPERATION_SUCCESS) {
             blackboxSDCard.state = BLACKBOX_SDCARD_RELOCATE_FREEFILE;
+            goto doMore;
+        }
+        break;
+
+    case BLACKBOX_SDCARD_DISCARD_UNUSABLE_LOG:
+        if (afatfs_discardDirectoryEntryAt(&blackboxSDCard.oldestLogEntryPos) == AFATFS_OPERATION_SUCCESS) {
+            blackboxSDCard.state = BLACKBOX_SDCARD_READY_TO_CREATE_LOG;
             goto doMore;
         }
         break;
