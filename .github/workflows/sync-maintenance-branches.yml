@@ -17,19 +17,19 @@ on:
       - next-10.1
   workflow_dispatch:
 
-# One run at a time; queued runs wait rather than cancel so no push is skipped.
+# One run at a time. A newer pending run replaces an older pending one, which
+# is fine: every run syncs the branches' current tips.
 concurrency:
   group: sync-maintenance-branches
   cancel-in-progress: false
-
-permissions:
-  contents: write
-  pull-requests: write
 
 jobs:
   sync:
     if: github.repository == 'iNavFlight/inav'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,7 +39,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # GitHub runs this as `bash -e`; failures are handled explicitly so
+          # one broken link cannot skip the next.
+          set +e
           set -uo pipefail
+          rc=0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
@@ -54,24 +58,25 @@ jobs:
             gh pr create --head "$src" --base "$tgt" \
               --title "Sync $src into $tgt" \
               --body "Automatic sync of \`$src\` into \`$tgt\` could not be completed (merge conflict or push refused). Merge \`$src\` into \`$tgt\` locally, resolve conflicts, and push. Use a merge commit, not squash or rebase. Do not use GitHub's \"Resolve conflicts\" button." \
-              && echo "::warning::$src -> $tgt needs manual merge; PR opened"
+              && echo "::warning::$src -> $tgt needs manual merge; PR opened" \
+              || { echo "::error::could not open sync PR $src -> $tgt"; rc=1; }
           }
 
           sync() {
             local src=$1 tgt=$2
-            git fetch origin "+refs/heads/$src:refs/remotes/origin/$src" "+refs/heads/$tgt:refs/remotes/origin/$tgt" || return
+            git fetch origin "+refs/heads/$src:refs/remotes/origin/$src" "+refs/heads/$tgt:refs/remotes/origin/$tgt" || { rc=1; return; }
             if git merge-base --is-ancestor "origin/$src" "origin/$tgt"; then
               echo "$tgt already contains $src"
               return
             fi
-            git checkout -q -B "$tgt" "origin/$tgt"
+            git checkout -q -B "$tgt" "origin/$tgt" || { rc=1; return; }
             if ! git merge --ff-only "origin/$src" \
                && ! git merge --no-ff -m "Merge $src into $tgt (automatic sync)" "origin/$src"; then
-              git merge --abort 2>/dev/null
+              git merge --abort 2>/dev/null || true
               open_pr "$src" "$tgt"
               return
             fi
-            if git push origin "$tgt"; then
+            if git push origin "HEAD:refs/heads/$tgt"; then
               echo "Synced $src into $tgt"
             else
               open_pr "$src" "$tgt"
@@ -80,3 +85,4 @@ jobs:
 
           sync maintenance-10.x next-10.1
           sync next-10.1 maintenance-11.x
+          exit $rc
