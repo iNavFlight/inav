@@ -53,6 +53,7 @@
 #define IMU_MPU6000_ALIGN       CW0_DEG_FLIP
 #define MPU6000_SPI_BUS          BUS_SPI1
 #define MPU6000_CS_PIN          PC15
+#define MPU6000_EXTI_PIN        PB2
 
 // *************** SPI4 IMU1  ICM20602 **************
 #define USE_SPI_DEVICE_4
@@ -72,6 +73,7 @@
 #define IMU_ICM42605_ALIGN      CW90_DEG_FLIP
 #define ICM42605_SPI_BUS        BUS_SPI4
 #define ICM42605_CS_PIN         PC13
+#define ICM42605_EXTI_PIN       PE15
 
 // *************** SPI2 OSD ***********************
   #define USE_SPI_DEVICE_2

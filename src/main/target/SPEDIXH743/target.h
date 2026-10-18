@@ -44,6 +44,7 @@
 
 #define ICM42605_1_SPI_BUS      BUS_SPI1
 #define ICM42605_1_CS_PIN       PA15
+#define ICM42605_1_EXTI_PIN     PD7
 #define IMU_ICM42605_ALIGN      CW0_DEG
 
 // *************** SPI4 — Gyro 2 (ICM42688P) ************
@@ -54,6 +55,7 @@
 
 #define ICM42605_2_SPI_BUS      BUS_SPI4
 #define ICM42605_2_CS_PIN       PE3
+#define ICM42605_2_EXTI_PIN     PE4
 #define IMU_ICM42605_2_ALIGN    CW0_DEG
 
 // *************** SPI2 — OSD (MAX7456) *****************

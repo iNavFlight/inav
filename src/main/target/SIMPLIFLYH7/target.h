@@ -74,6 +74,7 @@
 #define IMU_ICM42605_ALIGN        CW270_DEG_FLIP
 #define ICM42605_SPI_BUS          BUS_SPI1
 #define ICM42605_CS_PIN           PC4
+#define ICM42605_EXTI_PIN         PC3
 
 // *************** I2C(Baro & I2C) **************************
 #define USE_I2C
