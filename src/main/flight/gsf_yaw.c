@@ -156,7 +156,7 @@ static bool correctModel(gsfModel_t *m, float velNorth, float velEast, float vel
     detS = 1.0f / detS;
     const float iNN = m->S[1][1] * detS;
     const float iEE = m->S[0][0] * detS;
-    const float iNE = m->S[0][1] * detS;
+    const float iNE = -m->S[0][1] * detS;
     const float testRatio = m->innov[0] * (m->innov[0] * iNN + m->innov[1] * iNE) + m->innov[1] * (m->innov[0] * iNE + m->innov[1] * iEE);
     const float innovScale = testRatio > 25.0f ? fast_fsqrtf(25.0f / testRatio) : 1.0f;
 

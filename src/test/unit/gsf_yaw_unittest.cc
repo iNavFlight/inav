@@ -300,3 +300,33 @@ TEST(GsfYawTest, YawRateIsTheNoseHeadingRate)
     const float turn[3] = { -0.3f * up[0], -0.3f * up[1], -0.3f * up[2] };
     EXPECT_NEAR(gsfYawRate(up, turn), 0.3f, 1e-4f);
 }
+
+TEST(GsfYawTest, ClipsASpikeAlongCorrelatedVelocityErrors)
+{
+    gsfState_t gsf;
+    gsfReset(&gsf);
+    gsf.fusing = true;
+    const float velN = 10.0f, velE = -4.0f;
+    for (int i = 0; i < GSF_MODEL_COUNT; i++) {
+        gsf.model[i].X[0] = velN;
+        gsf.model[i].X[1] = velE;
+    }
+
+    // North and east errors that move together: an innovation of opposite signs is 6.7 sigma away (test ratio 45),
+    // though each axis alone looks like 3.4 sigma
+    gsfModel_t *m = &gsf.model[0];
+    memset(m->P, 0, sizeof(m->P));
+    m->P[0][0] = m->P[1][1] = 0.75f;
+    m->P[0][1] = m->P[1][0] = 0.6f;
+    m->P[2][2] = 0.1f;
+    m->X[0] = velN + 3.0f;
+    m->X[1] = velE - 3.0f;
+    m->X[2] = 0.0f;
+
+    ASSERT_TRUE(gsfFuseVelocity(&gsf, velN, velE, 0.5f));
+
+    // Gain 0.15 / (0.15 + 0.25) along the innovation, scaled down to 5 sigma
+    const float step = 0.375f * 3.0f * sqrtf(25.0f / 45.0f);
+    EXPECT_NEAR(m->X[0], velN + 3.0f - step, 1e-3f);
+    EXPECT_NEAR(m->X[1], velE - 3.0f + step, 1e-3f);
+}
