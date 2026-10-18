@@ -183,7 +183,6 @@
 
 #define MSP_SDCARD_SUMMARY              79 //out message         Get the state of the SD card
 
-
 #define MSP_TRANSPONDER_CONFIG          82 //out message         Get transponder settings
 #define MSP_SET_TRANSPONDER_CONFIG      83 //in message          Set transponder settings
 
