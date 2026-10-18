@@ -50,7 +50,11 @@ jobs:
           open_pr() {
             local src=$1 tgt=$2
             local existing
-            existing=$(gh pr list --head "$src" --base "$tgt" --state open --json number --jq '.[0].number // empty')
+            if ! existing=$(gh pr list --head "$src" --base "$tgt" --state open --json number --jq '.[0].number // empty'); then
+              echo "::error::could not check for an existing sync PR $src -> $tgt"
+              rc=1
+              return
+            fi
             if [ -n "$existing" ]; then
               echo "::warning::$src -> $tgt needs manual merge; PR #$existing already open"
               return
