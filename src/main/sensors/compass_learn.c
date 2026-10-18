@@ -350,6 +350,8 @@ void magLearnEvaluate(const int16_t zero[XYZ_AXIS_COUNT], const int16_t gain[XYZ
             flags |= MAG_LEARN_STEP_TOO_BIG;
         }
     } else {
+        // No fit, no step: an earlier fit's would be shown next to failure flags
+        memset(magLearnStatus.delta, 0, sizeof(magLearnStatus.delta));
         magLearnStatus.flags = flags;
         return;
     }
