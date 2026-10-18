@@ -3547,7 +3547,7 @@ uint32_t afatfs_getFreeSpaceKB(void)
     }
 
     // Counted in half-KiB sectors, which fit 32 bits up to FAT32's 2 TiB
-    return afatfs.freeFile.logicalSize / 1024 + afatfs.freeCountClusters * afatfs.sectorsPerCluster / 2;
+    return (afatfs.freeFile.logicalSize / AFATFS_SECTOR_SIZE + afatfs.freeCountClusters * afatfs.sectorsPerCluster) / 2;
 }
 
 static uint32_t afatfs_freeFileClusters(void);
