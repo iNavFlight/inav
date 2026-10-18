@@ -251,8 +251,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [75 - MSP_FAILSAFE_CONFIG](#msp_failsafe_config)  
 [76 - MSP_SET_FAILSAFE_CONFIG](#msp_set_failsafe_config)  
 [79 - MSP_SDCARD_SUMMARY](#msp_sdcard_summary)  
-[80 - MSP_BLACKBOX_CONFIG](#msp_blackbox_config)  
-[81 - MSP_SET_BLACKBOX_CONFIG](#msp_set_blackbox_config)  
 [82 - MSP_TRANSPONDER_CONFIG](#msp_transponder_config)  
 [83 - MSP_SET_TRANSPONDER_CONFIG](#msp_set_transponder_config)  
 [84 - MSP_OSD_CONFIG](#msp_osd_config)  
@@ -1364,30 +1362,6 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `totalSpaceKB` | `uint32_t` | 4 | - | Total space in KiB (`sdcard_getMetadata()->numBlocks / 2`). 0 if `USE_SDCARD` disabled |
 
 **Notes:** Requires `USE_SDCARD` and `USE_ASYNCFATFS`.
-
-## <a id="msp_blackbox_config"></a>`MSP_BLACKBOX_CONFIG (80 / 0x50)`
-**Description:** Legacy command to retrieve Blackbox configuration. Superseded by `MSP2_BLACKBOX_CONFIG`.  
-
-**Request Payload:** **None**  
-  
-**Reply Payload:**
-|Field|C Type|Size (Bytes)|Description|
-|---|---|---|---|
-| `blackboxDevice` | `uint8_t` | 1 | Always 0 (API no longer supported) |
-| `blackboxRateNum` | `uint8_t` | 1 | Always 0 |
-| `blackboxRateDenom` | `uint8_t` | 1 | Always 0 |
-| `blackboxPDenom` | `uint8_t` | 1 | Always 0 |
-
-**Notes:** Returns fixed zero values. Use `MSP2_BLACKBOX_CONFIG`.
-
-## <a id="msp_set_blackbox_config"></a>`MSP_SET_BLACKBOX_CONFIG (81 / 0x51)`
-**Description:** Legacy command to set Blackbox configuration. Superseded by `MSP2_SET_BLACKBOX_CONFIG`.  
-
-**Request Payload:** **None**  
-
-**Reply Payload:** **None**  
-
-**Notes:** Not implemented in `fc_msp.c`. Use `MSP2_SET_BLACKBOX_CONFIG`.
 
 ## <a id="msp_transponder_config"></a>`MSP_TRANSPONDER_CONFIG (82 / 0x52)`
 **Description:** Get VTX Transponder settings (likely specific to RaceFlight/Betaflight, not standard INAV VTX).  
@@ -3707,7 +3681,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** `DEBUG32_VALUE_COUNT` is usually 8.
 
 ## <a id="msp2_blackbox_config"></a>`MSP2_BLACKBOX_CONFIG (8218 / 0x201a)`
-**Description:** Retrieves the Blackbox configuration. Supersedes `MSP_BLACKBOX_CONFIG`.  
+**Description:** Retrieves the Blackbox configuration.  
 
 **Request Payload:** **None**  
   
@@ -3723,7 +3697,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** If `USE_BLACKBOX` is disabled, only the first four fields are returned (all zero).
 
 ## <a id="msp2_set_blackbox_config"></a>`MSP2_SET_BLACKBOX_CONFIG (8219 / 0x201b)`
-**Description:** Sets the Blackbox configuration. Supersedes `MSP_SET_BLACKBOX_CONFIG`.  
+**Description:** Sets the Blackbox configuration.  
   
 **Request Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|

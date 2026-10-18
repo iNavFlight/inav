@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 2
+        "patch": 3
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -2364,56 +2364,6 @@
             },
             "notes": "Requires `USE_SDCARD` and `USE_ASYNCFATFS`.",
             "description": "Retrieves summary information about the SD card status and filesystem."
-        },
-        "MSP_BLACKBOX_CONFIG": {
-            "code": 80,
-            "mspv": 1,
-            "replaced_by": ["MSP2_BLACKBOX_CONFIG"],
-            "request": null,
-            "reply": {
-                "payload": [
-                    {
-                        "name": "blackboxDevice",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0 (API no longer supported)",
-                        "units": "",
-                        "value": 0
-                    },
-                    {
-                        "name": "blackboxRateNum",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0",
-                        "units": "",
-                        "value": 0
-                    },
-                    {
-                        "name": "blackboxRateDenom",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0",
-                        "units": "",
-                        "value": 0
-                    },
-                    {
-                        "name": "blackboxPDenom",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0",
-                        "units": "",
-                        "value": 0
-                    }
-                ]
-            },
-            "notes": "Returns fixed zero values. Use `MSP2_BLACKBOX_CONFIG`.",
-            "description": "Legacy command to retrieve Blackbox configuration. Superseded by `MSP2_BLACKBOX_CONFIG`."
-        },
-        "MSP_SET_BLACKBOX_CONFIG": {
-            "code": 81,
-            "mspv": 1,
-            "replaced_by": ["MSP2_SET_BLACKBOX_CONFIG"],
-            "not_implemented": true,
-            "request": null,
-            "reply": null,
-            "notes": "Not implemented in `fc_msp.c`. Use `MSP2_SET_BLACKBOX_CONFIG`.",
-            "description": "Legacy command to set Blackbox configuration. Superseded by `MSP2_SET_BLACKBOX_CONFIG`."
         },
         "MSP_TRANSPONDER_CONFIG": {
             "code": 82,
@@ -8552,7 +8502,7 @@
                 ]
             },
             "notes": "If `USE_BLACKBOX` is disabled, only the first four fields are returned (all zero).",
-            "description": "Retrieves the Blackbox configuration. Supersedes `MSP_BLACKBOX_CONFIG`."
+            "description": "Retrieves the Blackbox configuration."
         },
         "MSP2_SET_BLACKBOX_CONFIG": {
             "code": 8219,
@@ -8588,7 +8538,7 @@
             },
             "reply": null,
             "notes": "Requires `USE_BLACKBOX`. Expects 9 bytes. Returns error if Blackbox is currently logging (`!blackboxMayEditConfig()`).",
-            "description": "Sets the Blackbox configuration. Supersedes `MSP_SET_BLACKBOX_CONFIG`."
+            "description": "Sets the Blackbox configuration."
         },
         "MSP2_INAV_TEMP_SENSOR_CONFIG": {
             "code": 8220,

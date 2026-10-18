@@ -1349,13 +1349,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         serializeDataflashSummaryReply(dst);
         break;
 
-    case MSP_BLACKBOX_CONFIG:
-        sbufWriteU8(dst, 0); // API no longer supported
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-        break;
-
     case MSP2_BLACKBOX_CONFIG:
 #ifdef USE_BLACKBOX
         sbufWriteU8(dst, 1); //Blackbox supported
