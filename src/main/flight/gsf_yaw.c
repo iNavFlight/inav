@@ -482,6 +482,7 @@ bool gsfDelayEstimate(const gsfDelayEstimator_t *e, uint32_t *delayUs)
 #define GSF_NIS_CONSISTENT      3.0f
 #define GSF_INCONSISTENT_US     10000000    // then it learns again from scratch
 #define GSF_WINDOW_US           20000       // the task period: a GPS sample is fused within one window of its time
+#define GSF_GPS_STALE_US        1000000     // no GPS velocity for this long: the heading is the gyro's alone
 #define GSF_FUSION_MIN_US       80000       // at most ~10 fusions a second, whatever the receiver's rate
 #define GSF_MAG_ERROR_FILTER    0.02f       // about 1 s at 50 Hz
 #define GSF_MAG_ERROR_MIN       DEGREES_TO_RADIANS(25.0f)
@@ -534,6 +535,29 @@ STATIC_FASTRAM bool gsfWasTailsitter;
 STATIC_FASTRAM bool gsfActive;             // the task runs: without it the accumulator would grow for ever
 STATIC_FASTRAM bool gsfDelayMeasured;
 STATIC_FASTRAM uint32_t gsfDelayMeasuredUs;
+
+// FASTRAM is not zeroed at boot on every MCU (AT32's startup clears .bss only)
+void gsfYawInit(void)
+{
+    memset(&gsfState, 0, sizeof(gsfState));
+    gsfReset(&gsfState);
+    memset(&gsfAccumulating, 0, sizeof(gsfAccumulating));
+    memset(gsfWindows, 0, sizeof(gsfWindows));
+    gsfWindowHead = gsfWindowCount = 0;
+    memset(&gsfHistory, 0, sizeof(gsfHistory));
+    memset(&gsfDelay, 0, sizeof(gsfDelay));
+    gsfHistoryVel[0] = gsfHistoryVel[1] = gsfHistoryYaw = 0.0f;
+    gsfBlockDv[0] = gsfBlockDv[1] = gsfBlockDt = 0.0f;
+    memset(&gsfStatus, 0, sizeof(gsfStatus));
+    gsfStatus.gpsDelayUs = GSF_DELAY_DEFAULT_US;
+    gsfGpsVel[0] = gsfGpsVel[1] = gsfGpsIntervalUs = 0.0f;
+    gsfGpsArrival = gsfGpsTakenAt = gsfGpsLastArrival = 0;
+    gsfSettledSince = gsfLastFusion = gsfInconsistentSince = 0;
+    gsfMagDisagreeSince = gsfMagAgreeSince = gsfFarSince = 0;
+    gsfGpsPending = gsfGpsPendingDelay = gsfMagDisagrees = gsfResetRequested = false;
+    gsfAirborne = gsfWasArmed = gsfWasTailsitter = gsfActive = gsfDelayMeasured = false;
+    gsfDelayMeasuredUs = 0;
+}
 
 // Every AHRS update: out of line, since the AHRS is FAST_CODE on some targets (RP2350) and this is not time critical
 NOINLINE void gsfYawAccumulateImu(float dT)
@@ -732,10 +756,6 @@ static void checkAhrsHeading(timeUs_t now, bool usable)
 
 void taskGsfYaw(timeUs_t currentTimeUs)
 {
-    // Zeroed at boot, which would read as a certain heading of 0
-    if (gsfState.model[0].weight == 0.0f) {
-        gsfReset(&gsfState);
-    }
     gsfActive = true;
 
     // A tailsitter's transition turns the nose by 90 deg with no gyro yaw: the window and the models start over
@@ -775,7 +795,6 @@ void taskGsfYaw(timeUs_t currentTimeUs)
 
     const uint8_t previous = gsfStatus.flags;
     gsfStatus.flags = 0;
-    updateGpsDelay(inFlight);
 
     // Step the filter up to the GPS delay behind the present
     const gsfWindow_t *last = NULL;
@@ -789,11 +808,13 @@ void taskGsfYaw(timeUs_t currentTimeUs)
         gsfWindowCount--;
     }
 
-    // The latest GPS sample, fused once the filter has reached the time it was taken
-    if (gsfGpsPending && last && cmpTimeUs(last->end, gsfGpsTakenAt) >= -GSF_WINDOW_US) {
+    // The latest GPS sample, fused once the filter has reached the time it was taken. One the filter is already well
+    // past, after the delay grew, is dropped rather than fused against the wrong motion
+    const timeDelta_t pastSample = last ? cmpTimeUs(last->end, gsfGpsTakenAt) : 0;
+    if (gsfGpsPending && last && pastSample >= -GSF_WINDOW_US) {
         gsfGpsPending = false;
         const bool spaced = !gsfState.fusing || gsfGpsTakenAt - gsfLastFusion >= GSF_FUSION_MIN_US;
-        if (inFlight && last->maxRateSq < sq(GSF_STEADY_RATE) && spaced) {
+        if (inFlight && last->maxRateSq < sq(GSF_STEADY_RATE) && spaced && pastSample <= 2 * GSF_WINDOW_US) {
             if (!gsfState.fusing) {
                 gsfStatus.excitation = 0.0f;
                 gsfStatus.nis = 2.0f;
@@ -804,6 +825,9 @@ void taskGsfYaw(timeUs_t currentTimeUs)
             gsfLastFusion = gsfGpsTakenAt;
         }
     }
+
+    // A new delay applies from the next sample: the pending one was stamped and stepped to with the old one
+    updateGpsDelay(inFlight);
 
     // A leading model the GPS keeps disagreeing with: past the limit for long, start over, and the compass it may
     // have excluded gets its trust back
@@ -827,7 +851,8 @@ void taskGsfYaw(timeUs_t currentTimeUs)
     gsfStatus.yawSigma = fast_fsqrtf(gsfState.yawVariance);
 
     // Its own variance is not proof on its own: it also has to have seen manoeuvres, and stay settled a while
-    const bool settled = gsfState.fusing && !inconsistent && gsfStatus.excitation >= GSF_USABLE_EXCITATION &&
+    const bool gpsFresh = gsfGpsArrival && currentTimeUs - gsfGpsArrival < GSF_GPS_STALE_US;
+    const bool settled = gsfState.fusing && !inconsistent && gpsFresh && gsfStatus.excitation >= GSF_USABLE_EXCITATION &&
         gsfStatus.yawSigma < GSF_USABLE_SIGMA;
     const bool usable = heldFor(&gsfSettledSince, settled, currentTimeUs, GSF_USABLE_SETTLE_US);
 
@@ -870,7 +895,8 @@ NOINLINE void gsfYawGetAhrsInput(gsfYawAhrsInput_t *in)
     if (enabled && (gsfStatus.flags & GSF_YAW_USABLE)) {
         in->weight = constrainf(scaleRangef(gsfStatus.yawSigma, GSF_AHRS_FULL_SIGMA, GSF_USABLE_SIGMA, 1.0f, 0.0f), 0.0f, 1.0f);
     }
-    in->ignoreMag = enabled && gsfMagDisagrees;
+    // Only while there is an estimate to take the compass's place
+    in->ignoreMag = enabled && gsfMagDisagrees && (gsfStatus.flags & GSF_YAW_USABLE);
     in->resetYaw = gsfResetRequested;
     gsfResetRequested = false;
 }

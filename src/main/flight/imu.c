@@ -193,6 +193,9 @@ void imuInit(void)
     // Explicitly initialize FASTRAM statics
     isAccelUpdatedAtLeastOnce = false;
     gpsHeadingInitialized = false;
+#ifdef USE_GSF_YAW
+    gsfYawInit();
+#endif
 
     // Create magnetic declination matrix
 #ifdef USE_MAG
