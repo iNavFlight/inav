@@ -50,7 +50,7 @@ This feature is compiled only when `USE_MARKER_GUIDANCE` is enabled for the targ
 On flash-constrained targets, it can be excluded at build time to preserve headroom.
 
 ### MSP payload
-`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` (`8754 / 0x2232`) has one fixed 8-byte little-endian request:
+`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` (`8754 / 0x2232`) has one fixed 20-byte little-endian request:
 
 | Bytes | Type | Field | Meaning |
 |---|---|---|---|
@@ -58,16 +58,22 @@ On flash-constrained targets, it can be excluded at build time to preserve headr
 | 2..3 | `int16_t` | `offsetEastCm` | Levelled horizontal offset from the vehicle to touchdown, East in INAV's local earth frame |
 | 4..5 | `int16_t` | `yawErrorDeciDeg` | Signed shortest turn from current heading to landing heading, from `-1800` to `1800` |
 | 6..7 | `uint16_t` | `markerAglCm` | Positive distance from vehicle body origin to the landing reference plane |
+| 8..15 | `uint64_t` | `captureTimeUs` | Nonzero original camera capture timestamp, microseconds on the producer's monotonic clock |
+| 16..19 | `uint32_t` | `captureAgeMs` | Conservative frame age at receiver MSP transmission, milliseconds; includes processing and upstream transport/queue delay |
 
-The old 4-byte request and all other request sizes are rejected. There is no version, confidence, timestamp, validity flag or marker identity field. North/East is the only supported XY frame. Freshness is based on FC receive time and `nav_marker_guidance_max_target_age_ms`.
+The old 4-byte and 8-byte requests and all other request sizes are rejected. There is no version, confidence, validity flag or marker identity field. North/East is the only supported XY frame. Update producer/receiver and FC together; do not auto-fallback to the old payload.
 
-Example: North `-123 cm`, East `456 cm`, yaw error `-90.0 deg` and marker AGL `321 cm` are encoded as `85 FF C8 01 7C FC 41 01`.
+Example: North `-123 cm`, East `456 cm`, yaw error `-90.0 deg`, marker AGL `321 cm`, capture time `1000000 us` and age `40 ms` are encoded as `85 FF C8 01 7C FC 41 01 40 42 0F 00 00 00 00 00 28 00 00 00`.
+
+Capture timestamps are never subtracted from the FC clock. A duplicate timestamp is rejected without refreshing the target or advancing confirmation. Backward timestamps are rejected while the previous accepted stream is fresh; after a receive gap longer than `nav_marker_guidance_max_target_age_ms`, a backward timestamp can seed a restarted producer, without computing velocity across the restart. The producer must flush old queued frames after a restart and must not reset the capture clock for each detection or tag. Timestamp zero and unknown age (`UINT32_MAX`) return `INVALID_TARGET`. Frames already older than `nav_marker_guidance_max_target_age_ms`, duplicates and out-of-order frames return `STALE`.
+
+The receiver must preserve capture time and calculate age using correctly related clocks or a conservative transport-delay bound. Subtracting Pi time from receiver/FC uptime is invalid. Final UART/FC scheduling delay is not included in the reported age. Marker velocity fusion uses capture age to align its exposure interval with IMU history. It does not extrapolate the navigation position target: the existing confirmed-target lifetime still uses FC receive time. Velocity validity additionally expires by reported capture age plus elapsed FC receive time.
 
 On receipt, INAV adds the relative North/East offset directly to the current local vehicle position and stores the resulting absolute marker position. No FC-side yaw rotation is applied to XY. The stored target does not rotate or move with the vehicle before the next packet. INAV converts the relative yaw error into one absolute heading target at receipt time. The same cached North/East reference is used by precision landing and containment. `markerAglCm` is the PL-provided height above the marker landing plane; INAV uses the last fresh value as an additional low-altitude reason to suppress a climb-and-retry.
 
 In `PL` mode, the first target and any later target that jumps outside the consistency tolerance must be seen in three consecutive fresh packets before it can replace the navigation target. The tolerance is the largest of `10 cm`, `nav_marker_guidance_radius_cm`, or 5% of marker AGL. A non-matching packet restarts confirmation while the previous confirmed target remains active until it becomes stale. This rejects a single pose jump without adding tag identity or quality fields to MSP. `CONTAINMENT` keeps immediate packet application.
 
-The five-byte reply is `accepted`, `used_now`, `nav_guidance_state`, `reason`, `retry_count`. `accepted = 1` means the complete sample passed wire/range validation and entered the target confirmation path. It does not necessarily mean that this packet has already replaced the confirmed target. `used_now = 1` means this packet was committed and can currently affect an allowed navigation controller; a valid sample can be accepted with `used_now = 0` while confirmation is pending or outside an allowed mode.
+The five-byte reply is `accepted`, `used_now`, `nav_guidance_state`, `reason`, `retry_count`. `accepted = 1` means the complete sample passed wire/range/timing validation and entered the target confirmation path. It does not necessarily mean that this packet has already replaced the confirmed target. `used_now = 1` means this packet was committed and can currently affect an allowed navigation controller; a valid sample can be accepted with `used_now = 0` while confirmation is pending or outside an allowed mode.
 
 ACK `reason` values are:
 
@@ -188,20 +194,170 @@ Retry safety rule:
 * active VTOL MC capture also keeps ownership of XY until its settle conditions pass
 * no dynamic allocation in the runtime path
 
+### Optical flow during PL
+
+In `PL` mode, once marker guidance owns the XY target, a healthy optical flow
+sensor can correct the INS horizontal velocity even with valid GPS. The marker
+remains the position reference for centering; GPS still anchors the global
+coordinate system and supplies position accuracy and fallback velocity. This is
+not GPS-free precision landing and does not change vertical estimation or PID gains.
+
+The local velocity path requires both optical flow and rangefinder support,
+a fresh quality-valid flow sample (200 ms timeout), a fresh valid range sample,
+range reliability at least 75%, height above 8 cm and no higher than
+`inav_max_surface_altitude`, valid GPS XY, INS XY/Z and heading, and tilt no greater than
+45 degrees. It rejects a horizontal velocity innovation over 200 cm/s (the
+existing GPS glitch acceleration bound over the flow timeout). A zero
+`inav_w_xy_flow_v` disables this correction. Flow-to-INS correction uses
+`alpha = gain * dt / (1 + gain * dt)` once per new sample; a sample interval
+over 200 ms is not integrated across the gap. No velocity or I-term is reset
+on source changes. GPS XY velocity and acceleration-bias corrections are
+suppressed while flow is selected, including between flow frames; GPS position
+and all Z corrections are retained. Flow does not train the accelerometer bias.
+
+Losing local flow uses a qualified marker velocity observation next, otherwise
+returns velocity correction to GPS when available. This change
+does not replace the existing GPS-loss policy: when GPS XY becomes invalid,
+the generic GPS-free FLOW/dead-reckoning path and its existing validity gates
+still apply. The flow coordinate origin is kept current while the PL override
+is active, so that handoff does not reuse an old flow position. With no usable
+source, normal navigation validity/failure handling still applies.
+Manual XY takeover, FW/auto-transition, emergency/failsafe, mode exit and VTOL
+capture/recovery disable this PL override. Manual yaw or altitude input alone
+does not disable the XY estimator. A retained PL target during marker loss can
+continue using healthy flow while PL still owns XY; no stale marker-derived
+velocity is used for control.
+
+Rangefinder altitude scales flow velocity. The height limit is currently the
+existing rangefinder limit, NOT automatic identification of the flow sensor's
+optical range. Do not raise it for a long-range lidar and assume that the flow
+camera will work at that height. No second-rangefinder support is added here.
+
+Marker velocity fusion assumes a stationary marker and capture-aligned,
+body-origin NE offsets. It uses non-overlapping displacement windows of about
+200 ms (one 20 ms history tick of camera-clock tolerance), rather than each
+1 cm/100 ms step. At 10 Hz this normally uses three poses and reduces velocity
+quantization from 10 to about 5 cm/s. The actual capture interval is always the
+denominator; slower or irregular frames are not treated as 10 Hz.
+
+A 64-entry, 20 ms IMU history stores integrated horizontal acceleration,
+independently of GPS corrections. The interval-average inertial velocity is
+subtracted from the current inertial velocity and added to the marker's measured
+interval-average velocity. This propagates the delayed observation to the present
+instead of treating an old velocity as current. The complete exposure interval
+must fit in history; there is no extrapolation before available history. History
+is periodically rebased to prevent precision loss on long flights.
+
+Healthy flow has priority. Marker fallback uses the same `inav_w_xy_flow_v` gain,
+bounded complementary correction and 200 cm/s innovation gate. Only one correction
+is applied per new displacement window, with no replay on flow loss. Between
+observations IMU prediction continues. While marker velocity is selected, GPS XY
+velocity and XY bias corrections are suppressed, but GPS position/EPE and all Z
+corrections remain unchanged. Neither PID state nor I-term is reset.
+
+Marker fusion additionally requires actual usable IMU prediction, valid GPS XY,
+INS XY/Z and heading, tilt at most 45 degrees, and active PL XY ownership. Stale,
+rejected or unconfirmed observations discard the velocity window; context loss,
+manual XY takeover, VTOL capture/recovery, transition and estimator gaps also clear
+inertial history. Reacquisition must build a new window. A retained landing target
+does not authorize reusing expired marker velocity. With no qualified local
+velocity, ordinary GPS/INS handling resumes. Yaw/Z pilot takeover alone does not
+release XY. A zero `inav_w_xy_flow_v` disables both local velocity corrections.
+
+This is experimental estimator fusion, not independent proof of camera accuracy.
+Capture attitude/extrinsics, marker motion, upstream filtering and incorrect age
+can still bias the observation. Validate on the bench before a controlled flight;
+do not simultaneously increase navigation PID gains to assess this change.
+
 ### Marker guidance debugging
 
 Set `debug_mode = MARKER_GUIDANCE` and enable Blackbox debug fields. The eight channels are:
 
 | Channel | Value |
 |---|---|
-| `debug[0]` | `markerGuidanceState_e` state |
+| `debug[0]` | State in bits 0..7; page in bits 8..15; capture status in bits 16..23; raw marker velocity valid in bit 24; marker fusion reason in bits 25..31 |
 | `debug[1]` | Runtime flags bitmask described below |
 | `debug[2]` | Packed bytes: context, runtime reason, retry count, last MSP reply reason |
 | `debug[3]` | Cached target age in milliseconds, or `-1` when no valid target is cached |
 | `debug[4]` | Signed `int16` received North offset in the low word and East offset in the high word, in cm |
-| `debug[5]` | Signed `int16` pending confirmation or committed absolute local North marker position in the low word and East position in the high word, in cm |
-| `debug[6]` | Signed `int16` requested North displacement in the low word and East displacement in the high word, in cm |
+| `debug[5]` | Page-dependent, see below |
+| `debug[6]` | Page-dependent, see below |
 | `debug[7]` | Marker AGL in the low unsigned word and absolute target heading in deci-degrees in the high unsigned word |
+
+Pages rotate every 100 ms, so one complete cycle is 600 ms. There is no new debug
+mode. Decode each row using `(debug[0] >> 8) & 255`; use
+`debug[0] & 255` for the original PL state. Older analysis scripts must be updated
+before interpreting channels 0, 5 and 6. All other channels retain their layout.
+
+| Page | `debug[5]` | `debug[6]` |
+|---|---|---|
+| 0 | Pending/committed absolute marker position N/E, cm | Requested displacement N/E, cm |
+| 1 | Flow observed velocity N/E, cm/s | GPS velocity N/E, cm/s |
+| 2 | Marker-derived interval velocity N/E, cm/s | INS velocity N/E before this correction, cm/s |
+| 3 | Unsigned words: cached range cm, age of last processed sensor sample ms (65535 if unknown or saturated) | Estimator status below |
+| 4 | Interval between accepted camera captures, us (saturated to INT32_MAX; zero on first sample/restart) | Last accepted capture age: reported age plus FC time since receipt, ms (-1 unknown, saturated to INT32_MAX) |
+| 5 | Windowed marker velocity propagated to present with IMU, N/E cm/s | Its innovation relative to current INS velocity, N/E cm/s |
+
+Marker fusion reason is: 0 inactive/reference unavailable, 1 window warmup or
+expired estimate, 2 no qualified fresh observation, 3 insufficient IMU history,
+4 non-finite/excessive innovation, 5 qualified but flow has priority or gain is zero,
+6 marker velocity selected. Decode the top bits as unsigned.
+
+Capture status in `debug[0]` is: 0 no sample, 1 first sample, 2 continuous,
+3 duplicate rejected, 4 out-of-order rejected, 5 old frame rejected,
+6 receive/capture gap, 7 target confirmation/reference reset, 8 producer clock restart,
+9 capture interval below 20 ms, 10 invalid capture time/unknown age.
+Bit 24 reports validity on every page; page 3 also retains the same flag in bit 25
+of `debug[6]`. Status 2 alone is not a validity flag.
+
+Marker velocity is the negative difference of consecutive confirmed body-origin
+North/East offsets divided by camera capture interval. It is a raw interval-average
+diagnostic on page 2, not the windowed/propagated observation used by fusion on
+page 5. After confirmation, a gap,
+rejected timing or context reset, a new baseline is required. Intervals below 20 ms
+or above the existing max-target-age window cannot produce a velocity observation.
+For time-aligned log comparison, this average belongs approximately to the midpoint
+of the two exposures, not to the arrival instant. Age on page 4 describes the newer
+exposure. Capture-aligned attitude and camera-to-body lever-arm compensation are
+producer responsibilities; camera motion during yaw must not masquerade as body
+translation. Remaining pose noise, attitude latency and final link delay still
+require validation; a valid timing flag alone does not prove measurement accuracy.
+
+All N/E pairs use signed, saturated `int16`: North in the low word, East in the
+high word. Zero values do not imply a valid stationary measurement; check the
+status and sample ages. GPS values are last reported values and may be stale
+without a valid GPS fix. Raw `surfaceRaw`, GPS fix/satellites and standard INS
+fields should also be recorded. Page 3 reports:
+
+- Bits 0..7: reason: 0 flow selected, 1 PL inactive, 2 flow/range support not compiled,
+  3 flow invalid/stale, 4 range invalid/stale/unreliable/outside height limits,
+  5 excessive tilt, 6 invalid GPS XY, heading or INS XY/Z, 7 invalid sample interval,
+  8 non-finite/excessive flow innovation, 9 flow gain disabled.
+- Bits 8..15: effective flow quality (MSP wire quality 0..255 is scaled to 0..100);
+  bits 16..23: range reliability in percent. Flow quality is forced to zero on
+  sensor timeout, so zero alone does not prove poor optical tracking.
+- Bit 24: at least one flow correction applied since the previous page-3 report.
+- Bit 25: raw adjacent-frame marker velocity currently valid (not the fusion validity flag).
+- Bit 26: GPS XY currently valid; otherwise the displayed GPS velocity may be stale.
+- Bit 27: flow driver healthy (receiving samples, independent of optical quality).
+- Bit 28: flow quality accepted by the sensor layer's hysteresis gate.
+- Bit 29: windowed marker velocity qualified for fusion.
+- Bit 30: marker velocity selected instead of flow/GPS velocity.
+- Bit 31: at least one marker velocity correction since the previous page-3 report.
+
+Flow age uses the last successful **sensor update**, not the estimator topic's
+scheduler timestamp. A fresh low-quality sample has a small age and bit 27 set,
+but bit 28 cleared. No samples for more than 200 ms makes the flow driver unhealthy;
+age keeps increasing while bits 27/28 clear. These flags are snapshots updated by
+the flow task, not a UART error counter. On MSP, quality at or below 10 rejects
+tracking; reacquisition requires at least 35. These are quality scores, not
+probabilities. Older firmware logged estimator-topic age instead and cannot
+reliably distinguish transport timeout from low optical quality using that field.
+
+Reasons describe the first failed gate; even outside active PL, this mode evaluates
+flow for diagnostics only. A valid flow observation then reports reason 1 without
+changing navigation. Multiplexing is for comparing trends, not a replacement for
+full-rate raw flow logging when investigating individual sensor spikes.
 
 `debug[1]` flags:
 

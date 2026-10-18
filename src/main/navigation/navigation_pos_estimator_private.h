@@ -101,6 +101,7 @@ typedef struct {
     pt1Filter_t avgFilter;
     float       alt;            // Raw altitude measurement (cm)
     float       reliability;
+    bool        sampleValid;   // Latest range sample, not the decaying reliability score.
 } navPositionEstimatorSURFACE_t;
 
 typedef struct {
@@ -179,6 +180,10 @@ typedef struct {
 
 typedef struct {
     float dt;
+#ifdef USE_MARKER_GUIDANCE
+    float markerUpdateDt;
+    bool inertialPredictionXYValid;
+#endif
     uint32_t newFlags;
     float newEPV;
     float newEPH;
@@ -194,4 +199,3 @@ extern navigationPosEstimator_t posEstimator;
 extern float updateEPE(const float oldEPE, const float dt, const float newEPE, const float w);
 extern void estimationCalculateAGL(estimationContext_t * ctx);
 extern bool estimationCalculateCorrection_XY_FLOW(estimationContext_t * ctx);
-

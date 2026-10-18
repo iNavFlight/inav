@@ -57,6 +57,62 @@ typedef struct {
     bool holdAltitudeValid;
 } markerGuidanceLandControl_t;
 
+typedef enum {
+    MARKER_ESTIMATOR_FLOW_SELECTED = 0,
+    MARKER_ESTIMATOR_INACTIVE,
+    MARKER_ESTIMATOR_UNAVAILABLE,
+    MARKER_ESTIMATOR_FLOW_INVALID,
+    MARKER_ESTIMATOR_RANGE_INVALID,
+    MARKER_ESTIMATOR_TILT,
+    MARKER_ESTIMATOR_REFERENCE_INVALID,
+    MARKER_ESTIMATOR_SAMPLE_GAP,
+    MARKER_ESTIMATOR_INNOVATION,
+    MARKER_ESTIMATOR_GAIN_DISABLED,
+} markerGuidanceEstimatorReason_e;
+
+typedef enum {
+    MARKER_VELOCITY_INACTIVE = 0,
+    MARKER_VELOCITY_WARMUP,
+    MARKER_VELOCITY_NO_SAMPLE,
+    MARKER_VELOCITY_NO_HISTORY,
+    MARKER_VELOCITY_INNOVATION,
+    MARKER_VELOCITY_READY,
+    MARKER_VELOCITY_SELECTED,
+} markerGuidanceVelocityReason_e;
+
+typedef struct {
+    fpVector2_t offset;
+    uint64_t captureTimeUs;
+    uint32_t sequence;
+    uint32_t captureAgeMs;
+    uint16_t maxAgeMs;
+} markerGuidanceVelocityObservation_t;
+
+typedef struct {
+    fpVector2_t flowVelocity;
+    fpVector2_t gpsVelocity;
+    fpVector2_t insVelocity;
+    uint16_t rangeCm;
+    uint16_t flowAgeMs;
+    uint8_t quality;
+    uint8_t reliability;
+    markerGuidanceEstimatorReason_e reason;
+    bool applied;
+    bool gpsValid;
+    bool flowHealthy;
+    bool flowQualityValid;
+    fpVector2_t markerVelocity;
+    fpVector2_t markerResidual;
+    markerGuidanceVelocityReason_e markerReason;
+    bool markerReady;
+    bool markerSelected;
+    bool markerApplied;
+} markerGuidanceEstimatorDebug_t;
+
+bool markerGuidanceUsesLocalVelocity(void);
+bool markerGuidanceGetVelocityObservation(markerGuidanceVelocityObservation_t *observation);
+void markerGuidanceSetEstimatorDebug(const markerGuidanceEstimatorDebug_t *diagnostics);
+
 void markerGuidanceReset(void);
 void markerGuidanceUpdate(navigationFSMStateFlags_t navStateFlags);
 void markerGuidanceUpdateDebug(void);

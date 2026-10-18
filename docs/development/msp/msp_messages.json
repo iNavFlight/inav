@@ -2,7 +2,7 @@
     "version": {
         "major": 4,
         "minor": 0,
-        "patch": 0
+        "patch": 1
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -11531,6 +11531,18 @@
                         "ctype": "uint16_t",
                         "desc": "Positive vertical distance from vehicle body origin to the marker landing reference plane.",
                         "units": "cm"
+                    },
+                    {
+                        "name": "capture_time_us",
+                        "ctype": "uint64_t",
+                        "desc": "Nonzero original camera capture time on the producer monotonic clock. Preserve across forwarding; never replace with send/receive time.",
+                        "units": "us"
+                    },
+                    {
+                        "name": "capture_age_ms",
+                        "ctype": "uint32_t",
+                        "desc": "Conservative capture age at receiver MSP transmission, including upstream processing, transport and queues. UINT32_MAX means unknown and is rejected.",
+                        "units": "ms"
                     }
                 ]
             },
@@ -11539,7 +11551,7 @@
                     {
                         "name": "accepted",
                         "ctype": "uint8_t",
-                        "desc": "1 when the complete pose passed wire/range validation and entered the target confirmation path.",
+                        "desc": "1 when the complete pose passed wire/range/timing validation and entered the target confirmation path.",
                         "units": ""
                     },
                     {
@@ -11568,7 +11580,7 @@
                     }
                 ]
             },
-            "notes": "Hard break: the request is exactly 8 little-endian bytes and North/East is the only supported XY frame. There is no version, validity, confidence, identity or capture timestamp field. INAV adds the relative North/East offset directly to current local position; yaw error is converted once to an absolute INAV heading; marker AGL is used for PL consistency and low-altitude retry suppression. In PL mode, the first target and a later discontinuous target require three consistent fresh packets before replacing navigation control. Invalid or disabled requests do not refresh the confirmed target or timestamp. Freshness uses FC receive time. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD, RTH pre-landing and LAND contexts. The command is 8754/0x2232 because current maintenance-10.x assigns 8753/0x2231 to MSP2_INAV_WIND.",
+            "notes": "Hard break: exactly 20 little-endian bytes; no payload version or legacy fallback. North/East is the only XY frame. Capture time is uint64 producer time, not FC time. Zero capture time/unknown age returns INVALID_TARGET; duplicate, out-of-order or already stale captures return STALE without refreshing the target or confirmation. After a receive gap exceeding nav_marker_guidance_max_target_age_ms, a backward clock may re-seed a restarted producer without velocity across the restart. Publish only new frames and flush old queues. Receiver must account for upstream latency without subtracting unrelated clocks. Final UART/FC delay is not included in capture age. Marker-derived velocity uses capture intervals for diagnostics only; no INS/PID fusion. Existing position/yaw conversion at receipt and confirmed-target receive-time lifetime remain unchanged. Three consistent distinct frames confirm PL targets; containment applies immediately. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD, RTH pre-landing and LAND contexts. Reply remains five bytes. See docs/Navigation.md for the complete timing contract.",
             "description": "Updates the complete marker-relative position, landing heading and marker AGL sample consumed by marker-guidance navigation."
         },
         "MSP2_INAV_SET_CRUISE_HEADING": {

@@ -627,6 +627,8 @@ main_sources(COMMON_SRC
     navigation/navigation_pos_estimator_private.h
     navigation/navigation_pos_estimator_agl.c
     navigation/navigation_pos_estimator_flow.c
+    navigation/navigation_pos_estimator_pl.c
+    navigation/navigation_pos_estimator_pl.h
     navigation/navigation_private.h
     navigation/navigation_rover_boat.c
     navigation/navigation_vtol_mc_protection.c

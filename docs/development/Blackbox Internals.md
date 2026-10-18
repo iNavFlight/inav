@@ -269,6 +269,8 @@ The value is first converted to unsigned using ZigZag encoding, then unsigned El
 
 First, an 8-bit (one byte) header is written. This header has its bits set to zero when the corresponding field (from a maximum of 8 fields) is set to zero, otherwise the bit is set to one. The least-signficant bit in the header corresponds to the first field to be written. This header is followed by the values of only the fields which are non-zero, written using signed variable byte encoding.
 
+Consecutive fields using this encoding are split into groups of at most 8. A group containing only one field has no presence header: its signed variable-byte value is always written, including zero. For example, 9 optional fields are encoded as a group of 8 followed by one signed variable-byte value. The frame header still declares encoding 6 for all 9 fields.
+
 This encoding is preferred for groups of fields in interframes which are infrequently updated by the flight controller. This will mean that their predictions are usually perfect, and so the value to be encoded for each field will normally be zero. This is common for values like RC inputs and barometer readings, which are updated in only a fraction of main loop iterations.
 
 For example, given these field values to encode:

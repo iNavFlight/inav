@@ -14,6 +14,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/imu.h"
+#include "flight/mixer_profile.h"
 
 #include "navigation/marker_guidance.h"
 #include "navigation/navigation_vtol_mc_protection.h"
@@ -140,9 +141,19 @@ typedef struct {
     bool vtolRecoveryPaused;
     bool recoveryHeadingLatched;
     int32_t recoveryHeadingCd;
+    fpVector2_t observedVelocity;
+    bool observedVelocityValid;
+    bool observedPreviousSampleValid;
+    markerGuidanceCaptureClock_t captureClock;
+    markerGuidanceCaptureStatus_e captureStatus;
+    uint32_t captureIntervalUs;
+    uint32_t captureAgeMs;
 } markerGuidanceRuntime_t;
 
 static markerGuidanceRuntime_t markerGuidance;
+static markerGuidanceEstimatorDebug_t estimatorDebug;
+static bool estimatorCorrectionSinceDebug;
+static bool markerCorrectionSinceDebug;
 static void releaseGuidancePositionTarget(void);
 
 static navMarkerGuidanceMode_e markerGuidanceMode(void)
@@ -253,6 +264,8 @@ static void clearTargetCache(void)
 
 static void clearContextRuntime(void)
 {
+    markerGuidance.observedVelocityValid = false;
+    markerGuidance.observedPreviousSampleValid = false;
     markerGuidance.altitudeHold.active = false;
     markerGuidance.activeContext = MARKER_GUIDANCE_CONTEXT_NONE;
     markerGuidance.stateDeadlineMs = 0;
@@ -859,6 +872,13 @@ static uint32_t markerGuidancePackSigned16(int32_t low, int32_t high)
 
 void markerGuidanceReset(void)
 {
+    estimatorCorrectionSinceDebug = false;
+    markerCorrectionSinceDebug = false;
+    markerGuidance.captureClock = (markerGuidanceCaptureClock_t){0};
+    markerGuidance.captureStatus = MARKER_CAPTURE_NONE;
+    markerGuidance.captureIntervalUs = 0;
+    markerGuidance.captureAgeMs = 0;
+    markerGuidance.observedVelocity = (fpVector2_t){0};
     releaseGuidancePositionTarget();
     clearTargetCache();
     clearContextRuntime();
@@ -1309,6 +1329,59 @@ bool markerGuidanceOwnsPositionTarget(void)
     return markerGuidance.positionTargetOwned;
 }
 
+bool markerGuidanceUsesLocalVelocity(void)
+{
+    const navigationFSMStateFlags_t flags = navGetCurrentStateFlags();
+    return markerGuidanceFeatureEnabled() && markerGuidanceIsPlMode() &&
+        markerGuidance.positionTargetOwned && markerGuidance.targetAcquiredInContext &&
+        markerGuidance.activeContext != MARKER_GUIDANCE_CONTEXT_NONE &&
+        markerGuidanceSelectContext(flags) == markerGuidance.activeContext &&
+        (flags & NAV_CTL_POS) && !(flags & NAV_CTL_EMERG) &&
+        ARMING_FLAG(ARMED) && isMcHoverCapableProfileActive() &&
+        !FLIGHT_MODE(FAILSAFE_MODE) && !STATE(LANDING_DETECTED) &&
+        !areSensorsCalibrating() && !markerGuidancePositionTakeoverActiveNow() &&
+        !STATE(NAV_CRUISE_BRAKING) && !isMixerTransitionMixing &&
+#ifdef USE_AUTO_TRANSITION
+        !mixerATIsActive() &&
+#endif
+        !navigationVtolMcProtectionPositionCaptureActive() &&
+        !navigationVtolMcProtectionGuidanceRecoveryActive() && !markerGuidance.vtolRecoveryPaused;
+}
+
+void markerGuidanceSetEstimatorDebug(const markerGuidanceEstimatorDebug_t *diagnostics)
+{
+    estimatorDebug = *diagnostics;
+    estimatorCorrectionSinceDebug |= diagnostics->applied;
+    markerCorrectionSinceDebug |= diagnostics->markerApplied;
+}
+
+bool markerGuidanceGetVelocityObservation(markerGuidanceVelocityObservation_t *observation)
+{
+    const uint64_t ageMs = (uint64_t)markerGuidance.captureAgeMs +
+        (uint32_t)(millis() - markerGuidance.captureClock.receivedMs);
+    if (!observation || !markerGuidanceUsesLocalVelocity() ||
+        !markerGuidance.observedVelocityValid || markerGuidance.targetConfirmation.active ||
+        markerGuidance.captureStatus != MARKER_CAPTURE_CONTINUOUS ||
+        ageMs > navConfig()->general.marker_guidance_max_target_age_ms) {
+        return false;
+    }
+    *observation = (markerGuidanceVelocityObservation_t) {
+        .offset = { .x = markerGuidance.target.offsetNorthCm, .y = markerGuidance.target.offsetEastCm },
+        .captureTimeUs = markerGuidance.captureClock.captureTimeUs,
+        .sequence = markerGuidance.target.sequence,
+        .captureAgeMs = ageMs,
+        .maxAgeMs = navConfig()->general.marker_guidance_max_target_age_ms,
+    };
+    return true;
+}
+
+static uint32_t markerGuidancePackVelocity(const fpVector2_t *velocity)
+{
+    const int32_t north = isfinite(velocity->x) ? lrintf(constrainf(velocity->x, INT16_MIN, INT16_MAX)) : 0;
+    const int32_t east = isfinite(velocity->y) ? lrintf(constrainf(velocity->y, INT16_MIN, INT16_MAX)) : 0;
+    return markerGuidancePackSigned16(north, east);
+}
+
 float markerGuidanceGetPositionResponseScale(void)
 {
     const timeMs_t nowMs = millis();
@@ -1510,7 +1583,7 @@ void markerGuidanceUpdateDebug(void)
         (((uint32_t)(markerGuidance.target.targetHeadingCd / 10) & 0xFFFFU) << 16);
 
     // MARKER_GUIDANCE debug channels:
-    // [0] state
+    // [0] state | page << 8 | capture status << 16 | raw velocity valid << 24 | fusion reason << 25
     // [1] flags bitmask
     // [2] context | (runtime reason << 8) | (retry count << 16) | (last MSP reason << 24)
     // [3] target age [ms], -1 when no valid cached target
@@ -1518,7 +1591,14 @@ void markerGuidanceUpdateDebug(void)
     // [5] pending/committed absolute local North | East marker position [cm], signed int16 values
     // [6] requested North displacement [cm] | (requested East displacement [cm] << 16), signed int16 values
     // [7] marker AGL [cm] | (absolute target heading [deci-degrees] << 16)
-    DEBUG_SET(DEBUG_MARKER_GUIDANCE, 0, markerGuidance.state);
+    const uint8_t page = (nowMs / 100U) % 6U;
+    const uint64_t captureAgeMs = markerGuidance.captureClock.initialized ?
+        (uint64_t)markerGuidance.captureAgeMs + (uint32_t)(nowMs - markerGuidance.captureClock.receivedMs) : UINT64_MAX;
+    const bool observedVelocityValid = markerGuidance.observedVelocityValid && targetFresh &&
+        !targetConfirmationPending && captureAgeMs <= navConfig()->general.marker_guidance_max_target_age_ms;
+    DEBUG_SET(DEBUG_MARKER_GUIDANCE, 0, markerGuidance.state | ((uint32_t)page << 8) |
+        ((uint32_t)markerGuidance.captureStatus << 16) | ((uint32_t)observedVelocityValid << 24) |
+        ((uint32_t)estimatorDebug.markerReason << 25));
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 1, (int32_t)flags);
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 2, (int32_t)packedStatus);
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 3, targetAgeDebug);
@@ -1536,6 +1616,44 @@ void markerGuidanceUpdateDebug(void)
         lrintf(markerGuidance.requestedCorrectionNorthCm),
         lrintf(markerGuidance.requestedCorrectionEastCm)));
     DEBUG_SET(DEBUG_MARKER_GUIDANCE, 7, (int32_t)packedPose);
+    // Only [5]/[6] are multiplexed. Keep marker offset, freshness and control
+    // ownership visible on every row, even while comparing sensor velocities.
+    switch (page) {
+    case 1:
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 5, (int32_t)markerGuidancePackVelocity(&estimatorDebug.flowVelocity));
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 6, (int32_t)markerGuidancePackVelocity(&estimatorDebug.gpsVelocity));
+        break;
+    case 2:
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 5, (int32_t)markerGuidancePackVelocity(&markerGuidance.observedVelocity));
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 6, (int32_t)markerGuidancePackVelocity(&estimatorDebug.insVelocity));
+        break;
+    case 3: {
+        const uint32_t status = (uint32_t)estimatorDebug.reason |
+            ((uint32_t)estimatorDebug.quality << 8) | ((uint32_t)estimatorDebug.reliability << 16) |
+            ((uint32_t)estimatorCorrectionSinceDebug << 24) | ((uint32_t)observedVelocityValid << 25) |
+            ((uint32_t)estimatorDebug.gpsValid << 26) |
+            ((uint32_t)estimatorDebug.flowHealthy << 27) | ((uint32_t)estimatorDebug.flowQualityValid << 28) |
+            ((uint32_t)estimatorDebug.markerReady << 29) | ((uint32_t)estimatorDebug.markerSelected << 30) |
+            ((uint32_t)markerCorrectionSinceDebug << 31);
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 5, (int32_t)((uint32_t)estimatorDebug.rangeCm |
+            ((uint32_t)estimatorDebug.flowAgeMs << 16)));
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 6, (int32_t)status);
+        estimatorCorrectionSinceDebug = false;
+        markerCorrectionSinceDebug = false;
+        break;
+    }
+    case 4:
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 5, (int32_t)markerGuidance.captureIntervalUs);
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 6, captureAgeMs == UINT64_MAX ? -1 :
+            (int32_t)MIN(captureAgeMs, (uint64_t)INT32_MAX));
+        break;
+    case 5:
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 5, (int32_t)markerGuidancePackVelocity(&estimatorDebug.markerVelocity));
+        DEBUG_SET(DEBUG_MARKER_GUIDANCE, 6, (int32_t)markerGuidancePackVelocity(&estimatorDebug.markerResidual));
+        break;
+    default:
+        break;
+    }
 }
 
 static void calculateMarkerGuidanceLandControl(markerGuidanceLandControl_t *controlOut, float nominalDescentCmS)
@@ -1726,6 +1844,30 @@ bool markerGuidanceHandleMspTargetUpdate(
 
     const fpVector3_t *actualPosition = &navGetCurrentActualPositionAndVelocity()->pos;
     const timeMs_t nowMs = millis();
+    const markerGuidanceCaptureStatus_e captureStatus = markerGuidanceCheckCaptureTime(
+        &markerGuidance.captureClock, update, nowMs, navConfig()->general.marker_guidance_max_target_age_ms);
+    markerGuidance.captureStatus = captureStatus;
+    if (!markerGuidanceCaptureIsAccepted(captureStatus)) {
+        markerGuidance.observedVelocityValid = false;
+        markerGuidance.observedPreviousSampleValid = false;
+        responseOut->reason = captureStatus == MARKER_CAPTURE_INVALID_TIME ?
+            MARKER_GUIDANCE_REASON_INVALID_TARGET : MARKER_GUIDANCE_REASON_STALE;
+        markerGuidance.lastMspReason = responseOut->reason;
+        return true;
+    }
+    const uint64_t captureIntervalUs = markerGuidance.captureClock.initialized &&
+        update->captureTimeUs > markerGuidance.captureClock.captureTimeUs ?
+        update->captureTimeUs - markerGuidance.captureClock.captureTimeUs : 0;
+    markerGuidance.captureIntervalUs = (uint32_t)MIN(captureIntervalUs, (uint64_t)INT32_MAX);
+    markerGuidance.captureClock = (markerGuidanceCaptureClock_t){
+        .captureTimeUs = update->captureTimeUs,
+        .receivedMs = nowMs,
+        .initialized = true,
+    };
+    markerGuidance.captureAgeMs = update->captureAgeMs;
+    if (captureStatus == MARKER_CAPTURE_CLOCK_RESET || captureStatus == MARKER_CAPTURE_GAP) {
+        markerGuidanceResetTargetConfirmation(&markerGuidance.targetConfirmation);
+    }
     markerGuidance.target.receivedOffsetNorthCm = update->offsetNorthCm;
     markerGuidance.target.receivedOffsetEastCm = update->offsetEastCm;
     float markerPositionNorthCm = actualPosition->x + resolved.offsetNorthCm;
@@ -1768,6 +1910,20 @@ bool markerGuidanceHandleMspTargetUpdate(
     responseOut->reason = MARKER_GUIDANCE_REASON_OK;
 
     if (targetCommitted) {
+        // Diagnostic only: a stationary marker's relative NE displacement
+        // differentiates to NEGATIVE vehicle velocity, independent of GPS.
+        // Exposure intervals remove transport jitter, but this remains an
+        // interval-average observation, NOT an instantaneous control input.
+        markerGuidance.observedVelocityValid = markerGuidanceIsPlMode() &&
+            markerGuidance.observedPreviousSampleValid && markerGuidance.target.valid &&
+            !targetReferenceChanged && captureStatus == MARKER_CAPTURE_CONTINUOUS;
+        if (markerGuidance.observedVelocityValid) {
+            const float inverseDt = 1000000.0f / (float)captureIntervalUs;
+            markerGuidance.observedVelocity.x = (markerGuidance.target.offsetNorthCm - resolved.offsetNorthCm) * inverseDt;
+            markerGuidance.observedVelocity.y = (markerGuidance.target.offsetEastCm - resolved.offsetEastCm) * inverseDt;
+        } else {
+            markerGuidance.observedVelocity = (fpVector2_t){ .x = 0, .y = 0 };
+        }
         const markerGuidanceTargetCache_t newTarget = {
             .receivedOffsetNorthCm = update->offsetNorthCm,
             .receivedOffsetEastCm = update->offsetEastCm,
@@ -1783,6 +1939,10 @@ bool markerGuidanceHandleMspTargetUpdate(
             .valid = true,
         };
         markerGuidance.target = newTarget;
+        markerGuidance.observedPreviousSampleValid = markerGuidanceIsPlMode();
+        if (targetReferenceChanged) {
+            markerGuidance.captureStatus = MARKER_CAPTURE_REFERENCE_RESET;
+        }
         markerGuidance.landingSettleRetargetPending |= targetReferenceChanged;
         if (markerGuidanceTargetReplacementNeedsControllerReconcile(
                 markerGuidanceIsPlMode() && targetReferenceChanged,
@@ -1793,6 +1953,10 @@ bool markerGuidanceHandleMspTargetUpdate(
             markerGuidance.positionControllerRetargetAxes = MARKER_GUIDANCE_AXIS_BOTH;
             markerGuidanceResetCorrectionDirection(&markerGuidance.correctionDirection);
         }
+    } else {
+        markerGuidance.observedVelocityValid = false;
+        markerGuidance.observedPreviousSampleValid = false;
+        markerGuidance.captureStatus = MARKER_CAPTURE_REFERENCE_RESET;
     }
 
     const bool mcProfileActive = isMcHoverCapableProfileActive();

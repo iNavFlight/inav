@@ -2370,6 +2370,27 @@
             "MAG_FAKE": "16",
             "MAG_MAX": "MAG_FAKE"
         },
+        "markerGuidanceAxisMask_e": {
+            "_source": "inav/src/main/navigation/marker_guidance_logic.h",
+            "MARKER_GUIDANCE_AXIS_NONE": "0",
+            "MARKER_GUIDANCE_AXIS_NORTH": "1 << 0",
+            "MARKER_GUIDANCE_AXIS_EAST": "1 << 1",
+            "MARKER_GUIDANCE_AXIS_BOTH": "MARKER_GUIDANCE_AXIS_NORTH | MARKER_GUIDANCE_AXIS_EAST"
+        },
+        "markerGuidanceCaptureStatus_e": {
+            "_source": "inav/src/main/navigation/marker_guidance_logic.h",
+            "MARKER_CAPTURE_NONE": "0",
+            "MARKER_CAPTURE_FIRST": "1",
+            "MARKER_CAPTURE_CONTINUOUS": "2",
+            "MARKER_CAPTURE_DUPLICATE": "3",
+            "MARKER_CAPTURE_OUT_OF_ORDER": "4",
+            "MARKER_CAPTURE_TOO_OLD": "5",
+            "MARKER_CAPTURE_GAP": "6",
+            "MARKER_CAPTURE_REFERENCE_RESET": "7",
+            "MARKER_CAPTURE_CLOCK_RESET": "8",
+            "MARKER_CAPTURE_TOO_SHORT": "9",
+            "MARKER_CAPTURE_INVALID_TIME": "10"
+        },
         "markerGuidanceContext_e": {
             "_source": "inav/src/main/navigation/marker_guidance_logic.h",
             "MARKER_GUIDANCE_CONTEXT_NONE": "0",
@@ -2439,6 +2460,19 @@
             "MARKER_GUIDANCE_DEBUG_REASON_WAIT_NEW_TARGET": "23",
             "MARKER_GUIDANCE_DEBUG_REASON_TARGET_CONFIRMATION": "24"
         },
+        "markerGuidanceEstimatorReason_e": {
+            "_source": "inav/src/main/navigation/marker_guidance.h",
+            "MARKER_ESTIMATOR_FLOW_SELECTED": "0",
+            "MARKER_ESTIMATOR_INACTIVE": "1",
+            "MARKER_ESTIMATOR_UNAVAILABLE": "2",
+            "MARKER_ESTIMATOR_FLOW_INVALID": "3",
+            "MARKER_ESTIMATOR_RANGE_INVALID": "4",
+            "MARKER_ESTIMATOR_TILT": "5",
+            "MARKER_ESTIMATOR_REFERENCE_INVALID": "6",
+            "MARKER_ESTIMATOR_SAMPLE_GAP": "7",
+            "MARKER_ESTIMATOR_INNOVATION": "8",
+            "MARKER_ESTIMATOR_GAIN_DISABLED": "9"
+        },
         "markerGuidanceLandControlMode_e": {
             "_source": "inav/src/main/navigation/marker_guidance.h",
             "MARKER_GUIDANCE_LAND_CTRL_NONE": "0",
@@ -2468,6 +2502,16 @@
             "MARKER_GUIDANCE_CLIMB_AND_RETRY": "5",
             "MARKER_GUIDANCE_FALLBACK_NORMAL_LAND": "6",
             "MARKER_GUIDANCE_DONE": "7"
+        },
+        "markerGuidanceVelocityReason_e": {
+            "_source": "inav/src/main/navigation/marker_guidance.h",
+            "MARKER_VELOCITY_INACTIVE": "0",
+            "MARKER_VELOCITY_WARMUP": "1",
+            "MARKER_VELOCITY_NO_SAMPLE": "2",
+            "MARKER_VELOCITY_NO_HISTORY": "3",
+            "MARKER_VELOCITY_INNOVATION": "4",
+            "MARKER_VELOCITY_READY": "5",
+            "MARKER_VELOCITY_SELECTED": "6"
         },
         "mavlinkAutopilotType_e": {
             "_source": "inav/src/main/telemetry/telemetry.h",
@@ -4531,7 +4575,8 @@
             "VTOL_MC_PROTECT_FLAG_SOFT_ALTITUDE": "1 << 8",
             "VTOL_MC_PROTECT_FLAG_COMMAND_SHAPED": "1 << 9",
             "VTOL_MC_PROTECT_FLAG_VELOCITY_FALLBACK": "1 << 10",
-            "VTOL_MC_PROTECT_FLAG_GUIDANCE_RECOVERY": "1 << 11"
+            "VTOL_MC_PROTECT_FLAG_GUIDANCE_RECOVERY": "1 << 11",
+            "VTOL_MC_PROTECT_FLAG_RTH_YAW_BLOCKED": "1 << 12"
         },
         "vtolMcProtectionMode_e": {
             "_source": "inav/src/main/fc/config.h",

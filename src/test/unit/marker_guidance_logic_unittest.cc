@@ -4,27 +4,80 @@ extern "C" {
 #include "navigation/marker_guidance_logic.h"
 }
 
-TEST(MarkerGuidanceLogicTest, AcceptsOnlyExactEightBytePayload)
+TEST(MarkerGuidanceLogicTest, AcceptsOnlyExactTwentyBytePayload)
 {
-    EXPECT_TRUE(markerGuidanceMspPayloadSizeIsValid(8));
-    EXPECT_FALSE(markerGuidanceMspPayloadSizeIsValid(4));
-    EXPECT_FALSE(markerGuidanceMspPayloadSizeIsValid(7));
-    EXPECT_FALSE(markerGuidanceMspPayloadSizeIsValid(9));
+    for (unsigned size = 0; size <= 24; ++size) {
+        EXPECT_EQ(size == 20, markerGuidanceMspPayloadSizeIsValid(size)) << size;
+    }
 }
 
 TEST(MarkerGuidanceLogicTest, DecodesGoldenPayloadWordsWithSignedFields)
 {
-    const markerGuidancePoseUpdate_t update = markerGuidanceDecodeMspWords(0xFF85, 0x01C8, 0xFC7C, 0x0141);
+    const markerGuidancePoseUpdate_t update = markerGuidanceDecodeMspWords(
+        0xFF85, 0x01C8, 0xFC7C, 0x0141, 0x55667788, 0x11223344, 123);
 
     EXPECT_EQ(-123, update.offsetNorthCm);
     EXPECT_EQ(456, update.offsetEastCm);
     EXPECT_EQ(-900, update.yawErrorDeciDeg);
     EXPECT_EQ(321, update.markerAglCm);
+    EXPECT_EQ(UINT64_C(0x1122334455667788), update.captureTimeUs);
+    EXPECT_EQ(123U, update.captureAgeMs);
+}
+
+TEST(MarkerGuidanceLogicTest, CaptureTimeRejectsUnknownOldDuplicateAndReorderedSamples)
+{
+    markerGuidanceCaptureClock_t clock = {};
+    markerGuidancePoseUpdate_t pose = {};
+    EXPECT_EQ(MARKER_CAPTURE_INVALID_TIME, markerGuidanceCheckCaptureTime(&clock, &pose, 1000, 500));
+    pose.captureTimeUs = 1000000;
+    pose.captureAgeMs = UINT32_MAX;
+    EXPECT_EQ(MARKER_CAPTURE_INVALID_TIME, markerGuidanceCheckCaptureTime(&clock, &pose, 1000, 500));
+    pose.captureAgeMs = 501;
+    EXPECT_EQ(MARKER_CAPTURE_TOO_OLD, markerGuidanceCheckCaptureTime(&clock, &pose, 1000, 500));
+    pose.captureAgeMs = 500;
+    EXPECT_EQ(MARKER_CAPTURE_FIRST, markerGuidanceCheckCaptureTime(&clock, &pose, 1000, 500));
+    clock = { 1000000, 1000, true };
+    EXPECT_EQ(MARKER_CAPTURE_DUPLICATE, markerGuidanceCheckCaptureTime(&clock, &pose, 2000, 500));
+    pose.captureTimeUs--;
+    EXPECT_EQ(MARKER_CAPTURE_OUT_OF_ORDER, markerGuidanceCheckCaptureTime(&clock, &pose, 1500, 500));
+    EXPECT_EQ(MARKER_CAPTURE_CLOCK_RESET, markerGuidanceCheckCaptureTime(&clock, &pose, 1501, 500));
+    EXPECT_EQ(1000000U, clock.captureTimeUs); // Validation must not refresh the stream.
+    EXPECT_EQ(1000U, clock.receivedMs);
+}
+
+TEST(MarkerGuidanceLogicTest, CaptureIntervalsUseProducerClockAndHandleFcWrap)
+{
+    markerGuidanceCaptureClock_t clock = { UINT64_C(0xfffffff0), UINT32_MAX - 99, true };
+    markerGuidancePoseUpdate_t pose = {};
+    pose.captureTimeUs = clock.captureTimeUs + 250000;
+    EXPECT_EQ(MARKER_CAPTURE_CONTINUOUS, markerGuidanceCheckCaptureTime(&clock, &pose, 100, 500));
+    EXPECT_EQ(MARKER_CAPTURE_GAP, markerGuidanceCheckCaptureTime(&clock, &pose, 401, 500));
+    pose.captureTimeUs = clock.captureTimeUs + 500001;
+    EXPECT_EQ(MARKER_CAPTURE_GAP, markerGuidanceCheckCaptureTime(&clock, &pose, 100, 500));
+    pose.captureTimeUs = clock.captureTimeUs + 19999;
+    EXPECT_EQ(MARKER_CAPTURE_TOO_SHORT, markerGuidanceCheckCaptureTime(&clock, &pose, 100, 500));
+    pose.captureTimeUs++;
+    EXPECT_EQ(MARKER_CAPTURE_CONTINUOUS, markerGuidanceCheckCaptureTime(&clock, &pose, 100, 500));
+    pose.captureTimeUs = UINT64_MAX;
+    EXPECT_EQ(MARKER_CAPTURE_GAP, markerGuidanceCheckCaptureTime(&clock, &pose, 100, 500));
+}
+
+TEST(MarkerGuidanceLogicTest, OnlyFreshDistinctCaptureStatusesAreAccepted)
+{
+    EXPECT_TRUE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_FIRST));
+    EXPECT_TRUE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_CONTINUOUS));
+    EXPECT_TRUE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_GAP));
+    EXPECT_TRUE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_CLOCK_RESET));
+    EXPECT_TRUE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_TOO_SHORT));
+    EXPECT_FALSE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_DUPLICATE));
+    EXPECT_FALSE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_OUT_OF_ORDER));
+    EXPECT_FALSE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_TOO_OLD));
+    EXPECT_FALSE(markerGuidanceCaptureIsAccepted(MARKER_CAPTURE_INVALID_TIME));
 }
 
 TEST(MarkerGuidanceLogicTest, ValidatesYawAglAndHorizontalMagnitude)
 {
-    markerGuidancePoseUpdate_t update = { 300, 400, 1800, 1 };
+    markerGuidancePoseUpdate_t update = { 300, 400, 1800, 1, 0, 0 };
     EXPECT_TRUE(markerGuidancePoseIsValid(&update, 500));
 
     update.yawErrorDeciDeg = 1801;
@@ -396,7 +449,7 @@ TEST(MarkerGuidanceLogicTest, RetryClimbUsesTimeoutWhenAltitudeIsUnavailable)
 
 TEST(MarkerGuidanceLogicTest, InvalidPoseDoesNotModifyResolvedOutput)
 {
-    const markerGuidancePoseUpdate_t invalidUpdate = { 10, 20, 1801, 100 };
+    const markerGuidancePoseUpdate_t invalidUpdate = { 10, 20, 1801, 100, 0, 0 };
     markerGuidanceResolvedPose_t resolved = { 1.0f, 2.0f, 300, 400 };
 
     EXPECT_FALSE(markerGuidanceTryResolvePose(&invalidUpdate, 1000, 0, &resolved));
@@ -408,7 +461,7 @@ TEST(MarkerGuidanceLogicTest, InvalidPoseDoesNotModifyResolvedOutput)
 
 TEST(MarkerGuidanceLogicTest, NorthEastOffsetsDoNotDependOnCurrentYaw)
 {
-    const markerGuidancePoseUpdate_t update = { 100, -50, 0, 100 };
+    const markerGuidancePoseUpdate_t update = { 100, -50, 0, 100, 0, 0 };
     markerGuidanceResolvedPose_t resolved = { };
 
     ASSERT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 27000, &resolved));
@@ -418,7 +471,7 @@ TEST(MarkerGuidanceLogicTest, NorthEastOffsetsDoNotDependOnCurrentYaw)
 
 TEST(MarkerGuidanceLogicTest, PositionTargetUsesResolvedEarthOffsetWithoutCurrentYaw)
 {
-    const markerGuidancePoseUpdate_t update = { 100, 0, 0, 100 };
+    const markerGuidancePoseUpdate_t update = { 100, 0, 0, 100, 0, 0 };
     markerGuidanceResolvedPose_t resolved = { };
     ASSERT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 0, &resolved));
 
@@ -813,7 +866,7 @@ TEST(MarkerGuidanceLogicTest, ContainmentOffsetAndRadiusSelectNearestAllowedBoun
 TEST(MarkerGuidanceLogicTest, ResolvesHeadingSignAndWrapExamples)
 {
     markerGuidanceResolvedPose_t resolved = { };
-    markerGuidancePoseUpdate_t update = { 0, 0, 900, 100 };
+    markerGuidancePoseUpdate_t update = { 0, 0, 900, 100, 0, 0 };
 
     EXPECT_TRUE(markerGuidanceTryResolvePose(&update, 1000, 1000, &resolved));
     EXPECT_EQ(10000, resolved.targetHeadingCd);

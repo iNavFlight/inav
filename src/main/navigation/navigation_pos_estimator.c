@@ -45,6 +45,8 @@
 #include "navigation/navigation.h"
 #include "navigation/navigation_private.h"
 #include "navigation/navigation_pos_estimator_private.h"
+#include "navigation/navigation_pos_estimator_pl.h"
+#include "navigation/marker_guidance.h"
 
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -547,6 +549,9 @@ static void estimationPredict(estimationContext_t * ctx)
     }
 
     /* Prediction step: XY-axis */
+#ifdef USE_MARKER_GUIDANCE
+    ctx->inertialPredictionXYValid = false;
+#endif
     if ((ctx->newFlags & EST_XY_VALID)) {
         // Predict based on known velocity
         posEstimator.est.pos.x += posEstimator.est.vel.x * ctx->dt;
@@ -554,6 +559,9 @@ static void estimationPredict(estimationContext_t * ctx)
 
         // If heading is valid, accelNEU is valid as well. Account for acceleration
         if (navIsHeadingUsable() && navIsAccelerationUsable()) {
+#ifdef USE_MARKER_GUIDANCE
+            ctx->inertialPredictionXYValid = true;
+#endif
             posEstimator.est.pos.x += posEstimator.imu.accelNEU.x * sq(ctx->dt) / 2.0f;
             posEstimator.est.pos.y += posEstimator.imu.accelNEU.y * sq(ctx->dt) / 2.0f;
             posEstimator.est.vel.x += posEstimator.imu.accelNEU.x * ctx->dt;
@@ -800,7 +808,13 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
 
     /* Correction stage: XY: GPS, FLOW */
     // FIXME: Handle transition from FLOW to GPS and back - seamlessly fly indoor/outdoor
-    const bool estXYCorrectOk = estimationCalculateCorrection_XY_GPS(&ctx) || estimationCalculateCorrection_XY_FLOW(&ctx);
+    const bool gpsXYCorrectOk = estimationCalculateCorrection_XY_GPS(&ctx);
+#ifdef USE_MARKER_GUIDANCE
+    const bool plXYCorrectOk = estimationCalculateCorrection_XY_PL(&ctx, currentTimeUs);
+    const bool estXYCorrectOk = gpsXYCorrectOk || plXYCorrectOk || estimationCalculateCorrection_XY_FLOW(&ctx);
+#else
+    const bool estXYCorrectOk = gpsXYCorrectOk || estimationCalculateCorrection_XY_FLOW(&ctx);
+#endif
 
     // If we can't apply correction or accuracy is off the charts - decay velocity to zero
     if (!estXYCorrectOk || ctx.newEPH > max_eph_epv) {
@@ -833,8 +847,14 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
             ctx.estVelCorr.v[axis] *= 1.0f / posEstimator.imu.accWeightFactor;
 
             // Constrain corrections to prevent instability
+            float velocityCorrectionLimit = correctionLimit;
+#ifdef USE_MARKER_GUIDANCE
+            if (axis < Z) {
+                velocityCorrectionLimit = MAX(velocityCorrectionLimit, INAV_EST_CORR_LIMIT_VALUE * ctx.markerUpdateDt);
+            }
+#endif
             ctx.estPosCorr.v[axis] = constrainf(ctx.estPosCorr.v[axis], -correctionLimit, correctionLimit);
-            ctx.estVelCorr.v[axis] = constrainf(ctx.estVelCorr.v[axis], -correctionLimit, correctionLimit);
+            ctx.estVelCorr.v[axis] = constrainf(ctx.estVelCorr.v[axis], -velocityCorrectionLimit, velocityCorrectionLimit);
 
             // Apply corrections
             posEstimator.est.pos.v[axis] += ctx.estPosCorr.v[axis];

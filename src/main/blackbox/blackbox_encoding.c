@@ -331,22 +331,23 @@ void blackboxWriteTag8_4S16(int32_t *values)
  * Write `valueCount` fields from `values` to the Blackbox using signed variable byte encoding. A 1-byte header is
  * written first which specifies which fields are non-zero (so this encoding is compact when most fields are zero).
  *
- * valueCount must be 8 or less.
+ * Consecutive fields are split into groups of at most 8, as expected by the decoder.
  */
 void blackboxWriteTag8_8SVB(int32_t *values, int valueCount)
 {
     uint8_t header;
 
-    if (valueCount > 0) {
+    while (valueCount > 0) {
+        const int groupCount = valueCount > 8 ? 8 : valueCount;
         //If we're only writing one field then we can skip the header
-        if (valueCount == 1) {
+        if (groupCount == 1) {
             blackboxWriteSignedVB(values[0]);
         } else {
             //First write a one-byte header that marks which fields are non-zero
             header = 0;
 
             // First field should be in low bits of header
-            for (int i = valueCount - 1; i >= 0; i--) {
+            for (int i = groupCount - 1; i >= 0; i--) {
                 header <<= 1;
 
                 if (values[i] != 0) {
@@ -356,12 +357,14 @@ void blackboxWriteTag8_8SVB(int32_t *values, int valueCount)
 
             blackboxWrite(header);
 
-            for (int i = 0; i < valueCount; i++) {
+            for (int i = 0; i < groupCount; i++) {
                 if (values[i] != 0) {
                     blackboxWriteSignedVB(values[i]);
                 }
             }
         }
+        values += groupCount;
+        valueCount -= groupCount;
     }
 }
 

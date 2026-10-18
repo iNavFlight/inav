@@ -4889,17 +4889,19 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `offset_east_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, East in INAV's local earth frame at measurement time. |
 | `yaw_error_decideg` | `int16_t` | 2 | decidegrees | Signed shortest rotation from current vehicle heading to the requested landing heading. Valid range is -1800 to 1800. |
 | `marker_agl_cm` | `uint16_t` | 2 | cm | Positive vertical distance from vehicle body origin to the marker landing reference plane. |
+| `capture_time_us` | `uint64_t` | 8 | us | Nonzero original camera capture time on the producer monotonic clock. Preserve across forwarding; never replace with send/receive time. |
+| `capture_age_ms` | `uint32_t` | 4 | ms | Conservative capture age at receiver MSP transmission, including upstream processing, transport and queues. UINT32_MAX means unknown and is rejected. |
   
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
-| `accepted` | `uint8_t` | 1 | - | 1 when the complete pose passed wire/range validation and entered the target confirmation path. |
+| `accepted` | `uint8_t` | 1 | - | 1 when the complete pose passed wire/range/timing validation and entered the target confirmation path. |
 | `used_now` | `uint8_t` | 1 | - | 1 when the accepted target is currently influencing an allowed marker-guidance navigation context. |
 | `nav_guidance_state` | `uint8_t` | 1 | enum | Current internal marker-guidance state. |
 | `reason` | `uint8_t` | 1 | enum | Result code: 0 OK, 1 NOT_ENABLED, 2 STALE, 3 OFFSET_TOO_LARGE, 4 NOT_MC_PROFILE, 5 NOT_IN_POSHOLD_OR_LAND, 6 FAILSAFE, 7 INVALID_TARGET, 8 NOT_ARMED, 9 POSITION_UNAVAILABLE. |
 | `retry_count` | `uint8_t` | 1 | - | Current retry-attempt counter in PL LAND retry flow. |
 
-**Notes:** Hard break: the request is exactly 8 little-endian bytes and North/East is the only supported XY frame. There is no version, validity, confidence, identity or capture timestamp field. INAV adds the relative North/East offset directly to current local position; yaw error is converted once to an absolute INAV heading; marker AGL is used for PL consistency and low-altitude retry suppression. In PL mode, the first target and a later discontinuous target require three consistent fresh packets before replacing navigation control. Invalid or disabled requests do not refresh the confirmed target or timestamp. Freshness uses FC receive time. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD, RTH pre-landing and LAND contexts. The command is 8754/0x2232 because current maintenance-10.x assigns 8753/0x2231 to MSP2_INAV_WIND.
+**Notes:** Hard break: exactly 20 little-endian bytes; no payload version or legacy fallback. North/East is the only XY frame. Capture time is uint64 producer time, not FC time. Zero capture time/unknown age returns INVALID_TARGET; duplicate, out-of-order or already stale captures return STALE without refreshing the target or confirmation. After a receive gap exceeding nav_marker_guidance_max_target_age_ms, a backward clock may re-seed a restarted producer without velocity across the restart. Publish only new frames and flush old queues. Receiver must account for upstream latency without subtracting unrelated clocks. Final UART/FC delay is not included in capture age. Marker-derived velocity uses capture intervals for diagnostics only; no INS/PID fusion. Existing position/yaw conversion at receipt and confirmed-target receive-time lifetime remain unchanged. Three consistent distinct frames confirm PL targets; containment applies immediately. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD, RTH pre-landing and LAND contexts. Reply remains five bytes. See docs/Navigation.md for the complete timing contract.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

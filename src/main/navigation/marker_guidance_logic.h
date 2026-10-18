@@ -5,7 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MARKER_GUIDANCE_MSP_PAYLOAD_SIZE 8U
+#define MARKER_GUIDANCE_MSP_PAYLOAD_SIZE 20U
+#define MARKER_GUIDANCE_VELOCITY_MIN_INTERVAL_US 20000U
 #define MARKER_GUIDANCE_MAX_YAW_ERROR_DECIDEG 1800
 #define MARKER_GUIDANCE_RETRY_SETTLE_TIME_MS 500U
 #define MARKER_GUIDANCE_RETRY_SETTLE_MAX_SPEED_CM_S 75U
@@ -29,7 +30,66 @@ typedef struct {
     int16_t offsetEastCm;
     int16_t yawErrorDeciDeg;
     uint16_t markerAglCm;
+    uint64_t captureTimeUs;
+    uint32_t captureAgeMs;
 } markerGuidancePoseUpdate_t;
+
+typedef enum {
+    MARKER_CAPTURE_NONE = 0,
+    MARKER_CAPTURE_FIRST,
+    MARKER_CAPTURE_CONTINUOUS,
+    MARKER_CAPTURE_DUPLICATE,
+    MARKER_CAPTURE_OUT_OF_ORDER,
+    MARKER_CAPTURE_TOO_OLD,
+    MARKER_CAPTURE_GAP,
+    MARKER_CAPTURE_REFERENCE_RESET,
+    MARKER_CAPTURE_CLOCK_RESET,
+    MARKER_CAPTURE_TOO_SHORT,
+    MARKER_CAPTURE_INVALID_TIME,
+} markerGuidanceCaptureStatus_e;
+
+typedef struct {
+    uint64_t captureTimeUs;
+    uint32_t receivedMs;
+    bool initialized;
+} markerGuidanceCaptureClock_t;
+
+// Producer time is used only for intervals. Never subtract it from the FC clock.
+static inline markerGuidanceCaptureStatus_e markerGuidanceCheckCaptureTime(
+    const markerGuidanceCaptureClock_t *clock, const markerGuidancePoseUpdate_t *update,
+    uint32_t nowMs, uint16_t maxAgeMs)
+{
+    if (update->captureTimeUs == 0 || update->captureAgeMs == UINT32_MAX) {
+        return MARKER_CAPTURE_INVALID_TIME;
+    }
+    if (update->captureAgeMs > maxAgeMs) {
+        return MARKER_CAPTURE_TOO_OLD;
+    }
+    if (!clock->initialized) {
+        return MARKER_CAPTURE_FIRST;
+    }
+    if (update->captureTimeUs == clock->captureTimeUs) {
+        return MARKER_CAPTURE_DUPLICATE;
+    }
+    const bool receiveGap = (uint32_t)(nowMs - clock->receivedMs) > maxAgeMs;
+    if (update->captureTimeUs < clock->captureTimeUs) {
+        // A restarted producer can re-seed only after the old stream expires.
+        return receiveGap ? MARKER_CAPTURE_CLOCK_RESET : MARKER_CAPTURE_OUT_OF_ORDER;
+    }
+    const uint64_t intervalUs = update->captureTimeUs - clock->captureTimeUs;
+    if (receiveGap || intervalUs > (uint64_t)maxAgeMs * 1000U) {
+        return MARKER_CAPTURE_GAP;
+    }
+    return intervalUs < MARKER_GUIDANCE_VELOCITY_MIN_INTERVAL_US ?
+        MARKER_CAPTURE_TOO_SHORT : MARKER_CAPTURE_CONTINUOUS;
+}
+
+static inline bool markerGuidanceCaptureIsAccepted(markerGuidanceCaptureStatus_e status)
+{
+    return status == MARKER_CAPTURE_FIRST || status == MARKER_CAPTURE_CONTINUOUS ||
+        status == MARKER_CAPTURE_GAP || status == MARKER_CAPTURE_CLOCK_RESET ||
+        status == MARKER_CAPTURE_TOO_SHORT;
+}
 
 typedef struct {
     float offsetNorthCm;
@@ -97,13 +157,18 @@ static inline markerGuidancePoseUpdate_t markerGuidanceDecodeMspWords(
     uint16_t offsetNorthRaw,
     uint16_t offsetEastRaw,
     uint16_t yawErrorRaw,
-    uint16_t markerAglRaw)
+    uint16_t markerAglRaw,
+    uint32_t captureTimeLow,
+    uint32_t captureTimeHigh,
+    uint32_t captureAgeMs)
 {
     const markerGuidancePoseUpdate_t update = {
         .offsetNorthCm = (int16_t)offsetNorthRaw,
         .offsetEastCm = (int16_t)offsetEastRaw,
         .yawErrorDeciDeg = (int16_t)yawErrorRaw,
         .markerAglCm = markerAglRaw,
+        .captureTimeUs = (uint64_t)captureTimeLow | ((uint64_t)captureTimeHigh << 32),
+        .captureAgeMs = captureAgeMs,
     };
     return update;
 }

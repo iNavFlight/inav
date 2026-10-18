@@ -177,12 +177,16 @@
 - [ltm_modes_e](#enum-ltm_modes_e)
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
 - [magSensor_e](#enum-magsensor_e)
+- [markerGuidanceAxisMask_e](#enum-markerguidanceaxismask_e)
+- [markerGuidanceCaptureStatus_e](#enum-markerguidancecapturestatus_e)
 - [markerGuidanceContext_e](#enum-markerguidancecontext_e)
 - [markerGuidanceDebugFlag_e](#enum-markerguidancedebugflag_e)
 - [markerGuidanceDebugReason_e](#enum-markerguidancedebugreason_e)
+- [markerGuidanceEstimatorReason_e](#enum-markerguidanceestimatorreason_e)
 - [markerGuidanceLandControlMode_e](#enum-markerguidancelandcontrolmode_e)
 - [markerGuidanceReason_e](#enum-markerguidancereason_e)
 - [markerGuidanceState_e](#enum-markerguidancestate_e)
+- [markerGuidanceVelocityReason_e](#enum-markerguidancevelocityreason_e)
 - [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
 - [mavlinkFcDispatchResult_e](#enum-mavlinkfcdispatchresult_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
@@ -3518,6 +3522,37 @@
 | `MAG_MAX` | MAG_FAKE |  |
 
 ---
+## <a id="enum-markerguidanceaxismask_e"></a>`markerGuidanceAxisMask_e`
+
+> Source: ../../../src/main/navigation/marker_guidance_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_GUIDANCE_AXIS_NONE` | 0 |  |
+| `MARKER_GUIDANCE_AXIS_NORTH` | 1 << 0 |  |
+| `MARKER_GUIDANCE_AXIS_EAST` | 1 << 1 |  |
+| `MARKER_GUIDANCE_AXIS_BOTH` | MARKER_GUIDANCE_AXIS_NORTH | MARKER_GUIDANCE_AXIS_EAST |  |
+
+---
+## <a id="enum-markerguidancecapturestatus_e"></a>`markerGuidanceCaptureStatus_e`
+
+> Source: ../../../src/main/navigation/marker_guidance_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_CAPTURE_NONE` | 0 |  |
+| `MARKER_CAPTURE_FIRST` | 1 |  |
+| `MARKER_CAPTURE_CONTINUOUS` | 2 |  |
+| `MARKER_CAPTURE_DUPLICATE` | 3 |  |
+| `MARKER_CAPTURE_OUT_OF_ORDER` | 4 |  |
+| `MARKER_CAPTURE_TOO_OLD` | 5 |  |
+| `MARKER_CAPTURE_GAP` | 6 |  |
+| `MARKER_CAPTURE_REFERENCE_RESET` | 7 |  |
+| `MARKER_CAPTURE_CLOCK_RESET` | 8 |  |
+| `MARKER_CAPTURE_TOO_SHORT` | 9 |  |
+| `MARKER_CAPTURE_INVALID_TIME` | 10 |  |
+
+---
 ## <a id="enum-markerguidancecontext_e"></a>`markerGuidanceContext_e`
 
 > Source: ../../../src/main/navigation/marker_guidance_logic.h
@@ -3602,6 +3637,24 @@
 | `MARKER_GUIDANCE_DEBUG_REASON_TARGET_CONFIRMATION` | 24 |  |
 
 ---
+## <a id="enum-markerguidanceestimatorreason_e"></a>`markerGuidanceEstimatorReason_e`
+
+> Source: ../../../src/main/navigation/marker_guidance.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_ESTIMATOR_FLOW_SELECTED` | 0 |  |
+| `MARKER_ESTIMATOR_INACTIVE` | 1 |  |
+| `MARKER_ESTIMATOR_UNAVAILABLE` | 2 |  |
+| `MARKER_ESTIMATOR_FLOW_INVALID` | 3 |  |
+| `MARKER_ESTIMATOR_RANGE_INVALID` | 4 |  |
+| `MARKER_ESTIMATOR_TILT` | 5 |  |
+| `MARKER_ESTIMATOR_REFERENCE_INVALID` | 6 |  |
+| `MARKER_ESTIMATOR_SAMPLE_GAP` | 7 |  |
+| `MARKER_ESTIMATOR_INNOVATION` | 8 |  |
+| `MARKER_ESTIMATOR_GAIN_DISABLED` | 9 |  |
+
+---
 ## <a id="enum-markerguidancelandcontrolmode_e"></a>`markerGuidanceLandControlMode_e`
 
 > Source: ../../../src/main/navigation/marker_guidance.h
@@ -3645,6 +3698,21 @@
 | `MARKER_GUIDANCE_CLIMB_AND_RETRY` | 5 |  |
 | `MARKER_GUIDANCE_FALLBACK_NORMAL_LAND` | 6 |  |
 | `MARKER_GUIDANCE_DONE` | 7 |  |
+
+---
+## <a id="enum-markerguidancevelocityreason_e"></a>`markerGuidanceVelocityReason_e`
+
+> Source: ../../../src/main/navigation/marker_guidance.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_VELOCITY_INACTIVE` | 0 |  |
+| `MARKER_VELOCITY_WARMUP` | 1 |  |
+| `MARKER_VELOCITY_NO_SAMPLE` | 2 |  |
+| `MARKER_VELOCITY_NO_HISTORY` | 3 |  |
+| `MARKER_VELOCITY_INNOVATION` | 4 |  |
+| `MARKER_VELOCITY_READY` | 5 |  |
+| `MARKER_VELOCITY_SELECTED` | 6 |  |
 
 ---
 ## <a id="enum-mavlinkautopilottype_e"></a>`mavlinkAutopilotType_e`
@@ -6561,6 +6629,7 @@
 | `VTOL_MC_PROTECT_FLAG_COMMAND_SHAPED` | 1 << 9 |  |
 | `VTOL_MC_PROTECT_FLAG_VELOCITY_FALLBACK` | 1 << 10 |  |
 | `VTOL_MC_PROTECT_FLAG_GUIDANCE_RECOVERY` | 1 << 11 |  |
+| `VTOL_MC_PROTECT_FLAG_RTH_YAW_BLOCKED` | 1 << 12 |  |
 
 ---
 ## <a id="enum-vtolmcprotectionmode_e"></a>`vtolMcProtectionMode_e`

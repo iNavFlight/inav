@@ -17,6 +17,10 @@ set_property(SOURCE battery_ina226_unittest.cc PROPERTY definitions USE_INA226 U
 
 set_property(SOURCE bitarray_unittest.cc PROPERTY depends "common/bitarray.c")
 
+set_property(SOURCE blackbox_encoding_unittest.cc PROPERTY depends
+    "blackbox/blackbox_encoding.c" "common/encoding.c")
+set_property(SOURCE blackbox_encoding_unittest.cc PROPERTY definitions USE_BLACKBOX)
+
 set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
     "common/maths.c" "common/calibration.c" "common/filter.c"
     "drivers/accgyro/accgyro_fake.c" "flight/imu.c" "sensors/boardalignment.c"
@@ -145,6 +149,9 @@ set_property(SOURCE navigation_control_reserve_unittest.cc PROPERTY depends
 set_property(SOURCE marker_guidance_runtime_unittest.cc PROPERTY depends
     "navigation/marker_guidance.c" "common/maths.c" "build/debug.c")
 set_property(SOURCE marker_guidance_runtime_unittest.cc PROPERTY definitions USE_MARKER_GUIDANCE USE_AUTO_TRANSITION)
+set_property(SOURCE marker_guidance_estimator_unittest.cc PROPERTY depends
+    "navigation/navigation_pos_estimator_pl.c" "common/maths.c" "build/debug.c")
+set_property(SOURCE marker_guidance_estimator_unittest.cc PROPERTY definitions USE_MARKER_GUIDANCE USE_OPFLOW USE_RANGEFINDER)
 
 set_property(SOURCE terrain_unittest.cc PROPERTY depends "common/crc.c" "common/streambuf.c" "terrain/terrain_utils.c" "terrain/terrain_location.c" "drivers/time.c")
 set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
