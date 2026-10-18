@@ -865,14 +865,6 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
     const bool usableAirspeedAvailable =
         airspeedThresholdCmS > 0 && hasUsableTransitionAirspeed(&airspeedCmS);
 
-    if (isTailSitterManualToMcCapture() && !usableAirspeedAvailable) {
-        // Timer fallback is acceptable for the established tilt/pusher paths,
-        // but a tailsitter must not rotate into MC at an unknown airspeed.
-        mixerProfileAT.usedAirspeed = false;
-        mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NO_SPEED;
-        updateHandoffScalingProgress(currentTimeMs);
-        return false;
-    }
     const mixerTransitionHotSwitchProgress_t hotSwitchProgress = mixerTransitionEvaluateHotSwitch(
         direction,
         airspeedThresholdCmS,
@@ -1135,7 +1127,7 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                     completeTransition();
                 }
                 return true;
-            } else if ((mixerProfileAT.usedAirspeed || isTailSitterManualToMcCapture()) &&
+            } else if (mixerProfileAT.usedAirspeed &&
                        currentMixerConfig.vtolTransitionAirspeedTimeoutMs > 0 &&
                        (millis() - mixerProfileAT.transitionStartTime) >= currentMixerConfig.vtolTransitionAirspeedTimeoutMs) {
                 abortTransition(true, false);

@@ -183,9 +183,29 @@ Use the normal two-profile arrangement:
 - Enable `mixer_vtol_manualswitch_autotransition_controller = ON` in both profiles.
 - Keep `mixer_vtol_transition_dynamic_mixer = OFF` in both profiles. Dynamic motor/authority blending is not validated for a tailsitter yet.
 
-For a FW-to-MC request, configure a non-zero `vtol_transition_to_mc_max_airspeed_cm_s` and use a valid airspeed source. Real pitot and a valid virtual pitot are accepted. The controller does **not** use `mixer_switch_trans_timer` as a FW-to-MC fallback for tailsitters: changing a tailsitter into MC orientation at unknown airspeed is unsafe. If valid airspeed is not available, OSD shows `VTOL NO SPEED`; after `mixer_vtol_transition_airspeed_timeout_ms`, the transition aborts and the aircraft remains in FW.
+Tailsitters use the same airspeed/timer selection as tilt-motor and pusher configurations in **both directions**:
 
-When measured airspeed is at or below the configured MC limit, INAV switches to the MC profile and keeps the existing 45 degree tailsitter transition pitch target. OSD shows `VTOL TAILSITTER CAPTURE` until the MC-orientation pitch estimate stays within 35 to 55 degrees for 300 ms. It then clears the transition and reports completion. If the pilot moves the switch back to the FW endpoint during this capture phase, INAV starts the ordinary MC-to-FW transition instead of direct-switching the profile.
+- **MC -> FW:** `vtol_transition_to_fw_min_airspeed_cm_s = 0` explicitly selects timer-based profile switching. The timer comes from `mixer_switch_trans_timer` in the **MC/source profile**.
+- **FW -> MC:** `vtol_transition_to_mc_max_airspeed_cm_s = 0` explicitly selects timer-based profile switching. The timer comes from `mixer_switch_trans_timer` in the **FW/source profile**.
+- With a non-zero threshold and a usable real or virtual pitot, the configured airspeed condition controls switching instead. A virtual pitot without a valid estimate, including before its first valid wind estimate, is treated as unavailable and does not block timer fallback. Firmware validity does not guarantee that a pitot reading is physically accurate while the airframe rotates relative to the airflow.
+- If no usable airspeed is available, the source profile's timer is used. A brief airspeed dropout is held for the existing 300 ms confirmation window; a persistent loss allows timer fallback. The timer is measured from the start of the transition, not restarted when airspeed is lost, so it may already have elapsed. Set the threshold for that direction to `0` if you want timer-only behavior even when airspeed is available or later becomes valid.
+- `mixer_vtol_transition_airspeed_timeout_ms` only aborts an airspeed-controlled attempt that has not reached its speed condition; it does not abort a timer-only attempt. A manual airspeed timeout does not execute the navigation `FORCE_SWITCH` fail action.
+
+For a propeller-free bench check, the following example selects timer-only switching in both directions. It assumes profile 1 is MC and profile 2 is FW; reverse the profile numbers if your setup is different. The five-second values are for observing bench behavior, **not recommended flight timings**:
+
+```text
+set vtol_transition_to_fw_min_airspeed_cm_s = 0
+set vtol_transition_to_mc_max_airspeed_cm_s = 0
+mixer_profile 1
+set mixer_switch_trans_timer = 50
+mixer_profile 2
+set mixer_switch_trans_timer = 50
+save
+```
+
+`mixer_switch_trans_timer` uses deciseconds: `50` means 5 seconds; `0` allows an immediate profile switch when using the timer path. This timer decides when to change the mixer profile, not whether the physical rotation has completed.
+
+After the FW -> MC speed or timer condition is met, INAV switches to the MC profile and keeps the existing 45 degree tailsitter transition pitch target. OSD shows `VTOL TAILSITTER CAPTURE` until the MC-orientation pitch estimate stays within 35 to 55 degrees for 300 ms. It then clears the transition and reports completion. Capture has no automatic timeout: while the angle is not confirmed, the transition pitch offset remains active. If the pilot moves the switch back to the FW endpoint during this capture phase, INAV starts the ordinary MC-to-FW transition instead of direct-switching the profile. During the bench check, verify the profile switches after its timer and that moving the airframe through the expected capture attitude releases this phase; do not interpret a timer expiry alone as a successful physical transition.
 
 This first version intentionally does not support tailsitter auto-transition from missions, RTH, landing, failsafe, low-FW-airspeed protection, or VTOL MC protection. Those paths are rejected for the canonical tailsitter profile pair rather than running the unvalidated generic auto-transition sequence. Test without propellers first, verify the orientation change in the Configurator, and inspect a `DEBUG_VTOL_TRANSITION` log before attempting a flight.
 
