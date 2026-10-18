@@ -60,8 +60,7 @@ means the motor is never driven. The Outputs tab warns when that is the case.
 
 If your firmware was not built with this support the protocol does not appear in the
 list at all, and neither does the port function. It is enabled by default on F405, H7
-and AT32 targets, which is where the flash to spare is: the driver costs about 3.5 KB,
-and an F405 board typically uses three quarters of its flash. The F7 family is left out
+and AT32 targets, which is where the flash to spare is. The F7 family is left out
 because some of its targets are close to full, so an F7 board with room can turn it on
 with a `#define USE_MOTOR_SRXL2` in its `target.h`, as can any other target.
 
@@ -206,6 +205,49 @@ of magnitude separate the two, so:
   milder version of the same recommendation.
 * INAV's own advice for this setting applies unchanged: turn it on only once ESC
   telemetry is working and the reported rpm looks right.
+
+## Smart Battery telemetry
+
+A Smart Battery connected to a compatible Avian ESC can report individual cell
+voltages and pack temperature over the existing throttle wire. Leave
+`esc_srxl2_telemetry` enabled; the battery pages arrive with the normal ESC
+telemetry, without another request or setting.
+
+The ESC needs the third battery-data wire between it and the battery. Avian Lite
+ESCs, including the 70 A and 85 A, do not have it. They still report their own
+voltage, current and temperature, but cannot read the battery's cells or temperature.
+
+The master address is `0x21`, a receiver identity, so battery replies from the
+Avian pass the normal destination check. Control frames and telemetry scheduling
+are unchanged. Power-cycle the ESC after updating from firmware using `0x31`.
+
+`smartbattery` in the CLI shows cell voltages in mV and pack temperature in tenths
+of a degree Celsius. `smartbattery raw` also shows the received pages and their
+ages. The decoder holds up to eighteen cells and two battery sources per ESC;
+INAV's main battery-source selection is unchanged.
+
+The Lite 85 A sends battery pages even without battery data: equal cell values
+and a zero temperature. Those are placeholders. INAV requires fresh capacity
+metadata before publishing battery readings, and drops readings after ten seconds
+or a link interruption. Capacity is used for that check, not published as a new
+capacity or state-of-charge reading.
+
+Cells and temperature go to the radio through native CRSF Voltage Group and
+Temperature frames. Cell frames require a complete, fresh pack of up to eight
+cells; larger packs remain available through the CLI. Use **EdgeTX 2.11.2 or
+newer** and **ExpressLRS 3.5.5 or newer**, as described in the
+[EdgeTX release notes](https://github.com/EdgeTX/edgetx/releases/tag/v2.11.2).
+No Lua application or additional Configurator setting is needed.
+
+Checked with a 6S Avian Smart 100 A and a Spektrum Smart 4000 mAh 6S 30C Gen 1
+pack: the cells and temperature matched the received payloads. Normal ESC
+telemetry and FC-only restart recovery also worked on the 100 A and Lite 85 A;
+the Lite's battery placeholders remained unavailable. The bench setup used local
+NEXUS support separate from this feature.
+
+The sensor `0x42` page layout follows the behavioral references in
+[EdgeTX](https://github.com/EdgeTX/edgetx/blob/73652d0a99e51e37a0a8dc9159a3ec1ea4219ae9/radio/src/telemetry/spektrum.cpp)
+and [MSRC](https://github.com/dgatf/msrc/blob/master/board/project/sensor/smart_esc.c).
 
 ## Reverse
 
