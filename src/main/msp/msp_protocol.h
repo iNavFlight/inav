@@ -183,8 +183,6 @@
 
 #define MSP_SDCARD_SUMMARY              79 //out message         Get the state of the SD card
 
-#define MSP_BLACKBOX_CONFIG             80 //DEPRECATED in INAV 9.1, use MSP2_BLACKBOX_CONFIG. Will be removed in INAV 10.0
-#define MSP_SET_BLACKBOX_CONFIG         81 //DEPRECATED in INAV 9.1, use MSP2_SET_BLACKBOX_CONFIG. Will be removed in INAV 10.0
 
 #define MSP_TRANSPONDER_CONFIG          82 //out message         Get transponder settings
 #define MSP_SET_TRANSPONDER_CONFIG      83 //in message          Set transponder settings
