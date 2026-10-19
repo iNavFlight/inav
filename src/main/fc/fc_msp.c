@@ -364,10 +364,20 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
     afatfs_countFreeSpace(!ARMING_FLAG(ARMED));
     // Appended so older configurators still read the fields above; afatfs keeps a removed card's count
     sbufWriteU32(dst, state == MSP_SDCARD_STATE_READY ? afatfs_getFreeSpaceKB() : AFATFS_FREE_SPACE_UNKNOWN);
+    uint32_t logTailsKB = AFATFS_FREE_SPACE_UNKNOWN, terrainKB = AFATFS_FREE_SPACE_UNKNOWN, lostKB = AFATFS_FREE_SPACE_UNKNOWN;
+    if (state == MSP_SDCARD_STATE_READY) {
+        afatfs_getTakenSpaceKB(&logTailsKB, &terrainKB, &lostKB);
+    }
+    sbufWriteU32(dst, logTailsKB);
+    sbufWriteU32(dst, terrainKB);
+    sbufWriteU32(dst, lostKB);
 #else
     sbufWriteU8(dst, 0);
     sbufWriteU8(dst, 0);
     sbufWriteU8(dst, 0);
+    sbufWriteU32(dst, 0);
+    sbufWriteU32(dst, 0);
+    sbufWriteU32(dst, 0);
     sbufWriteU32(dst, 0);
     sbufWriteU32(dst, 0);
     sbufWriteU32(dst, 0);
