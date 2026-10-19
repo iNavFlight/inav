@@ -561,6 +561,7 @@ typedef struct afatfs_t {
     uint32_t freeCountNextCluster;
     uint32_t freeCountClusters;
     timeUs_t freeCountDueUs;
+    bool freeCountWanted;
 
     /* Mask to be ANDed with a byte offset within a file to give the offset within the cluster */
     uint32_t byteInClusterMask;
@@ -3554,6 +3555,12 @@ uint32_t afatfs_getFreeSpaceKB(void)
     return (afatfs.freeFile.logicalSize / AFATFS_SECTOR_SIZE + afatfs.freeCountClusters * afatfs.sectorsPerCluster) / 2;
 }
 
+// The count reads the whole FAT, so it runs only while asked for; stopped, it resumes where it was
+void afatfs_countFreeSpace(bool run)
+{
+    afatfs.freeCountWanted = run;
+}
+
 static uint32_t afatfs_freeFileClusters(void);
 
 // Kept out of line, or LTO inlines it through afatfs_poll() into scheduler(), which is FAST_CODE
@@ -3566,8 +3573,8 @@ static NOINLINE void afatfs_countFreeClustersContinue(void)
         return;
     }
 
-    // Paused while files are open, so that the count never holds up a log's writes
-    bool paused = afatfs.currentDirectory.operation.operation != AFATFS_FILE_OPERATION_NONE;
+    // Paused until asked for, and while files are open so that the count never holds up a log's writes
+    bool paused = !afatfs.freeCountWanted || afatfs.currentDirectory.operation.operation != AFATFS_FILE_OPERATION_NONE;
     for (int i = 0; i < AFATFS_MAX_OPEN_FILES; i++) {
         paused |= afatfs.openFiles[i].type != AFATFS_FILE_TYPE_NONE;
     }
