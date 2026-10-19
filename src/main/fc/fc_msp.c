@@ -4177,13 +4177,13 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             candidate.mirror_mode = sbufReadU8(src);
             candidate.ffc_interval = sbufReadU8(src);
 
-            // Every enum and percentage is range checked here, so a value the
-            // CLI would reject cannot be smuggled in over MSP.
-            if (!mztcConfigIsValid(&candidate)) {
+            // Every enum and percentage is range checked inside the apply, so
+            // a value the CLI would reject cannot be smuggled in over MSP. The
+            // apply also queues the transmission to the camera. A bare struct
+            // assignment here would acknowledge the write and send nothing.
+            if (!mztcApplyConfig(&candidate)) {
                 return MSP_RESULT_ERROR;
             }
-
-            *mztcConfigMutable() = candidate;
         } else {
             return MSP_RESULT_ERROR;
         }

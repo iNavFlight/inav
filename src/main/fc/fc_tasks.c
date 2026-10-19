@@ -425,6 +425,11 @@ void fcTasksInit(void)
 #ifdef USE_ADSB
     setTaskEnabled(TASK_ADSB, true);
 #endif
+#ifdef USE_MZTC
+    // Always runs. The task goes dormant while no UART carries the camera
+    // function. An unassigned camera costs one config lookup at 10 Hz.
+    setTaskEnabled(TASK_MZTC_CAMERA, true);
+#endif
 #ifdef USE_RANGEFINDER
     setTaskEnabled(TASK_RANGEFINDER, sensors(SENSOR_RANGEFINDER));
 #endif

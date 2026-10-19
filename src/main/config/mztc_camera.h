@@ -179,6 +179,7 @@ bool mztcSaveConfiguration(void);
 bool mztcRestoreDefaults(void);
 bool mztcTriggerVignettingCorrection(void);
 bool mztcConfigIsValid(const mztcConfig_t *cfg);
+bool mztcApplyConfig(const mztcConfig_t *cfg);
 
 // Serial framing helpers. Exposed so the unit test can exercise the wire
 // format without a serial port; see mztc_camera_unittest.cc.
