@@ -360,6 +360,8 @@ static void serializeSDCardSummaryReply(sbuf_t *dst)
     // blackbox does not use the SD card, and of SITL launched without --sdcard
     const sdcardMetadata_t *metadata = sdcard_getMetadata();
     sbufWriteU32(dst, metadata ? metadata->numBlocks / 2 : 0); // Block size is half a kilobyte
+    // Counted only once the Configurator asks for it, never while armed
+    afatfs_countFreeSpace(!ARMING_FLAG(ARMED));
     // Appended so older configurators still read the fields above; afatfs keeps a removed card's count
     sbufWriteU32(dst, state == MSP_SDCARD_STATE_READY ? afatfs_getFreeSpaceKB() : AFATFS_FREE_SPACE_UNKNOWN);
 #else

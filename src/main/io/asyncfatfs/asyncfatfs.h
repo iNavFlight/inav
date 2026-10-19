@@ -93,6 +93,7 @@ uint32_t afatfs_getFreeBufferSpace(void);
 uint32_t afatfs_getContiguousFreeSpace(void);
 #define AFATFS_FREE_SPACE_UNKNOWN 0xFFFFFFFF
 uint32_t afatfs_getFreeSpaceKB(void);
+void afatfs_countFreeSpace(bool run);
 bool afatfs_isFull(void);
 
 afatfsFilesystemState_e afatfs_getFilesystemState(void);
