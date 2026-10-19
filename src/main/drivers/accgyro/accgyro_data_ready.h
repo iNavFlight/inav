@@ -61,7 +61,9 @@ typedef struct gyroDataReadyDriver_s {
     gyroDataReadyParseFn parse;
     sensorGyroReadFuncPtr registerRead; // the driver's own read, for when samples stop coming
     bool tested;                        // gyro_data_ready AUTO turns it on
+#ifdef USE_GYRO_FIFO
     const gyroDataReadyFifo_t *fifo;    // NULL if the IMU has no FIFO this can use
+#endif
 } gyroDataReadyDriver_t;
 
 typedef struct gyroDataReady_s gyroDataReady_t;

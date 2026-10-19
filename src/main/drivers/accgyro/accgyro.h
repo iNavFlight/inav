@@ -36,9 +36,14 @@ typedef struct {
     uint8_t gyroConfigValues[2];
 } gyroFilterAndRateConfig_t;
 
+#ifdef USE_GYRO_FIFO
 // Two reads' worth of FIFO samples (gyro_fifo_samples up to 4) plus margin: the interrupt brings
 // them at the sensor's rate, the task only follows on average
 #define GYRO_SAMPLE_QUEUE_LENGTH 16
+#else
+// 2 ms at 4 kHz: the interrupt brings samples at the sensor's rate, the task follows on average
+#define GYRO_SAMPLE_QUEUE_LENGTH 8
+#endif
 
 // Whether a driver that can reads its gyro on the data-ready interrupt (gyro_data_ready)
 typedef enum {

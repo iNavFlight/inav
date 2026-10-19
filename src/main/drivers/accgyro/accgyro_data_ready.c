@@ -29,6 +29,7 @@
 #if defined(USE_SPI_DATA_READY)
 
 #include "build/atomic.h"
+#include "build/debug.h"
 
 #include "common/maths.h"
 #include "common/utils.h"
@@ -57,19 +58,32 @@ struct gyroDataReady_s {
     volatile int16_t temp;
     volatile timeUs_t lastSampleUs;
     timeUs_t resumedUs;                 // when a read after a pause turned the interrupt back on
+#ifdef USE_GYRO_FIFO
     uint8_t fifoSamples;                // samples per interrupt through the IMU's FIFO, 0 for register reads
     uint8_t fifoPackets;                // packets each read brings: one more than that where it fits
     uint8_t fifoPacketLen;
     volatile bool fifoFlush;            // the FIFO fell behind or out of step: empty it from the task
     uint8_t fifoFruitlessReads;         // reads in a row that found packets counted but no sample
+    uint8_t fifoFaults;                 // flushes for a fault since fifoFaultsSinceUs
+    timeUs_t fifoFaultsSinceUs;
+    bool fifoGaveUp;                    // read from the registers for the rest of the session
+    uint16_t fifoFlushes;               // for the GYRO_FIFO debug mode
+    uint16_t fifoDropped;
+#endif
 };
 
+#ifdef USE_GYRO_FIFO
 // Reads in a row with packets counted but none held: out of step. One alone is normal (a packet
 // counted just before it can be read); a read that found the queue full doesn't count
 #define GYRO_DATA_READY_FIFO_FRUITLESS 4
 
 // Further behind than this many reads' worth, the FIFO is emptied rather than caught up
 #define GYRO_DATA_READY_FIFO_BEHIND 2
+
+// This many fault flushes within the window is a fault the FIFO won't get over: the registers are read from then on
+#define GYRO_DATA_READY_FIFO_MAX_FAULTS 3
+#define GYRO_DATA_READY_FIFO_FAULT_WINDOW_US 1000000
+#endif
 
 // The primary gyro and the secondary
 static gyroDataReady_t gyroDataReady[2];
@@ -137,6 +151,7 @@ static void gyroDataReadySample(void *arg, const uint8_t *data)
     d->lastSampleUs = microsISR();
 }
 
+#ifdef USE_GYRO_FIFO
 // The count, then fifoPackets packets, oldest first. Every packet read has left the FIFO, even
 // one that came after the count, so all are decoded up to the first empty one
 static void gyroDataReadyFifoSamples(void *arg, const uint8_t *data)
@@ -188,7 +203,26 @@ static void gyroDataReadyFifoSamples(void *arg, const uint8_t *data)
         d->fifoFlush = true;
         d->fifoFruitlessReads = 0;
     }
+    if (d == &gyroDataReady[0]) {
+        DEBUG_SET(DEBUG_GYRO_FIFO, 2, pushed);
+    }
 }
+
+static void gyroDataReadyFifoFault(gyroDataReady_t *d)
+{
+    const timeUs_t now = micros();
+    if (cmpTimeUs(now, d->fifoFaultsSinceUs) > GYRO_DATA_READY_FIFO_FAULT_WINDOW_US) {
+        d->fifoFaultsSinceUs = now;
+        d->fifoFaults = 0;
+    }
+    if (++d->fifoFaults >= GYRO_DATA_READY_FIFO_MAX_FAULTS) {
+        ATOMIC_BLOCK(NVIC_PRIO_GYRO_DATA_READY) {
+            EXTIEnable(d->gyro->busDev->irqPin, false);
+            d->fifoGaveUp = true;
+        }
+    }
+}
+#endif
 
 static void gyroDataReadyExti(extiCallbackRec_t *cb)
 {
@@ -201,21 +235,43 @@ static bool gyroDataReadyRead(gyroDev_t *gyro)
 {
     gyroDataReady_t *d = gyro->dataReadyState;
 
+#ifdef USE_GYRO_FIFO
+    if (d->fifoGaveUp) {
+        return d->driver->registerRead(gyro);
+    }
+
     if (d->fifoSamples && (d->paused || d->fifoFlush)) {
+        // A fault, not the restart after a pause
+        const bool fault = d->fifoFlush;
+        // No read starts between the flush and the clear; the one in flight can only re-raise what the flush empties
+        const SPIDevice bus = gyro->busDev->busdev.spi.spiBus;
+        spiBusAcquire(bus);
         // What the FIFO holds is old, or out of step with the reads, and so is what came from it
         d->driver->fifo->flush(gyro);
         d->fifoFlush = false;
         ATOMIC_BLOCK(NVIC_PRIO_GYRO_DATA_READY) {
+            d->fifoDropped += (gyro->sampleQueueHead + GYRO_SAMPLE_QUEUE_LENGTH - gyro->sampleQueueTail) % GYRO_SAMPLE_QUEUE_LENGTH;
             gyro->sampleQueueTail = gyro->sampleQueueHead;
             if (d->paused) {
                 d->paused = false;
                 EXTIEnable(gyro->busDev->irqPin, true);
             }
         }
+        spiBusRelease(bus);
         d->resumedUs = micros();
+        d->fifoFlushes++;
+        if (fault) {
+            gyroDataReadyFifoFault(d);
+        }
+        if (d == &gyroDataReady[0]) {
+            DEBUG_SET(DEBUG_GYRO_FIFO, 0, d->fifoFlushes);
+            DEBUG_SET(DEBUG_GYRO_FIFO, 1, d->fifoDropped);
+            DEBUG_SET(DEBUG_GYRO_FIFO, 3, d->fifoGaveUp);
+        }
         // No register read: a sample taken during the flush would come again from the FIFO
         return false;
     }
+#endif
 
     if (d->paused) {
         // After a pause the queue is old: turn the interrupt back on and read the registers
@@ -287,6 +343,8 @@ void gyroDataReadyStart(gyroDev_t *gyro)
     d->driver = driver;
     d->lastSampleUs = micros();
 
+    bool viaFifo = false;
+#ifdef USE_GYRO_FIFO
     const gyroDataReadyFifo_t *fifo = driver->fifo;
     d->fifoSamples = 0;
     if (gyro->dataReadyFifoSamples && fifo) {
@@ -297,12 +355,14 @@ void gyroDataReadyStart(gyroDev_t *gyro)
             if (spiDataReadyInit(dev, fifo->countReg, 2 + d->fifoPackets * d->fifoPacketLen, gyroDataReadyFifoSamples, d)) {
                 d->fifoSamples = gyro->dataReadyFifoSamples;
                 fifo->start(gyro, d->withAccAndTemp, d->fifoSamples);
+                viaFifo = true;
                 break;
             }
         }
     }
+#endif
 
-    if (!d->fifoSamples) {
+    if (!viaFifo) {
         d->withAccAndTemp = gyro->readOnDataReadyWithAcc && driver->withAccAndTemp.len;
         if (!d->withAccAndTemp || !spiDataReadyInit(dev, driver->withAccAndTemp.reg, driver->withAccAndTemp.len, gyroDataReadySample, d)) {
             d->withAccAndTemp = false;

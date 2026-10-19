@@ -521,9 +521,13 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, 
 // SPI1-3, 8 on SPI4-6) needs no DMA: the end-of-transfer interrupt takes it all back. Longer
 // reads, and all on F7 (4-byte FIFO), use two DMA streams
 
-// Longest read, address included
+// Longest read, address included, in whole cache lines so no two buses share one
+#ifdef USE_GYRO_FIFO
 // The address and up to four FIFO packets of 16 bytes after the count
-#define SPI_DATA_READY_MAX  72
+#define SPI_DATA_READY_MAX  96
+#else
+#define SPI_DATA_READY_MAX  32
+#endif
 
 typedef struct {
     uint8_t reg;                        // the first register, as sent (read bit included)

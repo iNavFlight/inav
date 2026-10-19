@@ -132,6 +132,8 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
 #endif
 #ifdef USE_SPI_DATA_READY
     .gyro_data_ready = SETTING_GYRO_DATA_READY_DEFAULT,
+#endif
+#ifdef USE_GYRO_FIFO
     .gyro_fifo_samples = SETTING_GYRO_FIFO_SAMPLES_DEFAULT,
 #endif
     .gyro_main_lpf_hz = SETTING_GYRO_MAIN_LPF_HZ_DEFAULT,

@@ -162,6 +162,7 @@ static void setUserBank(const busDevice_t *dev, const uint8_t user_bank)
 #if defined(USE_SPI_DATA_READY)
 static bool icm42605GyroRead(gyroDev_t *gyro);
 
+#if defined(USE_GYRO_FIFO)
 // FIFO, all in User Bank 0
 #define ICM426XX_RA_FIFO_CONFIG                     0x16
 #define ICM426XX_FIFO_MODE_STREAM                   (1 << 6)
@@ -251,6 +252,7 @@ static const gyroDataReadyFifo_t icm426xxFifo = {
     .flush = icm426xxFifoFlush,
     .parse = icm426xxFifoParse,
 };
+#endif
 
 // From TEMP_DATA1: temperature, accelerometer X, Y, Z, gyro X, Y, Z, big-endian
 static void icm426xxDataReadyParse(const uint8_t *data, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp)
@@ -274,7 +276,9 @@ static const gyroDataReadyDriver_t icm426xxDataReady = {
     .parse = icm426xxDataReadyParse,
     .registerRead = icm42605GyroRead,
     .tested = true,
+#if defined(USE_GYRO_FIFO)
     .fifo = &icm426xxFifo,
+#endif
 };
 #endif
 
