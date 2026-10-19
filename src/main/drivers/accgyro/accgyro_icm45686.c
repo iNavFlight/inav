@@ -397,7 +397,7 @@ static const gyroDataReadyDriver_t icm45686DataReady = {
     .hasTemp = true,
     .parse = icm45686DataReadyParse,
     .registerRead = icm45686GyroRead,
-    .tested = true,
+    .tested = false,                    // not run on hardware yet
 };
 #endif
 

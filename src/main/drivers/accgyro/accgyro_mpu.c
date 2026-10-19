@@ -163,17 +163,20 @@ static const gyroDataReadyDriver_t mpuDataReady = {
     .hasTemp = true,
     .parse = mpuDataReadyParse,
     .registerRead = mpuGyroReadScratchpad,
-    .tested = true,
+    .tested = false,                    // not run on hardware yet
 };
 
-// A 50 us pulse on INT at each new sample. Written at the initialisation speed: the MPU6000 takes
-// register writes at 1 MHz at most
+// A 50 us pulse on INT at each new sample, only where data-ready will read it: otherwise the MPU stays as it was.
+// Written at the initialisation speed: the MPU6000 takes register writes at 1 MHz at most
 void mpuDataReadySetup(gyroDev_t *gyro)
 {
+    gyro->dataReadyDriver = &mpuDataReady;
+    if (!gyroDataReadyWanted(gyro)) {
+        return;
+    }
     busWrite(gyro->busDev, MPU_RA_INT_PIN_CFG, MPU_INT_ANYRD_2CLEAR);
     delayMicroseconds(15);
     busWrite(gyro->busDev, MPU_RA_INT_ENABLE, MPU_RF_DATA_RDY_EN);
     delayMicroseconds(15);
-    gyro->dataReadyDriver = &mpuDataReady;
 }
 #endif
