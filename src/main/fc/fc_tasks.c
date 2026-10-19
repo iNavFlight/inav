@@ -66,6 +66,7 @@
 #include "io/osd.h"
 #include "io/serial.h"
 #include "io/rcdevice_cam.h"
+#include "io/mztc_camera.h"
 #include "io/osd_joystick.h"
 #include "io/smartport_master.h"
 #include "io/crsf_sensor.h"
@@ -424,6 +425,11 @@ void fcTasksInit(void)
 #ifdef USE_ADSB
     setTaskEnabled(TASK_ADSB, true);
 #endif
+#ifdef USE_MZTC
+    // Always runs. The task goes dormant while no UART carries the camera
+    // function. An unassigned camera costs one config lookup at 10 Hz.
+    setTaskEnabled(TASK_MZTC_CAMERA, true);
+#endif
 #ifdef USE_RANGEFINDER
     setTaskEnabled(TASK_RANGEFINDER, sensors(SENSOR_RANGEFINDER));
 #endif
@@ -713,6 +719,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "OSD",
         .taskFunc = taskUpdateOsd,
         .desiredPeriod = TASK_PERIOD_HZ(250),
+        .staticPriority = TASK_PRIORITY_LOW,
+    },
+#endif
+#ifdef USE_MZTC
+    [TASK_MZTC_CAMERA] = {
+        .taskName = "MZTC",
+        .taskFunc = mztcUpdate,
+        .desiredPeriod = TASK_PERIOD_HZ(10),
         .staticPriority = TASK_PRIORITY_LOW,
     },
 #endif
