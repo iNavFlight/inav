@@ -18,7 +18,7 @@ push builds happen via `nightly-build.yml` instead (see below).
 
 #### `nightly-build.yml` - "Build pre-release"
 **Triggers:** `push` to `master`, `maintenance-8.x.x`, `maintenance-9.x`,
-`maintenance-10.x`, `release/9.1` — **not** a schedule, despite the
+`maintenance-10.x`, `maintenance-11.x`, `release/9.1` — **not** a schedule, despite the
 filename. Invokes `ci.yml`'s jobs via `workflow_call`, then publishes a
 prerelease to the companion `iNavFlight/inav-nightly` repo.
 **Purpose:** Creates nightly development builds for testing, and is the
@@ -35,7 +35,7 @@ fire.
 ### Code Quality
 
 #### `pg-version-check.yml` - Parameter Group Version Check
-**Triggers:** Pull requests to maintenance-9.x, maintenance-10.x, and release/9.1
+**Triggers:** Pull requests to maintenance-9.x, maintenance-10.x, maintenance-11.x, and release/9.1
 **Purpose:** Detects parameter group struct modifications and verifies version increments
 **Why:** Prevents settings corruption when struct layout changes without version bump
 
@@ -78,7 +78,7 @@ every PR.
 1. `ci.yml` extracts a small per-target size report (`arm-none-eabi-size`
    on each built `.elf`) right after each build and uploads it as an
    artifact — no second build anywhere in this flow.
-2. On pushes to `master`/`maintenance-9.x`/`maintenance-10.x`/`release/9.1`,
+2. On pushes to `master`/`maintenance-9.x`/`maintenance-10.x`/`maintenance-11.x`/`release/9.1`,
    `nightly-build.yml` ("Build pre-release") invokes `ci.yml` via
    `workflow_call` as part of building nightly releases — this already
    produces the size report above at no extra build cost. When that
@@ -93,18 +93,20 @@ every PR.
    so this deliberately listens to `nightly-build.yml` instead of trying to
    fix that separately; verified empirically that `ci.yml` alone has zero
    push-triggered runs in this repo's history.)
-3. On PR builds, it computes the PR's TRUE base commit — the merge-base of
-   the PR head and base ref via the compare API — fetches the per-commit
-   baseline for that exact commit, falling back to the nearest ancestor
-   commit that has one (never the branch tip, which would include unrelated
-   changes merged after the PR forked), diffs it against the PR's own size
+3. On PR builds, it takes the base commit the PR was built on: CI builds
+   `refs/pull/<n>/merge`, and `ci.yml` records that merge's first parent
+   (builds that did not record it fall back to the merge-base of the PR head and
+   base ref via the compare API). It fetches the per-commit baseline for that
+   exact commit, falling back to the nearest ancestor commit that has one
+   (never the branch tip, which would include unrelated changes merged after
+   the build), diffs it against the PR's own size
    report, and posts/updates a comment (marker `<!-- pr-size-diff -->`)
    naming the baseline commit that was used.
 
 **Scripts:** `.github/scripts/extract-size-report.sh` (size extraction),
 `.github/scripts/merge-size-reports.sh` (merges per-shard reports),
 `.github/scripts/publish-size-baseline.sh` (per-commit publish + pruning),
-`.github/scripts/fetch-size-baseline.sh` (merge-base baseline resolution),
+`.github/scripts/fetch-size-baseline.sh` (base commit baseline resolution),
 `.github/scripts/size-diff-comment.js` (pure diff + markdown rendering,
 unit tested in `.github/scripts/size-diff-comment.test.js`)
 
@@ -126,6 +128,13 @@ maintenance-11.x (breaking compatibility) instead
 #### `non-code-change.yaml` - Non-Code Change Detection
 **Triggers:** Pull requests
 **Purpose:** Detects PRs with only documentation/formatting changes
+
+It shares the name `Build firmware` with `ci.yml` but produces none of its
+artifacts. The `workflow_run` consumers `pr-test-builds.yml` and
+`ci-size-report.yml` therefore also require
+`github.event.workflow.path == '.github/workflows/ci.yml'` (a path, not a
+workflow ID, so forks behave the same). Check both conditions with
+`node --test .github/scripts/artifact-workflow-filter.test.js`.
 
 ## Configuration Files
 

@@ -8,18 +8,19 @@
 # reporting no baseline. Every job calling this script must check out
 # first.
 #
-# Fetch the size baseline for a PR's TRUE base commit — the merge-base of
-# the PR head and base ref — rather than the base branch's latest tip, so
-# the size-diff delta doesn't include unrelated changes merged to the base
-# after the PR forked (see the +9,788 B stale-RAM regression on PR #11785).
+# Fetch the size baseline for a PR's base commit, the one its CI build was
+# merged onto (the merge-base of the PR head and base ref for builds that
+# did not record it), rather than the base branch's latest tip, so the
+# size-diff delta doesn't include unrelated changes merged to the base
+# (see the +9,788 B stale-RAM regression on PR #11785).
 #
 # Strategy, in order:
-#   1. Exact: size-baseline-<merge-base-sha> in the companion builds repo.
-#   2. Nearest ancestor: walk first-parents of the merge-base (older commits
+#   1. Exact: size-baseline-<base-sha> in the companion builds repo.
+#   2. Nearest ancestor: walk first-parents of the base commit (older commits
 #      on the base branch) up to MAX_WALK steps, using the first per-commit
 #      baseline tag found. Nightly baselines exist only for commits that were
 #      actually pushed to the branch, so the walk finds the closest nightly
-#      build at-or-before the fork point.
+#      build at-or-before the base commit.
 #   3. Otherwise report found=false (caller emits the graceful
 #      "no size baseline available" comment path).
 #
@@ -30,7 +31,7 @@
 #   <main-repo>      the firmware repo, e.g. iNavFlight/inav
 #   <builds-repo>    companion repo holding the baselines, e.g. iNavFlight/pr-test-builds
 #   <base-ref>       PR base branch, e.g. maintenance-10.x (validated)
-#   <merge-base-sha> full 40-hex SHA of the PR's merge-base commit (validated)
+#   <merge-base-sha> full 40-hex SHA of the PR's base commit (validated)
 #   <out-dir>        directory to write size-report.json into
 #
 # Env: GH_TOKEN with read access to both repos (secrets.PR_BUILDS_TOKEN in
@@ -38,7 +39,7 @@
 #
 # Prints key=value lines to stdout for the workflow to append to
 # $GITHUB_OUTPUT: found, baseline_commit (full SHA), baseline_commit_short,
-# baseline_exact (true when the merge-base itself had a stored baseline).
+# baseline_exact (true when the base commit itself had a stored baseline).
 
 set -euo pipefail
 
@@ -93,8 +94,8 @@ emit_found() { # $1 = 40-hex sha, $2 = true|false (exact)
 
 BASELINE_SHAS=$(list_baseline_shas) || true
 
-# Exact merge-base first, then nearest ancestors along the base branch's
-# first-parent chain. The loop STARTS at the merge-base itself so a
+# Exact base commit first, then nearest ancestors along the base branch's
+# first-parent chain. The loop STARTS at the base commit itself so a
 # transient download failure on the exact commit is retried here instead
 # of silently degrading to a nearest-ancestor baseline.
 sha="$MERGE_BASE_SHA"
