@@ -86,8 +86,8 @@ fi
 # ---------------------------------------------------------------------------
 # Prune per-commit baselines
 # ---------------------------------------------------------------------------
-# Emit <created_at>\t<tag>\t<branch> for every per-commit baseline release,
-# newest first (GitHub release listing is newest-first). Branch comes from
+# Emit <published_at>\t<tag>\t<branch> for every per-commit baseline release,
+# in listing order; prune() sorts them. Branch comes from
 # the notes' `branch: <name>` FIRST LINE; the (?m) flag is required — the
 # notes are multi-line, and without it ^/$ anchor to the whole string so
 # the capture never matches and every baseline collapses into the '?'
@@ -100,10 +100,14 @@ fi
 # runs. Applying `//` to the capture() call catches that empty-output case
 # (per jq's alternative-operator semantics) and substitutes the `?`
 # fallback object before `.b` extracts from it.
+#
+# published_at, not created_at: GitHub dates a release by the commit its
+# tag points to, one commit for all of these, so created_at is a single
+# date and the sort fell back to the SHA.
 list_per_commit_baselines() {
     gh api "repos/${BUILDS_REPO}/releases?per_page=100" --paginate \
         --jq '.[] | select(.tag_name | test("^size-baseline-[0-9a-f]{40}$")) |
-              [.created_at, .tag_name,
+              [(.published_at // .created_at), .tag_name,
                ((.body // "") | (capture("(?m)^branch: (?<b>[A-Za-z0-9._/-]+)$") // {b: "?"}) | .b)] | @tsv'
 }
 
