@@ -500,6 +500,22 @@ typedef enum {
     AFATFS_INITIALIZATION_DONE
 } afatfsInitializationPhase_e;
 
+// After the free count, the directories are read to tell what holds the clusters taken outside the freefile
+typedef enum {
+    AFATFS_DIR_WALK_START = 0,
+    AFATFS_DIR_WALK_RUNNING,
+    AFATFS_DIR_WALK_DONE,
+    AFATFS_DIR_WALK_FAILED
+} afatfsDirWalkState_e;
+
+#define AFATFS_DIR_WALK_DEPTH 4
+
+typedef struct afatfsDirWalkLevel_t {
+    uint32_t cluster;   // 0 for FAT16's root directory, which lies before the clusters
+    uint16_t sector;    // within the cluster, or within FAT16's root directory
+    uint8_t entry;
+} afatfsDirWalkLevel_t;
+
 typedef struct afatfs_t {
     fatFilesystemType_e filesystemType;
 
@@ -562,6 +578,13 @@ typedef struct afatfs_t {
     uint32_t freeCountClusters;
     timeUs_t freeCountDueUs;
     bool freeCountWanted;
+
+    afatfsDirWalkState_e dirWalkState;
+    uint8_t dirWalkDepth;
+    afatfsDirWalkLevel_t dirWalk[AFATFS_DIR_WALK_DEPTH];
+    uint32_t dirWalkClusters;   // of files and directories, a log's whole superclusters included
+    uint32_t logTailClusters;   // the rest of each log's last supercluster, taken without data
+    uint32_t terrainClusters;
 
     /* Mask to be ANDed with a byte offset within a file to give the offset within the cluster */
     uint32_t byteInClusterMask;
@@ -1585,6 +1608,9 @@ static afatfsOperationStatus_e afatfs_saveDirectoryEntry(afatfsFilePtr_t file, a
     if (file->directoryEntryPos.sectorNumberPhysical == 0) {
         return AFATFS_OPERATION_SUCCESS; // Root directories don't have a directory entry
     }
+
+    // Every change to a file ends up here, so what the directory walk found is out of date
+    afatfs.dirWalkState = AFATFS_DIR_WALK_START;
 
     result = afatfs_cacheSector(file->directoryEntryPos.sectorNumberPhysical, &sector, AFATFS_CACHE_READ | AFATFS_CACHE_WRITE, 0);
 
@@ -3563,13 +3589,150 @@ void afatfs_countFreeSpace(bool run)
 
 static uint32_t afatfs_freeFileClusters(void);
 
+/**
+ * Break down the space taken outside the freefile, in KiB: the rest of the logs' last superclusters, which holds no
+ * data, the terrain files, and what no file or directory holds, left by interrupted writes. AFATFS_FREE_SPACE_UNKNOWN
+ * until the free count and the directory walk after it have finished.
+ */
+void afatfs_getTakenSpaceKB(uint32_t *logTailsKB, uint32_t *terrainKB, uint32_t *lostKB)
+{
+    if (afatfs_getFreeSpaceKB() == AFATFS_FREE_SPACE_UNKNOWN || afatfs.dirWalkState != AFATFS_DIR_WALK_DONE) {
+        *logTailsKB = *terrainKB = *lostKB = AFATFS_FREE_SPACE_UNKNOWN;
+        return;
+    }
+
+    const uint32_t notTaken = afatfs.freeCountClusters + afatfs_freeFileClusters();
+    const uint32_t taken = afatfs.numClusters > notTaken ? afatfs.numClusters - notTaken : 0;
+
+    *logTailsKB = afatfs.logTailClusters * afatfs.sectorsPerCluster / 2;
+    *terrainKB = afatfs.terrainClusters * afatfs.sectorsPerCluster / 2;
+    *lostKB = taken > afatfs.dirWalkClusters ? (taken - afatfs.dirWalkClusters) * afatfs.sectorsPerCluster / 2 : 0;
+}
+
+// Nothing asks the bootloader for the count
+#ifndef BOOTLOADER
+static uint32_t afatfs_divideRoundingUp(uint32_t value, uint32_t divisor)
+{
+    return value / divisor + (value % divisor != 0);
+}
+
+// One directory sector, or one link of a directory's chain, per call
+static void afatfs_dirWalkContinue(timeUs_t now)
+{
+    if (afatfs.dirWalkState == AFATFS_DIR_WALK_START) {
+        afatfs.dirWalk[0] = (afatfsDirWalkLevel_t) { .cluster = afatfs.rootDirectoryCluster };
+        afatfs.dirWalkDepth = 1;
+        afatfs.dirWalkClusters = afatfs.rootDirectoryCluster ? 1 : 0;
+        afatfs.logTailClusters = 0;
+        afatfs.terrainClusters = 0;
+        afatfs.dirWalkState = AFATFS_DIR_WALK_RUNNING;
+    }
+
+    afatfsDirWalkLevel_t *level = &afatfs.dirWalk[afatfs.dirWalkDepth - 1];
+    afatfsOperationStatus_e status;
+
+    if (level->cluster && level->sector == afatfs.sectorsPerCluster) {
+        uint32_t next;
+
+        status = afatfs_FATGetNextCluster(0, level->cluster, &next);
+        if (status == AFATFS_OPERATION_SUCCESS) {
+            afatfs.freeCountDueUs = now + AFATFS_FREE_COUNT_GAP_US;
+            if (next < FAT_SMALLEST_LEGAL_CLUSTER_NUMBER || next >= afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER) {
+                afatfs.dirWalkDepth--;
+            } else if (++afatfs.dirWalkClusters > afatfs.numClusters) {
+                // Only a directory chain that loops gets here
+                afatfs.dirWalkState = AFATFS_DIR_WALK_FAILED;
+                return;
+            } else {
+                level->cluster = next;
+                level->sector = 0;
+            }
+        }
+    } else {
+        const uint32_t physicalSector = level->cluster ? afatfs_fileClusterToPhysical(level->cluster, level->sector)
+            : afatfs.clusterStartSector - afatfs.rootDirectorySectors + level->sector;
+        fatDirectoryEntry_t *entries;
+
+        status = afatfs_cacheSector(physicalSector, (uint8_t **) &entries, AFATFS_CACHE_READ, 0);
+        if (status == AFATFS_OPERATION_SUCCESS) {
+            bool ended = false, descended = false;
+
+            for (; level->entry < AFATFS_FILES_PER_DIRECTORY_SECTOR; level->entry++) {
+                const fatDirectoryEntry_t *entry = &entries[level->entry];
+
+                if (fat_isDirectoryEntryTerminator((fatDirectoryEntry_t *) entry)) {
+                    ended = true;
+                    break;
+                }
+                // Deleted entries, long names, the volume label, "." and ".."
+                if (fat_isDirectoryEntryEmpty((fatDirectoryEntry_t *) entry) || (entry->attrib & FAT_FILE_ATTRIBUTE_VOLUME_ID) || entry->filename[0] == '.') {
+                    continue;
+                }
+
+                const uint32_t firstCluster = (afatfs.filesystemType == FAT_FILESYSTEM_TYPE_FAT32 ? (uint32_t) entry->firstClusterHigh << 16 : 0) | entry->firstClusterLow;
+
+                if (firstCluster < FAT_SMALLEST_LEGAL_CLUSTER_NUMBER || firstCluster == afatfs.freeFile.firstCluster) {
+                    continue;
+                }
+
+                if (entry->attrib & FAT_FILE_ATTRIBUTE_DIRECTORY) {
+                    if (afatfs.dirWalkDepth == AFATFS_DIR_WALK_DEPTH) {
+                        afatfs.dirWalkState = AFATFS_DIR_WALK_FAILED;
+                        return;
+                    }
+                    level->entry++;
+                    afatfs.dirWalk[afatfs.dirWalkDepth++] = (afatfsDirWalkLevel_t) { .cluster = firstCluster };
+                    afatfs.dirWalkClusters++;
+                    descended = true;
+                    break;
+                }
+
+                const uint32_t clusters = afatfs_divideRoundingUp(entry->fileSize, afatfs_clusterSize());
+
+                if (memcmp(entry->filename + 8, "TER", 3) == 0) {
+                    afatfs.terrainClusters += clusters;
+                    afatfs.dirWalkClusters += clusters;
+                } else if (memcmp(entry->filename, "LOG", 3) == 0 && memcmp(entry->filename + 8, "TXT", 3) == 0) {
+                    // The blackbox takes whole superclusters from the freefile
+                    const uint32_t taken = afatfs_divideRoundingUp(entry->fileSize, afatfs_superClusterSize()) * afatfs_fatEntriesPerSector();
+
+                    afatfs.logTailClusters += taken - clusters;
+                    afatfs.dirWalkClusters += taken;
+                } else {
+                    afatfs.dirWalkClusters += clusters;
+                }
+            }
+
+            afatfs.freeCountDueUs = now + AFATFS_FREE_COUNT_GAP_US;
+            if (ended) {
+                afatfs.dirWalkDepth--;
+            } else if (!descended) {
+                level->entry = 0;
+                level->sector++;
+                if (!level->cluster && level->sector == afatfs.rootDirectorySectors) {
+                    afatfs.dirWalkDepth--;
+                }
+            }
+        }
+    }
+
+    if (status == AFATFS_OPERATION_FAILURE
+        || (status == AFATFS_OPERATION_IN_PROGRESS && cmpTimeUs(now, afatfs.freeCountDueUs) > AFATFS_FREE_COUNT_TIMEOUT_US)) {
+        afatfs.dirWalkState = AFATFS_DIR_WALK_FAILED;
+    } else if (afatfs.dirWalkDepth == 0) {
+        afatfs.dirWalkState = AFATFS_DIR_WALK_DONE;
+    }
+}
+
 // Kept out of line, or LTO inlines it through afatfs_poll() into scheduler(), which is FAST_CODE
 static NOINLINE void afatfs_countFreeClustersContinue(void)
 {
     const uint32_t endCluster = afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;
     const timeUs_t now = micros();
 
-    if (afatfs.freeCountNextCluster >= endCluster) {
+    // Given up on an unreadable FAT sector, or counted and walked
+    if (afatfs.freeCountNextCluster > endCluster
+        || (afatfs.freeCountNextCluster == endCluster && afatfs.dirWalkState >= AFATFS_DIR_WALK_DONE)) {
         return;
     }
 
@@ -3596,6 +3759,11 @@ static NOINLINE void afatfs_countFreeClustersContinue(void)
 
     // A gap after each sector: terrain only takes the card from the blackbox while afatfs_isIdle()
     if (cmpTimeUs(now, afatfs.freeCountDueUs) < 0) {
+        return;
+    }
+
+    if (afatfs.freeCountNextCluster == endCluster) {
+        afatfs_dirWalkContinue(now);
         return;
     }
 
@@ -3630,6 +3798,7 @@ static NOINLINE void afatfs_countFreeClustersContinue(void)
             }
     }
 }
+#endif
 
 /**
  * Call to set up the initial state for finding the largest block of free space on the device whose corresponding FAT
@@ -4388,7 +4557,7 @@ void afatfs_poll(void)
 #ifdef USE_BLACKBOX_SDCARD_SPLIT
                 afatfs_freeFileRefillPoll();
 #endif
-#ifdef AFATFS_USE_FREEFILE
+#if defined(AFATFS_USE_FREEFILE) && !defined(BOOTLOADER)
                 afatfs_countFreeClustersContinue();
 #endif
             break;
