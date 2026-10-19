@@ -36,13 +36,19 @@ typedef struct {
     uint8_t gyroConfigValues[2];
 } gyroFilterAndRateConfig_t;
 
+#ifdef USE_GYRO_FIFO
+// Two reads' worth of FIFO samples (gyro_fifo_samples up to 4) plus margin: the interrupt brings
+// them at the sensor's rate, the task only follows on average
+#define GYRO_SAMPLE_QUEUE_LENGTH 16
+#else
 // 2 ms at 4 kHz: the interrupt brings samples at the sensor's rate, the task follows on average
 #define GYRO_SAMPLE_QUEUE_LENGTH 8
+#endif
 
 // Whether a driver that can reads its gyro on the data-ready interrupt (gyro_data_ready)
 typedef enum {
     GYRO_DEV_DATA_READY_OFF = 0,
-    GYRO_DEV_DATA_READY_WHERE_TESTED,   // only where that driver has been tested
+    GYRO_DEV_DATA_READY_WHERE_TESTED,   // where the driver turns it on for AUTO
     GYRO_DEV_DATA_READY_ON,
 } gyroDevDataReady_e;
 
@@ -69,6 +75,7 @@ typedef struct gyroDev_s {
     // Set by gyro.c before initFn
     gyroDevDataReady_e readOnDataReady;
     bool readOnDataReadyWithAcc;
+    uint8_t dataReadyFifoSamples;                       // samples per interrupt through the IMU's FIFO, 0 for none
     // Set by a driver that can (accgyro_data_ready.h); started at the end of init
     const struct gyroDataReadyDriver_s *dataReadyDriver;
     // Set once reading on data-ready: readFn then returns false when no sample came, not a failure

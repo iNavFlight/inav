@@ -121,6 +121,8 @@ typedef struct gyroConfig_s {
 #ifdef USE_SPI_DATA_READY
     // Appended too, so zero is the default: AUTO
     uint8_t  gyro_data_ready;           // gyroDataReady_e
+    // Samples the IMU queues in its FIFO before its interrupt, read together; 0 for none
+    uint8_t  gyro_fifo_samples;
 #endif
 } gyroConfig_t;
 

@@ -93,7 +93,7 @@ tables:
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
       "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH",
       "MAG_CALIB", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV", "ESC",
-      "FW_TURN", "MAG"]
+      "FW_TURN", "MAG", "GYRO_FIFO"]
   - name: vtol_mc_protection_mode
     values: ["OFF", "NAV", "NAV_AND_STABILIZED"]
   - name: aux_operator
@@ -353,11 +353,18 @@ groups:
         field: gyro_secondary_enabled
         type: bool
       - name: gyro_data_ready
-        description: "Read the gyro when it signals a new sample, on its data-ready interrupt, instead of polling it: every sample once, and the CPU no longer waits on the bus. Needs a supported IMU (ICM-42605, ICM-42688-P) and a target that declares the interrupt pin. AUTO and ON do it, OFF polls the gyro."
+        description: "Read the gyro when it signals a new sample, on its data-ready interrupt, instead of polling it: every sample once, and the CPU no longer waits on the bus. Needs a supported IMU (ICM-42605, ICM-42688-P) and a target that declares the interrupt pin; without interrupts the gyro is read as before. AUTO and ON do it, OFF polls the gyro."
         default_value: "AUTO"
         condition: USE_SPI_DATA_READY
         field: gyro_data_ready
         table: gyro_data_ready
+      - name: gyro_fifo_samples
+        description: "With gyro_data_ready, the IMU queues this many samples in its FIFO and signals once for all of them, read in one transfer: fewer interrupts, and a sample read late is kept, but the older samples of a group wait up to that many sample periods. 0 reads each sample from the IMU's registers. ICM-42605 and ICM-42688-P."
+        default_value: 0
+        min: 0
+        max: 4
+        condition: USE_GYRO_FIFO
+        field: gyro_fifo_samples
       - name: setpoint_kalman_enabled
         description: "Enable Kalman filter on the gyro data"
         default_value: ON
