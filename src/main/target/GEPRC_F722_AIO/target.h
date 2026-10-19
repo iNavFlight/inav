@@ -43,16 +43,21 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_CS_PIN          PA15
+#if defined(GEPRC_F722_AIO)
+#define MPU6000_EXTI_PIN       PA8
+#endif
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW90_DEG
 #define BMI270_CS_PIN           PA15
+#define BMI270_EXTI_PIN         PA8
 #define BMI270_SPI_BUS          BUS_SPI1
 
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW90_DEG
 #define ICM42605_CS_PIN         PA15
+#define ICM42605_EXTI_PIN       PA8
 #define ICM42605_SPI_BUS        BUS_SPI1
 
 // *************** I2C/Baro/Mag *********************

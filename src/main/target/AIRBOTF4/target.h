@@ -32,11 +32,13 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_CS_PIN          PA4
+#define MPU6000_EXTI_PIN       PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW270_DEG
 #define MPU6500_CS_PIN          PA4
+#define MPU6500_EXTI_PIN       PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
 #define USE_MAG

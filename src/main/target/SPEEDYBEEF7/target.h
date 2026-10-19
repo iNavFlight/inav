@@ -63,6 +63,7 @@
 #define IMU_ICM20689_ALIGN          CW0_DEG
 
 #define ICM20689_CS_PIN             PA4
+#define ICM20689_EXTI_PIN       PC4
 #define ICM20689_SPI_BUS            BUS_SPI1
 
 #define SPI1_SCK_PIN                PA5

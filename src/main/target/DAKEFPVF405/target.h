@@ -55,27 +55,32 @@
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW90_DEG
 #define MPU6500_CS_PIN          PA4
+#define MPU6500_EXTI_PIN       PC4
 #define MPU6500_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW90_DEG
 #define MPU6000_CS_PIN          PA4
+#define MPU6000_EXTI_PIN       PC4
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW90_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PA4
+#define ICM42605_EXTI_PIN       PC4
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW90_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
+#define BMI270_EXTI_PIN         PC4
 
 #define USE_IMU_LSM6DXX
 #define IMU_LSM6DXX_ALIGN       CW90_DEG
 #define LSM6DXX_SPI_BUS         BUS_SPI1
 #define LSM6DXX_CS_PIN          PA4
+#define LSM6DXX_EXTI_PIN       PC4
 
 // ICM42688P driver handled by USE_IMU_ICM42605 above (shares WHO_AM_I detection)
 // LSM6DSV16X / LSM6DSK320X driver handled by USE_IMU_LSM6DXX above (shares WHO_AM_I detection)
