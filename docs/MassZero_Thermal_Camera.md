@@ -289,6 +289,21 @@ Every field is read and written individually. The wire layout never depends on c
 
 `MSP2_SET_MZTC_CONFIG` validates the whole request against the same limits the CLI enforces before it applies any field. A request that fails validation is rejected in full. It changes nothing.
 
+### Mode bitmask growth on camera builds
+
+`THERMAL CALIBRATE` is box id 64. That takes the box count past 64, so on
+builds with the camera compiled in the box bitmask grows from two to three
+32 bit words. `MSP2_INAV_STATUS` and `MSP_ACTIVEBOXES` replies are 4 bytes
+longer than on other builds. Both messages are declared variable length. The
+INAV Configurator reads the box words from the reported length. It reads the
+trailing mixer profile byte from the end of the message. No host-side change
+is needed. A third party MSP consumer that hardcodes the old sizes would
+misread these two replies.
+
+Blackbox records the first 64 box states. The calibrate box is a momentary
+trigger. Its effect is visible as the camera's own correction. Its state is
+therefore not logged.
+
 ## OSD integration
 
 The element below is an ordinary INAV OSD item. Position and enable it through the OSD layout in the configurator or with the `osd_layout` CLI command, exactly like any other element.

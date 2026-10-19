@@ -287,6 +287,12 @@ static const OSD_Entry menuOsdElemsEntries[] =
 
     OSD_ELEMENT_ENTRY("VTX POWER", OSD_VTX_POWER),
 
+#ifdef USE_MZTC
+    // The element starts hidden. Without this entry a pilot with no
+    // configurator has no way to enable or place it.
+    OSD_ELEMENT_ENTRY("THERMAL CAM", OSD_MZTC_STATUS),
+#endif
+
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
     OSD_ELEMENT_ENTRY("RC SOURCE", OSD_RC_SOURCE),
 #endif

@@ -5404,7 +5404,6 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
 #ifdef USE_MZTC
-    CLI_COMMAND_DEF("mztc", "MassZero Thermal Camera status", NULL, cliMztc),
     CLI_COMMAND_DEF("mztc_calibrate", "trigger a manual shutter / flat field correction", NULL, cliMztcCalibrate),
     CLI_COMMAND_DEF("mztc_config", "configure camera parameters, each 0-100", "[brightness] [contrast] [enhancement]", cliMztcConfig),
     CLI_COMMAND_DEF("mztc_defaults", "restore the camera to its factory defaults", NULL, cliMztcDefaults),
@@ -5416,6 +5415,11 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("mztc_save", "save the current settings to the camera flash", NULL, cliMztcSave),
     CLI_COMMAND_DEF("mztc_vignetting", "run one vignetting correction", NULL, cliMztcVignetting),
     CLI_COMMAND_DEF("mztc_zoom", "set zoom level", "[level]", cliMztcZoom),
+    // After every mztc_* entry on purpose. The dispatcher takes the first
+    // prefix match whose next character is not alphanumeric. An underscore is
+    // not alphanumeric. Listed first, this entry would swallow every command
+    // above.
+    CLI_COMMAND_DEF("mztc", "MassZero Thermal Camera status", NULL, cliMztc),
 #endif
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),

@@ -103,6 +103,7 @@ STATIC_ASSERT(MZTC_MAX_PERCENT == SETTING_MZTC_BRIGHTNESS_MAX, mztc_percent_max_
 #define MZTC_PROBE_INTERVAL_MS       500     // Between identity probes
 #define MZTC_PROBE_ATTEMPTS          6       // Reopen the port after this many unanswered probes
 #define MZTC_RX_TIMEOUT_MS           3000    // No valid reply for this long means the link is down
+#define MZTC_CALIBRATION_TIMEOUT_MS  5000    // A shutter cycle finishes well inside this
 
 // Connection quality is the percentage of probes answered over a sliding window
 #define MZTC_QUALITY_WINDOW          8
@@ -118,9 +119,20 @@ static timeMs_t mztcLastValidResponse = 0;
 static bool mztcInitialized = false;
 static uint8_t mztcProbeAttempts = 0;
 
-// Sliding window of probe outcomes, used for connection_quality
-static uint8_t mztcProbesSent = 0;
-static uint8_t mztcProbesAnswered = 0;
+// Sliding window of probe outcomes, used for connection_quality. Bit 0 is
+// the probe most recently sent. A set bit means that probe was answered.
+static uint8_t mztcProbeHistory = 0;
+static uint8_t mztcProbeWindowFill = 0;
+
+// What the open port was opened as. The Ports tab can reassign or remove the
+// camera at any time, and the update loop compares against these to notice.
+static serialPortIdentifier_e mztcPortIdentifier;
+static uint8_t mztcPortBaudIndex;
+
+// The configuration as last transmitted. A generic "set mztc_*" only stores a
+// byte, so the task compares against this snapshot to know a burst is owed.
+static mztcConfig_t mztcLastSentConfig;
+static bool mztcLastSentValid = false;
 
 // Set when the camera first answers, consumed by the task so that the
 // configuration burst never runs in interrupt context.
@@ -374,8 +386,8 @@ STATIC_UNIT_TESTED void mztcHandlePacket(const uint8_t *packet, uint8_t len)
     mztcLastValidResponse = millis();
 
     if (class_cmd == MZTC_CLASS_DEVICE && subclass_cmd == MZTC_SUB_READ_MODEL &&
-        mztcProbesAnswered < mztcProbesSent) {
-        mztcProbesAnswered++;
+        mztcProbeWindowFill > 0) {
+        mztcProbeHistory |= 1;
     }
 
     switch (flags) {
@@ -386,6 +398,14 @@ STATIC_UNIT_TESTED void mztcHandlePacket(const uint8_t *packet, uint8_t len)
 
     case MZTC_FLAG_ERROR:
         mztcStatus.error_flags |= MZTC_ERROR_COMMUNICATION;
+        if (class_cmd == MZTC_CLASS_SHUTTER && subclass_cmd == MZTC_SUB_MANUAL_SHUTTER) {
+            // The camera rejected the shutter cycle. Without this the status
+            // would show calibrating until the link itself failed.
+            mztcStatus.error_flags |= MZTC_ERROR_CALIBRATION;
+            if (mztcStatus.status == MZTC_STATUS_CALIBRATING) {
+                mztcStatus.status = MZTC_STATUS_READY;
+            }
+        }
         if (payloadLen >= 1) {
             switch (payload[0]) {
             case MZTC_ERR_NO_COMMAND:
@@ -428,11 +448,13 @@ static void mztcResetLinkState(void)
     mztcRxLen = 0;
     mztcRxExpected = 0;
     mztcProbeAttempts = 0;
-    mztcProbesSent = 0;
-    mztcProbesAnswered = 0;
+    mztcProbeHistory = 0;
+    mztcProbeWindowFill = 0;
     mztcConfigurationPending = false;
     mztcCalibrateBoxWasActive = false;
-    mztcLastAppliedPreset = mztcConfig()->preset;
+    // mztcLastAppliedPreset deliberately survives. A preset stored while the
+    // link was down still has to be applied once the camera is back.
+    mztcLastSentValid = false;
     mztcDeviceModelLen = 0;
     mztcStatus.connected = false;
     mztcStatus.connection_quality = 0;
@@ -457,23 +479,30 @@ static void mztcSendProbe(void)
     if (mztcProbeAttempts < UINT8_MAX) {
         mztcProbeAttempts++;
     }
-    if (mztcProbesSent < MZTC_QUALITY_WINDOW) {
-        mztcProbesSent++;
-    } else {
-        // Slide the window so quality tracks recent traffic. Without this it
-        // would average everything since the port opened.
-        mztcProbesAnswered -= mztcProbesAnswered / MZTC_QUALITY_WINDOW;
+    // Shift an unanswered slot in at bit 0. The reply, if one comes, sets
+    // that bit. The oldest outcome falls off the top. Quality therefore
+    // follows recent traffic. An average over the whole session would hide a
+    // link that just died.
+    mztcProbeHistory <<= 1;
+    if (mztcProbeWindowFill < MZTC_QUALITY_WINDOW) {
+        mztcProbeWindowFill++;
     }
     mztcSendPacket(MZTC_CLASS_DEVICE, MZTC_SUB_READ_MODEL, MZTC_FLAG_READ, NULL, 0);
 }
 
 static void mztcUpdateConnectionQuality(void)
 {
-    if (mztcProbesSent == 0) {
+    if (mztcProbeWindowFill == 0) {
         mztcStatus.connection_quality = 0;
         return;
     }
-    mztcStatus.connection_quality = (uint8_t)((mztcProbesAnswered * 100u) / mztcProbesSent);
+    uint8_t answered = 0;
+    for (uint8_t i = 0; i < mztcProbeWindowFill; i++) {
+        if (mztcProbeHistory & (1u << i)) {
+            answered++;
+        }
+    }
+    mztcStatus.connection_quality = (uint8_t)((answered * 100u) / mztcProbeWindowFill);
 }
 
 // Try to open the configured port. Opening it only means the UART is ours; it
@@ -507,11 +536,48 @@ static void mztcTryOpenPort(timeMs_t now)
         return;
     }
 
+    mztcPortIdentifier = portConfig->identifier;
+    mztcPortBaudIndex = portConfig->peripheral_baudrateIndex;
     mztcResetLinkState();
     mztcStatus.status = MZTC_STATUS_INITIALIZING;
     mztcStatus.error_flags = 0;
     mztcLastValidResponse = now;
     mztcSendProbe();
+}
+
+// The fields a preset owns, compared field by field. Zoom and mirror are
+// absent on purpose: they belong to the pilot and the airframe, so changing
+// them does not leave the preset.
+static bool mztcOwnedFieldsDiffer(const mztcConfig_t *a, const mztcConfig_t *b)
+{
+    return a->palette_mode != b->palette_mode
+        || a->brightness != b->brightness
+        || a->contrast != b->contrast
+        || a->digital_enhancement != b->digital_enhancement
+        || a->spatial_denoise != b->spatial_denoise
+        || a->temporal_denoise != b->temporal_denoise
+        || a->auto_shutter != b->auto_shutter
+        || a->ffc_interval != b->ffc_interval;
+}
+
+// Every field the configuration burst transmits. The preset byte is a label
+// on the firmware side and never goes over the wire, so it is not compared.
+static bool mztcTransmittedFieldsDiffer(const mztcConfig_t *a, const mztcConfig_t *b)
+{
+    return mztcOwnedFieldsDiffer(a, b)
+        || a->zoom_level != b->zoom_level
+        || a->mirror_mode != b->mirror_mode;
+}
+
+// Hand tuning a preset-owned setting moves the selection to CUSTOM, so the
+// reported preset never claims values that are no longer in effect.
+static void mztcMarkCustom(void)
+{
+    if (mztcConfig()->preset != MZTC_PRESET_CUSTOM) {
+        mztcConfigMutable()->preset = MZTC_PRESET_CUSTOM;
+        mztcStatus.preset = MZTC_PRESET_CUSTOM;
+        mztcLastAppliedPreset = MZTC_PRESET_CUSTOM;
+    }
 }
 
 /*
@@ -550,8 +616,31 @@ void mztcUpdate(timeUs_t currentTimeUs)
 
     const timeMs_t now = millis();
 
+    // A preset written through the settings framework or "set mztc_preset"
+    // only stores a byte. The task applies it here, which is what makes every
+    // path agree. The check runs before the connectivity handling. A preset
+    // stored while the link was down therefore survives to the reconnect.
+    if (mztcConfig()->preset != mztcLastAppliedPreset && mztcIsEnabled()) {
+        mztcSetPreset((mztcPreset_e)mztcConfig()->preset);
+    }
+
     if (mztcSerialPort == NULL) {
         mztcTryOpenPort(now);
+        return;
+    }
+
+    // The Ports tab can reassign or remove the camera's UART at any time. A
+    // stale handle would keep probing the old port forever. The open port is
+    // therefore checked against the current assignment.
+    const serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_MZTC_CAMERA);
+    if (!portConfig || portConfig->identifier != mztcPortIdentifier
+        || portConfig->peripheral_baudrateIndex != mztcPortBaudIndex) {
+        closeSerialPort(mztcSerialPort);
+        mztcSerialPort = NULL;
+        mztcResetLinkState();
+        mztcStatus.error_flags = 0;
+        mztcStatus.status = portConfig ? MZTC_STATUS_INITIALIZING : MZTC_STATUS_OFFLINE;
+        mztcLastPortRetry = 0;
         return;
     }
 
@@ -598,13 +687,30 @@ void mztcUpdate(timeUs_t currentTimeUs)
     }
     mztcCalibrateBoxWasActive = calibrateBoxActive;
 
-    // A preset written through the settings framework or "set mztc_preset"
-    // only stores a byte. Applying it here is what makes every path agree.
-    if (mztcConfig()->preset != mztcLastAppliedPreset) {
-        mztcSetPreset((mztcPreset_e)mztcConfig()->preset);
+    // A generic "set mztc_*" stores a byte and nothing else. The task
+    // compares the stored settings against the last transmitted ones. That
+    // comparison is what turns those writes into camera commands. A change to
+    // a preset-owned field moves the selection to CUSTOM, as documented. The
+    // pending flag is checked first. Values a preset or MSP apply just queued
+    // must not be mistaken for hand tuning.
+    if (!mztcConfigurationPending && mztcLastSentValid
+        && mztcTransmittedFieldsDiffer(mztcConfig(), &mztcLastSentConfig)) {
+        if (mztcOwnedFieldsDiffer(mztcConfig(), &mztcLastSentConfig)) {
+            mztcMarkCustom();
+        }
+        mztcConfigurationPending = true;
     }
 
     mztcCheckCalibration();
+
+    // The camera answers a successful shutter cycle and an explicitly
+    // rejected one. If neither reply ever arrives, the status would show
+    // calibrating forever. A generous deadline returns it to ready.
+    if (mztcStatus.status == MZTC_STATUS_CALIBRATING
+        && (now - mztcLastCalibrationTime) > MZTC_CALIBRATION_TIMEOUT_MS) {
+        mztcStatus.status = MZTC_STATUS_READY;
+        mztcStatus.error_flags |= MZTC_ERROR_CALIBRATION;
+    }
 
     mztcStatus.preset = mztcConfig()->preset;
 }
@@ -746,6 +852,8 @@ bool mztcSetPalette(mztcPaletteMode_e palette)
     const uint8_t value = (uint8_t)palette;
     if (mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_PSEUDO_COLOR, MZTC_FLAG_WRITE, &value, 1)) {
         mztcConfigMutable()->palette_mode = value;
+        mztcLastSentConfig.palette_mode = value;
+        mztcMarkCustom();
         return true;
     }
 
@@ -760,7 +868,10 @@ bool mztcSetZoom(mztcZoomLevel_e zoom)
 
     const uint8_t value = (uint8_t)zoom;
     if (mztcSendPacket(MZTC_CLASS_DISPLAY, MZTC_SUB_ZOOM, MZTC_FLAG_WRITE, &value, 1)) {
+        // Zoom belongs to the pilot. A zoom change does not move the
+        // selection to CUSTOM.
         mztcConfigMutable()->zoom_level = value;
+        mztcLastSentConfig.zoom_level = value;
         return true;
     }
 
@@ -785,6 +896,10 @@ bool mztcSetImageParams(uint8_t brightness, uint8_t contrast, uint8_t enhancemen
         mztcConfigMutable()->brightness = brightness;
         mztcConfigMutable()->contrast = contrast;
         mztcConfigMutable()->digital_enhancement = enhancement;
+        mztcLastSentConfig.brightness = brightness;
+        mztcLastSentConfig.contrast = contrast;
+        mztcLastSentConfig.digital_enhancement = enhancement;
+        mztcMarkCustom();
     }
 
     return success;
@@ -806,6 +921,9 @@ bool mztcSetDenoising(uint8_t spatial, uint8_t temporal)
     if (success) {
         mztcConfigMutable()->spatial_denoise = spatial;
         mztcConfigMutable()->temporal_denoise = temporal;
+        mztcLastSentConfig.spatial_denoise = spatial;
+        mztcLastSentConfig.temporal_denoise = temporal;
+        mztcMarkCustom();
     }
 
     return success;
@@ -837,6 +955,22 @@ bool mztcConfigIsValid(const mztcConfig_t *cfg)
         return false;
     }
 
+    return true;
+}
+
+// Apply a complete validated configuration, as MSP2_SET_MZTC_CONFIG does. The
+// host supplied every value. The preset byte is stored as a label. Expanding
+// it would overwrite the explicit values that came in the same payload.
+bool mztcApplyConfig(const mztcConfig_t *cfg)
+{
+    if (!mztcConfigIsValid(cfg)) {
+        return false;
+    }
+
+    *mztcConfigMutable() = *cfg;
+    mztcStatus.preset = cfg->preset;
+    mztcLastAppliedPreset = cfg->preset;
+    mztcConfigurationPending = true;
     return true;
 }
 
@@ -876,6 +1010,10 @@ STATIC_UNIT_TESTED void mztcSendConfiguration(void)
     mztcSendPacket(MZTC_CLASS_IMAGE, MZTC_SUB_PSEUDO_COLOR, MZTC_FLAG_WRITE, &cfg->palette_mode, 1);
     mztcSendPacket(MZTC_CLASS_DISPLAY, MZTC_SUB_ZOOM, MZTC_FLAG_WRITE, &cfg->zoom_level, 1);
     mztcSendPacket(MZTC_CLASS_DISPLAY, MZTC_SUB_IMAGE_MIRROR, MZTC_FLAG_WRITE, &cfg->mirror_mode, 1);
+
+    // Remember what went out, so the task can detect later generic changes.
+    mztcLastSentConfig = *cfg;
+    mztcLastSentValid = true;
 }
 
 void mztcRequestReconnect(void)
@@ -933,6 +1071,14 @@ bool mztcRestoreDefaults(void)
     cfg->zoom_level = SETTING_MZTC_ZOOM_LEVEL_DEFAULT;
     cfg->mirror_mode = SETTING_MZTC_MIRROR_MODE_DEFAULT;
     cfg->auto_shutter = SETTING_MZTC_AUTO_SHUTTER_DEFAULT;
+    cfg->ffc_interval = SETTING_MZTC_FFC_INTERVAL_DEFAULT;
+    cfg->preset = SETTING_MZTC_PRESET_DEFAULT;
+    mztcStatus.preset = cfg->preset;
+    mztcLastAppliedPreset = cfg->preset;
+
+    // Push the restored values. The stored settings and the camera then
+    // agree about what the defaults are.
+    mztcConfigurationPending = true;
 
     return true;
 }
@@ -953,13 +1099,25 @@ void mztcTestReset(void)
     mztcRxLen = 0;
     mztcRxExpected = 0;
     mztcProbeAttempts = 0;
-    mztcProbesSent = 0;
-    mztcProbesAnswered = 0;
+    mztcProbeHistory = 0;
+    mztcProbeWindowFill = 0;
     mztcConfigurationPending = false;
+    mztcCalibrateBoxWasActive = false;
+    mztcLastSentValid = false;
+    mztcLastAppliedPreset = mztcConfig()->preset;
     mztcDeviceModelLen = 0;
     mztcInitialized = true;
     mztcLastCalibrationTime = 0;
     mztcLastValidResponse = 0;
+    mztcLastProbeTime = 0;
+
+    // Match the identity the stubbed Ports tab reports. The reassignment
+    // check then sees a consistent assignment.
+    const serialPortConfig_t *pc = findSerialPortConfig(FUNCTION_MZTC_CAMERA);
+    if (pc) {
+        mztcPortIdentifier = pc->identifier;
+        mztcPortBaudIndex = pc->peripheral_baudrateIndex;
+    }
 
     // Any non-null value. Nothing dereferences it, because serialWriteBufShim
     // is stubbed in the test.

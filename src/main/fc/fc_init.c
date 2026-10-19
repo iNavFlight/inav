@@ -624,11 +624,14 @@ void init(void)
 
     // Sensors have now been detected, mspFcInit() can now be called
     // to set the boxes up
-    mspFcInit();
-
+    // The camera driver initializes first because initActiveBoxIds(), inside
+    // mspFcInit(), asks it whether the THERMAL CALIBRATE mode should be
+    // offered.
 #ifdef USE_MZTC
     mztcInit();
 #endif
+
+    mspFcInit();
 
     cliInit(serialConfig());
 

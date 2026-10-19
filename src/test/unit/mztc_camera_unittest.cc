@@ -62,6 +62,10 @@ static bool mztcPortAssigned;
 // field correction on the rising edge.
 static bool mztcCalibrateBoxActive;
 
+// Which UART the fake Ports tab reports. The reassignment test changes it
+// under a live link.
+static int fakePortIdentifier;
+
 class MztcFramingTest : public ::testing::Test {
 protected:
     uint8_t packet[MZTC_MAX_PACKET_LEN];
@@ -386,6 +390,7 @@ protected:
         fakeNow = 1000;
         mztcPortAssigned = true;
         mztcCalibrateBoxActive = false;
+        fakePortIdentifier = 2;
 
         mztcConfig_t *cfg = mztcConfigMutable();
         memset(cfg, 0, sizeof(*cfg));
@@ -663,6 +668,187 @@ TEST_F(MztcLinkTest, BootDoesNotReapplyTheStoredPreset)
     EXPECT_EQ(MZTC_PRESET_FIRE, mztcConfig()->preset);
 }
 
+// A preset stored while the link is down is still applied. The link reset
+// must not mark it applied and silently skip it.
+TEST_F(MztcLinkTest, APresetStoredWhileDisconnectedIsApplied)
+{
+    // Not connected yet. The settings framework writes the byte.
+    mztcConfigMutable()->preset = MZTC_PRESET_FIRE;
+    mztcUpdate(0);
+
+    EXPECT_EQ(MZTC_PALETTE_IRON_RED_1, mztcConfig()->palette_mode);
+    EXPECT_EQ(10, mztcConfig()->ffc_interval);
+}
+
+// "set mztc_brightness = 70" stores a byte and nothing else. The task has to
+// notice and transmit it. A hand change to a preset-owned value moves the
+// selection to CUSTOM, as the documentation promises.
+TEST_F(MztcLinkTest, AGenericSettingWriteIsTransmitted)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+    ASSERT_TRUE(mztcSetPreset(MZTC_PRESET_FIRE));
+    mztcUpdate(0);
+    txBytes.clear();
+
+    mztcConfigMutable()->brightness = 70;   // the settings framework path
+    mztcUpdate(0);                          // detects the change
+    mztcUpdate(0);                          // transmits
+
+    uint8_t len = 0;
+    const uint8_t *packet = findTx(0x78, 0x02, &len);
+    ASSERT_NE(nullptr, packet) << "brightness never went out";
+    EXPECT_EQ(70, packet[6]);
+    EXPECT_EQ(MZTC_PRESET_CUSTOM, mztcConfig()->preset);
+    EXPECT_EQ(MZTC_PRESET_CUSTOM, mztcGetStatus()->preset);
+}
+
+// MSP2_SET_MZTC_CONFIG applies a complete configuration. The explicit values
+// must reach the camera and must not be overwritten by expanding the preset
+// byte that arrived in the same payload.
+TEST_F(MztcLinkTest, AnAppliedConfigIsNotExpandedByItsPresetByte)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+    txBytes.clear();
+
+    mztcConfig_t candidate = *mztcConfig();
+    candidate.preset = MZTC_PRESET_SEARCH;
+    candidate.palette_mode = MZTC_PALETTE_RAINBOW;  // SEARCH's own row says WHITE_HOT
+    ASSERT_TRUE(mztcApplyConfig(&candidate));
+
+    mztcUpdate(0);
+
+    EXPECT_EQ(MZTC_PALETTE_RAINBOW, mztcConfig()->palette_mode);
+    EXPECT_EQ(MZTC_PRESET_SEARCH, mztcConfig()->preset);
+
+    uint8_t len = 0;
+    const uint8_t *packet = findTx(0x78, 0x20, &len);
+    ASSERT_NE(nullptr, packet) << "no palette command in the burst";
+    EXPECT_EQ(MZTC_PALETTE_RAINBOW, packet[6]);
+}
+
+// A rejected manual shutter command must not leave the status stuck at
+// calibrating while the link stays healthy.
+TEST_F(MztcLinkTest, ARejectedShutterCommandClearsCalibrating)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+
+    ASSERT_TRUE(mztcTriggerCalibration());
+    ASSERT_EQ(MZTC_STATUS_CALIBRATING, mztcGetStatus()->status);
+
+    const uint8_t noSuchCommand[1] = { 0x00 };
+    feedReply(0x7C, 0x02, 0x04, noSuchCommand, sizeof(noSuchCommand));
+
+    EXPECT_EQ(MZTC_STATUS_READY, mztcGetStatus()->status);
+    EXPECT_TRUE((mztcGetStatus()->error_flags & MZTC_ERROR_CALIBRATION) != 0);
+}
+
+// If neither a success nor an error reply ever arrives, a deadline returns
+// the status to ready. A status stuck at calibrating would mislead the pilot.
+TEST_F(MztcLinkTest, CalibrationFallsBackToReadyWithoutAReply)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+
+    ASSERT_TRUE(mztcTriggerCalibration());
+    ASSERT_EQ(MZTC_STATUS_CALIBRATING, mztcGetStatus()->status);
+
+    // Keep the link alive with probe replies while the deadline passes.
+    for (int i = 0; i < 12; i++) {
+        fakeNow += 500;
+        feedReply(0x74, 0x02, 0x03);
+        mztcUpdate(0);
+    }
+
+    EXPECT_EQ(MZTC_STATUS_READY, mztcGetStatus()->status);
+    EXPECT_TRUE((mztcGetStatus()->error_flags & MZTC_ERROR_CALIBRATION) != 0);
+}
+
+// Quality has to keep falling while probes go unanswered. The old window
+// arithmetic could not drop below seven answered of eight. It showed 87
+// percent through a dead link until the timeout fired.
+TEST_F(MztcLinkTest, LinkQualityFallsWhileProbesGoUnanswered)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+
+    // Fill the window with answered probes.
+    for (int i = 0; i < 8; i++) {
+        fakeNow += 500;
+        mztcUpdate(0);
+        feedReply(0x74, 0x02, 0x03);
+    }
+    mztcUpdate(0);
+    EXPECT_EQ(100, mztcGetStatus()->connection_quality);
+
+    // Three probes with no reply. Quality must keep falling.
+    uint8_t quality[3];
+    for (int i = 0; i < 3; i++) {
+        fakeNow += 500;
+        mztcUpdate(0);
+        quality[i] = mztcGetStatus()->connection_quality;
+    }
+    EXPECT_LT(quality[1], quality[0]);
+    EXPECT_LT(quality[2], quality[1]);
+    EXPECT_LT(quality[2], 87);
+}
+
+// A moved Ports tab assignment must drop the old UART while a link is up.
+// The driver used to keep probing the stale port forever.
+TEST_F(MztcLinkTest, AChangedPortAssignmentDropsTheLink)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+    ASSERT_TRUE(mztcGetStatus()->connected);
+
+    fakePortIdentifier++;   // the camera moved to another UART
+    mztcUpdate(0);
+
+    EXPECT_FALSE(mztcGetStatus()->connected);
+    EXPECT_EQ(MZTC_STATUS_INITIALIZING, mztcGetStatus()->status);
+}
+
+TEST_F(MztcLinkTest, ARemovedPortAssignmentGoesOffline)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+    ASSERT_TRUE(mztcGetStatus()->connected);
+
+    mztcPortAssigned = false;
+    mztcUpdate(0);
+
+    EXPECT_FALSE(mztcGetStatus()->connected);
+    EXPECT_EQ(MZTC_STATUS_OFFLINE, mztcGetStatus()->status);
+}
+
+// Factory reset returns every stored field to its default, the preset and the
+// correction interval included.
+TEST_F(MztcLinkTest, FactoryResetRestoresEveryStoredField)
+{
+    mztcUpdate(0);
+    feedReply(0x74, 0x02, 0x03);
+    mztcUpdate(0);
+
+    ASSERT_TRUE(mztcSetPreset(MZTC_PRESET_FIRE));
+    mztcUpdate(0);
+    ASSERT_EQ(10, mztcConfig()->ffc_interval);   // FIRE's interval
+
+    ASSERT_TRUE(mztcRestoreDefaults());
+
+    EXPECT_EQ(MZTC_PRESET_CUSTOM, mztcConfig()->preset);
+    EXPECT_EQ(5, mztcConfig()->ffc_interval);
+    EXPECT_EQ(MZTC_PRESET_CUSTOM, mztcGetStatus()->preset);
+}
+
 TEST_F(MztcLinkTest, ThePortAssignmentIsWhatEnablesTheCamera)
 {
     mztcPortAssigned = true;
@@ -794,7 +980,7 @@ serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function)
     if (function != FUNCTION_MZTC_CAMERA || !mztcPortAssigned) {
         return NULL;
     }
-    fakePortConfig.identifier = SERIAL_PORT_USART2;
+    fakePortConfig.identifier = (serialPortIdentifier_e)fakePortIdentifier;
     fakePortConfig.peripheral_baudrateIndex = 8;
     return &fakePortConfig;
 }
