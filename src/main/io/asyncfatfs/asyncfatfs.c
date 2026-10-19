@@ -3638,7 +3638,8 @@ static void afatfs_initContinue(void)
 /**
  * Check to see if there are any pending operations on the filesystem and perform a little work (without waiting on the
  * sdcard). You must call this periodically.
- * Out of line: the realtime callbacks call it from scheduler(), which is FAST_CODE, so LTO would inline it into ITCM.
+ *
+ * NOINLINE keeps this out of the FAST_CODE scheduler(), where it would otherwise take ITCM_RAM on F7/H7.
  */
 NOINLINE void afatfs_poll(void)
 {
