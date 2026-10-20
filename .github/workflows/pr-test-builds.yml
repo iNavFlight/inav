@@ -158,3 +158,12 @@ jobs:
                 body,
               });
             }
+     
+      - name: Checkout code (for cleanup script)
+        uses: actions/checkout@v4
+
+      - name: Run cleanup script
+        env:
+          GH_TOKEN: ${{ secrets.PR_BUILDS_TOKEN }}
+        run: |
+          python3 .github/scripts/cleanup-old-pr-test-builds.py --older-than 14        
