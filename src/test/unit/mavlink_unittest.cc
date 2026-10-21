@@ -3945,6 +3945,43 @@ TEST(MavlinkTelemetryTest, GpsRawReportsNativeAccuracyExtensions)
     EXPECT_EQ(raw.hdg_acc, 321U);
 }
 
+static void queueSerialRequests(int count)
+{
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    for (int i = 0; i < count; i++) {
+        memcpy(&serialRxBuffer[serialRxLen], request.data(), request.size());
+        serialRxLen += request.size();
+    }
+}
+
+TEST(MspSerialTest, OneCommandPerRunOutsideHitl)
+{
+    initMavlinkTestState();
+    queueSerialRequests(3);
+    mspPort_t port;
+    resetMspPort(&port, &testSerialPort);
+
+    mspSerialProcessOnePort(&port, MSP_SKIP_NON_MSP_DATA, mspFcProcessCommand);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+}
+
+TEST(MspSerialTest, HitlRunsQueuedCommandsUpToTheCap)
+{
+    initMavlinkTestState();
+    queueSerialRequests(6);
+    ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+    mspPort_t port;
+    resetMspPort(&port, &testSerialPort);
+
+    mspSerialProcessOnePort(&port, MSP_SKIP_NON_MSP_DATA, mspFcProcessCommand);
+    EXPECT_EQ(mspCommandCallCount, 4);
+
+    mspSerialProcessOnePort(&port, MSP_SKIP_NON_MSP_DATA, mspFcProcessCommand);
+    EXPECT_EQ(mspCommandCallCount, 6);
+    EXPECT_EQ(serialRxPos, serialRxLen);
+}
+
 extern "C" {
 
 int32_t debug[DEBUG32_VALUE_COUNT];
