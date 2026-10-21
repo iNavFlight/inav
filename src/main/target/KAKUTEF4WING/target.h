@@ -39,6 +39,13 @@
 #define ICM42605_CS_PIN          PA4
 #define ICM42605_EXTI_PIN        PB12
 
+// LSM6DSV16X / LSM6DSK320X as an alternative to ICM42688P (pin-to-pin compatible, same SPI1/CS/EXTI)
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN        CW270_DEG
+#define LSM6DXX_SPI_BUS          BUS_SPI1
+#define LSM6DXX_CS_PIN           PA4
+#define LSM6DXX_EXTI_PIN         PB12
+
 // *************** I2C ****************
 #define USE_I2C     
 #define USE_I2C_DEVICE_2
