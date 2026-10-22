@@ -544,7 +544,10 @@ static bool blackboxSDCardBeginLog(void)
         break;
 
     case BLACKBOX_SDCARD_READY_TO_CREATE_LOG:
-        if (afatfs_isFull() && !blackboxSDCard.wraparoundGaveUp) {
+        // Reclaim also when the freefile can't hold a single supercluster: the full flag is only set by a failed
+        // append, and a log created there would be split before its first frame and discarded, wasting its number.
+        if ((afatfs_isFull() || afatfs_getContiguousFreeSpace() < afatfs_freeFileSuperClusterSize())
+                && !blackboxSDCard.wraparoundGaveUp) {
             blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
             afatfs_fopen(".", "r", blackboxOldestLogDirOpened);
         } else {

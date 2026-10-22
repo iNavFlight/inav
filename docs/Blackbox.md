@@ -110,6 +110,18 @@ The OpenLog can be wrapped in black electrical tape or heat-shrink in order to i
 
 ![OpenLog installed](Wiring/blackbox-installation-1.jpg "OpenLog installed with double-sided tape, SDCard slot pointing outward")
 
+### Onboard SD card slot
+Flight controllers with an SD card slot log directly to the card, one `LOGnnnnn.TXT` file per arming, in the `LOGS` directory. Set `blackbox_device = SDCARD`.
+
+#### When the card fills up
+Logs are written into one contiguous block of free space that INAV reserves on the card. When that block is used up, INAV deletes the oldest log and carries on writing in the space it freed, so the card keeps working as a ring buffer instead of stopping. This has some consequences:
+
+ - "Oldest" means the log stored at the lowest position on the card, which is not always the log with the lowest number or the oldest date once the card has wrapped a few times and the logs differ in size.
+ - A flight can end up in more than one file. The switch to a new file happens while armed, and the short gap in the data at that point has been measured at about 65 ms on a slow card. Nothing in the files links the parts of one flight together, so open them in order of file number.
+ - If the new log ends before using all of the space the deleted log occupied, the rest of that space stays unused until the log pointer comes around to it again.
+ - If power is lost at the moment a log is being deleted to make room, that log's space can stay unused until a later pass over the card. No log is damaged by this.
+ - Log numbers are not reused, so numbers keep increasing as old logs are deleted.
+
 ### Onboard dataflash storage
 Some flight controllers have an onboard SPI NOR dataflash chip which can be used to store flight logs instead of using an OpenLog.
 
