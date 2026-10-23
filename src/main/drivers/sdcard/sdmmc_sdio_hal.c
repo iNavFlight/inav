@@ -600,17 +600,14 @@ SD_Error_t SD_CheckRead(void) {
 SD_Error_t SD_WriteBlocks_DMA(uint64_t WriteAddress, uint32_t *buffer, uint32_t BlockSize, uint32_t NumberOfBlocks)
 {
     SD_Error_t ErrorState = SD_OK;
-    SD_Handle.TXCplt = 1;
 
     if (BlockSize != 512) {
         return SD_ERROR; // unsupported.
     }
 
-#ifndef STM32F7
     if ((uint32_t)buffer & 0x1f) {
         return SD_ADDR_MISALIGNED;
     }
-#endif
 
     // Ensure the data is flushed to main memory
     SCB_CleanDCache_by_Addr(buffer, NumberOfBlocks * BlockSize);
@@ -623,7 +620,10 @@ SD_Error_t SD_WriteBlocks_DMA(uint64_t WriteAddress, uint32_t *buffer, uint32_t 
         }
     }
 #endif
+    // Busy only once a transfer really starts: a rejected write must not leave the card reported busy
+    SD_Handle.TXCplt = 1;
     if (HAL_SD_WriteBlocks_DMA(&hsd, (uint8_t *)buffer, WriteAddress, NumberOfBlocks) != HAL_OK) {
+        SD_Handle.TXCplt = 0;
         return SD_ERROR;
     }
 
@@ -646,17 +646,18 @@ SD_Error_t SD_ReadBlocks_DMA(uint64_t ReadAddress, uint32_t *buffer, uint32_t Bl
         return SD_ERROR; // unsupported.
     }
 
-#ifndef STM32F7
     if ((uint32_t)buffer & 0x1f) {
         return SD_ADDR_MISALIGNED;
     }
-#endif
 
     SD_Handle.RXCplt = 1;
 
     sdReadParameters.buffer = buffer;
     sdReadParameters.BlockSize = BlockSize;
     sdReadParameters.NumberOfBlocks = NumberOfBlocks;
+
+    // A dirty line evicted during the transfer would overwrite what the DMA wrote
+    SCB_InvalidateDCache_by_Addr(buffer, NumberOfBlocks * BlockSize);
 
 #ifdef STM32F7
     if (sd_dma.Init.Direction != DMA_PERIPH_TO_MEMORY) {
