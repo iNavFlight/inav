@@ -7243,6 +7243,26 @@ Throttle value when the stick is set to mid-position. Used in the throttle curve
 
 ---
 
+### throttle_boost
+
+Multirotor only, ported from Betaflight. Adds a high-pass filtered copy of the throttle to it, so the motors follow quick throttle moves sooner. The boost is this value divided by 10 times the difference between the throttle and its low-pass filtered value. 0 disables it; Betaflight uses 5 by default. Only the motors get the boost: OSD, telemetry and servos show the throttle that was asked for. Not applied while navigation controls the throttle, during a VTOL transition, with reversible motors or with the logic-condition throttle override.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 100 |
+
+---
+
+### throttle_boost_cutoff
+
+Cutoff of the low-pass filter used by `throttle_boost` [Hz]. A higher cutoff makes each boost shorter.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 15 | 5 | 50 |
+
+---
+
 ### throttle_idle
 
 The percentage of the throttle range (`max_throttle` - `min_command`) above `min_command` used for minimum / idle throttle.
