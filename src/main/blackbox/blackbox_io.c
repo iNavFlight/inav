@@ -291,7 +291,7 @@ bool blackboxDeviceOpen(void)
 #endif
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-        if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_FATAL || afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_UNKNOWN || afatfs_isFull()) {
+        if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_FATAL || afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_UNKNOWN || isBlackboxDeviceFull()) {
             return false;
         }
 
@@ -432,7 +432,13 @@ static bool blackboxSDCardBeginLog(void)
     doMore:
     switch (blackboxSDCard.state) {
     case BLACKBOX_SDCARD_INITIAL:
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+        // A new file waits until the freefile has room for its first supercluster, unless no room can
+        // come: then it opens as without the option and the full card stops the log
+        if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY && (afatfs_freeFileHasRoom() || !afatfs_freeFileCanContinue())) {
+#else
         if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY) {
+#endif
             blackboxSDCard.state = BLACKBOX_SDCARD_WAITING;
 
             if(afatfs_isCurrentDirRoot()){
@@ -579,7 +585,12 @@ bool isBlackboxDeviceFull(void)
 
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+        // Only full once no new file can get room either
+        return afatfs_isFull() && !afatfs_freeFileCanContinue();
+#else
         return afatfs_isFull();
+#endif
 #endif
 
 #if defined (SITL_BUILD)
@@ -591,6 +602,23 @@ bool isBlackboxDeviceFull(void)
         return false;
     }
 }
+
+#if defined(USE_SDCARD) && defined(USE_BLACKBOX_SDCARD_SPLIT)
+// The log file can't grow but the card has room for a new one
+bool blackboxDeviceNeedsNewLog(void)
+{
+    return blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD && afatfs_isFull() && afatfs_freeFileCanContinue();
+}
+
+// Below this free cache space a new file's header goes back to one step per iteration: afatfs
+// counts the sectors it keeps for open files as free
+#define BLACKBOX_SDCARD_SPARE_BYTES 2048
+
+bool blackboxDeviceHasRoomToSpare(void)
+{
+    return afatfs_getFreeBufferSpace() >= BLACKBOX_SDCARD_SPARE_BYTES;
+}
+#endif
 
 bool isBlackboxDeviceWorking(void)
 {
