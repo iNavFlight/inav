@@ -45,10 +45,8 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
 
 bool isMPUSoftReset(void)
 {
-    if (cachedRccCsrValue & RCC_RSR_SFTRSTF)
-        return true;
-    else
-        return false;
+    // A power-up that SystemInit resets again (HSE or SysTick workaround) carries SFTRSTF as well
+    return (cachedRccCsrValue & RCC_RSR_SFTRSTF) && !(cachedRccCsrValue & RCC_RSR_PORRSTF);
 }
 
 uint32_t systemBootloaderAddress(void)
@@ -65,8 +63,9 @@ void systemInit(void)
     // Configure NVIC preempt/priority groups
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITY_GROUPING);
 
-    // cache RCC->CSR value to use it in isMPUSoftreset() and others
-    cachedRccCsrValue = RCC->CSR;
+    // H7 keeps the reset flags in RSR, not CSR; cleared so the next boot sees only its own reset
+    cachedRccCsrValue = RCC->RSR;
+    RCC->RSR |= RCC_RSR_RMVF;
 
     enableGPIOPowerUsageAndNoiseReductions();
 
