@@ -26,6 +26,9 @@
 
 int digitCount(int32_t value);
 
+// buff must hold MAX_PROFILE_NAME_LENGTH + 1 bytes, including the terminator.
+void osdFormatProfileName(char *buff, const char *name, char symbol, uint8_t slot);
+
 /**
  * Formats a number given in cents, to support non integer values
  * without using floating point math. Value is always right aligned
