@@ -129,7 +129,8 @@
 #define ADC_CHANNEL_3_PIN           PC0
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_3 // port labelled "EXT-V"
-//BEC ADC is ADC_CHN_2
+#define BEC_ADC_CHANNEL             ADC_CHN_2
+#define VBEC_SCALE_DEFAULT          620  // Rotorflight's scale / divider, 1216 / 196
 //BUS ADC is ADC_CHN_1
 
 #define VBAT_SCALE_DEFAULT          2474
@@ -154,6 +155,12 @@
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+
+// A Smart ESC plugs into the connector labelled ESC with nothing assigned in Ports: see
+// "Boards with an ESC connector" in docs/Spektrum Smart ESC.md
+#define USE_MOTOR_SRXL2
+#define ESC_CONNECTOR_UART      SERIAL_PORT_USART1
+#define ESC_CONNECTOR_PIN       PA9
 #define USE_SMARTPORT_MASTER // no internal current sensor, enable SMARTPORT_MASTER so external ones can be used
 
 #define USE_DSHOT_DMAR
