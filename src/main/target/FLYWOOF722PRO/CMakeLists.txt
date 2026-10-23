@@ -1,1 +1,2 @@
 target_stm32f722xe(FLYWOOF722PRO)
+target_stm32f722xe(FLYWOOF722PROV2)
