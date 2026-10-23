@@ -145,6 +145,10 @@
 #define USE_DSHOT
 #define USE_SERIALSHOT
 #define USE_ESC_SENSOR
+
+// UART1's TX also reaches the connector labelled ESC (PA9), for a Smart ESC there: see docs/Spektrum Smart ESC.md
+#define USE_SERIAL_PADS
+#define USE_MOTOR_SRXL2
 #define USE_SMARTPORT_MASTER // no internal current sensor, enable SMARTPORT_MASTER so external ones can be used
 
 #define USE_DSHOT_DMAR

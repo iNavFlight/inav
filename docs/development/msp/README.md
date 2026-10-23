@@ -474,6 +474,8 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8754 - MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)  
 [8755 - MSP2_INAV_ESC_SRXL2_STATUS](#msp2_inav_esc_srxl2_status)  
 [8756 - MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)  
+[8758 - MSP2_INAV_SERIAL_PADS](#msp2_inav_serial_pads)  
+[8759 - MSP2_INAV_SET_SERIAL_PAD](#msp2_inav_set_serial_pad)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -5044,6 +5046,38 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
+
+## <a id="msp2_inav_serial_pads"></a>`MSP2_INAV_SERIAL_PADS (8758 / 0x2236)`
+**Description:** Lists the output pads each UART's TX and RX can move to.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Repeats|Size (Bytes)|Description|
+|---|---|---|---|---|
+| `entryCount` | `uint8_t` | - | 1 | Number of entries that follow. |
+| `identifier` | `uint8_t` | entryCount | 1 | Serial port identifier (`serialPortIdentifier_e`) of the UART. |
+| `direction` | `uint8_t` | entryCount | 1 | 0 TX, 1 RX. |
+| `pad` | `uint8_t` | entryCount | 1 | Output pad the pin can move to, numbered from 1 in the order of `MSP2_INAV_OUTPUT_MAPPING_EXT2` (S1, S2, ...). |
+| `chosen` | `uint8_t` | entryCount | 1 | 1 when this is the pad configured for this pin, else 0. |
+| `usage` | `uint8_t` | entryCount | 1 | What the pad drives now: 0 nothing, 1 motor, 2 servo, 3 LED strip. |
+| `usageNumber` | `uint8_t` | entryCount | 1 | The motor or servo number from 1, as in `MSP2_INAV_OUTPUT_ASSIGNMENT`; 0 otherwise. |
+
+**Notes:** Requires USE_SERIAL_PADS. Lists, for every UART of the board, each output pad its TX or RX can move to; a UART with no entry stays on its own pins. A pad listed for several pins carries one at a time. Changes made with `MSP2_INAV_SET_SERIAL_PAD` are reported at once but take effect after a save and reboot.
+
+## <a id="msp2_inav_set_serial_pad"></a>`MSP2_INAV_SET_SERIAL_PAD (8759 / 0x2237)`
+**Description:** Moves a UART's TX or RX to an output pad, or back to its own pin.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Description|
+|---|---|---|---|
+| `identifier` | `uint8_t` | 1 | Serial port identifier (`serialPortIdentifier_e`) of the UART. |
+| `direction` | `uint8_t` | 1 | 0 TX, 1 RX. |
+| `pad` | `uint8_t` | 1 | Output pad as numbered by `MSP2_INAV_SERIAL_PADS`, or 0 for the UART's own pin. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Requires USE_SERIAL_PADS. Returns an error for a pad `MSP2_INAV_SERIAL_PADS` does not list for that pin. A pad already chosen for another pin is taken from it. Takes effect after a save and reboot; a motor or servo the mixer drives on the chosen pad blocks arming with a PWM output error.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
