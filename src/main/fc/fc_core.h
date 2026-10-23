@@ -33,6 +33,8 @@ typedef enum {
     DISARM_REASON_COUNT
 } disarmReason_e;
 
+#define EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS 5000
+
 
 void handleInflightCalibrationStickPosition(void);
 
