@@ -84,7 +84,6 @@
  *      This bit will be set to zero after POR routine
  */
 
-#define IST8310_REG_DATA 0x03
 #define IST8310_REG_STAT1 0x02
 #define IST8310_DRDY_MASK 0x01
 #define IST8310_REG_WHOAMI 0x00
@@ -92,68 +91,95 @@
 // I2C Contorl Register
 #define IST8310_REG_CNTRL1 0x0A
 #define IST8310_REG_CNTRL2 0x0B
+#define IST8310_REG_CNTRL3 0x0D
 #define IST8310_REG_AVERAGE 0x41
 #define IST8310_REG_PDCNTL 0x42
 
 // Parameter
-// ODR = Output Data Rate, we use single measure mode for getting more data.
 #define IST8310_ODR_SINGLE 0x01
-#define IST8310_ODR_10_HZ 0x03
-#define IST8310_ODR_20_HZ 0x05
-#define IST8310_ODR_50_HZ 0x07
-#define IST8310_ODR_100_HZ 0x06
 
 // Device ID (ist8310 -> 0x10)
 #define IST8310_CHIP_ID 0x10
 #define IST8310_AVG_16  0x24
 #define IST8310_PULSE_DURATION_NORMAL 0xC0
+#define IST8310_RANGE_XY 16000  // mG, 1600 uT
+#define IST8310_RANGE_Z  25000  // mG, 2500 uT
 
 #define IST8310_CNTRL2_RESET 0x01
 #define IST8310_CNTRL2_DRPOL 0x04
 #define IST8310_CNTRL2_DRENA 0x08
 
+#define IST8310_CNTRL3_16BIT 0x70   // X, Y and Z at 1320 LSB/G instead of 330
+
+static uint8_t ist8310SetupWait;
+
+static void ist8310Setup(magDev_t * mag, uint8_t cntrl3)
+{
+    busWrite(mag->busDev, IST8310_REG_AVERAGE, IST8310_AVG_16);
+    busWrite(mag->busDev, IST8310_REG_PDCNTL, IST8310_PULSE_DURATION_NORMAL);
+    busWrite(mag->busDev, IST8310_REG_CNTRL3, cntrl3 | IST8310_CNTRL3_16BIT);
+}
+
 static bool ist8310Init(magDev_t * mag)
 {
-    busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_50_HZ);
-    delay(5);
+    // A reboot without a power cycle leaves the chip as it was, and it may never measure again
+    busWrite(mag->busDev, IST8310_REG_CNTRL2, IST8310_CNTRL2_RESET);
+    delay(50);  // power-on reset routine: 50 ms max
 
-    busWrite(mag->busDev, IST8310_REG_AVERAGE, IST8310_AVG_16);
-    delay(5);
+    uint8_t cntrl3 = 0;
+    busRead(mag->busDev, IST8310_REG_CNTRL3, &cntrl3);
+    ist8310Setup(mag, cntrl3);
 
-    busWrite(mag->busDev, IST8310_REG_PDCNTL, IST8310_PULSE_DURATION_NORMAL);
-    delay(5);
+    // Single measurement is the only mode the datasheet defines besides stand-by
+    busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_SINGLE);
 
     return true;
 }
 
+static int ist8310ToMilliGauss(const uint8_t *data, bool is16Bit)
+{
+    const int counts = (int16_t)(data[1] << 8 | data[0]);
+
+    // A 16-bit count is a quarter of a 14-bit one (3 mG): rounded mG keep the stored calibrations valid
+    return is16Bit ? (counts * 3 + (counts < 0 ? -2 : 2)) / 4 : counts * 3;
+}
+
 static bool ist8310Read(magDev_t * mag)
 {
-    uint8_t status = 0;
-
-    if (!busRead(mag->busDev, IST8310_REG_STAT1, &status)) {
+    // STAT1 to CNTRL3 in one read: the data only change after a trigger, and CNTRL3 tells how they were measured
+    uint8_t buf[IST8310_REG_CNTRL3 - IST8310_REG_STAT1 + 1];
+    if (!busReadBuf(mag->busDev, IST8310_REG_STAT1, buf, sizeof(buf))) {
         return false;
     }
 
-    // The IST8310 updates its data registers once per output-data period. Only read
-    // them once DRDY is set; a read racing an update would mix old and new samples
-    // across axes, corrupting the mag vector and calibration. When no fresh sample
-    // is ready, return success so the caller keeps the previous values.
-    if (!(status & IST8310_DRDY_MASK)) {
-        return true;
+    const uint8_t cntrl3 = buf[IST8310_REG_CNTRL3 - IST8310_REG_STAT1];
+    const bool is16Bit = (cntrl3 & IST8310_CNTRL3_16BIT) == IST8310_CNTRL3_16BIT;
+    const int x = ist8310ToMilliGauss(&buf[1], is16Bit);
+    const int y = ist8310ToMilliGauss(&buf[3], is16Bit);
+    const int z = ist8310ToMilliGauss(&buf[5], is16Bit);
+
+    // Past the measuring range a sample can only be corrupt, and one spoils a compass calibration
+    const bool inRange = ABS(x) <= IST8310_RANGE_XY && ABS(y) <= IST8310_RANGE_XY && ABS(z) <= IST8310_RANGE_Z;
+
+    if ((buf[0] & IST8310_DRDY_MASK) && inRange) {
+        // Invert Y axis to convert from left to right coordinate system
+        mag->magADCRaw[X] =  x;
+        mag->magADCRaw[Y] = -y;
+        mag->magADCRaw[Z] =  z;
     }
 
-    uint8_t buf[6];
-    uint8_t LSB2FSV = 3; // 3mG - 14 bit
-
-    bool ack = busReadBuf(mag->busDev, IST8310_REG_DATA, buf, 6);
-    if (!ack) {
-        return false;
+    if (is16Bit) {
+        ist8310SetupWait = 0;
+    } else if (ist8310SetupWait > 0) {
+        ist8310SetupWait--;
+    } else {
+        // Back at its defaults after a supply dip, or a chip without 16 bits: set up again, every 10 reads at most
+        ist8310Setup(mag, cntrl3);
+        ist8310SetupWait = 10;
     }
 
-    // Invert Y axis to co convert from left to right coordinate system
-    mag->magADCRaw[X] =  (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
-    mag->magADCRaw[Y] = -(int16_t)(buf[3] << 8 | buf[2]) * LSB2FSV;
-    mag->magADCRaw[Z] =  (int16_t)(buf[5] << 8 | buf[4]) * LSB2FSV;
+    // Also restarts a measurement that never completed: the task is far slower than its 6 ms
+    busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_SINGLE);
 
     return true;
 }
