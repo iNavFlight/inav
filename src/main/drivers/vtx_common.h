@@ -75,6 +75,7 @@ typedef struct vtxDeviceCapability_s {
     uint8_t bandCount;
     uint8_t channelCount;
     uint8_t powerCount;
+    bool supportsPitMode; // Functional read and write support for AUX control.
     char **bandNames;
     char **channelNames;
     char **powerNames;
