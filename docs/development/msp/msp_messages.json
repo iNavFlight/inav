@@ -6995,10 +6995,16 @@
                         "ctype": "uint16_t",
                         "desc": "RSSI value (`getRSSI()`)",
                         "units": "Raw (0-1023)"
+                    },
+                    {
+                        "name": "becVoltage",
+                        "ctype": "uint16_t",
+                        "desc": "BEC voltage (`becGetVoltage()`) on boards with a BEC input; 0xFFFF on the others, and with `bec_adc_channel` = 0",
+                        "units": "0.01V"
                     }
                 ]
             },
-            "notes": "Requires `USE_CURRENT_METER`/`USE_ADC` for current-related fields; values fall back to zero when unavailable. Capacity fields are reported in the units configured by `batteryMetersConfig()->capacity_unit` (mAh or mWh).",
+            "notes": "Requires `USE_CURRENT_METER`/`USE_ADC` for current-related fields; values fall back to zero when unavailable. Capacity fields are reported in the units configured by `batteryMetersConfig()->capacity_unit` (mAh or mWh). Older firmware ends after `rssi`.",
             "description": "Provides detailed analog sensor readings, superseding `MSP_ANALOG` with higher precision and additional fields."
         },
         "MSP2_INAV_MISC": {

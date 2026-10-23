@@ -26,6 +26,11 @@
 #define USE_MAVLINK_MSP_TUNNEL
 #endif
 
+// The BEC voltage, on boards whose target names a BEC input
+#if defined(USE_ADC) && defined(BEC_ADC_CHANNEL)
+#define USE_BEC_VOLTAGE
+#endif
+
 // Config storage in memory-mapped flash
 extern uint8_t __config_start;
 extern uint8_t __config_end;

@@ -501,6 +501,8 @@ main_sources(COMMON_SRC
     sensors/battery_config_structs.h
     sensors/battery_sensor_dronecan.c
     sensors/battery_sensor_dronecan.h
+    sensors/bec.c
+    sensors/bec.h
     sensors/boardalignment.c
     sensors/boardalignment.h
     sensors/compass.c
