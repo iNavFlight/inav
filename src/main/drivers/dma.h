@@ -30,6 +30,8 @@ typedef uint32_t DMA_TypeDef;
 // DMA Tag,contains DMA id\DMA stream\DMA channel
 #define DMA_TAG(dma, stream, channel)   ( (((dma) & 0x03) << 12) | (((stream) & 0x0F) << 8) | (((channel) & 0xFF) << 0) )
 #define DMA_NONE                        (0)
+// No DMA_TAG() reaches these bits: a stream picked at runtime, where one is free
+#define DMA_TAG_AUTO                    (0xFFFF0000U)
 
 #define DMATAG_GET_DMA(x)               ( ((x) >> 12) & 0x03 )
 #define DMATAG_GET_STREAM(x)            ( ((x) >> 8)  & 0x0F )
