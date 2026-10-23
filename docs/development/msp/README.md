@@ -4297,6 +4297,8 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `landHeading1` | `int16_t` | 2 | degrees | Primary landing heading (if approachDirection requires it) |
 | `landHeading2` | `int16_t` | 2 | degrees | Secondary landing heading (if approachDirection requires it) |
 | `isSeaLevelRef` | `uint8_t` | 1 | Boolean | 1 if altitudes are relative to sea level, 0 if relative to home |
+| `runwayStart` | `uint8_t[4]` | 4 | m | Where the runway begins before the site for landing along heading 1, its reverse, heading 2, its reverse; 0 uses `nav_fw_land_aim_offset` as the touchdown point |
+| `runwayStartHeight` | `uint8_t[4]` | 4 | dm | Height the final crosses the runway start at, same order |
 
 **Notes:** Requires `USE_FW_AUTOLAND`. Used by `mspFwApproachOutCommand`. See `MSP2_INAV_SET_FW_APPROACH` for setting.
 
@@ -4313,10 +4315,12 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `landHeading1` | `int16_t` | 2 | degrees | Sets primary landing heading |
 | `landHeading2` | `int16_t` | 2 | degrees | Sets secondary landing heading |
 | `isSeaLevelRef` | `uint8_t` | 1 | Boolean | Sets altitude reference |
+| `runwayStart` | `uint8_t[4]` | 4 | m | Optional: where the runway begins before the site for landing along heading 1, its reverse, heading 2, its reverse; 0 uses `nav_fw_land_aim_offset` as the touchdown point. Left as they are when not sent |
+| `runwayStartHeight` | `uint8_t[4]` | 4 | dm | Optional: height the final crosses the runway start at, same order. Left as they are when not sent |
 
 **Reply Payload:** **None**  
 
-**Notes:** Requires `USE_FW_AUTOLAND`. Expects 15 bytes. Returns error if index invalid.
+**Notes:** Requires `USE_FW_AUTOLAND`. Expects 15 bytes, or 23 with the runway starts and their heights. Returns error if index invalid.
 
 ## <a id="msp2_inav_gps_ublox_command"></a>`MSP2_INAV_GPS_UBLOX_COMMAND (8272 / 0x2050)`
 **Description:** Sends a raw command directly to a U-Blox GPS module connected to the FC.  
