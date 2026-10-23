@@ -47,7 +47,7 @@ NRA15/NRA24 sensors can use US-D1_V0 or NRA protocol depending on firmware confi
 
 ### Serial/External Sensors
 
-* **MSP** - External rangefinder via MSP protocol (UART/MSP)
+* **MSP** - External rangefinder via MSP protocol (UART/MSP), for example the MicoAir MT-06 once set to MSP
 * **BENEWAKE** - Benewake LIDAR modules (TFmini, etc.) via serial protocol (UART)
 
 ### Development/Testing
@@ -126,6 +126,17 @@ The port configuration depends on the selected driver:
 
 Set `rangefinder_hardware` to the protocol sent by the device, then save and reboot. An MSP sender must supply `MSP2_SENSOR_RANGEFINDER` messages; it does not use the dedicated Rangefinder port function.
 
+### MSP Rangefinders
+
+INAV never polls an MSP rangefinder: the sensor has to send `MSP2_SENSOR_RANGEFINDER` on its own, so an "inquire" or polled output mode on the sensor must be off. Some sensors leave the factory speaking another protocol and only send MSP once it is selected in their configuration tool; the MicoAir MT-06, for example, ships set to MAVLink.
+
+The flight controller can relay the sensor's UART to the PC, so its configuration tool can reach it without a separate USB serial adapter:
+
+1. In the CLI, `serial` lists each port with its identifier first: UART1 is 0, UART2 is 1, and so on.
+2. Run `serialpassthrough <id> <baud>` with the sensor's baud rate, for example `serialpassthrough 2 115200` for a sensor on UART3 at 115200.
+3. Disconnect the Configurator and open the sensor's tool on the flight controller's USB serial port, at the same baud rate.
+4. When done, remove all power from the flight controller, battery included: the passthrough ends only with a power cycle.
+
 ## Optical Flow Integration
 
 When a rangefinder is combined with an optical flow sensor:
@@ -150,6 +161,7 @@ See wiki for optical flow setup: https://github.com/iNavFlight/inav/wiki/Optic-F
 
 **No rangefinder readings:**
 - Verify correct `rangefinder_hardware` selection
+- With `rangefinder_hardware = MSP`, `status` shows `RANGEFINDER=FAILING` until MSP rangefinder messages arrive: check that the sensor's UART has MSP enabled rather than the Rangefinder function, and that the sensor sends MSP. Listening to the UART through `serialpassthrough` shows what it actually sends.
 - Check wiring and power (3.3V or 5V depending on sensor)
 - Ensure I2C address is unique (no conflicts)
 - Check sensor has clear line of sight to ground
