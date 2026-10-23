@@ -41,6 +41,50 @@ typedef enum {
     NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING,
 } navVtolMixerATMode_e;
 
+// Procedure ownership outlives mixer activity during initialization and retry.
+// These checks deliberately do not enable any additional NAV controllers.
+static inline bool navVtolRthProcedureActive(
+    const bool rthStateActive,
+    const navVtolMixerATMode_e transitionOwner)
+{
+    return rthStateActive || transitionOwner == NAV_VTOL_MIXERAT_MODE_RTH;
+}
+
+static inline bool navVtolTransitionBlocksHomeReset(const navVtolMixerATMode_e transitionOwner)
+{
+    return transitionOwner == NAV_VTOL_MIXERAT_MODE_RTH ||
+           transitionOwner == NAV_VTOL_MIXERAT_MODE_WAYPOINT ||
+           transitionOwner == NAV_VTOL_MIXERAT_MODE_LAND;
+}
+
+static inline bool navVtolRthTransitionHasSensorFailure(
+    const navVtolMixerATMode_e transitionOwner,
+    const bool headingAvailable,
+    const bool positionTimedOut)
+{
+    return transitionOwner == NAV_VTOL_MIXERAT_MODE_RTH &&
+           (!headingAvailable || positionTimedOut);
+}
+
+static inline bool navVtolRthLandingMcSelectionRetained(
+    const bool selected,
+    const bool armed,
+    const bool rthStateActive,
+    const navVtolMixerATMode_e transitionOwner)
+{
+    return selected && armed &&
+           (rthStateActive || transitionOwner == NAV_VTOL_MIXERAT_MODE_RTH);
+}
+
+static inline bool navVtolAutomaticFwTransitionAllowed(
+    const bool lowSpeedProtectionLatched,
+    const bool rthLandingMcSelected,
+    const navVtolMixerATMode_e requestingMode)
+{
+    return !lowSpeedProtectionLatched &&
+           !(rthLandingMcSelected && requestingMode == NAV_VTOL_MIXERAT_MODE_RTH);
+}
+
 static inline bool navVtolMixerATModeRequestIsOwned(
     const bool mixerAtActive,
     const navVtolMixerATMode_e owner,

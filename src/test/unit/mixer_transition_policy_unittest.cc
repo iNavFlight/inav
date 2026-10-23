@@ -762,6 +762,56 @@ TEST(MixerTransitionPolicyTest, HotSwitchFallsBackToTimerWhenAirspeedIsUnavailab
     EXPECT_FLOAT_EQ(0.30f, progress.progress);
 }
 
+TEST(MixerTransitionPolicyTest, ZeroSpeedThresholdSelectsTimerInBothDirectionsEvenWithValidAirspeed)
+{
+    for (const auto direction : {MIXERAT_DIRECTION_TO_FW, MIXERAT_DIRECTION_TO_MC}) {
+        for (const bool airspeedAvailable : {false, true}) {
+            for (const uint32_t elapsedMs : {0U, 4999U, 5000U, 6000U}) {
+                SCOPED_TRACE(::testing::Message() << "direction=" << direction
+                    << " airspeedAvailable=" << airspeedAvailable << " elapsed=" << elapsedMs);
+                const auto progress = mixerTransitionEvaluateHotSwitch(
+                    direction, 0, airspeedAvailable, 2000.0f, false, 0.0f, elapsedMs, 5000);
+
+                EXPECT_EQ(elapsedMs >= 5000, progress.readyForHotSwitch);
+                EXPECT_FALSE(progress.usedAirspeed);
+                EXPECT_FALSE(progress.transitionStartAirspeedCaptured);
+            }
+        }
+    }
+}
+
+TEST(MixerTransitionPolicyTest, MissingAirspeedUsesSourceTimerBoundaryInBothDirections)
+{
+    for (const auto direction : {MIXERAT_DIRECTION_TO_FW, MIXERAT_DIRECTION_TO_MC}) {
+        for (const uint32_t timerMs : {0U, 1000U, 5000U}) {
+            if (timerMs > 0) {
+                const auto before = mixerTransitionEvaluateHotSwitch(
+                    direction, 850, false, 2000.0f, false, 0.0f, timerMs - 1, timerMs);
+                EXPECT_FALSE(before.readyForHotSwitch);
+                EXPECT_FALSE(before.usedAirspeed);
+            }
+
+            const auto atDeadline = mixerTransitionEvaluateHotSwitch(
+                direction, 850, false, 2000.0f, false, 0.0f, timerMs, timerMs);
+            EXPECT_TRUE(atDeadline.readyForHotSwitch);
+            EXPECT_FALSE(atDeadline.usedAirspeed);
+            EXPECT_FLOAT_EQ(1.0f, atDeadline.progress);
+        }
+    }
+}
+
+TEST(MixerTransitionPolicyTest, ValidAirspeedOutsideEnvelopeDoesNotCompleteOnTimerExpiry)
+{
+    for (const auto direction : {MIXERAT_DIRECTION_TO_FW, MIXERAT_DIRECTION_TO_MC}) {
+        const float airspeed = direction == MIXERAT_DIRECTION_TO_FW ? 500.0f : 1500.0f;
+        const auto progress = mixerTransitionEvaluateHotSwitch(
+            direction, 850, true, airspeed, false, 0.0f, 6000, 5000);
+
+        EXPECT_TRUE(progress.usedAirspeed);
+        EXPECT_FALSE(progress.readyForHotSwitch);
+    }
+}
+
 TEST(MixerTransitionPolicyTest, HotSwitchUsesAirspeedWhenAvailableForMcToFw)
 {
     const mixerTransitionHotSwitchProgress_t progress = mixerTransitionEvaluateHotSwitch(
