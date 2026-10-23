@@ -99,6 +99,10 @@ void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *
     navSig->prRes = navSat->prRes;
     navSig->quality = navSat->flags & (BIT(0)|BIT(1)|BIT(2));
     navSig->sigFlags = (navSat->flags >> 4) & (BIT(0)|BIT(1));  // Healthy, not healthy
+    // NAV-SAT's svUsed is the nearest thing to NAV-SIG's pseudorange used
+    if (navSat->flags & BIT(3)) {
+        navSig->sigFlags |= UBLOX_SIG_PRUSED;
+    }
     // non-converted items:
     //uint8_t sigId;    // signal ID 
     //uint8_t freqId;   // 0-13 slot +, 0-13, glonass only
@@ -106,7 +110,6 @@ void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *
     //uint8_t ionoModel;  // 0 = no mode, 1 = Klobuchar GPS, 2 = SBAS, 3 = Klobuchar BeiDou, 8 = Iono derived from dual frequency observations
     //uint16_t sigFlags;
                         // bit2: pseudorange smoothed,
-                        // bit3: pseudorange used,
                         // bit4: carrioer range used;
                         // bit5: doppler used
                         // bit6: pseudorange corrections used

@@ -2305,20 +2305,20 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** Total 12 bytes, representing a 96-bit unique ID.
 
 ## <a id="msp_gpssvinfo"></a>`MSP_GPSSVINFO (164 / 0xa4)`
-**Description:** Provides satellite signal strength information (legacy U-Blox compatibility stub).  
+**Description:** Provides per-satellite signal information from a u-blox receiver.  
 
 **Request Payload:** **None**  
   
 **Reply Payload:**
-|Field|C Type|Size (Bytes)|Description|
-|---|---|---|---|
-| `protocolVersion` | `uint8_t` | 1 | Always 1 (Stub version) |
-| `numChannels` | `uint8_t` | 1 | Always 0 (Number of SV info channels reported) |
-| `hdopHundredsDigit` | `uint8_t` | 1 | Hundreds digit of HDOP (stub always writes 0) |
-| `hdopTensDigit` | `uint8_t` | 1 | Tens digit of HDOP (`gpsSol.hdop / 100`, truncated) |
-| `hdopUnitsDigit` | `uint8_t` | 1 | Units digit of HDOP (`gpsSol.hdop / 100`, duplicated by stub) |
+|Field|C Type|Repeats|Size (Bytes)|Units|Description|
+|---|---|---|---|---|---|
+| `numSatellites` | `uint8_t` | - | 1 | - | Number of entries that follow: 0 without a u-blox receiver, otherwise at least 17. Betaflight tells this layout from its older per-channel one by a count above 16, so entries past the satellites are padding with GNSS id 255 and satellite id 0 |
+| `gnssId` | `uint8_t` | numSatellites | 1 | - | u-blox GNSS id: 0 GPS, 1 SBAS, 2 Galileo, 3 BeiDou, 4 IMES, 5 QZSS, 6 GLONASS, 7 NavIC |
+| `svId` | `uint8_t` | numSatellites | 1 | - | Satellite id within its GNSS |
+| `quality` | `uint8_t` | numSatellites | 1 | - | Bits 0-2: u-blox quality indicator (0 no signal, 1 searching, 2 acquired, 3 unusable, 4 code locked, 5-7 code and carrier locked). Bit 3: used in the navigation solution |
+| `cno` | `uint8_t` | numSatellites | 1 | dB-Hz | Carrier to noise ratio |
 
-**Notes:** Requires `USE_GPS`. This is just a stub in INAV and does not provide actual per-satellite signal info. HDOP digits are not formatted correctly: tens and units both contain `gpsSol.hdop / 100`.
+**Notes:** Requires `USE_GPS`. Same layout as Betaflight's MSP_GPSSVINFO. Entries come from the u-blox NAV-SIG (M9 and later) or NAV-SAT (M8) messages, so a dual-band receiver can list a satellite once per signal. Older firmware replied with a stub: one channel holding the HDOP.
 
 ## <a id="msp_gpsstatistics"></a>`MSP_GPSSTATISTICS (166 / 0xa6)`
 **Description:** Provides debugging statistics for the GPS communication link.  
