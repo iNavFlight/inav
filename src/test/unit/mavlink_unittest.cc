@@ -1091,6 +1091,65 @@ TEST(MavlinkTelemetryTest, MlrsFlowControlUsesIngressPortAndAcceptsZeroTxbuf)
     EXPECT_EQ(mavlinkPortTxBufferFree(0), 0);
 }
 
+TEST(MavlinkTelemetryTest, RadioStatusZeroTxbufHoldsTelemetryUntilBufferFrees)
+{
+    initMavlinkTestState();
+    telemetryConfigMutable()->mavlink[0].min_txbuff = 33;
+
+    mavlink_message_t msg;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, 0, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(2000000);
+
+    mavlink_message_t attitude;
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 0);
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_ATTITUDE, &attitude));
+
+    serialTxLen = 0;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, 100, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(4000000);
+
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 100);
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_ATTITUDE, &attitude));
+}
+
+TEST(MavlinkTelemetryTest, RadioStatusTxbufAboveHundredIsIgnored)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, 255, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_FALSE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 100);
+}
+
+TEST(MavlinkTelemetryTest, StaleTxbufReportReleasesThePort)
+{
+    initMavlinkTestState();
+    telemetryConfigMutable()->mavlink[0].min_txbuff = 33;
+
+    mavlink_message_t msg;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, 0, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000000);
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+
+    handleMAVLinkTelemetry(1000000 + MAVLINK_TXBUFF_REPORT_TIMEOUT_US);
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+
+    serialTxLen = 0;
+    handleMAVLinkTelemetry(1000000 + MAVLINK_TXBUFF_REPORT_TIMEOUT_US + 20000);
+    mavlink_message_t attitude;
+    EXPECT_FALSE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 100);
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_ATTITUDE, &attitude));
+}
+
 TEST(MavlinkTelemetryTest, MlrsMessagesRequireTelemetryRadioComponent)
 {
     initMavlinkTestState();
