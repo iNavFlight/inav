@@ -132,7 +132,8 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
 
 bool isMPUSoftReset(void)
 {
-    if (RCC->CSR & RCC_CSR_SFTRSTF)
+    // systemInit() has already cleared the live flags
+    if (cachedRccCsrValue & RCC_CSR_SFTRSTF)
         return true;
     else
         return false;
@@ -157,7 +158,10 @@ void systemInit(void)
     NVIC_SetVectorTable((uint32_t)&isr_vector_table_base, 0x0);
     RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_OTG_FS, DISABLE);
 
+#ifndef BOOTLOADER
+    // Not in the bootloader, which starts the firmware without a reset
     RCC_ClearFlag();
+#endif
 
     enableGPIOPowerUsageAndNoiseReductions();
 

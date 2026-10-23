@@ -55,7 +55,7 @@ void enableGPIOPowerUsageAndNoiseReductions(void)
 
 bool isMPUSoftReset(void)
 {
-    if (RCC->CSR & RCC_CSR_SFTRSTF)
+    if (cachedRccCsrValue & RCC_CSR_SFTRSTF)
         return true;
     else
         return false;
@@ -84,7 +84,10 @@ void systemInit(void)
     //NVIC_SetVectorTable((uint32_t)&isr_vector_table_base, 0x0);
     //__HAL_RCC_USB_OTG_FS_CLK_DISABLE;
 
-    //RCC_ClearFlag();
+#ifndef BOOTLOADER
+    // Only a power-up clears them otherwise; not in the bootloader, which starts the firmware without a reset
+    __HAL_RCC_CLEAR_RESET_FLAGS();
+#endif
 
     enableGPIOPowerUsageAndNoiseReductions();
 
