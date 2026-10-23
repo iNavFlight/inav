@@ -38,6 +38,7 @@
 #include "fc/settings.h"
 #include "fc/rc_modes.h"
 
+#include "flight/gsf_yaw.h"
 #include "flight/imu.h"
 
 #include "io/gps.h"
@@ -183,6 +184,10 @@ void onNewGPSData(void)
 
     gpsLocation_t newLLH;
     const timeUs_t currentTimeUs = micros();
+
+#ifdef USE_GSF_YAW
+    gsfYawOnNewGpsData();
+#endif
 
     newLLH.lat = gpsSol.llh.lat;
     newLLH.lon = gpsSol.llh.lon;

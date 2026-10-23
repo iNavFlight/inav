@@ -286,6 +286,16 @@ Wind compensation in heading estimation from gps groundcourse(fixed wing only)
 
 ---
 
+### ahrs_gsf_yaw
+
+Airplanes only. Uses the heading the GSF estimator learns in flight from GPS velocity and the IMU, without the compass, once it has settled: it replaces the GPS course as the AHRS's GPS heading (sharing with the compass as set by ahrs_gps_yaw_weight), the compass is left out while it disagrees with it, and a heading far from it with no compass to hold it is reset to it, at most twice a flight. Off, the estimator still runs and the blackbox logs it (GSF). Not on targets with 512 KB of flash or less.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### ahrs_inertia_comp_method
 
 Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop
@@ -2886,6 +2896,16 @@ Selection of mag hardware. See Wiki Sensor auto detect and hardware failure dete
 
 ---
 
+### mag_learn
+
+Refits the compass offsets (magzero; maggain is kept) from the readings of each flight and saves them after disarm, when the flight turned through about 270 degrees (less in steep turns) and the fit agrees with the stored calibration. While the GSF heading is usable (airplanes, not tailsitters) the readings are also fitted against the attitude: a half turn is then enough to move the offsets by up to 10% of the field a flight, a larger step is saved only when both fits agree, and a compass that does not follow the attitude is reported. A change under 1% is not written. Needs a calibrated compass; airplanes and multirotors only. The blackbox logs the estimate as magBias. Not on targets with 512 KB of flash or less.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### mag_to_use
 
 Allow to chose between built-in and external compass sensor if they are connected to separate buses. Currently only for REVO target
@@ -2893,6 +2913,16 @@ Allow to chose between built-in and external compass sensor if they are connecte
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | 0 | 1 |
+
+---
+
+### mag_yaw_trim
+
+Turns the compass reading about the vertical, in decidegrees, after align_mag: positive values turn the heading clockwise. With mag_learn ON and the GSF heading usable it is refined in flight, up to 5 degrees a flight, while the compass is within 15 degrees of magnetic north. A compass calibration sets it back to 0; after changing align_mag set it to 0 by hand. Not on targets with 512 KB of flash or less.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -300 | 300 |
 
 ---
 

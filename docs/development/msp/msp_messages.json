@@ -1,8 +1,8 @@
 {
     "version": {
         "major": 2,
-        "minor": 1,
-        "patch": 2
+        "minor": 2,
+        "patch": 0
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -12023,6 +12023,64 @@
             "reply": null,
             "notes": "Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.",
             "description": "Controls SRXL2 ESC throttle-range calibration."
+        },
+        "MSP2_INAV_MAG_LEARN": {
+            "code": 8757,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "flags",
+                        "ctype": "uint16_t",
+                        "desc": "Bitmask (magLearnFlags_e): 0 collecting, 1 paused (armed, not flying), 2 delta from the attitude fit, 3 misfit (the samples do not follow the attitude: orientation, scale or soft iron), 4 save due at disarm, 5 too few sectors, 6 too few headings, 7 not a sphere, 8 off the stored scale, 9 step too big, 10 saved at the last disarm, 11 still moving a minute after the disarm (nothing saved), 12 the fitted field is not where magnetic north is (the compass is turned beyond what mag_yaw_trim can take), 13 the two fits disagree on the horizontal offsets (nothing saved), 14 confirmed: the change was under 1%, nothing written.",
+                        "units": "Bitmask",
+                        "bitmask": true
+                    },
+                    {
+                        "name": "sectors",
+                        "ctype": "uint8_t",
+                        "desc": "Direction sectors filled, of 72 (12 headings x 6 elevation bands).",
+                        "units": ""
+                    },
+                    {
+                        "name": "headings",
+                        "ctype": "uint8_t",
+                        "desc": "Heading sectors filled, of 12.",
+                        "units": ""
+                    },
+                    {
+                        "name": "spread",
+                        "ctype": "uint16_t",
+                        "desc": "Spread of the field magnitude around the fitted radius; with flag 2, the residual of the attitude fit relative to the field; 0 when neither fit decided.",
+                        "units": "0.1 %"
+                    },
+                    {
+                        "name": "delta",
+                        "ctype": "int16_t",
+                        "desc": "Fitted offset minus the stored magZero, X, Y, Z. After a save it is the change written.",
+                        "units": "Raw ADC",
+                        "array": true,
+                        "array_size": 3
+                    },
+                    {
+                        "name": "field",
+                        "ctype": "int16_t",
+                        "desc": "Earth field from the attitude fit: north, west, up, 1024 at the stored scale. Zero without a heading reference.",
+                        "units": "magADC",
+                        "array": true,
+                        "array_size": 3
+                    },
+                    {
+                        "name": "yawTrimDelta",
+                        "ctype": "int16_t",
+                        "desc": "Change to mag_yaw_trim the attitude fit arrived at: at most 50 a flight, 0 under 10, without the fit, or with no room left in the setting's range. After a save it is the change written.",
+                        "units": "0.1 deg"
+                    }
+                ]
+            },
+            "notes": "Requires USE_MAG_LEARN (USE_MAG on targets with more than 512 KB of flash); without it the command is not supported. All zero until the first armed flight with mag_learn ON. The save is decided once the 5 s emergency rearm window is over and the aircraft is still, at most a minute after the disarm. Kept in RAM only: lost at power off. With USE_GSF_YAW, while the GSF heading is usable (airplanes, not tailsitters) the samples are also fitted against the attitude (3 offsets and the earth field, linear), each weighed by how sure the heading is. The sphere fit decides as before; the attitude fit confirms a step beyond the 30% limit when the two agree on the horizontal offsets, and refines a smaller one; its vertical step is capped at 10% per flight. Alone, after a half turn but with less coverage than the sphere fit needs, it moves every axis at most 10% per flight and refuses a step beyond 30%. When it fails its checks (flags 3, 12) the sphere fit decides by itself; when the two disagree (flag 13) nothing is saved. A change under 1% on every axis is not written (flag 14). The first 12 bytes are as before: older readers keep working.",
+            "description": "Reads the state of the in-flight compass offset learning for the current flight, or for the last one once disarmed."
         }
     }
 }
