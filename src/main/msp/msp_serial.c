@@ -32,14 +32,21 @@
 
 #include "drivers/system.h"
 #include "drivers/serial.h"
+#include "drivers/time.h"
 
 #include "io/serial.h"
 #include "fc/cli.h"
+#include "fc/runtime_config.h"
 
 #include "msp/msp.h"
 #include "msp/msp_serial.h"
 
 static mspPort_t mspPorts[MAX_MSP_PORT_COUNT];
+
+// 400 commands a second at the 100 Hz serial task: a simulator frame per frame up to ~300 fps, with room left
+#define MSP_HITL_COMMANDS_PER_RUN 4
+// a reply that did not go out at once (USB host not reading) ends the run, as one command per run did
+#define MSP_HITL_RUN_BUDGET_US 1000
 
 
 void resetMspPort(mspPort_t *mspPortToReset, serialPort_t *serialPort)
@@ -545,6 +552,16 @@ static void mspProcessPendingRequest(mspPort_t * mspPort)
     }
 }
 
+// HITL sends a frame per simulator frame, more than one command per 100 Hz run can take; a UART still sending the last
+// reply would drop the next one, so only a free transmit buffer lets the run go on
+static bool mspSerialTakesAnotherCommand(const mspPort_t *mspPort, uint8_t commandsThisRun, timeUs_t runStartUs)
+{
+    return ARMING_FLAG(SIMULATOR_MODE_HITL)
+        && commandsThisRun < MSP_HITL_COMMANDS_PER_RUN
+        && isSerialTransmitBufferEmpty(mspPort->port)
+        && cmpTimeUs(micros(), runStartUs) < MSP_HITL_RUN_BUDGET_US;
+}
+
 void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e evaluateNonMspData, mspProcessCommandFnPtr mspProcessCommandFn)
 {
     mspPostProcessFnPtr mspPostProcessFn = NULL;
@@ -555,6 +572,8 @@ void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e 
         mspPort->pendingRequest = MSP_PENDING_NONE;
 
         // Process incoming bytes
+        uint8_t commandsThisRun = 0;
+        const timeUs_t runStartUs = micros();
         while (serialRxBytesWaiting(mspPort->port)) {
             const uint8_t c = serialRead(mspPort->port);
             const bool consumed = mspSerialProcessReceivedData(mspPort, c);
@@ -566,7 +585,9 @@ void mspSerialProcessOnePort(mspPort_t * const mspPort, mspEvaluateNonMspData_e 
 
             if (mspPort->c_state == MSP_COMMAND_RECEIVED) {
                 mspPostProcessFn = mspSerialProcessReceivedCommand(mspPort, mspProcessCommandFn);
-                break; // process one command at a time so as not to block.
+                if (mspPostProcessFn || !mspSerialTakesAnotherCommand(mspPort, ++commandsThisRun, runStartUs)) {
+                    break; // process one command at a time so as not to block.
+                }
             }
         }
 
