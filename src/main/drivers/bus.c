@@ -418,8 +418,95 @@ void busDeselectDevice(const busDevice_t * dev)
 #endif
 }
 
-bool busIsBusy(const busDevice_t * dev)
+bool busReadBufStart(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
 {
+#if !defined(USE_SPI) && !defined(USE_I2C)
+    UNUSED(reg);
+    UNUSED(data);
+    UNUSED(length);
+#endif
+    switch (dev->busType) {
+        case BUSTYPE_SPI:
+#ifdef USE_SPI
+            // SPI is fast and synchronous, complete the read right away
+            return busReadBuf(dev, reg, data, length);
+#else
+            return false;
+#endif
+
+        case BUSTYPE_I2C:
+#ifdef USE_I2C
+            return i2cBusReadBufferStart(dev, reg, data, length);
+#else
+            return false;
+#endif
+
+        default:
+            return false;
+    }
+}
+
+bool busWriteStart(const busDevice_t * dev, uint8_t reg, uint8_t data)
+{
+#if !defined(USE_SPI) && !defined(USE_I2C)
+    UNUSED(reg);
+    UNUSED(data);
+#endif
+    switch (dev->busType) {
+        case BUSTYPE_SPI:
+#ifdef USE_SPI
+            // SPI is fast and synchronous, complete the write right away
+            return busWrite(dev, reg, data);
+#else
+            return false;
+#endif
+
+        case BUSTYPE_I2C:
+#ifdef USE_I2C
+            return i2cBusWriteRegisterStart(dev, reg, data);
+#else
+            return false;
+#endif
+
+        default:
+            return false;
+    }
+}
+
+bool busWriteBufStart(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length)
+{
+#if !defined(USE_SPI) && !defined(USE_I2C)
+    UNUSED(reg);
+    UNUSED(data);
+    UNUSED(length);
+#endif
+    switch (dev->busType) {
+        case BUSTYPE_SPI:
+#ifdef USE_SPI
+            // SPI is fast and synchronous, complete the write right away
+            return busWriteBuf(dev, reg, data, length);
+#else
+            return false;
+#endif
+
+        case BUSTYPE_I2C:
+#ifdef USE_I2C
+            return i2cBusWriteBufferStart(dev, reg, data, length);
+#else
+            return false;
+#endif
+
+        default:
+            return false;
+    }
+}
+
+bool busIsBusy(const busDevice_t * dev, bool * error)
+{
+    if (error) {
+        *error = false;
+    }
+
     switch (dev->busType) {
         case BUSTYPE_SPI:
 #ifdef USE_SPI
@@ -430,7 +517,7 @@ bool busIsBusy(const busDevice_t * dev)
 #endif
         case BUSTYPE_I2C:
 #ifdef USE_I2C
-            return i2cBusBusy(dev,NULL);
+            return i2cBusBusy(dev, error);
 #else
             UNUSED(dev);
             return false;
