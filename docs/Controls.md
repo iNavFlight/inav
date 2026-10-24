@@ -49,6 +49,8 @@ The stick positions are combined to activate different functions:
 | Confirm - Camera OSD          | CENTER   | HIGH    | CENTER | CENTER |
 | Navigation - Camera OSD       | CENTER   | CENTER  | *      | *      |
 
+Once `Save setting` has written the settings, the flight controller plays the `ACTION_SUCCESS` beeper sequence (two short beeps; a DShot beacon plays only the first). Other saves sound the same, for example a waypoint mission save (sticks, Configurator, CLI `wp save`, MAVLink upload), the OSD menu save, the end of a compass or accelerometer calibration, and about 0.5 s after disarm when flight statistics or servo autotrim are saved. Saving settings from the Configurator or with the CLI `save` does not beep. `beeper -ACTION_SUCCESS` mutes this confirmation; `beeper -MULTI_BEEPS` no longer does.
+
 For graphical stick position in all transmitter modes, check out [this page](https://www.mrd-rc.com/tutorials-tools-and-testing/inav-flight/inav-stick-commands-for-all-transmitter-modes/).
 ![Stick Positions](assets/images/StickPositions.png)
 
