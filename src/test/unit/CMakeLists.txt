@@ -188,6 +188,12 @@ set_property(SOURCE pid_apa_fallback_filter_unittest.cc PROPERTY depends
 set_property(SOURCE pid_apa_fallback_filter_unittest.cc PROPERTY extra_sources
     "../test/unit/pid_apa_fallback_filter_access.c")
 
+set_property(SOURCE pid_turn_assist_pitch_unittest.cc PROPERTY depends
+    "common/maths.c" "common/filter.c" "common/lulu.c")
+# pid.c is #included by the access shim so the test can see its file-static state
+set_property(SOURCE pid_turn_assist_pitch_unittest.cc PROPERTY extra_sources
+    "../test/unit/pid_turn_assist_pitch_access.c")
+
 set_property(SOURCE terrain_unittest.cc PROPERTY depends "common/crc.c" "common/streambuf.c" "terrain/terrain_utils.c" "terrain/terrain_location.c" "drivers/time.c")
 set_property(SOURCE terrain_unittest.cc PROPERTY definitions TERRAIN_UNIT_TEST USE_TERRAIN USE_SDCARD USE_SDCARD_SDIO TERRAIN_GRID_BLOCK_CACHE_SIZE=8)
 
