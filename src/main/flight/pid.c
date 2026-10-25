@@ -160,6 +160,9 @@ static EXTENDED_FASTRAM int16_t headingHoldTarget;
 static EXTENDED_FASTRAM pt1Filter_t headingHoldRateFilter;
 static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
 
+// Time constant of an I-term that opposes a big stick input while the lock holds it (see iTermLockApply)
+#define FW_ITERM_LOCK_FADE_S        0.5f
+
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 STATIC_FASTRAM bool pidGainsUpdateRequired= true;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
@@ -1116,6 +1119,10 @@ static int16_t applyAutoTransitionTargetFixedWingRateController(autoTransitionTa
         pidState->errorGyroIf += rateError * pidState->kI * dT * pidState->attenuation.aI;
     }
 
+    if (pidState->errorGyroIf * rateTarget < 0.0f) {
+        pidState->errorGyroIf *= 1.0f - MIN((1.0f - pidState->attenuation.aI) * dT / FW_ITERM_LOCK_FADE_S, 1.0f);
+    }
+
     applyAutoTransitionTargetItermLimiting(pidState, itermLimitActive);
 
     const uint16_t limit = 500;
@@ -1707,6 +1714,12 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float
      */
     if (!pidState->itermFreezeActive) {
         pidState->errorGyroIf += rateError * pidState->kI * dT * pidState->attenuation.aI;
+    }
+
+    // The lock holds the I-term at whatever it had when the stick went out. Built in a motion the pilot did not ask
+    // for, it can stand against the stick and eat the feed-forward that is left: then it fades while the stick is out
+    if (pidState->errorGyroIf * rateTarget < 0.0f) {
+        pidState->errorGyroIf *= 1.0f - MIN((1.0f - pidState->attenuation.aI) * dT / FW_ITERM_LOCK_FADE_S, 1.0f);
     }
 
     applyItermLimiting(pidState);
