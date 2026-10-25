@@ -4,6 +4,10 @@ set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/main")
 
 # Keep these alphabetically sorted by test name
 
+set_property(SOURCE accgyro_bmi160_unittest.cc PROPERTY depends
+    "drivers/accgyro/accgyro_bmi160.c")
+set_property(SOURCE accgyro_bmi160_unittest.cc PROPERTY definitions USE_IMU_BMI160)
+
 set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY depends
     "drivers/accgyro/accgyro_lsm6dxx.c")
 set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY definitions USE_IMU_LSM6DXX)
