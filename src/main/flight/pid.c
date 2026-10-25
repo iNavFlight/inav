@@ -162,6 +162,8 @@ static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
 
 // Time constant of an I-term that opposes a big stick input while the lock holds it (see iTermLockApply)
 #define FW_ITERM_LOCK_FADE_S        0.5f
+// Rate target, as a fraction of the maximum rate, from which the lock counts a stick input as big
+#define FW_ITERM_LOCK_BIG_STICK     0.2f
 
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 STATIC_FASTRAM bool pidGainsUpdateRequired= true;
@@ -1066,7 +1068,7 @@ static void applyAutoTransitionTargetItermLock(autoTransitionTargetPidState_t *p
     const float dampingFactor = attenuation(rateTarget, maxRate * targetPidProfile->fwItermLockRateLimit / 100.0f);
     const bool errorThresholdReached = fabsf(rateError) > maxRate * targetPidProfile->fwItermLockEngageThreshold / 100.0f;
 
-    if (fabsf(rateTarget) > maxRate * 0.2f) {
+    if (fabsf(rateTarget) > maxRate * FW_ITERM_LOCK_BIG_STICK) {
         pidState->attenuation.targetOverThresholdTimeMs = pidLoopNowMs;
     }
 
@@ -1119,7 +1121,8 @@ static int16_t applyAutoTransitionTargetFixedWingRateController(autoTransitionTa
         pidState->errorGyroIf += rateError * pidState->kI * dT * pidState->attenuation.aI;
     }
 
-    if (pidState->errorGyroIf * rateTarget < 0.0f) {
+    if (axis != FD_YAW && pidState->errorGyroIf * rateTarget < 0.0f
+        && fabsf(rateTarget) > controlProfile->stabilized.rates[axis] * 10.0f * FW_ITERM_LOCK_BIG_STICK) {
         pidState->errorGyroIf *= 1.0f - MIN((1.0f - pidState->attenuation.aI) * dT / FW_ITERM_LOCK_FADE_S, 1.0f);
     }
 
@@ -1676,7 +1679,7 @@ static void iTermLockApply(pidState_t *pidState, const float rateTarget, const f
     const bool errorThresholdReached = fabsf(rateError) > maxRate * pidProfile()->fwItermLockEngageThreshold / 100.0f;
 
     //When abs of rate target is above 20% of max rate, we start tracking time
-    if (fabsf(rateTarget) > maxRate * 0.2f) {
+    if (fabsf(rateTarget) > maxRate * FW_ITERM_LOCK_BIG_STICK) {
         pidState->attenuation.targetOverThresholdTimeMs = pidLoopNowMs;
     }
 
@@ -1717,8 +1720,11 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float
     }
 
     // The lock holds the I-term at whatever it had when the stick went out. Built in a motion the pilot did not ask
-    // for, it can stand against the stick and eat the feed-forward that is left: then it fades while the stick is out
-    if (pidState->errorGyroIf * rateTarget < 0.0f) {
+    // for, it can stand against the stick and eat the feed-forward that is left: then it fades while the stick is out.
+    // Only for the inputs the lock counts as big, so a small correction keeps the trim, and not on yaw, whose rate
+    // target in a banked turn is the turn's and its I-term the rudder trim
+    if (pidState->axis != FD_YAW && pidState->errorGyroIf * rateTarget < 0.0f
+        && fabsf(rateTarget) > currentControlProfile->stabilized.rates[pidState->axis] * 10.0f * FW_ITERM_LOCK_BIG_STICK) {
         pidState->errorGyroIf *= 1.0f - MIN((1.0f - pidState->attenuation.aI) * dT / FW_ITERM_LOCK_FADE_S, 1.0f);
     }
 

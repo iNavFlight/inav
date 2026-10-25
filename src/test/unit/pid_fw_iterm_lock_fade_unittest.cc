@@ -154,10 +154,10 @@ protected:
         flightModeFlags = 0;
     }
 
-    void run(float seconds)
+    void run(float seconds, int axis = FD_PITCH)
     {
         for (int i = 0; i < (int)(seconds / DT + 0.5f); i++) {
-            testPidFwStep(FD_PITCH, DT);
+            testPidFwStep(axis, DT);
         }
     }
 };
@@ -206,6 +206,23 @@ TEST_F(PidFwItermLockFadeTest, MildStickFadesSlower)
     const float expected = 87.0f * expf(-(1.0f - aI));
     EXPECT_NEAR(expected, testPidFwGetIterm(FD_PITCH), 3.0f);
     EXPECT_GT(testPidFwGetIterm(FD_PITCH), 87.0f * expf(-1.0f) + 3.0f);
+}
+
+// A small correction (under 20 % of the maximum rate, where the lock does not count the stick as big) keeps the trim
+TEST_F(PidFwItermLockFadeTest, SmallCorrectionKeepsTheTrim)
+{
+    testPidFwSetAxis(FD_PITCH, KP, KI, KFF, 87.0f, -18.0f, -18.0f);
+    run(2.0f);
+    EXPECT_FLOAT_EQ(87.0f, testPidFwGetIterm(FD_PITCH));
+}
+
+// The yaw axis is left out: in a banked turn its rate target is the turn's and its I-term is the rudder trim
+TEST_F(PidFwItermLockFadeTest, YawTrimIsKeptInATurn)
+{
+    controlCfg.stabilized.rates[FD_YAW] = 3;
+    testPidFwSetAxis(FD_YAW, KP, KI, KFF, 40.0f, -25.0f, -25.0f);
+    run(2.0f, FD_YAW);
+    EXPECT_FLOAT_EQ(40.0f, testPidFwGetIterm(FD_YAW));
 }
 
 }  // namespace
