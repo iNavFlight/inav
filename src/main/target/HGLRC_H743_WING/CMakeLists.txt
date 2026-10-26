@@ -1,0 +1,1 @@
+target_stm32h743xi(HGLRC_H743_WING)
