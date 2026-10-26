@@ -256,7 +256,8 @@ static vtxProtoResponseType_e vtxProtoProcessResponse(void)
 
 static void vtxProtoSetPitMode(uint16_t mode)
 {
-    vtxProtoSend(0x73, mode);
+    // IRC Tramp 'I': 0 enters pit mode, 1 leaves it (same polarity as Betaflight)
+    vtxProtoSend('I', mode ? 0 : 1);
 }
 
 static void vtxProtoSetPower(uint16_t power)
