@@ -470,7 +470,7 @@ static bool isPitotAirspeedValid(void)
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
     // For virtual pitot, we need GPS fix, current GPS velocity and a valid wind estimate
     if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
-        return ret && isGpsVelocityUsable() && isEstimatedWindSpeedValid();
+        return ret && isGpsVelocityUsable();
     }
 #endif
     // For hardware pitot sensors, validate readings against GPS when armed
