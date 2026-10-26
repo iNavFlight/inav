@@ -194,6 +194,9 @@ void schedulerResetTaskStatistics(cfTaskId_e taskId);
 
 void schedulerInit(void);
 void scheduler(void);
+#if defined(SITL_BUILD)
+uint32_t schedulerTaskExecutionCount(void);
+#endif
 void taskSystem(timeUs_t currentTimeUs);
 void taskRunRealtimeCallbacks(timeUs_t currentTimeUs);
 
