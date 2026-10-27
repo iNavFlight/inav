@@ -35,6 +35,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/accgyro/accgyro_mpu.h"
 #include "drivers/accgyro/accgyro_lsm6dxx.h"
+#include "drivers/accgyro/accgyro_data_ready.h"
 
 #if defined(USE_IMU_LSM6DXX)
 
@@ -180,6 +181,12 @@ static void lsm6dxxConfig(gyroDev_t *gyro)
     busDevice_t * dev = gyro->busDev;
     const gyroFilterAndRateConfig_t * config = mpuChooseGyroConfig(gyro->lpf, 1000000 / gyro->requestedSampleIntervalUs);
     gyro->sampleRateIntervalUs = 1000000 / config->gyroRateHz;
+#if defined(USE_SPI_DATA_READY)
+    // On data-ready every sample reaches the gyro task and its first filter, so they run at the 6664 Hz set below
+    if (gyroDataReadyWanted(gyro)) {
+        gyro->sampleRateIntervalUs = 150;
+    }
+#endif
 
     busSetSpeed(dev, BUS_SPEED_INITIALIZATION);
     // Reset the device (wait 100ms before continuing config)
@@ -272,6 +279,17 @@ static void lsm6dxxSpiAccInit(accDev_t *acc)
 
 static bool lsm6dxxAccRead(accDev_t *acc)
 {
+#if defined(USE_SPI_DATA_READY)
+    // The read on data-ready brought the accelerometer too
+    int16_t v[XYZ_AXIS_COUNT];
+    if (gyroDataReadyAcc(acc->busDev, v)) {
+        acc->ADCRaw[X] = v[X];
+        acc->ADCRaw[Y] = v[Y];
+        acc->ADCRaw[Z] = v[Z];
+        return true;
+    }
+#endif
+
     uint8_t data[6];
     const bool ack = busReadBuf(acc->busDev, LSM6DXX_REG_OUTX_L_A, data, 6);
     if (!ack) {
@@ -296,6 +314,31 @@ static bool lsm6dxxGyroRead(gyroDev_t *gyro)
     return true;
 }
 
+#if defined(USE_SPI_DATA_READY)
+// From OUTX_L_G: gyro X, Y, Z, then accelerometer X, Y, Z, little-endian
+static void lsm6dxxDataReadyParse(const uint8_t *data, bool withAccAndTemp, int16_t *gyro, int16_t *acc, int16_t *temp)
+{
+    UNUSED(temp);
+    gyro[X] = int16_val_little_endian(data, 0);
+    gyro[Y] = int16_val_little_endian(data, 1);
+    gyro[Z] = int16_val_little_endian(data, 2);
+    if (withAccAndTemp) {
+        acc[X] = int16_val_little_endian(data, 3);
+        acc[Y] = int16_val_little_endian(data, 4);
+        acc[Z] = int16_val_little_endian(data, 5);
+    }
+}
+
+static const gyroDataReadyDriver_t lsm6dxxDataReady = {
+    .withAccAndTemp = { LSM6DXX_REG_OUTX_L_G | 0x80, 12 },
+    .gyroOnly = { LSM6DXX_REG_OUTX_L_G | 0x80, 6 },
+    .hasTemp = false,
+    .parse = lsm6dxxDataReadyParse,
+    .registerRead = lsm6dxxGyroRead,
+    .tested = true,
+};
+#endif
+
 // Init Gyro first,then Acc
 bool lsm6dGyroDetect(gyroDev_t *gyro)
 {
@@ -317,6 +360,10 @@ bool lsm6dGyroDetect(gyroDev_t *gyro)
     gyro->intStatusFn = gyroCheckDataReady;
     gyro->gyroAlign = gyro->busDev->param;
     gyro->scale = 1.0f / 16.4f; // 2000 dps
+#if defined(USE_SPI_DATA_READY)
+    // Both register maps configure gyro data-ready, pulsed, on INT1
+    gyro->dataReadyDriver = &lsm6dxxDataReady;
+#endif
     return true;
 
 }

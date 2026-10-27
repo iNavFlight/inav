@@ -30,6 +30,9 @@
 /*** MPU6000 ***/
 #define USE_IMU_MPU6000
 #define MPU6000_CS_PIN          PB11
+#if defined(SPEEDYBEEF4)
+#define MPU6000_EXTI_PIN       PC4
+#endif
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define IMU_MPU6000_ALIGN       CW0_DEG
 
