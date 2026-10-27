@@ -526,18 +526,41 @@ static void pwmInitServos(timMotorServoHardware_t * timOutputs)
 
 
 static timMotorServoHardware_t timOutputsStatic;
+static bool motorsInitialised = false;
 
 bool pwmMotorAndServoInit(void)
 {
     pwmBuildTimerOutputList(&timOutputsStatic);
     pwmInitMotors(&timOutputsStatic);
     pwmInitServos(&timOutputsStatic);
+    motorsInitialised = true;
     return (pwmInitError == PWM_INIT_ERROR_NONE);
 }
 
 const timMotorServoHardware_t *pwmGetOutputAssignment(void)
 {
     return &timOutputsStatic;
+}
+
+bool pwmIsDmaStreamReserved(DMA_t dma)
+{
+    // Started DSHOT motors own their streams; before they start nothing can have changed the protocol
+    const bool motorsWillClaim = !motorsInitialised && getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->isDSHOT;
+
+    for (int i = 0; i < timerHardwareCount; i++) {
+        const timerHardware_t *timHw = &timerHardware[i];
+        if (dmaGetByTag(timHw->dmaTag) != dma) {
+            continue;
+        }
+        if (motorsWillClaim) {
+            return true;
+        }
+        // The LED strip claims its stream only once it is enabled, late in init
+        if (feature(FEATURE_LED_STRIP) && (TIM_IS_LED(timHw->usageFlags) || timerOverrides(timer2id(timHw->tim))->outputMode == OUTPUT_MODE_LED)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Upper bound for timerHardware[] size across all supported targets.
