@@ -474,6 +474,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8754 - MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)  
 [8755 - MSP2_INAV_ESC_SRXL2_STATUS](#msp2_inav_esc_srxl2_status)  
 [8756 - MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)  
+[8757 - MSP2_INAV_MAG_LEARN](#msp2_inav_mag_learn)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -5044,6 +5045,22 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
+
+## <a id="msp2_inav_mag_learn"></a>`MSP2_INAV_MAG_LEARN (8757 / 0x2235)`
+**Description:** Reads the state of the in-flight compass offset learning for the current flight, or for the last one once disarmed.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `flags` | `uint16_t` | 2 | Bitmask | Bitmask (magLearnFlags_e): 0 collecting, 1 paused (armed, not flying), 4 save due at disarm, 5 too few sectors, 6 too few headings, 7 not a sphere, 8 off the stored scale, 9 step too big, 10 saved at the last disarm, 11 still moving a minute after the disarm (nothing saved). |
+| `sectors` | `uint8_t` | 1 | - | Direction sectors filled, of 72 (12 headings x 6 elevation bands). |
+| `headings` | `uint8_t` | 1 | - | Heading sectors filled, of 12. |
+| `spread` | `uint16_t` | 2 | 0.1 % | Spread of the field magnitude around the fitted radius. |
+| `delta` | `int16_t[3]` | 6 | Raw ADC | Fitted offset minus the stored magZero, X, Y, Z. After a save it is the change written. |
+
+**Notes:** Requires USE_MAG_LEARN (USE_MAG on targets with more than 512 KB of flash); without it the command is not supported. All zero until the first armed flight with mag_learn ON. The save is decided once the 5 s emergency rearm window is over and the aircraft is still, at most a minute after the disarm. Kept in RAM only: lost at power off.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
