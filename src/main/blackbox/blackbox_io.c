@@ -313,7 +313,9 @@ bool blackboxDeviceOpen(void)
 #endif
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-        if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_FATAL || afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_UNKNOWN || afatfs_isFull()) {
+        if (afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_FATAL || afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_UNKNOWN
+                || (afatfs_isFull() && blackboxSDCard.wraparoundGaveUp)) {
+            // A full card is reclaimed when the log is created; only refuse once that has given up
             return false;
         }
 

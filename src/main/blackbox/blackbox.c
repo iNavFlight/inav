@@ -1678,6 +1678,10 @@ void blackboxStart(void)
         return;
     }
 
+#ifdef USE_SDCARD
+    blackboxSplitting = false;
+#endif
+
     blackboxValidateConfig();
 
     if (!blackboxDeviceOpen()) {
@@ -1721,6 +1725,11 @@ void blackboxStart(void)
  */
 void blackboxFinish(void)
 {
+#ifdef USE_SDCARD
+    // A stop request ends any split in progress; otherwise SHUTTING_DOWN would open a new log again and never stop
+    blackboxSplitting = false;
+#endif
+
     switch (blackboxState) {
     case BLACKBOX_STATE_DISABLED:
     case BLACKBOX_STATE_STOPPED:
