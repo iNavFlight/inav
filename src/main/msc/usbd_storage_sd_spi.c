@@ -58,9 +58,9 @@
 #define STORAGE_BLK_NBR                  0x10000
 #define STORAGE_BLK_SIZ                  0x200
 
-// H7 SDIO DMA requires 32-byte aligned buffers
+// SDIO DMA with the D-cache on (F7, H7) requires 32-byte aligned buffers
 // USB MSC bot_data buffer is only 16-byte aligned, so we need an intermediate buffer
-#if defined(STM32H7) && defined(USE_SDCARD_SDIO)
+#if (defined(STM32H7) || defined(STM32F7)) && defined(USE_SDCARD_SDIO)
 __attribute__((aligned(32))) static uint8_t alignedBuffer[512];
 #endif
 
@@ -233,8 +233,8 @@ static int8_t STORAGE_Read (uint8_t lun,
 	LED1_ON;
 	for (int i = 0; i < blk_len; i++) {
 		uint32_t timeout;
-#if defined(STM32H7) && defined(USE_SDCARD_SDIO)
-		// H7 SDIO DMA requires 32-byte aligned buffers
+#if (defined(STM32H7) || defined(STM32F7)) && defined(USE_SDCARD_SDIO)
+		// SDIO DMA requires 32-byte aligned buffers
 		// USB MSC buffer may not be aligned, so use intermediate buffer
 		timeout = 0;
 		while (sdcard_readBlock(blk_addr + i, alignedBuffer, NULL, 0) == 0) {
@@ -293,8 +293,8 @@ static int8_t STORAGE_Write (uint8_t lun,
 	LED1_ON;
 	for (int i = 0; i < blk_len; i++) {
 		uint32_t timeout;
-#if defined(STM32H7) && defined(USE_SDCARD_SDIO)
-		// H7 SDIO DMA requires 32-byte aligned buffers
+#if (defined(STM32H7) || defined(STM32F7)) && defined(USE_SDCARD_SDIO)
+		// SDIO DMA requires 32-byte aligned buffers
 		// USB MSC buffer may not be aligned, so use intermediate buffer
 		memcpy(alignedBuffer, buf + (i * 512), 512);
 		timeout = 0;

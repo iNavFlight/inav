@@ -140,6 +140,17 @@ SECTIONS
     __bss_end__ = _ebss;
   } >RAM
 
+  /* DMA buffers, in a region the MPU keeps out of the D-cache (memprot_stm32f7xx.c) */
+  .DMA_RAM (NOLOAD) :
+  {
+    . = ALIGN(32);
+    PROVIDE(dmaram_start = .);
+    *(.DMA_RAM)
+    *(.DMA_RAM*)
+    . = ALIGN(32);
+    PROVIDE(dmaram_end = .);
+  } >DMARAM
+
   .fastram_bss (NOLOAD) :
   {
     __fastram_bss_start__ = .;
