@@ -33,3 +33,9 @@ INAV 7 introduced extra functionality that let you force only some outputs to be
 The main restrictions is that outputs are associated with timers, which can be shared between multiple outputs and  two outputs on the same timer need to have the same function.
 
 The easiest way to modify outputs, is to use the Mixer tab in the Configurator, as it will clearly show you which timer is used by all outputs, but you can also use `timer_output_mode` on the cli.
+
+## ESCs that are not driven from an output pin
+
+A Spektrum Smart ESC is connected to a UART rather than to a motor output, because
+its protocol is serial rather than a timer waveform. None of the output mapping
+above applies to it. See [Spektrum Smart ESC](Spektrum%20Smart%20ESC.md).

@@ -27,6 +27,7 @@
 #define MAX_PWM_OUTPUTS (MAX_PWM_OUTPUT_PORTS)
 #endif
 typedef enum {
+    DSHOT_CMD_EXTENDED_TELEMETRY_ENABLE = 13,
     DSHOT_CMD_SPIN_DIRECTION_NORMAL = 20,
     DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
 } dshotCommands_e;
@@ -39,6 +40,7 @@ typedef struct {
 void pwmRequestMotorTelemetry(int motorIndex);
 
 ioTag_t pwmGetMotorPinTag(int motorIndex);
+void pwmRestoreMotorPin(int motorIndex);
 
 void pwmWriteMotor(uint8_t index, uint16_t value);
 void pwmShutdownPulsesForAllMotors(uint8_t motorCount);

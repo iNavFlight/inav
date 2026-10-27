@@ -20,7 +20,7 @@ src/test/mavlink/missions/run_mavlink_mission_tester.sh
 From `inav`:
 
 ```sh
-./cmake/build_SITL/inav_9.1.0_SITL --serialport=/dev/ttyUSB0 --serialuart=3 --baudrate=460800 --path="../mydev/branch/mavlink_multiport2/eeprom.bin" --chanmap=M01-01,S02-02,S01-03,S04-04
+./cmake/build_SITL/bin/SITL.elf --serialport=/dev/ttyUSB0 --serialuart=3 --baudrate=460800 --path="../mydev/branch/mavlink_multiport2/eeprom.bin" --chanmap=M01-01,S02-02,S01-03,S04-04
 ```
 
 From `inav/src/test/mavlink/missions/results`:

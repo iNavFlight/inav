@@ -41,15 +41,41 @@
 #include "config/parameter_group_ids.h"
 
 #include "flight/mixer.h"
-#include "drivers/dshot.h"
-#include "drivers/pwm_mapping.h"
+#include "drivers/bidir_dshot.h"
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
+#include "drivers/pwm_mapping.h"
+
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "fc/config.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
+static escFrameCounter_t escSensorFrames[MAX_SUPPORTED_MOTORS];
+static timeMs_t         escFrameWindowStartMs;
+
+escFrameCounter_t * escSensorFrameCounter(uint8_t esc)
+{
+    return &escSensorFrames[esc];
+}
+
+// NOINLINE: escSensorUpdate() is inlined into the ITCM scheduler; this runs once per window
+void NOINLINE escSensorFrameWindowUpdate(timeMs_t currentTimeMs)
+{
+    if (currentTimeMs - escFrameWindowStartMs < ESC_FRAME_WINDOW_MS) {
+        return;
+    }
+
+    escFrameWindowStartMs = currentTimeMs;
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        escFrameCounter_t *counter = &escSensorFrames[i];
+        counter->lastWindowTotal = counter->total;
+        counter->lastWindowSuccess = counter->total ? (uint32_t)counter->valid * 100 / counter->total : 0;
+        counter->total = 0;
+        counter->valid = 0;
+    }
+}
 
 #if defined(USE_ESC_SENSOR)
 
@@ -79,7 +105,6 @@ static int              bufferPosition = 0;
 static escSensorData_t  escSensorData[MAX_SUPPORTED_MOTORS];
 static escSensorData_t  escSensorDataCombined;
 static bool             escSensorDataNeedsUpdate;
-static bool             escSensorDshotActive;
 
 PG_REGISTER_WITH_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig, PG_ESC_SENSOR_CONFIG, 1);
 PG_RESET_TEMPLATE(escSensorConfig_t, escSensorConfig,
@@ -130,6 +155,7 @@ static bool escSensorDecodeFrame(void)
     if (bufferPosition >= TELEMETRY_FRAME_SIZE) {
         uint8_t checksum = crc8_update(0, telemetryBuffer, TELEMETRY_FRAME_SIZE - 1);
         if (checksum == telemetryBuffer[TELEMETRY_FRAME_SIZE - 1]) {
+            escSensorFrames[escSensorMotor].valid++;
             escSensorData[escSensorMotor].dataAge       = 0;
             escSensorData[escSensorMotor].temperature   = telemetryBuffer[0];
             escSensorData[escSensorMotor].voltage       = ((uint16_t)telemetryBuffer[1]) << 8 | telemetryBuffer[2];
@@ -183,14 +209,19 @@ void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16
     escSensorDataNeedsUpdate = true;
 }
 
-bool escSensorIsActive(void)
-{
-    return escSensorPort || escSensorDshotActive;
-}
-
 escSensorData_t * escSensorGetData(void)
 {
-    if (!escSensorIsActive()) {
+    /*
+     * Asks whether there is ESC telemetry, not whether a serial port is open. The
+     * two used to be the same thing, but a Smart ESC reports over the throttle wire
+     * itself, handled by the motor driver, so escSensorPort stays NULL while the
+     * data is perfectly good. Testing the port left the OSD, Blackbox, current
+     * estimation and the telemetry backends with nothing on such a board - and the
+     * OSD inconsistent with itself, since it checks the state flag and then asks
+     * here. For a conventional ESC the state is only set once the port has opened,
+     * so nothing changes there.
+     */
+    if (!STATE(ESC_SENSOR_ENABLED)) {
         return NULL;
     }
 
@@ -240,20 +271,45 @@ bool escSensorInitialize(void)
 {
     escSensorDataNeedsUpdate = true;
     escSensorPort = NULL;
-    escSensorDshotActive = false;
 
     // Fail immediately if motor output are disabled or motor outputs are not configured
     if (!feature(FEATURE_PWM_OUTPUT_ENABLE) || getMotorCount() == 0) {
         return false;
     }
 
-    escSensorInitData();
-
-    if (motorConfig()->useDshotTelemetry && (motorConfig()->motorPwmProtocol >= PWM_TYPE_DSHOT150)) {
-        escSensorDshotActive = true;
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * An SRXL2 ESC reports telemetry back over the same wire that carries its
+     * throttle, so there is no separate telemetry port to open. Taking that
+     * source here rather than anywhere else means every existing consumer -
+     * the RPM filter, OSD, Blackbox, current estimation - is fed without
+     * knowing where the numbers came from.
+     *
+     * esc_srxl2_telemetry can turn it off, which for a conventional ESC needs no
+     * setting at all - you leave the port unassigned. This wire has no port to
+     * leave unassigned, so saying no needs somewhere to say it.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        if (!motorConfig()->srxl2Telemetry) {
+            return false;
+        }
+        for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+            escSensorData[i].dataAge = ESC_DATA_INVALID;
+        }
         ENABLE_STATE(ESC_SENSOR_ENABLED);
         return true;
     }
+#endif
+
+    escSensorInitData();
+
+#ifdef USE_DSHOT_BIDIR
+    // Telemetry on the motor line: fed by the motor driver, no port to open
+    if (isDshotTelemetryActive()) {
+        ENABLE_STATE(ESC_SENSOR_ENABLED);
+        return true;
+    }
+#endif
 
     // FUNCTION_ESCSERIAL is shared between SERIALSHOT and ESC_SENSOR telemetry
     // They are mutually exclusive
@@ -274,11 +330,80 @@ bool escSensorInitialize(void)
 
 void escSensorUpdate(timeUs_t currentTimeUs)
 {
+#ifdef USE_DSHOT_BIDIR
+    if (isDshotTelemetryActive()) {
+        // The motor driver refreshes the data with every decoded frame. Age it at the serial
+        // poll rate, so a silent ESC drops out of the combined values the same way (the serial
+        // poll timer doubles as the aging clock, nothing polls here)
+        const timeMs_t currentTimeMs = currentTimeUs / 1000;
+        if (currentTimeMs - escTriggerTimeMs >= ESC_REQUEST_TIMEOUT_MS) {
+            escTriggerTimeMs = currentTimeMs;
+            for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+                if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
+                    escSensorData[i].dataAge++;
+                    escSensorDataNeedsUpdate = true;
+                }
+            }
+        }
+        return;
+    }
+#endif
+
+#ifdef USE_MOTOR_SRXL2
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        /* One ESC per port, so escSensorData[i] belongs to the i-th assigned
+         * port. Motors past the last assigned port have no telemetry for the
+         * same reason they have no throttle, and are left invalid. */
+        const uint8_t count = MIN(srxl2MotorCount(), (uint8_t)MAX_SUPPORTED_MOTORS);
+
+        for (uint8_t i = 0; i < count; i++) {
+            srxl2EscTelemetry_t t;
+            if (srxl2MotorGetTelemetry(i, &t)) {
+                escSensorData[i].dataAge = 0;
+                /*
+                 * Only what the frame actually carried. An ESC that reports no
+                 * current sends a "no data" code, and copying that through as
+                 * 0.00 A would be indistinguishable from a motor at rest - which
+                 * is a reading the battery estimate would happily believe. Where
+                 * a field is absent the last known value is left in place and
+                 * ages out with the rest.
+                 */
+                if (t.fields & SRXL2_TELEM_FIELD_TEMP_FET) {
+                    escSensorData[i].temperature = t.temperatureFet / 10;   /* 0.1 degC -> degC */
+                }
+                if (t.fields & SRXL2_TELEM_FIELD_VOLTAGE) {
+                    escSensorData[i].voltage = t.voltage;                   /* both 0.01 V */
+                }
+                if (t.fields & SRXL2_TELEM_FIELD_CURRENT) {
+                    escSensorData[i].current = t.current;                   /* both 0.01 A */
+                }
+                /*
+                 * The wire carries electrical rpm; everything downstream expects
+                 * mechanical, which is what computeRpm() produces for the serial
+                 * backends. Same division, done here because our value is already
+                 * in rpm rather than the LSB units that function takes.
+                 */
+                if (t.fields & SRXL2_TELEM_FIELD_RPM) {
+                    const uint8_t poles = motorConfig()->motorPoleCount;
+                    escSensorData[i].rpm = poles ? (t.rpm / (poles / 2)) : 0;
+                }
+            } else if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
+                escSensorData[i].dataAge++;
+            }
+        }
+
+        escSensorDataNeedsUpdate = true;
+        return;
+    }
+#endif
+
     if (!escSensorPort) {
         return;
     }
 
     const timeMs_t currentTimeMs = currentTimeUs / 1000;
+
+    escSensorFrameWindowUpdate(currentTimeMs);
 
     switch (escSensorState) {
         case ESC_SENSOR_WAIT_STARTUP:
@@ -292,6 +417,9 @@ void escSensorUpdate(timeUs_t currentTimeUs)
             if (!escSensorConfig()->listenOnly) {
                 pwmRequestMotorTelemetry(escSensorMotor);
             }
+            // One reply expected per request (per listen window with listenOnly); a timeout
+            // or a CRC error just never makes it to valid
+            escSensorFrames[escSensorMotor].total++;
             bufferPosition = 0;
             escTriggerTimeMs = currentTimeMs;
             escSensorState = ESC_SENSOR_WAITING;
@@ -334,7 +462,6 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 #endif
 
 #ifndef USE_ESC_SENSOR
-bool escSensorIsActive(void) { return false; }
 void escSensorInitData(void) {}
 void escSensorSetDshotData(uint8_t esc, uint32_t rpm, int16_t temperature, int16_t voltage, int32_t current)
 {

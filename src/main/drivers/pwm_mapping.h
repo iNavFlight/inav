@@ -47,6 +47,10 @@ typedef enum {
     PWM_TYPE_DSHOT150,
     PWM_TYPE_DSHOT300,
     PWM_TYPE_DSHOT600,
+    /* Appended, not inserted: the value is stored in configuration. Unlike
+     * everything above it this is a UART protocol rather than a timer waveform,
+     * so the ESC signal goes to a serial pin and not to a motor pad. */
+    PWM_TYPE_SRXL2,
 } motorPwmProtocolTypes_e;
 
 typedef enum {

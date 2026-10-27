@@ -264,6 +264,7 @@ CLI mode is unavailable in MSP-over-MAVLink.
 - `target_component` may be `0` or `MAV_COMP_ID_AUTOPILOT1`.
 - `target_component = 0` is handled on the ingress MAVLink port only; it is not fanned out to other local MAVLink ports.
 - MSP replies are sent back to the requester as one or more `TUNNEL` messages on that same ingress port.
+- A reply that does not fit into the port's free TX buffer at once is sent over the following telemetry cycles instead of being dropped. The tunnel serves one request at a time: a request that arrives while a reply is still being sent is discarded, so wait for the complete reply before sending the next request; a reply that makes no progress for one second is abandoned.
 - MSP framing is preserved end-to-end: MSPv1 requests get MSPv1 replies, and MSPv2 requests get MSPv2 replies.
 - Reboot (`MSP_REBOOT`) is supported over the tunnel. Serial passthrough and ESC 4way passthrough are rejected before execution.
 

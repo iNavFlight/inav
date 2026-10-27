@@ -17,9 +17,13 @@
 
 #pragma once
 
-#ifdef ZEEZF7V3
-#define TARGET_BOARD_IDENTIFIER "ZEF7V3"
-#define USBD_PRODUCT_STRING     "ZEEZF7V3"
+#ifdef ZEEZF72020V3
+#define TARGET_BOARD_IDENTIFIER "Z720"
+#define USBD_PRODUCT_STRING     "ZEEZF72020V3"
+#endif
+#ifdef ZEEZF73030V3
+#define TARGET_BOARD_IDENTIFIER "Z730"
+#define USBD_PRODUCT_STRING     "ZEEZF73030V3"
 #endif
 #ifdef ZEEZF7V2
 #define TARGET_BOARD_IDENTIFIER "ZEF7V2"
@@ -35,7 +39,7 @@
 #define LED0                    PC14
 #define LED1                    PC15
 
-#ifdef ZEEZF7V3
+#if defined ZEEZF72020V3 || defined ZEEZF73030V3
 #define BEEPER                  PC4
 #define BEEPER_INVERTED
 #else
@@ -46,7 +50,7 @@
 // *************** Gyro & ACC **********************
 #define USE_SPI
 
-#ifdef ZEEZF7V3
+#if defined ZEEZF72020V3 || defined ZEEZF73030V3
 
 #define USE_SPI_DEVICE_3
 
@@ -112,7 +116,7 @@
 
 #endif
 
-#if defined ZEEZF7V2 ||  defined ZEEZF7V3
+#if defined ZEEZF7V2 || defined ZEEZF72020V3 || defined ZEEZF73030V3
 #define USE_I2C
 #define USE_BARO
 #define USE_BARO_BMP280
@@ -137,26 +141,31 @@
 
 // *************** Flash ****************************
 
-#if defined ZEEZF7V2 ||  defined ZEEZF7V3
+#if defined ZEEZF7V2 || defined ZEEZF72020V3 || defined ZEEZF73030V3
 #define USE_SPI_DEVICE_2
 #define SPI2_NSS_PIN            PB12
 #define SPI2_SCK_PIN            PB13
 #define SPI2_MISO_PIN           PC2
 #define SPI2_MOSI_PIN           PC3
+#endif
 
+// Onboard SPI flash chip (ZEEZF7V2, ZEEZF72020V3)
+#if defined ZEEZF7V2 || defined ZEEZF72020V3
 #define M25P16_SPI_BUS          BUS_SPI2
 #define M25P16_CS_PIN           SPI2_NSS_PIN
 
 #define W25N01G_SPI_BUS         BUS_SPI2
 #define W25N01G_CS_PIN          SPI2_NSS_PIN
-#ifdef ZEEZF7V3
+#endif
+
+// microSD card slot instead of onboard flash (ZEEZF73030V3)
+#ifdef ZEEZF73030V3
 #define SDCARD_SPI_BUS          BUS_SPI2
 #define SDCARD_CS_PIN           SPI2_NSS_PIN
 
 #define USE_SDCARD
 #define USE_SDCARD_SPI
-#endif
-
+#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 #endif
 
 #ifdef ZEEZF7
@@ -174,10 +183,12 @@
 
 #endif
 
+#ifndef ZEEZF73030V3
 #define USE_FLASHFS
 #define USE_FLASH_M25P16
 #define USE_FLASH_W25N01G
 #define ENABLE_BLACKBOX_LOGGING_ON_SPIFLASH_BY_DEFAULT
+#endif
 
 // *************** OSD *****************************
 #define USE_MAX7456
@@ -234,7 +245,7 @@
 #define UART5_RX_PIN            PD2
 #define UART5_TX_PIN            PC12
 
-#if defined ZEEZF7V2 || defined ZEEZF7V3
+#if defined ZEEZF7V2 || defined ZEEZF72020V3 || defined ZEEZF73030V3
 #define SERIAL_PORT_COUNT       6
 #else
 #define USE_UART6
@@ -252,7 +263,7 @@
 #define ADC_INSTANCE                ADC1
 #define ADC1_DMA_STREAM             DMA2_Stream0
 
-#if defined ZEEZF7V2 || defined ZEEZF7V3
+#if defined ZEEZF7V2 || defined ZEEZF72020V3 || defined ZEEZF73030V3
 #define ADC_CHANNEL_1_PIN           PC0
 #define ADC_CHANNEL_2_PIN           PC1
 #else
@@ -265,7 +276,7 @@
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_VBAT | FEATURE_OSD | FEATURE_LED_STRIP)
 
-#if defined ZEEZF7V2 ||  defined ZEEZF7V3
+#if defined ZEEZF7V2 || defined ZEEZF72020V3 || defined ZEEZF73030V3
 #define CURRENT_METER_SCALE     250
 #endif
 
@@ -288,7 +299,7 @@
 #define TARGET_IO_PORTC         0xffff
 #define TARGET_IO_PORTD         (BIT(2))
 
-#if defined ZEEZF7V2 ||  defined ZEEZF7V3
+#if defined ZEEZF7V2 || defined ZEEZF72020V3 || defined ZEEZF73030V3
 #define MAX_PWM_OUTPUT_PORTS    8
 #else
 #define MAX_PWM_OUTPUT_PORTS    4

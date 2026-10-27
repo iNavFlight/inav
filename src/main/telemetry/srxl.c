@@ -47,7 +47,6 @@
 
 #include "flight/imu.h"
 #include "flight/mixer.h"
-#include "drivers/dshot.h"
 
 #include "io/gps.h"
 
@@ -184,7 +183,7 @@ typedef struct
 uint16_t getMotorAveragePeriod(void)
 {
 
-#if defined(USE_ESC_SENSOR) || defined(USE_DSHOT)
+#if defined(USE_ESC_SENSOR)
     uint32_t rpm = 0;
     uint16_t period_us = SPEKTRUM_RPM_UNUSED;
 

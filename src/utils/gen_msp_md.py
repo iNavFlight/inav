@@ -20,6 +20,10 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 
 import enum
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
+MSP_DOCS = REPO_ROOT / 'docs/development/msp'
+
 def build_msp_codes_enum(defs: Dict[str, Any]) -> Type[enum.IntEnum]:
     members: Dict[str, int] = {}
     for name, body in defs.items():
@@ -408,10 +412,10 @@ def generate_markdown(defs: Dict[str, Any]) -> str:
         sec, _heading = render_message(name, body)
         sections.append(sec)
 
-    with open("docs_v2_header.md", "r", encoding="utf-8") as f:
+    with open(MSP_DOCS / "docs_v2_header.md", "r", encoding="utf-8") as f:
         header = f.read()
 
-    with open("format.md", "r", encoding="utf-8") as f:
+    with open(MSP_DOCS / "format.md", "r", encoding="utf-8") as f:
         fmt = f.read()
 
     header = header.replace('<format>', fmt)
@@ -426,8 +430,8 @@ def get_messages_definitions(payload: Dict[str, Any]) -> Dict[str, Any]:
     return payload
 
 def main():
-    in_path = Path(sys.argv[1]) if len(sys.argv) >= 2 else Path("msp_messages.json")
-    out_path = Path(sys.argv[2]) if len(sys.argv) >= 3 else Path("README.md")
+    in_path = Path(sys.argv[1]) if len(sys.argv) >= 2 else MSP_DOCS / "msp_messages.json"
+    out_path = Path(sys.argv[2]) if len(sys.argv) >= 3 else MSP_DOCS / "README.md"
 
     with in_path.open("r", encoding="utf-8") as f:
         payload = json.load(f)

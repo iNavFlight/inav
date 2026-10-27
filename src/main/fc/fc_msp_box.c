@@ -29,11 +29,13 @@
 #include "fc/config.h"
 #include "fc/fc_msp_box.h"
 #include "fc/runtime_config.h"
+
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 
 #include "io/osd.h"
 
+#include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
 
 #include "sensors/diagnostics.h"
@@ -117,6 +119,7 @@ static const box_t boxes[CHECKBOX_ITEM_COUNT + 1] = {
     { .boxId = BOXAUTOSPEED,        .boxName = "AUTO SPEED",        .permanentId = 69 },
     { .boxId = BOXTERRAINAGLHOLD,   .boxName = "TERRAIN AGL HOLD",  .permanentId = 70 },
     { .boxId = BOXINFLIGHTMENU,     .boxName = "IN FLIGHT MENU",    .permanentId = 71 },
+    { .boxId = BOXTHRUSTREVERSE,    .boxName = "THRUST REVERSE",    .permanentId = 72 },
     { .boxId = CHECKBOX_ITEM_COUNT, .boxName = NULL,                .permanentId = 0xFF }
 };
 
@@ -393,6 +396,28 @@ void initActiveBoxIds(void)
 #ifdef USE_CMS
     ADD_ACTIVE_BOX(BOXINFLIGHTMENU);
 #endif
+
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * Thrust reverse on a Spektrum Smart ESC is a switch, not a throttle value:
+     * the ESC's "Thrust Rev." parameter names an auxiliary channel, and Spektrum
+     * describe the effect as "flipping the designated switch reverses motor
+     * rotation, throttle will still control motor speed".
+     *
+     * So it belongs on a mode, the way every other pilot-commanded action does.
+     * The alternative - deriving it from the reversible-motor mixer state - needs
+     * FEATURE_REVERSIBLE_MOTORS, which recentres the throttle stick so that mid
+     * stick is zero thrust. That suits a 3D model and is wrong for an aeroplane
+     * that wants reverse only on the landing roll, where chopping the throttle on
+     * short final would otherwise command reverse thrust in the air.
+     *
+     * Offered only when the protocol can act on it and a channel is set, so it
+     * does not appear as a mode that silently does nothing.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2 && motorConfig()->srxl2ReverseChannel != 0) {
+        ADD_ACTIVE_BOX(BOXTHRUSTREVERSE);
+    }
+#endif
 }
 
 #define IS_ENABLED(mask) ((mask) == 0 ? 0 : 1)
@@ -490,6 +515,11 @@ void packBoxModeFlags(boxBitmask_t * mspBoxModeFlags)
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXAUTOSPEED)),    BOXAUTOSPEED);
 #ifdef USE_CMS
     CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU)), BOXINFLIGHTMENU);
+#endif
+#ifdef USE_MOTOR_SRXL2
+    /* Advertised in initActiveBoxIds() but never reported back, so the mode
+     * showed as off in the Configurator while the driver was acting on it. */
+    CHECK_ACTIVE_BOX(IS_ENABLED(IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE)), BOXTHRUSTREVERSE);
 #endif
 
     memset(mspBoxModeFlags, 0, sizeof(boxBitmask_t));

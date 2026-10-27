@@ -37,6 +37,8 @@
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
+#include "drivers/bidir_dshot.h"
+#include "drivers/pwm_mapping.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
@@ -88,6 +90,8 @@
 
 #include "flight/mixer_profile.h"
 #include "flight/mixer.h"
+
+#include "io/motor_srxl2.h"
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -124,7 +128,7 @@ int16_t headFreeModeHold;
 uint8_t motorControlEnable = false;
 
 static bool isRXDataNew;
-static disarmReason_t lastDisarmReason = DISARM_NONE;
+static disarmReason_e lastDisarmReason = DISARM_NONE;
 timeUs_t lastDisarmTimeUs = 0;
 timeMs_t emergRearmStabiliseTimeout = 0;
 
@@ -301,7 +305,29 @@ static void updateArmingStatus(void)
         }
 
         /* CHECK: */
-        if (!isHardwareHealthy()) {
+        bool escLinkMissing = false;
+#ifdef USE_MOTOR_SRXL2
+        /*
+         * An SRXL2 ESC announces itself in the third of a second after it gains
+         * power: if that announcement is missed the link never forms, and the
+         * throttle reaches nothing. Arming meanwhile commands a motor that is not
+         * listening - the model looks armed, the telemetry looks sane, and the
+         * propeller does not turn.
+         *
+         * Refuse to arm until the link is up and the ESC obeys the throttle, about
+         * 10 s after it powers up; where the link never forms, it is the
+         * difference between finding out on the bench and finding out on the
+         * takeoff roll.
+         */
+        escLinkMissing = (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2)
+                         && !srxl2MotorIsConnected();
+#ifdef USE_SIMULATOR
+        // Not while a simulator flies the aircraft: HITL disables the outputs itself, so
+        // there is no motor to command and nothing this would protect
+        escLinkMissing = escLinkMissing && !ARMING_FLAG(SIMULATOR_MODE_HITL);
+#endif
+#endif
+        if (!isHardwareHealthy() || escLinkMissing) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
         }
         else {
@@ -474,7 +500,7 @@ static RP2350_FAST_CODE void processPilotAndFailSafeActions(float dT)
     }
 }
 
-void disarm(disarmReason_t disarmReason)
+void disarm(disarmReason_e disarmReason)
 {
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
@@ -504,7 +530,7 @@ timeUs_t getLastDisarmTimeUs(void) {
     return lastDisarmTimeUs;
 }
 
-disarmReason_t getDisarmReason(void)
+disarmReason_e getDisarmReason(void)
 {
     return lastDisarmReason;
 }
@@ -568,6 +594,17 @@ bool emergInflightRearmEnabled(void)
     return false;   // craft doesn't appear to be flying, don't allow emergency rearm
 }
 
+#ifdef USE_DSHOT_BIDIR
+// As in Betaflight: the ESC sends EDT frames only after being asked and forgets it on power-up,
+// so ask on every arm, while the motors are still stopped and the ESC accepts commands
+static void requestDshotExtendedTelemetry(void)
+{
+    if (isDshotTelemetryActive() && motorConfig()->useDshotEdt) {
+        sendDShotCommand(DSHOT_CMD_EXTENDED_TELEMETRY_ENABLE);
+    }
+}
+#endif
+
 void tryArm(void)
 {
     updateArmingStatus();
@@ -583,6 +620,9 @@ void tryArm(void)
     const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE);
 #endif
     if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
+#ifdef USE_DSHOT_BIDIR
+        requestDshotExtendedTelemetry();
+#endif
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_FLIGHT_MODE(TURTLE_MODE);
@@ -608,6 +648,9 @@ void tryArm(void)
 
         lastDisarmReason = DISARM_NONE;
 
+#ifdef USE_DSHOT_BIDIR
+        requestDshotExtendedTelemetry();
+#endif
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction

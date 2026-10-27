@@ -313,6 +313,7 @@ void setBatteryProfile(uint8_t profileIndex)
     if ((currentBatteryProfile->controlProfile > 0) && (currentBatteryProfile->controlProfile <= MAX_CONTROL_PROFILE_COUNT)) {
         setConfigProfile(currentBatteryProfile->controlProfile - 1);
     }
+    mixerUpdateThrottleRateLimit();
 }
 
 void activateBatteryProfile(void)

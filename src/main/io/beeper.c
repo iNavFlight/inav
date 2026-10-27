@@ -223,6 +223,13 @@ void beeper(beeperMode_e mode)
         return;
     }
 
+    // A source that is switched off must not take over the beeper. Otherwise it
+    // stays selected as the current entry and blocks every source that is still
+    // enabled - including the beeper mode on an RC channel.
+    if (getBeeperOffMask() & (1 << (mode - 1))) {
+        return;
+    }
+
     const beeperTableEntry_t *selectedCandidate = NULL;
     for (uint32_t i = 0; i < BEEPER_TABLE_ENTRY_COUNT; i++) {
         const beeperTableEntry_t *candidate = &beeperTable[i];

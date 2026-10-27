@@ -26,7 +26,7 @@
 
 #include "platform.h"
 
-#include "drivers/time.h"
+#include "drivers/time.h"   // timeUs_t for sensors/esc_sensor.h, which has no includes of its own
 #include "flight/mixer.h"
 
 #include "sensors/esc_sensor.h"
@@ -52,36 +52,14 @@ typedef enum {
 #define DSHOT_NORMAL_TELEMETRY_MASK     (1 << DSHOT_TELEMETRY_TYPE_ERPM)
 #define DSHOT_EXTENDED_TELEMETRY_MASK   (~DSHOT_NORMAL_TELEMETRY_MASK)
 
-typedef enum {
-    DSHOT_RAW_VALUE_STATE_INVALID = 0,
-    DSHOT_RAW_VALUE_STATE_NOT_PROCESSED,
-    DSHOT_RAW_VALUE_STATE_PROCESSED,
-} dshotRawValueState_e;
-
-typedef struct {
-    uint16_t rawValue;
-    uint16_t telemetryData[DSHOT_TELEMETRY_TYPE_COUNT];
-    uint8_t telemetryTypes;
-    uint8_t maxTemp;
-} dshotTelemetryMotorState_t;
-
-typedef struct {
-    uint32_t invalidPacketCount;
-    uint32_t readCount;
-    dshotTelemetryMotorState_t motorState[MAX_SUPPORTED_MOTORS];
-    dshotRawValueState_e rawValueState;
-} dshotTelemetryState_t;
-
+#ifdef USE_DSHOT_BIDIR
 extern bool useDshotTelemetry;
-extern dshotTelemetryState_t dshotTelemetryState;
 
-void initDshotTelemetry(timeUs_t looptimeUs);
-void dshotResetTelemetry(void);
-bool isDshotTelemetryConfigured(void);
+void initDshotTelemetry(void);
 bool isDshotTelemetryActive(void);
 uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex);
 float getDshotRpm(uint8_t motorIndex);
-uint16_t getDshotErpm(uint8_t motorIndex);
-float getDshotRpmAverage(void);
+// Mechanical frequency from the last decoded eRPM frame, unfiltered (see bidir_dshot.c); 0 once it is stale
 float getMotorFrequencyHz(uint8_t motorIndex);
 bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex);
+#endif

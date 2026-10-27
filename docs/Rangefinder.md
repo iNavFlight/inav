@@ -13,24 +13,24 @@ Rangefinders in INAV are used for:
 
 ## Hardware
 
-INAV supports the following rangefinder types:
+INAV has drivers for the following rangefinder types. The driver and required bus must be available in the firmware for your target; a value appearing in `rangefinder_hardware` does not by itself confirm that its driver is enabled.
 
 ### Time-of-Flight (ToF) Laser Sensors
 
 * **VL53L0X** - STMicroelectronics laser rangefinder, 0-75cm range (I2C)
 * **VL53L1X** - STMicroelectronics laser rangefinder, 0-400cm range (I2C)
-* **TOF10120** - Small & lightweight laser sensor, 0-200cm range (I2C)
-* **TERARANGER_EVO** - TeraRanger Evo series, 30-600cm range depending on model (I2C/UART)
+* **TOF10120_I2C** - TOF10120 laser sensor, 0-200cm range (I2C)
+* **TERARANGER_EVO** - TeraRanger Evo series, 30-600cm range depending on model (I2C in INAV)
   - https://www.terabee.com/sensors-modules/lidar-tof-range-finders/#individual-distance-measurement-sensors
 
 ### Ultrasonic Sensors
 
 * **SRF10** - Devantech SRF10, 0-600cm range (I2C)
 * **US42** - Maxbotix US-42, 0-645cm range (I2C)
-* **USD1_V0** - USD1 ultrasonic sensor variant (UART)
 
 ### Radar Sensors
 
+* **USD1_V0** - [US-D1](https://ainstein.ai/us-d1-all-weather-radar-altimeter/) V0 serial radar protocol (UART); select this for sensors configured to send the compatible V0 protocol
 * **NRA** - NanoRadar NRA15/NRA24 millimeter-wave radar (UART)
 
 NRA15/NRA24 sensors can use US-D1_V0 or NRA protocol depending on firmware configuration:
@@ -54,14 +54,22 @@ NRA15/NRA24 sensors can use US-D1_V0 or NRA protocol depending on firmware confi
 
 * **FAKE** - Simulated rangefinder for testing without hardware
 
+### Firmware Availability
+
+The CLI values are listed in [settings.yaml](../src/main/fc/settings.yaml), while [rangefinder.c](../src/main/sensors/rangefinder.c) conditionally includes each driver's detection code. Selecting a CLI value cannot enable a driver that was omitted at build time.
+
+In particular, **SRF10 is not enabled by default in the current target configurations**. It requires a firmware build with `USE_RANGEFINDER_SRF10` enabled and an available I2C bus. See [common.h](../src/main/target/common.h) for the default rangefinder drivers and your target's configuration for any overrides.
+
 ## Configuration
 
-Enable rangefinder in CLI:
+Select the matching `rangefinder_hardware` value in CLI. For example, for a VL53L0X:
 
 ```
-set rangefinder_hardware = VL53L0X  # or your sensor type
+set rangefinder_hardware = VL53L0X
 save
 ```
+
+For a TOF10120, use the exact CLI value `TOF10120_I2C`.
 
 Optional median filtering for smoother readings:
 
@@ -105,14 +113,18 @@ set nav_max_terrain_follow_alt = 100    # Max altitude in Surface mode (cm)
 
 ### I2C Rangefinders
 
-I2C sensors (VL53L0X, VL53L1X, TOF10120, SRF10, US42, TERARANGER_EVO) connect to the flight controller's I2C port and are auto-detected when configured.
+I2C sensors (VL53L0X, VL53L1X, TOF10120, SRF10, US42, TERARANGER_EVO) connect to an I2C bus available to the rangefinder driver on the flight controller. Select the matching `rangefinder_hardware` value; INAV then probes that device, provided its driver is compiled in. The native TERARANGER_EVO driver uses I2C, not the sensor's UART interface.
 
 ### Serial Rangefinders
 
-UART-based sensors (MSP, BENEWAKE, NRA, USD1_V0) require:
-1. Assign UART port in Ports tab
-2. Configure `rangefinder_hardware` setting
-3. Set appropriate baud rate
+The port configuration depends on the selected driver:
+
+| `rangefinder_hardware` | Port configuration | Baud rate |
+|-----------------------|--------------------|-----------|
+| `BENEWAKE`, `NRA`, `USD1_V0` | Assign the UART to the Rangefinder function (`FUNCTION_RANGEFINDER`) | The driver opens the port at **115200 baud**; configure the sensor to match |
+| `MSP` | Enable MSP on the UART connected to the external sensor or adapter | Match the configured MSP baud rate to the sender |
+
+Set `rangefinder_hardware` to the protocol sent by the device, then save and reboot. An MSP sender must supply `MSP2_SENSOR_RANGEFINDER` messages; it does not use the dedicated Rangefinder port function.
 
 ## Optical Flow Integration
 

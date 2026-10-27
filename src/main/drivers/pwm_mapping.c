@@ -42,6 +42,7 @@
 #include "sensors/rangefinder.h"
 
 #include "io/serial.h"
+#include "io/motor_srxl2.h"
 #include "io/servo_sbus.h"
 
 enum {
@@ -70,6 +71,11 @@ static const motorProtocolProperties_t motorProtocolProperties[] = {
     [PWM_TYPE_DSHOT150]     = { .usesHwTimer = true,    .isDSHOT = true },
     [PWM_TYPE_DSHOT300]     = { .usesHwTimer = true,    .isDSHOT = true },
     [PWM_TYPE_DSHOT600]     = { .usesHwTimer = true,    .isDSHOT = true },
+    /* Not a timer waveform at all: the ESC hangs off a UART. The entry has to be
+     * here even on a target built without the protocol, because the value is
+     * stored in configuration and a diff restored from a board that does have it
+     * would otherwise index past the end of this array. */
+    [PWM_TYPE_SRXL2]        = { .usesHwTimer = false,   .isDSHOT = false },
 };
 
 pwmInitError_e getPwmInitError(void)
@@ -428,6 +434,20 @@ static void pwmInitMotors(timMotorServoHardware_t * timOutputs)
 
     // Do the pre-configuration. For motors w/o hardware timers this should be sufficient
     pwmMotorPreconfigure();
+
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * SRXL2 carries one ESC per port, so the mixer's motor count has to be met by
+     * that many assigned ports. A motor with no port has nowhere to send its
+     * command and no timer output to fall back on, and dropping it silently would
+     * mean arming a twin that can only drive one side.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2 && srxl2MotorCount() < motorCount) {
+        pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS;
+        LOG_ERROR(PWM, "Not enough SRXL2 ports. Mixer requested %d, ports %d", motorCount, srxl2MotorCount());
+        return;
+    }
+#endif
 
     // Now if we need to configure individual motor outputs - do that
     if (!motorsUseHardwareTimers()) {

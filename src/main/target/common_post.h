@@ -165,6 +165,14 @@ extern uint8_t __config_end;
 
 #endif
 
+// Compass mounting-orientation auto-detection keeps a ~1.8 KB sample buffer
+// (128 raw mag + attitude samples) for the duration of a calibration spin;
+// restrict it to MCUs with enough RAM headroom, same threshold as USE_TERRAIN
+// above. Falls back to manual mag_align configuration where undefined.
+#if defined(USE_MAG) && !defined(USE_MAG_CALIBRATION_ORIENTATION) && (MCU_RAM_SIZE > 256)
+#define USE_MAG_CALIBRATION_ORIENTATION
+#endif
+
 // CRSF sensor input on a dedicated UART
 #if defined(USE_SERIALRX_CRSF)
 #define USE_CRSF_SENSOR_INPUT
@@ -177,7 +185,26 @@ extern uint8_t __config_end;
 #endif
 #endif
 
-#if defined(USE_ESC_SENSOR) || defined(USE_DSHOT)
+// DSHOT variants, all on top of USE_DSHOT:
+//  - USE_DSHOT_DMAR: one burst DMA stream per timer (target choice)
+//  - USE_DSHOT_BIDIR: bidirectional DSHOT (eRPM telemetry on the motor line,
+//    dshot_bidir_enabled). Needs a DMA stream per motor channel for the direction
+//    switching, so it excludes USE_DSHOT_DMAR. Implemented by the timer/DMA motor
+//    driver (pwm_output.c); RP2350 drives its motors from a PIO program that only
+//    transmits, so the setting is hidden there and stays off. STM32F7 is excluded
+//    as well: bidirectional DSHOT is only supported on STM32H7 and AT32.
+#if defined(USE_DSHOT_DMAR) && !defined(USE_DSHOT)
+#error "USE_DSHOT_DMAR requires USE_DSHOT"
+#endif
+#if defined(USE_DSHOT) && !defined(USE_DSHOT_DMAR) && !defined(RP2350) && !defined(STM32F7)
+#define USE_DSHOT_BIDIR
+#endif
+#if defined(USE_DSHOT_BIDIR) && (!defined(USE_DSHOT) || defined(USE_DSHOT_DMAR))
+#error "USE_DSHOT_BIDIR requires USE_DSHOT and excludes USE_DSHOT_DMAR"
+#endif
+
+// RPM filter sources: serial ESC telemetry or bidirectional DSHOT
+#if defined(USE_ESC_SENSOR) || defined(USE_DSHOT_BIDIR)
     #define USE_RPM_FILTER
 #endif
 

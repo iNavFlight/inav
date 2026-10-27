@@ -55,14 +55,22 @@ typedef uint32_t timCNT_t;
 #error "Unknown CPU defined"
 #endif
 
+// TIMER_INDEX() maps a hardware timer number to its slot in timerDefinitions[] and
+// timerCtx[]. This is not always (n - 1): the tables are packed and not every MCU has
+// a contiguous range of timers (STM32H7 has no TIM9..TIM11, AT32F43x adds TMR20 after
+// TMR14). Timer tables and timer IRQ handlers must use this macro.
 #if defined(STM32F4)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
+#define TIMER_INDEX(n)                  ((n) - 1)                       // TIM1..TIM14
 #elif defined(STM32F7)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
+#define TIMER_INDEX(n)                  ((n) - 1)                       // TIM1..TIM14
 #elif defined(STM32H7)
 #define HARDWARE_TIMER_DEFINITION_COUNT 14
+#define TIMER_INDEX(n)                  ((n) < 9 ? (n) - 1 : (n) - 4)   // TIM1..TIM8, TIM12..TIM17
 #elif defined(AT32F43x)
 #define HARDWARE_TIMER_DEFINITION_COUNT 15
+#define TIMER_INDEX(n)                  ((n) < 20 ? (n) - 1 : 14)       // TMR1..TMR14, TMR20
 #elif defined(SITL_BUILD)
 #define HARDWARE_TIMER_DEFINITION_COUNT 0
 #elif defined(RP2350)
@@ -163,6 +171,15 @@ typedef struct timerCallbacks_s {
     timerCallbackFn * callbackOvr;
 } timerCallbacks_t;
 
+// Circular-DMA refill callback: invoked from the DMA IRQ while
+// dmaState == TCH_DMA_CIRCULAR, once per half-cycle, so the consumer can
+// refill the half that was just transmitted. transferComplete is true for
+// the TC (second-half-just-sent) event, false for the HT
+// (first-half-just-sent) event. Optional (NULL) for circular DMA consumers
+// that don't need refilling (e.g. motor DShot idle-packet repeat during
+// EEPROM writes) — those get no HT/TC IRQs at all.
+typedef void timerDmaRefillFn(struct TCH_s * tch, bool transferComplete);
+
 // Run-time TCH (Timer CHannel) context
 typedef struct TCH_s {
     struct timHardwareContext_s *   timCtx;         // Run-time initialized to parent timer
@@ -171,6 +188,7 @@ typedef struct TCH_s {
     DMA_t                           dma;            // Timer channel DMA handle
     volatile tchDmaState_e          dmaState;
     void *                          dmaBuffer;
+    timerDmaRefillFn *              dmaRefillCallback; // optional, see typedef above
 } TCH_t;
 
 // Run-time timer context (dynamically allocated), includes 4x TCH

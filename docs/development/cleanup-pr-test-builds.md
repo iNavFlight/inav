@@ -94,7 +94,8 @@ gh workflow run cleanup-pr-test-builds.yml --repo iNavFlight/inav -f pr_number=1
 - `--older-than` deletes based on the release's `published_at` timestamp, not
   `created_at` — the two differ in this repo (see git history / commit message for this
   change if you want the details), and `created_at` is not a reliable age signal here.
-- The script lists at most 1000 releases per run (`gh release list --limit 1000`, newest
-  first). If the backlog ever exceeds that, the oldest — most overdue — releases would
-  silently fall off the list. Not a concern at current scale (~150 releases), but worth
-  revisiting (pagination, or `--order asc`) if the repo grows much larger.
+- The script lists at most 1000 releases per run (`gh release list --limit 1000 --order
+  asc`, oldest first). If the backlog ever exceeds that, the newest — least stale —
+  releases drop off the list instead, so the most-overdue releases are always swept first
+  and the skipped newer ones are caught on later runs. Not a concern at current scale
+  (~250 releases), but worth revisiting (pagination) if the repo grows much larger.

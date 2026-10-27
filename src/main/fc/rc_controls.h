@@ -21,7 +21,7 @@
 
 #define CONTROL_DEADBAND           10      // Used to check if sticks are centered
 
-typedef enum rc_alias {
+typedef enum {
     ROLL = 0,
     PITCH,
     YAW,

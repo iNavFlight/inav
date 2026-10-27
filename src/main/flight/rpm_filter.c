@@ -22,6 +22,8 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include <math.h>
+
 #include "platform.h"
 
 #include "flight/rpm_filter.h"
@@ -36,7 +38,7 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "flight/mixer.h"
-#include "drivers/dshot.h"
+#include "drivers/bidir_dshot.h"
 #include "sensors/esc_sensor.h"
 #include "fc/config.h"
 #include "fc/settings.h"
@@ -44,6 +46,9 @@
 #ifdef USE_RPM_FILTER
 
 #define RPM_FILTER_RPM_LPF_HZ 150
+// Serial ESC telemetry ages by one per missed reply of that motor (SRXL2 only once its own
+// stale timeout passed): a single CRC error keeps the value, a silent ESC drops to 0
+#define RPM_FILTER_MAX_ESC_DATA_AGE 2
 #define RPM_FILTER_HARMONICS 3
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 1);
@@ -66,9 +71,7 @@ typedef struct
 typedef float (*rpmFilterApplyFnPtr)(rpmFilterBank_t *filter, uint8_t axis, float input);
 typedef void (*rpmFilterUpdateFnPtr)(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequency);
 
-#ifdef USE_ESC_SENSOR
 static EXTENDED_FASTRAM pt1Filter_t motorFrequencyFilter[MAX_SUPPORTED_MOTORS];
-#endif
 static EXTENDED_FASTRAM rpmFilterBank_t gyroRpmFilters;
 static EXTENDED_FASTRAM rpmFilterApplyFnPtr rpmGyroApplyFn;
 static EXTENDED_FASTRAM rpmFilterUpdateFnPtr rpmGyroUpdateFn;
@@ -161,11 +164,9 @@ void rpmFilterUpdate(rpmFilterBank_t *filterBank, uint8_t motor, float baseFrequ
 
 void rpmFiltersInit(void)
 {
-#ifdef USE_ESC_SENSOR
     for (uint8_t i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
         pt1FilterInit(&motorFrequencyFilter[i], RPM_FILTER_RPM_LPF_HZ, US2S(RPM_FILTER_UPDATE_RATE_US));
     }
-#endif
 
     rpmGyroUpdateFn = (rpmFilterUpdateFnPtr)nullRpmFilterUpdate;
 
@@ -186,22 +187,35 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
     UNUSED(currentTimeUs);
 
     uint8_t motorCount = getMotorCount();
+    // Debug holds eRPM/100 like Betaflight's eRPM[] blackbox field, so log tools can reuse it
+    const float hzToErpm100 = 60.0f * (motorConfig()->motorPoleCount / 2.0f) / ERPM_PER_LSB;
     /*
-     * For each motor, read ERPM, filter it and update motor frequency
+     * For each motor, read its frequency, filter it and update the notches. Both sources
+     * hand over their latest raw value; the LPF runs here, at this task's fixed rate, so its
+     * cutoff does not depend on how often new frames happened to arrive
      */
     for (uint8_t i = 0; i < motorCount; i++)
     {
-        float baseFrequency;
+        float motorFrequency;
+#ifdef USE_DSHOT_BIDIR
         if (isDshotTelemetryActive()) {
-            baseFrequency = getMotorFrequencyHz(i);
-        } else {
+            motorFrequency = getMotorFrequencyHz(i);
+        } else
+#endif
+        {
 #ifdef USE_ESC_SENSOR
-            const escSensorData_t *escState = getEscTelemetry(i);
-            baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], (float)escState->rpm / 60.0f);
+            const escSensorData_t *escData = getEscTelemetry(i);
+            motorFrequency = escData->dataAge <= RPM_FILTER_MAX_ESC_DATA_AGE ? (float)escData->rpm / 60.0f : 0.0f;
 #else
-            baseFrequency = 0.0f;
+            motorFrequency = 0.0f;
 #endif
         }
+        // Raw telemetry before the LPF; blackbox has no per-motor field
+        if (i < DEBUG32_VALUE_COUNT) {
+            DEBUG_SET(DEBUG_RPM_FILTER, i, lrintf(motorFrequency * hzToErpm100));
+        }
+
+        const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], motorFrequency);
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
     }
 }

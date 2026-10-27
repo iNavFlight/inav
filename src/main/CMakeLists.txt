@@ -252,8 +252,8 @@ main_sources(COMMON_SRC
     drivers/pwm_esc_detect.h
     drivers/pwm_mapping.c
     drivers/pwm_mapping.h
-    drivers/dshot.c
-    drivers/dshot.h
+    drivers/bidir_dshot.c
+    drivers/bidir_dshot.h
     drivers/pwm_output.c
     drivers/pwm_output.h
     drivers/pinio.c
@@ -391,6 +391,8 @@ main_sources(COMMON_SRC
     io/adsb.h
     io/beeper.c
     io/beeper.h
+    io/motor_srxl2.c
+    io/motor_srxl2.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c
@@ -505,6 +507,8 @@ main_sources(COMMON_SRC
     sensors/boardalignment.h
     sensors/compass.c
     sensors/compass.h
+    sensors/compass_orientation.c
+    sensors/compass_orientation.h
     sensors/diagnostics.c
     sensors/diagnostics.h
     sensors/gyro.c
@@ -627,6 +631,8 @@ main_sources(COMMON_SRC
     navigation/navigation.c
     navigation/navigation.h
     navigation/navigation_fixedwing.c
+    navigation/navigation_fixedwing_turn_math.c
+    navigation/navigation_fixedwing_turn_math.h
     navigation/navigation_fw_launch.c
     navigation/navigation_geo.c
     navigation/navigation_multicopter.c

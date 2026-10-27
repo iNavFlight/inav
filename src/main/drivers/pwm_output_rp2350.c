@@ -359,6 +359,11 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
     return IOTAG_NONE;
 }
 
+void pwmRestoreMotorPin(int motorIndex)
+{
+    UNUSED(motorIndex);
+}
+
 /* ── GPIO helpers ────────────────────────────────────────────────────────── */
 
 /*
