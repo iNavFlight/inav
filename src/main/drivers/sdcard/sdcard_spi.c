@@ -48,9 +48,21 @@
 /* Break up 512-byte SD card sectors into chunks of this size to reduce the peak overhead per call to sdcard_poll(). */
 #define SDCARD_BLOCK_CHUNK_SIZE     128
 
+// FAST stays under the 25 MHz of an SD card's default speed on every MCU with an SD card on SPI
 #ifndef SDCARD_BUS_SPEED
-#define SDCARD_BUS_SPEED            BUS_SPEED_STANDARD
+#define SDCARD_BUS_SPEED            BUS_SPEED_FAST
 #endif
+
+// Other devices set their bus speed once, at init, and the bus keeps the last one: a shared bus stays as it was
+static bool sdcardSpi_busShared(void)
+{
+    for (const busDeviceDescriptor_t * descriptor = __busdev_registry_start; descriptor < __busdev_registry_end; descriptor++) {
+        if (descriptor->busType == BUSTYPE_SPI && descriptor->devHwType != DEVHW_SDCARD && descriptor->busdev.spi.spiBus == sdcard.dev->busdev.spi.spiBus) {
+            return true;
+        }
+    }
+    return false;
+}
 
 static void sdcardSpi_select(void)
 {
@@ -104,6 +116,10 @@ static void sdcardSpi_reset(void)
     if (sdcard.failureCount >= SDCARD_MAX_CONSECUTIVE_FAILURES) {
         sdcard.state = SDCARD_STATE_NOT_PRESENT;
     } else {
+        // After an error the card is identified again at the speed it always was, not at the full speed
+        if (sdcard.state >= SDCARD_STATE_READY) {
+            busSetSpeed(sdcard.dev, BUS_SPEED_STANDARD);
+        }
         sdcard.operationStartTime = millis();
         sdcard.state = SDCARD_STATE_RESET;
     }
@@ -535,7 +551,7 @@ static bool sdcardSpi_poll(void)
                 }
 
                 // Now we're done with init and we can switch to the full speed clock (<25MHz)
-                busSetSpeed(sdcard.dev, SDCARD_BUS_SPEED);
+                busSetSpeed(sdcard.dev, sdcardSpi_busShared() ? BUS_SPEED_STANDARD : SDCARD_BUS_SPEED);
 
                 sdcard.multiWriteBlocksRemain = 0;
 
