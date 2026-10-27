@@ -53,6 +53,31 @@ bool i2cBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data)
     const bool allowRawAccess = (dev->flags & DEVFLAGS_USE_RAW_REGISTERS);
     return i2cRead(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, 1, data, allowRawAccess);
 }
+#ifdef USE_I2C_ASYNC
+bool i2cBusReadBufferAsync(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
+{
+    const bool allowRawAccess = (dev->flags & DEVFLAGS_USE_RAW_REGISTERS);
+    return i2cReadAsync(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address, reg, length, data, allowRawAccess);
+}
+
+i2cAsyncState_e i2cBusAsyncState(const busDevice_t * dev)
+{
+    return i2cAsyncState(dev->busdev.i2c.i2cBus, dev->busdev.i2c.address);
+}
+#else
+// Without it the read runs to the end at once
+bool i2cBusReadBufferAsync(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
+{
+    return i2cBusReadBuffer(dev, reg, data, length);
+}
+
+i2cAsyncState_e i2cBusAsyncState(const busDevice_t * dev)
+{
+    UNUSED(dev);
+    return I2C_ASYNC_OK;
+}
+#endif
+
 bool i2cBusBusy(const busDevice_t *dev, bool *error)
 {   
 #if defined(AT32F43x) 
