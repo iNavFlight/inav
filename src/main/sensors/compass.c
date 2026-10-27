@@ -51,6 +51,7 @@
 #include "drivers/time.h"
 
 #include "fc/config.h"
+#include "fc/fc_core.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
@@ -59,8 +60,11 @@
 
 #include "flight/imu.h"
 
+#include "navigation/navigation.h"
+
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
+#include "sensors/compass_learn.h"
 #include "sensors/compass_orientation.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
@@ -83,6 +87,9 @@ PG_RESET_TEMPLATE(compassConfig_t, compassConfig,
     .pitchDeciDegrees = SETTING_ALIGN_MAG_PITCH_DEFAULT,
     .yawDeciDegrees = SETTING_ALIGN_MAG_YAW_DEFAULT,
     .magGain = {SETTING_MAGGAIN_X_DEFAULT, SETTING_MAGGAIN_Y_DEFAULT, SETTING_MAGGAIN_Z_DEFAULT},
+#ifdef USE_MAG_LEARN
+    .magLearn = SETTING_MAG_LEARN_DEFAULT,
+#endif
 );
 
 static bool magUpdatedAtLeastOnce = false;
@@ -430,6 +437,69 @@ static void compassApplyDetectedOrientation(int16_t rollDD, int16_t pitchDD, int
     compassRefreshAlignment();
 }
 
+#ifdef USE_MAG_LEARN
+static void compassLearnUpdate(timeUs_t currentTimeUs)
+{
+    static bool learnArmed;
+    static bool learnPending;
+    static timeUs_t lastFitAt;
+
+    // A calibration, or mag_learn turned off, while armed spoils what the flight collected up to then
+    const bool canLearn = compassConfig()->magLearn && calStartedAt == 0 && STATE(COMPASS_CALIBRATED);
+
+    if (ARMING_FLAG(ARMED)) {
+        if (!learnArmed || !canLearn) {
+            magLearnReset();
+            learnArmed = true;
+            learnPending = false;
+            lastFitAt = currentTimeUs;
+        }
+        if (!canLearn) {
+            return;
+        }
+        if (isProbablyStillFlying() && !STATE(LANDING_DETECTED)) {
+            magLearnStatus.flags = (magLearnStatus.flags & ~MAG_LEARN_PAUSED) | MAG_LEARN_COLLECTING;
+            magLearnAddSample(mag.magADC, mag.dev.magADCRaw);
+        } else {
+            magLearnStatus.flags = (magLearnStatus.flags & ~MAG_LEARN_COLLECTING) | MAG_LEARN_PAUSED;
+        }
+        // Refit about once a second so the blackbox shows the estimate and the checks evolving
+        if (cmpTimeUs(currentTimeUs, lastFitAt) >= 1000000) {
+            lastFitAt = currentTimeUs;
+            magLearnEvaluate(compassConfig()->magZero.raw, compassConfig()->magGain);
+        }
+    } else if (learnArmed) {
+        learnArmed = false;
+        learnPending = canLearn;
+        magLearnStatus.flags &= ~(MAG_LEARN_COLLECTING | MAG_LEARN_PAUSED);
+    } else if (learnPending) {
+        // No heading step or flash write while an emergency rearm may follow, nor while the aircraft is carried away
+        const timeUs_t sinceDisarm = currentTimeUs - getLastDisarmTimeUs();
+        if (canLearn && (sinceDisarm < MS2US(EMERGENCY_INFLIGHT_REARM_TIME_WINDOW_MS) ||
+                         (isProbablyStillFlying() && sinceDisarm < MS2US(MAG_LEARN_SAVE_TIMEOUT_MS)))) {
+            return;
+        }
+        learnPending = false;
+        if (!canLearn) {
+            magLearnStatus.flags &= ~MAG_LEARN_SAVE_DUE;
+            return;
+        }
+        if (isProbablyStillFlying()) {
+            magLearnStatus.flags = (magLearnStatus.flags & ~MAG_LEARN_SAVE_DUE) | MAG_LEARN_DISARMED_FLYING;
+            return;
+        }
+        magLearnEvaluate(compassConfig()->magZero.raw, compassConfig()->magGain);
+        if (magLearnStatus.flags & MAG_LEARN_SAVE_DUE) {
+            for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+                compassConfigMutable()->magZero.raw[axis] = constrain(compassConfig()->magZero.raw[axis] + magLearnStatus.delta[axis], INT16_MIN, INT16_MAX);
+            }
+            magLearnStatus.flags |= MAG_LEARN_SAVED;
+            saveConfigAndNotify();
+        }
+    }
+}
+#endif
+
 void compassUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_SIMULATOR
@@ -588,6 +658,10 @@ void compassUpdate(timeUs_t currentTimeUs)
         applySensorAlignment(mag.magADC, mag.magADC, mag.dev.magAlign.onBoard);
         applyBoardAlignment(mag.magADC);
     }
+
+#ifdef USE_MAG_LEARN
+    compassLearnUpdate(currentTimeUs);
+#endif
 
     magUpdatedAtLeastOnce = true;
 }
