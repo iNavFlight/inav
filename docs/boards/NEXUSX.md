@@ -39,6 +39,8 @@ The RPM, TLM, AUX and SBUS pins can be Servo/Motor outputs or a UART. When UART2
 All pin orders are from left to right, when looking at the connector on the flight controller.
 **Note that the pin order for "A", "B" and "C" is incorrect on radiomaster's website, it has RX and TX swapped.**
 
+The ESC connector also takes a Spektrum Smart ESC (SRXL2) on UART1's TX, chosen in the outputs tab: see [Boards with an ESC connector](../Spektrum%20Smart%20ESC.md#boards-with-an-esc-connector).
+
 Hardware layout
 ---------------
 

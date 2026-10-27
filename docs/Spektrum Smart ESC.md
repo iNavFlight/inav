@@ -16,7 +16,9 @@ connection cannot give you:
 
 ## Wiring
 
-The ESC's normal three-wire servo lead goes to a **UART**, not to a motor pad:
+The ESC's normal three-wire servo lead goes to a **UART**, not to a motor pad (a few
+boards have an ESC connector that can be one, see
+[Boards with an ESC connector](#boards-with-an-esc-connector)):
 
 | Wire | Goes to |
 |---|---|
@@ -46,7 +48,8 @@ The motor pad that would normally have driven this ESC is simply left unused.
 ## Setting it up
 
 1. **Ports tab**: assign `Spektrum Smart ESC (SRXL2)` to a spare UART, one per
-   motor. They are matched to motors in port order; see below.
+   motor. They are matched to motors in port order; see below. Not needed for
+   an ESC on a board's ESC connector.
 2. **Outputs tab**: set the ESC protocol to `SRXL2`.
 3. **Outputs tab**: set **Motor poles** correctly. This matters more than usual; see
    the RPM filter section below.
@@ -54,9 +57,10 @@ The motor pad that would normally have driven this ESC is simply left unused.
    channel its own `Thrust Rev.` parameter selects, then assign the **THRUST
    REVERSE** mode to a switch in the Modes tab. See below.
 
-Both steps 1 and 2 are needed. This protocol has **no fallback to PWM**: the pin is
-a UART pin, not a timer output, so a motor protocol of `SRXL2` with no port assigned
-means the motor is never driven. The Outputs tab warns when that is the case.
+Both steps 1 and 2 are needed; for an ESC on a board's ESC connector, the connector
+option replaces step 1. This protocol has **no fallback to PWM**: the pin is a UART
+pin, not a timer output, so a motor protocol of `SRXL2` with no port assigned means
+the motor is never driven. The Outputs tab warns when that is the case.
 
 If your firmware was not built with this support the protocol does not appear in the
 list at all, and neither does the port function. It is enabled by default on F405, H7
@@ -64,6 +68,38 @@ and AT32 targets, which is where the flash to spare is: the driver costs about 3
 and an F405 board typically uses three quarters of its flash. The F7 family is left out
 because some of its targets are close to full, so an F7 board with room can turn it on
 with a `#define USE_MOTOR_SRXL2` in its `target.h`, as can any other target.
+
+## Boards with an ESC connector
+
+A few flight controllers made for helicopters have a connector labelled ESC whose
+signal pin can also be UART1's TX. On these a Smart ESC can plug into that connector.
+They are built with the driver for it.
+
+| Board | Connector | Where UART1 is otherwise |
+|---|---|---|
+| Radiomaster NEXUS X / XR | ESC (PA9) | AUX and SBUS |
+| Vantac RF007 | ESC (PA9) | AUX and SBUS |
+| Radiomaster NEXUS | M1/ESC (PB6) | the DSM port |
+
+With the ESC protocol set to `SRXL2`, the Outputs tab offers **ESC on the board's ESC
+connector**, off by default (`esc_srxl2_connector` in the CLI). Turned on, the ESC on
+the connector is motor 1, on UART1: the chip can wire no other UART to that pin. UART1
+must have no function in the Ports tab, which then lists it as **SRXL2 via ESC
+connector**; while it has one, the connector stays unused and the Outputs tab says so.
+UART1 has MSP by default on these boards: turn MSP off there first. More ESCs go on
+UARTs assigned in the Ports tab, as on any other board, and follow as motors 2 and on.
+
+Nothing else uses the connector's pin meanwhile: a beeper, LED strip or PINIO set on its
+timer in the Mixer tab stays off. The motor output there keeps its place in the mapping,
+unused, so with its timer on motors, as these boards set it, the servos stay where they
+were.
+
+Turned off, the connector is not used and the ESCs are only on the UARTs assigned in
+the Ports tab. With any other ESC protocol the connector is a motor output as before.
+
+The FlyDragon Pro is built with the driver too. Its connector labelled ESC is UART4's TX
+already, so a Smart ESC there needs only UART4 assigned to it in the Ports tab, which
+takes the RPM pin as well (UART4's RX).
 
 ## One ESC per port, several ports
 

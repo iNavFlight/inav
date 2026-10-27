@@ -338,6 +338,15 @@ void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)
     }
 }
 
+void uartSetTxPin(UARTDevice_e device, ioTag_t txPin)
+{
+    uartDevice_t *uart = uartHardwareMap[device];
+
+    if (uart) {
+        uart->tx = txPin;
+    }
+}
+
 uartPort_t *serialUART(UARTDevice_e device, uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *s;
