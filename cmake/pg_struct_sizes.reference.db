@@ -4,7 +4,7 @@ barometerConfig_t                8 5
 batteryMetersConfig_t           24 4
 beeperConfig_t                  12 2
 blackboxConfig_t                16 4
-compassConfig_t                 24 6
+compassConfig_t                 28 7
 displayConfig_t                  1 0
 djiOsdConfig_t                   6 3
 escSensorConfig_t                4 1
@@ -18,7 +18,7 @@ gimbalSerialConfig_t             1 0
 gpsConfig_t                     11 5
 gyroConfig_t                    64 12
 headTrackerConfig_t             16 1
-imuConfig_t                     16 2
+imuConfig_t                     18 2
 ledPinConfig_t                   1 0
 logConfig_t                      8 0
 modeActivationOperatorConfig_t   1 0
