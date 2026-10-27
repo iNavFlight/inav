@@ -69,6 +69,10 @@ typedef struct {
 } uartPort_t;
 
 void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins);
+#ifdef USE_SERIAL_PADS
+// Whether TX (or RX) can be on this pin instead; with apply, the port uses it from its next open
+bool uartRoutePin(UARTDevice_e device, bool tx, ioTag_t pin, bool apply);
+#endif
 void uartClearIdleFlag(uartPort_t *s);
 void uartConfigurePinSwap(uartPort_t *uartPort);
 #if defined(AT32F43x) 

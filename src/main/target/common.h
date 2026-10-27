@@ -83,6 +83,11 @@
 #define USE_MOTOR_SRXL2
 #endif
 
+// UART TX and RX on an output pad; the 512 KB boards are left out for flash
+#if !defined(USE_SERIAL_PADS) && (MCU_FLASH_SIZE > 512) && (defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x))
+#define USE_SERIAL_PADS
+#endif
+
 #ifndef USE_ADC_AVERAGING
 #define USE_ADC_AVERAGING
 #endif
