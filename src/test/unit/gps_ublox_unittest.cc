@@ -98,3 +98,24 @@ TEST(GPSUbloxTest, navSigStructureSizes) {
 
     EXPECT_TRUE(sizeof(ubx_nav_svinfo) == (8 + (12 * UBLOX_MAX_SIGNALS)));
 }
+
+TEST(GPSUbloxTest, navSatUsedBecomesPseudorangeUsed) {
+    ubx_nav_svinfo_channel navSat = {};
+    navSat.gnssId = 2;
+    navSat.svId = 11;
+    navSat.cno = 41;
+    // quality 7, svUsed, health 1 (healthy)
+    navSat.flags = 0x07 | BIT(3) | (1 << 4);
+
+    ubx_nav_sig_info navSig;
+    ubloxNavSat2NavSig(&navSat, &navSig);
+    EXPECT_EQ(navSig.gnssId, 2);
+    EXPECT_EQ(navSig.svId, 11);
+    EXPECT_EQ(navSig.cno, 41);
+    EXPECT_EQ(navSig.quality, 7);
+    EXPECT_EQ(navSig.sigFlags, UBLOX_SIG_PRUSED | 1);
+
+    navSat.flags &= ~BIT(3);
+    ubloxNavSat2NavSig(&navSat, &navSig);
+    EXPECT_EQ(navSig.sigFlags, 1);
+}
