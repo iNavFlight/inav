@@ -29,7 +29,7 @@ MAVLink is built only into targets with more than 512 KB of flash (STM32F405, ST
 - **Mission handling is partial**: uploads are rejected while armed except for legacy guided waypoint writes, mission frames are validated per command, and MSP mission parity gaps remain.
 - **Mode reporting is approximate**: `custom_mode` is mapped to ArduPilot-style modes for compatibility and does not represent every INAV state exactly.
 - **Single local component identity**: INAV always originates as `MAV_COMP_ID_AUTOPILOT1`; attached radios, GCSes, and companions are always remote components, never local per-port FC identities.
-- **Flow control is per-port and opportunistic**: INAV uses remote TX buffer information from `RADIO_STATUS.txbuf`, or from `MLRS_RADIO_LINK_FLOW_CONTROL.txbuf` on MLRS links. Without flow-control input it falls back to blind 20 ms pacing.
+- **Flow control is per-port and opportunistic**: INAV uses remote TX buffer information from `RADIO_STATUS.txbuf`, or from `MLRS_RADIO_LINK_FLOW_CONTROL.txbuf` on MLRS links. `txbuf` is the free space in percent, so 0 means a full buffer; values above 100 are ignored, and a report older than 5 s is dropped. Without flow-control input it falls back to blind 20 ms pacing.
 - **Half-duplex etiquette still applies**: on a MAVLink serial RX port configured for `serialrx_halfduplex`, INAV waits one telemetry tick after a received frame before transmitting.
 
 ### Usage guidance
