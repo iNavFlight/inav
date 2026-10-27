@@ -3492,8 +3492,8 @@ groups:
       - name: mavlink_port1_min_txbuffer
         condition: USE_TELEMETRY_MAVLINK
         field: mavlink[0].min_txbuff
-        description: "Minimum percent of TX buffer space free for MAVLink port 1. Requires RADIO_STATUS messages."
-        default_value: 33
+        description: "Minimum percent of TX buffer space free for MAVLink port 1. Requires RADIO_STATUS messages. Below it the streams pause; with 0 they never pause and only slow down."
+        default_value: 0
         min: 0
         max: 100
       - name: mavlink_port1_radio_type
@@ -3520,8 +3520,8 @@ groups:
       - name: mavlink_port2_min_txbuffer
         condition: USE_TELEMETRY_MAVLINK
         field: mavlink[1].min_txbuff
-        description: "Minimum percent of TX buffer space free for MAVLink port 2. Requires RADIO_STATUS messages."
-        default_value: 33
+        description: "Minimum percent of TX buffer space free for MAVLink port 2. Requires RADIO_STATUS messages. Below it the streams pause; with 0 they never pause and only slow down."
+        default_value: 0
         min: 0
         max: 100
       - name: mavlink_port2_radio_type
@@ -3540,8 +3540,8 @@ groups:
       - name: mavlink_port3_min_txbuffer
         condition: USE_TELEMETRY_MAVLINK
         field: mavlink[2].min_txbuff
-        description: "Minimum percent of TX buffer space free for MAVLink port 3. Requires RADIO_STATUS messages."
-        default_value: 33
+        description: "Minimum percent of TX buffer space free for MAVLink port 3. Requires RADIO_STATUS messages. Below it the streams pause; with 0 they never pause and only slow down."
+        default_value: 0
         min: 0
         max: 100
       - name: mavlink_port3_radio_type
@@ -3560,8 +3560,8 @@ groups:
       - name: mavlink_port4_min_txbuffer
         condition: USE_TELEMETRY_MAVLINK
         field: mavlink[3].min_txbuff
-        description: "Minimum percent of TX buffer space free for MAVLink port 4. Requires RADIO_STATUS messages."
-        default_value: 33
+        description: "Minimum percent of TX buffer space free for MAVLink port 4. Requires RADIO_STATUS messages. Below it the streams pause; with 0 they never pause and only slow down."
+        default_value: 0
         min: 0
         max: 100
       - name: mavlink_port4_radio_type

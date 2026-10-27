@@ -1091,6 +1091,65 @@ TEST(MavlinkTelemetryTest, MlrsFlowControlUsesIngressPortAndAcceptsZeroTxbuf)
     EXPECT_EQ(mavlinkPortTxBufferFree(0), 0);
 }
 
+TEST(MavlinkTelemetryTest, RadioStatusZeroTxbufHoldsTelemetryUntilBufferFrees)
+{
+    initMavlinkTestState();
+    telemetryConfigMutable()->mavlink[0].min_txbuff = 33;
+
+    mavlink_message_t msg;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, 0, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(2000000);
+
+    mavlink_message_t attitude;
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 0);
+    EXPECT_FALSE(findTxMessageById(MAVLINK_MSG_ID_ATTITUDE, &attitude));
+
+    serialTxLen = 0;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, 100, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(4000000);
+
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 100);
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_ATTITUDE, &attitude));
+}
+
+TEST(MavlinkTelemetryTest, RadioStatusTxbufAboveHundredIsIgnored)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, 255, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000);
+
+    EXPECT_FALSE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 100);
+}
+
+TEST(MavlinkTelemetryTest, StaleTxbufReportReleasesThePort)
+{
+    initMavlinkTestState();
+    telemetryConfigMutable()->mavlink[0].min_txbuff = 33;
+
+    mavlink_message_t msg;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, 0, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+    handleMAVLinkTelemetry(1000000);
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+
+    handleMAVLinkTelemetry(1000000 + MAVLINK_TXBUFF_REPORT_TIMEOUT_US);
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+
+    serialTxLen = 0;
+    handleMAVLinkTelemetry(1000000 + MAVLINK_TXBUFF_REPORT_TIMEOUT_US + 20000);
+    mavlink_message_t attitude;
+    EXPECT_FALSE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 100);
+    EXPECT_TRUE(findTxMessageById(MAVLINK_MSG_ID_ATTITUDE, &attitude));
+}
+
 TEST(MavlinkTelemetryTest, MlrsMessagesRequireTelemetryRadioComponent)
 {
     initMavlinkTestState();
@@ -1144,6 +1203,210 @@ TEST(MavlinkTelemetryTest, MlrsMessagesRequireTelemetryRadioComponent)
     EXPECT_EQ(rxLinkStatistics.uplinkLQ, 0);
     EXPECT_FALSE(mavlinkPortTxBufferIsValid(0));
     EXPECT_EQ(mavlinkPortTxBufferFree(0), 100);
+}
+
+static void pushRadioStatusTxbuf(uint8_t txbuf)
+{
+    mavlink_message_t msg;
+    mavlink_msg_radio_status_pack(51, MAV_COMP_ID_TELEMETRY_RADIO, &msg, 200, 190, txbuf, 10, 0, 0, 0);
+    pushRxMessage(&msg);
+}
+
+static void countAttitudeAndHeartbeat(timeUs_t start, timeUs_t end, int *attitude, int *heartbeat)
+{
+    for (timeUs_t now = start; now < end; now += 20000) {
+        serialTxLen = 0;
+        handleMAVLinkTelemetry(now);
+        for (const mavlink_message_t &msg : parseTxMessages()) {
+            if (msg.msgid == MAVLINK_MSG_ID_ATTITUDE) {
+                (*attitude)++;
+            } else if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+                (*heartbeat)++;
+            }
+        }
+    }
+}
+
+TEST(MavlinkTelemetryTest, TxbufSlowdownFollowsArduPilotSteps)
+{
+    initMavlinkTestState();
+
+    const uint8_t reports[] = { 10, 10, 40, 92, 99 };
+    const uint16_t expectedMs[] = { 60, 120, 140, 120, 100 };
+    timeUs_t now = 1000000;
+    for (size_t i = 0; i < ARRAYLEN(reports); i++) {
+        pushRadioStatusTxbuf(reports[i]);
+        handleMavlinkUntilRxEmpty(now);
+        now += 20000;
+        EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), expectedMs[i]);
+    }
+
+    for (int i = 0; i < 40; i++) {
+        pushRadioStatusTxbuf(10);
+        handleMavlinkUntilRxEmpty(now);
+        now += 20000;
+    }
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 2020);
+
+    pushRadioStatusTxbuf(100);
+    handleMavlinkUntilRxEmpty(now);
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 1980);
+}
+
+TEST(MavlinkTelemetryTest, StaleTxbufReportClearsTheSlowdown)
+{
+    initMavlinkTestState();
+
+    pushRadioStatusTxbuf(10);
+    handleMavlinkUntilRxEmpty(1000000);
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 60);
+
+    handleMAVLinkTelemetry(1000000 + MAVLINK_TXBUFF_REPORT_TIMEOUT_US + 20000);
+    EXPECT_FALSE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 0);
+}
+
+TEST(MavlinkTelemetryTest, TxbufAboveHundredClearsTheSlowdown)
+{
+    initMavlinkTestState();
+
+    pushRadioStatusTxbuf(10);
+    pushRadioStatusTxbuf(10);
+    handleMavlinkUntilRxEmpty(1000000);
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 120);
+
+    pushRadioStatusTxbuf(255);
+    handleMavlinkUntilRxEmpty(1020000);
+    EXPECT_FALSE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 0);
+}
+
+TEST(MavlinkTelemetryTest, MlrsFlowControlFeedsTheSlowdown)
+{
+    initMavlinkTestState();
+
+    mavlink_message_t msg;
+    mavlink_msg_mlrs_radio_link_flow_control_pack(
+        testTunnelSourceSystem,
+        MAV_COMP_ID_TELEMETRY_RADIO,
+        &msg,
+        9600,
+        4800,
+        90,
+        40,
+        0);
+    pushRxMessage(&msg);
+    handleMavlinkUntilRxEmpty(1000000);
+
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 60);
+}
+
+TEST(MavlinkTelemetryTest, LongMessageIntervalPlusSlowdownDoesNotWrap)
+{
+    initMavlinkTestState();
+    for (int i = 0; i < 5; i++) {
+        pushRadioStatusTxbuf(10);
+    }
+    handleMavlinkUntilRxEmpty(1000000);
+    ASSERT_EQ(mavlinkPortStreamSlowdownMs(0), 300);
+
+    mavlink_message_t setMsg;
+    mavlink_msg_command_long_pack(
+        42, 200, &setMsg,
+        1, testTargetComponent,
+        MAV_CMD_SET_MESSAGE_INTERVAL,
+        0,
+        (float)MAVLINK_MSG_ID_ATTITUDE,
+        2147480000.0f, 0, 0, 0, 0, 0);
+    pushRxMessage(&setMsg);
+
+    int attitude = 0;
+    int heartbeat = 0;
+    countAttitudeAndHeartbeat(1100000, 2100000, &attitude, &heartbeat);
+    EXPECT_LE(attitude, 1);
+}
+
+TEST(MavlinkTelemetryTest, StreamsKeepTheirRateWithoutTxbufReports)
+{
+    initMavlinkTestState();
+    int attitude = 0;
+    int heartbeat = 0;
+    // Ends right after the 8th attitude at 4.5 s, so a delay of even 20 ms would drop it
+    countAttitudeAndHeartbeat(1000000, 4520000, &attitude, &heartbeat);
+    EXPECT_EQ(attitude, 8);
+    EXPECT_EQ(heartbeat, 4);
+}
+
+TEST(MavlinkTelemetryTest, TxbufSlowdownStretchesStreamsButNotHeartbeat)
+{
+    initMavlinkTestState();
+    for (int i = 0; i < 30; i++) {
+        pushRadioStatusTxbuf(10);
+    }
+    int attitude = 0;
+    int heartbeat = 0;
+    countAttitudeAndHeartbeat(1000000, 5000000, &attitude, &heartbeat);
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 1800);
+    EXPECT_LE(attitude, 3);
+    EXPECT_EQ(heartbeat, 4);
+}
+
+TEST(MavlinkTelemetryTest, HeartbeatKeepsGoingWhileTheGateIsClosed)
+{
+    initMavlinkTestState();
+    telemetryConfigMutable()->mavlink[0].min_txbuff = 33;
+    pushRadioStatusTxbuf(10);
+
+    int attitude = 0;
+    int heartbeat = 0;
+    countAttitudeAndHeartbeat(1000000, 5000000, &attitude, &heartbeat);
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(attitude, 0);
+    EXPECT_EQ(heartbeat, 4);
+}
+
+TEST(MavlinkTelemetryTest, HighLatencySendsNoHeartbeatWhileTheGateIsClosed)
+{
+    initMavlinkTestState();
+    telemetryConfigMutable()->mavlink[0].min_txbuff = 33;
+
+    mavlink_message_t cmd;
+    mavlink_msg_command_long_pack(
+        42, 200, &cmd,
+        1, testTargetComponent,
+        MAV_CMD_CONTROL_HIGH_LATENCY,
+        0,
+        1.0f, 0, 0, 0, 0, 0, 0);
+    pushRxMessage(&cmd);
+    pushRadioStatusTxbuf(10);
+
+    int attitude = 0;
+    int heartbeat = 0;
+    countAttitudeAndHeartbeat(1000000, 5000000, &attitude, &heartbeat);
+    EXPECT_TRUE(mavlinkPortTxBufferIsValid(0));
+    EXPECT_EQ(heartbeat, 0);
+}
+
+TEST(MavlinkTelemetryTest, DefaultMinTxbufferSlowsButNeverPausesTheStreams)
+{
+    EXPECT_EQ(SETTING_MAVLINK_PORT2_MIN_TXBUFFER_DEFAULT, SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT);
+    EXPECT_EQ(SETTING_MAVLINK_PORT3_MIN_TXBUFFER_DEFAULT, SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT);
+    EXPECT_EQ(SETTING_MAVLINK_PORT4_MIN_TXBUFFER_DEFAULT, SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT);
+
+    initMavlinkTestState();
+    telemetryConfigMutable()->mavlink[0].min_txbuff = SETTING_MAVLINK_PORT1_MIN_TXBUFFER_DEFAULT;
+    for (int i = 0; i < 10; i++) {
+        pushRadioStatusTxbuf(0);
+    }
+
+    int attitude = 0;
+    int heartbeat = 0;
+    countAttitudeAndHeartbeat(1000000, 5000000, &attitude, &heartbeat);
+    EXPECT_EQ(mavlinkPortTxBufferFree(0), 0);
+    EXPECT_EQ(mavlinkPortStreamSlowdownMs(0), 600);
+    EXPECT_GT(attitude, 0);
+    EXPECT_LT(attitude, 8);
+    EXPECT_EQ(heartbeat, 4);
 }
 
 TEST(MavlinkTelemetryTest, AttitudeUsesRadiansPerSecond)
