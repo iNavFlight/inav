@@ -22,6 +22,8 @@
 #include "common/time.h"
 #include "common/utils.h"
 
+#include "drivers/time.h"
+
 #ifdef AFATFS_DEBUG
 #include <signal.h>
 #include <stdio.h>
@@ -38,7 +40,24 @@
     #define ONLY_EXPOSE_FOR_TESTING static
 #endif
 
+// Room for the log while the card holds one write (up to 250 ms): 16 sectors cover about
+// 85 kB/s, 24 twice that
+#ifndef AFATFS_NUM_CACHE_SECTORS
+#if defined(STM32H7)
+#define AFATFS_NUM_CACHE_SECTORS 32
+#elif defined(STM32F7)
+#define AFATFS_NUM_CACHE_SECTORS 24
+#elif defined(STM32F4) && !defined(USE_SDCARD_SDIO)
+#define AFATFS_NUM_CACHE_SECTORS 24
+#else
 #define AFATFS_NUM_CACHE_SECTORS 8
+#endif
+#endif
+
+// RAM is short on F4, CCM is not, and a card on SPI is written by the CPU, never by DMA
+#if defined(STM32F4) && !defined(USE_SDCARD_SDIO)
+#define AFATFS_CACHE_IN_FASTRAM
+#endif
 
 // FAT filesystems are allowed to differ from these parameters, but we choose not to support those weird filesystems:
 #define AFATFS_SECTOR_SIZE  512
@@ -91,6 +110,26 @@
 
 // When allocating a freefile, leave this many clusters un-allocated for regular files to use
 #define AFATFS_FREEFILE_LEAVE_CLUSTERS 100
+
+// At boot the freefile is extended over the free clusters after it, and if still below this size
+// moved to the largest free block, when larger. Larger ones skip the FAT search: boot stays fast
+#define AFATFS_FREEFILE_REGROW_BELOW (2048U * 1024U * 1024U)
+
+// The freefile grows this much at a time, its directory entry saved after each step: a power cut
+// during the regrow then strands at most this much of chain instead of all of it
+#define AFATFS_FREEFILE_GROW_STEP (256U * 1024U * 1024U)
+
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+// Below this size the freefile is refilled in the background: extended over the free clusters
+// after it or, once used up and its log closed, moved to the largest free block
+#define AFATFS_FREEFILE_REFILL_BELOW (256U * 1024U * 1024U)
+// Superclusters claimed at a time, so that the logs' own writes are never held up for long
+#define AFATFS_FREEFILE_REFILL_SUPERCLUSTERS 4
+#endif
+
+// The free space count reads a FAT sector at most this often, and gives up on one it can't read in this long
+#define AFATFS_FREE_COUNT_GAP_US 2000
+#define AFATFS_FREE_COUNT_TIMEOUT_US 1000000
 
 // Filename in 8.3 format:
 #define AFATFS_FREESPACE_FILENAME "FREESPAC.E"
@@ -220,7 +259,38 @@ typedef struct afatfsFreeSpaceSearch_t {
 typedef struct afatfsFreeSpaceFAT_t {
     uint32_t startCluster;
     uint32_t endCluster;
+    uint32_t blockEnd;      // the chain is written, or freed, up to here before the next step
+    uint32_t fillEnd;       // the block's FAT is written back from its end, and is done up to here
+    uint32_t shrinkFirst;   // the old freefile's first cluster, while it is given back
+    uint32_t shrinkCluster; // the first cluster of the tail being freed
+    bool fromSearch;        // chosen by the FAT search: nothing larger exists, so the init ends with it
 } afatfsFreeSpaceFAT_t;
+
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+typedef enum {
+    AFATFS_REFILL_IDLE = 0,
+    AFATFS_REFILL_CLAIM_SEARCH,
+    AFATFS_REFILL_CLAIM_UPDATE_FAT,
+    AFATFS_REFILL_CLAIM_LINK,
+    AFATFS_REFILL_CLAIM_SAVE_DIR_ENTRY,
+    AFATFS_REFILL_BLOCK_SEARCH,
+    AFATFS_REFILL_RELEASE
+} afatfsRefillPhase_e;
+
+typedef struct afatfsRefill_t {
+    afatfsRefillPhase_e phase;
+    bool moving;        // The claim creates the freefile at blockStart, rather than extending it
+    bool claiming;      // Regular cluster allocations wait while the clusters being claimed still read as free
+    bool extendBlocked; // Nothing free follows the freefile
+    bool searched;      // The search for the largest free block has finished
+    bool blockFound;
+    bool regularFull;   // A regular cluster allocation found no free cluster
+    uint32_t blockStart;
+    uint32_t claimStart;  // First cluster to claim
+    uint32_t claimCursor; // Searched up to here, then chained back from claimEnd down to here
+    uint32_t claimEnd;    // One beyond the last cluster claimed
+} afatfsRefill_t;
+#endif
 
 typedef struct afatfsCreateFile_t {
     afatfsFileCallback_t callback;
@@ -414,14 +484,37 @@ typedef enum {
 #ifdef AFATFS_USE_FREEFILE
     AFATFS_INITIALIZATION_FREEFILE_CREATE,
     AFATFS_INITIALIZATION_FREEFILE_CREATING,
+    AFATFS_INITIALIZATION_FREEFILE_EXTEND_SEARCH,
+    AFATFS_INITIALIZATION_FREEFILE_GROW_FAT,
+    AFATFS_INITIALIZATION_FREEFILE_GROW_LINK,
+    AFATFS_INITIALIZATION_FREEFILE_GROW_SAVE_DIR_ENTRY,
+    AFATFS_INITIALIZATION_FREEFILE_GROW_SYNC,
     AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH,
-    AFATFS_INITIALIZATION_FREEFILE_UPDATE_FAT,
+    AFATFS_INITIALIZATION_FREEFILE_SHRINK_SAVE_DIR_ENTRY,
+    AFATFS_INITIALIZATION_FREEFILE_SHRINK_TERMINATE,
+    AFATFS_INITIALIZATION_FREEFILE_SHRINK_FREE,
     AFATFS_INITIALIZATION_FREEFILE_SAVE_DIR_ENTRY,
     AFATFS_INITIALIZATION_FREEFILE_LAST = AFATFS_INITIALIZATION_FREEFILE_SAVE_DIR_ENTRY,
 #endif
 
     AFATFS_INITIALIZATION_DONE
 } afatfsInitializationPhase_e;
+
+// After the free count, the directories are read to tell what holds the clusters taken outside the freefile
+typedef enum {
+    AFATFS_DIR_WALK_START = 0,
+    AFATFS_DIR_WALK_RUNNING,
+    AFATFS_DIR_WALK_DONE,
+    AFATFS_DIR_WALK_FAILED
+} afatfsDirWalkState_e;
+
+#define AFATFS_DIR_WALK_DEPTH 4
+
+typedef struct afatfsDirWalkLevel_t {
+    uint32_t cluster;   // 0 for FAT16's root directory, which lies before the clusters
+    uint16_t sector;    // within the cluster, or within FAT16's root directory
+    uint8_t entry;
+} afatfsDirWalkLevel_t;
 
 typedef struct afatfs_t {
     fatFilesystemType_e filesystemType;
@@ -437,11 +530,7 @@ typedef struct afatfs_t {
     } initState;
 #endif
 
-#ifdef STM32H7
     uint8_t *cache;
-#else
-    uint8_t cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS];
-#endif
     afatfsCacheBlockDescriptor_t cacheDescriptor[AFATFS_NUM_CACHE_SECTORS];
     uint32_t cacheTimer;
 
@@ -452,6 +541,10 @@ typedef struct afatfs_t {
 
 #ifdef AFATFS_USE_FREEFILE
     afatfsFile_t freeFile;
+#endif
+
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+    afatfsRefill_t refill;
 #endif
 
     afatfsError_e lastError;
@@ -480,6 +573,19 @@ typedef struct afatfs_t {
      */
     uint32_t lastClusterAllocated;
 
+    // Free clusters outside the freefile, counted here: afatfs never reads or updates FAT32's FSInfo
+    uint32_t freeCountNextCluster;
+    uint32_t freeCountClusters;
+    timeUs_t freeCountDueUs;
+    bool freeCountWanted;
+
+    afatfsDirWalkState_e dirWalkState;
+    uint8_t dirWalkDepth;
+    afatfsDirWalkLevel_t dirWalk[AFATFS_DIR_WALK_DEPTH];
+    uint32_t dirWalkClusters;   // of files and directories, a log's whole superclusters included
+    uint32_t logTailClusters;   // the rest of each log's last supercluster, taken without data
+    uint32_t terrainClusters;
+
     /* Mask to be ANDed with a byte offset within a file to give the offset within the cluster */
     uint32_t byteInClusterMask;
 
@@ -487,11 +593,21 @@ typedef struct afatfs_t {
     uint32_t rootDirectorySectors; // Zero on FAT32, for FAT16 the number of sectors that the root directory occupies
 } afatfs_t;
 
-#ifdef STM32H7
+#ifdef AFATFS_CACHE_IN_FASTRAM
+static FASTRAM uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
+#else
 static uint8_t afatfs_cache[AFATFS_SECTOR_SIZE * AFATFS_NUM_CACHE_SECTORS] __attribute__((aligned(32)));
 #endif
 
 static afatfs_t afatfs;
+
+// A cluster the free count has already passed changes hands
+static void afatfs_freeCountAdjust(uint32_t cluster, bool nowFree)
+{
+    if (cluster < afatfs.freeCountNextCluster && afatfs.freeCountNextCluster != UINT32_MAX) {
+        afatfs.freeCountClusters += nowFree ? 1 : -1;
+    }
+}
 
 static void afatfs_fileOperationContinue(afatfsFile_t *file);
 static uint8_t* afatfs_fileLockCursorSectorForWrite(afatfsFilePtr_t file);
@@ -521,6 +637,13 @@ bool afatfs_isIdle(void)
     // 4. Check freeFile state (ignore LOCKED as it's a static permission marker, not an operation)
     if (afatfs.freeFile.operation.operation != AFATFS_FILE_OPERATION_NONE &&
         afatfs.freeFile.operation.operation != AFATFS_FILE_OPERATION_LOCKED) {
+        return false;
+    }
+#endif
+
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+    // The search for the next block only reads the FAT, so terrain can read its files meanwhile
+    if (afatfs.refill.phase != AFATFS_REFILL_IDLE && afatfs.refill.phase != AFATFS_REFILL_BLOCK_SEARCH) {
         return false;
     }
 #endif
@@ -1270,6 +1393,8 @@ static afatfsFindClusterStatus_e afatfs_findClusterWithCondition(afatfsClusterSe
 
             // Maintain alignment
             *cluster = roundUpTo(*cluster, jump);
+            // Follow the cluster, or the next read looks at the freefile's own FAT entries
+            afatfs_getFATPositionForCluster(*cluster, &fatSectorIndex, &fatSectorEntryIndex);
             continue; // Go back to check that the new cluster number is within the volume
         }
 #endif
@@ -1387,8 +1512,9 @@ static afatfsOperationStatus_e afatfs_FATFillWithPattern(afatfsFATPattern_e patt
 
     fatPhysicalSector = afatfs_fatSectorToPhysical(0, fatSectorIndex);
 
-    // How many consecutive FAT sectors will we be overwriting?
-    eraseSectorCount = (endCluster - *startCluster + firstEntryIndex + afatfs_fatEntriesPerSector() - 1) / afatfs_fatEntriesPerSector();
+    // How many consecutive FAT sectors will we be overwriting? Not a partial last one: it is read
+    // first, which can end the multiple-block write before it and leave that pre-erased block undefined
+    eraseSectorCount = (endCluster - *startCluster + firstEntryIndex) / afatfs_fatEntriesPerSector();
 
     while (*startCluster < endCluster) {
         // The last entry we will fill inside this sector (exclusive):
@@ -1483,6 +1609,9 @@ static afatfsOperationStatus_e afatfs_saveDirectoryEntry(afatfsFilePtr_t file, a
         return AFATFS_OPERATION_SUCCESS; // Root directories don't have a directory entry
     }
 
+    // Every change to a file ends up here, so what the directory walk found is out of date
+    afatfs.dirWalkState = AFATFS_DIR_WALK_START;
+
     result = afatfs_cacheSector(file->directoryEntryPos.sectorNumberPhysical, &sector, AFATFS_CACHE_READ | AFATFS_CACHE_WRITE, 0);
 
 #ifdef AFATFS_DEBUG_VERBOSE
@@ -1549,9 +1678,16 @@ static afatfsOperationStatus_e afatfs_appendRegularFreeClusterContinue(afatfsFil
 
     switch (opState->phase) {
         case AFATFS_APPEND_FREE_CLUSTER_PHASE_FIND_FREESPACE:
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+            // The clusters the freefile is claiming still read as free
+            if (afatfs.refill.claiming) {
+                break;
+            }
+#endif
             switch (afatfs_findClusterWithCondition(CLUSTER_SEARCH_FREE, &opState->searchCluster, afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER)) {
                 case AFATFS_FIND_CLUSTER_FOUND:
                     afatfs.lastClusterAllocated = opState->searchCluster;
+                    afatfs_freeCountAdjust(opState->searchCluster, false);
 
                     // Make the cluster available for us to write in
                     file->cursorCluster = opState->searchCluster;
@@ -1617,6 +1753,10 @@ static afatfsOperationStatus_e afatfs_appendRegularFreeClusterContinue(afatfsFil
             }
 
             afatfs.filesystemFull = true;
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+            // Full for more than the freefile: refilling it doesn't help, and the card stays full
+            afatfs.refill.regularFull = true;
+#endif
             return AFATFS_OPERATION_FAILURE;
         break;
     }
@@ -1783,6 +1923,13 @@ static afatfsOperationStatus_e afatfs_appendSupercluster(afatfsFilePtr_t file)
     if (afatfs.freeFile.logicalSize < superClusterSize) {
         afatfs.filesystemFull = true;
     }
+
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+    // With the freefile refilled while it grows, a file can reach the largest file size
+    if (file->physicalSize > FAT_MAXIMUM_FILESIZE - superClusterSize) {
+        afatfs.filesystemFull = true;
+    }
+#endif
 
     if (afatfs.filesystemFull || afatfs_fileIsBusy(file)) {
         return AFATFS_OPERATION_FAILURE;
@@ -2468,6 +2615,11 @@ static afatfsOperationStatus_e afatfs_ftruncateContinue(afatfsFilePtr_t file, bo
             status = afatfs_saveDirectoryEntry(file, markDeleted ? AFATFS_SAVE_DIRECTORY_DELETED : AFATFS_SAVE_DIRECTORY_NORMAL);
 
             if (status == AFATFS_OPERATION_SUCCESS) {
+                if (opState->startCluster == 0) {
+                    // No clusters to give back: an erase from cluster 0 would overwrite the start of the FAT
+                    opState->phase = AFATFS_TRUNCATE_FILE_SUCCESS;
+                    goto doMore;
+                }
 #ifdef AFATFS_USE_FREEFILE
                 if (opState->endCluster) {
                     opState->phase = AFATFS_TRUNCATE_FILE_ERASE_FAT_CHAIN_CONTIGUOUS;
@@ -2523,10 +2675,15 @@ static afatfsOperationStatus_e afatfs_ftruncateContinue(afatfsFilePtr_t file, bo
                     return status;
                 }
 
+                afatfs_freeCountAdjust(opState->currentCluster, true);
                 opState->currentCluster = nextCluster;
 
                 // Searches for unallocated regular clusters should be told about this free cluster now
                 afatfs.lastClusterAllocated = MIN(afatfs.lastClusterAllocated, opState->currentCluster - 1);
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+                // A deleted file is room for regular clusters again, and so for a new log
+                afatfs.refill.regularFull = false;
+#endif
             }
 
             opState->phase = AFATFS_TRUNCATE_FILE_SUCCESS;
@@ -3409,6 +3566,241 @@ uint32_t afatfs_getContiguousFreeSpace(void)
 }
 
 /**
+ * Return the free space of the whole card in KiB: the freefile, and the free clusters outside it that later
+ * freefiles grow into. AFATFS_FREE_SPACE_UNKNOWN until the count of those clusters has finished, or for good if a FAT
+ * sector could not be read.
+ */
+uint32_t afatfs_getFreeSpaceKB(void)
+{
+    if (afatfs.filesystemState != AFATFS_FILESYSTEM_STATE_READY
+        || afatfs.freeCountNextCluster != afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER) {
+        return AFATFS_FREE_SPACE_UNKNOWN;
+    }
+
+    // Counted in half-KiB sectors, which fit 32 bits up to FAT32's 2 TiB
+    return (afatfs.freeFile.logicalSize / AFATFS_SECTOR_SIZE + afatfs.freeCountClusters * afatfs.sectorsPerCluster) / 2;
+}
+
+// The count reads the whole FAT, so it runs only while asked for; stopped, it resumes where it was
+void afatfs_countFreeSpace(bool run)
+{
+    afatfs.freeCountWanted = run;
+}
+
+static uint32_t afatfs_freeFileClusters(void);
+
+/**
+ * Break down the space taken outside the freefile, in KiB: the rest of the logs' last superclusters, which holds no
+ * data, the terrain files, and what no file or directory holds, left by interrupted writes. AFATFS_FREE_SPACE_UNKNOWN
+ * until the free count and the directory walk after it have finished.
+ */
+void afatfs_getTakenSpaceKB(uint32_t *logTailsKB, uint32_t *terrainKB, uint32_t *lostKB)
+{
+    if (afatfs_getFreeSpaceKB() == AFATFS_FREE_SPACE_UNKNOWN || afatfs.dirWalkState != AFATFS_DIR_WALK_DONE) {
+        *logTailsKB = *terrainKB = *lostKB = AFATFS_FREE_SPACE_UNKNOWN;
+        return;
+    }
+
+    const uint32_t notTaken = afatfs.freeCountClusters + afatfs_freeFileClusters();
+    const uint32_t taken = afatfs.numClusters > notTaken ? afatfs.numClusters - notTaken : 0;
+
+    *logTailsKB = afatfs.logTailClusters * afatfs.sectorsPerCluster / 2;
+    *terrainKB = afatfs.terrainClusters * afatfs.sectorsPerCluster / 2;
+    *lostKB = taken > afatfs.dirWalkClusters ? (taken - afatfs.dirWalkClusters) * afatfs.sectorsPerCluster / 2 : 0;
+}
+
+// Nothing asks the bootloader for the count
+#ifndef BOOTLOADER
+static uint32_t afatfs_divideRoundingUp(uint32_t value, uint32_t divisor)
+{
+    return value / divisor + (value % divisor != 0);
+}
+
+// One directory sector, or one link of a directory's chain, per call
+static void afatfs_dirWalkContinue(timeUs_t now)
+{
+    if (afatfs.dirWalkState == AFATFS_DIR_WALK_START) {
+        afatfs.dirWalk[0] = (afatfsDirWalkLevel_t) { .cluster = afatfs.rootDirectoryCluster };
+        afatfs.dirWalkDepth = 1;
+        afatfs.dirWalkClusters = afatfs.rootDirectoryCluster ? 1 : 0;
+        afatfs.logTailClusters = 0;
+        afatfs.terrainClusters = 0;
+        afatfs.dirWalkState = AFATFS_DIR_WALK_RUNNING;
+    }
+
+    afatfsDirWalkLevel_t *level = &afatfs.dirWalk[afatfs.dirWalkDepth - 1];
+    afatfsOperationStatus_e status;
+
+    if (level->cluster && level->sector == afatfs.sectorsPerCluster) {
+        uint32_t next;
+
+        status = afatfs_FATGetNextCluster(0, level->cluster, &next);
+        if (status == AFATFS_OPERATION_SUCCESS) {
+            afatfs.freeCountDueUs = now + AFATFS_FREE_COUNT_GAP_US;
+            if (next < FAT_SMALLEST_LEGAL_CLUSTER_NUMBER || next >= afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER) {
+                afatfs.dirWalkDepth--;
+            } else if (++afatfs.dirWalkClusters > afatfs.numClusters) {
+                // Only a directory chain that loops gets here
+                afatfs.dirWalkState = AFATFS_DIR_WALK_FAILED;
+                return;
+            } else {
+                level->cluster = next;
+                level->sector = 0;
+            }
+        }
+    } else {
+        const uint32_t physicalSector = level->cluster ? afatfs_fileClusterToPhysical(level->cluster, level->sector)
+            : afatfs.clusterStartSector - afatfs.rootDirectorySectors + level->sector;
+        fatDirectoryEntry_t *entries;
+
+        status = afatfs_cacheSector(physicalSector, (uint8_t **) &entries, AFATFS_CACHE_READ, 0);
+        if (status == AFATFS_OPERATION_SUCCESS) {
+            bool ended = false, descended = false;
+
+            for (; level->entry < AFATFS_FILES_PER_DIRECTORY_SECTOR; level->entry++) {
+                const fatDirectoryEntry_t *entry = &entries[level->entry];
+
+                if (fat_isDirectoryEntryTerminator((fatDirectoryEntry_t *) entry)) {
+                    ended = true;
+                    break;
+                }
+                // Deleted entries, long names, the volume label, "." and ".."
+                if (fat_isDirectoryEntryEmpty((fatDirectoryEntry_t *) entry) || (entry->attrib & FAT_FILE_ATTRIBUTE_VOLUME_ID) || entry->filename[0] == '.') {
+                    continue;
+                }
+
+                const uint32_t firstCluster = (afatfs.filesystemType == FAT_FILESYSTEM_TYPE_FAT32 ? (uint32_t) entry->firstClusterHigh << 16 : 0) | entry->firstClusterLow;
+
+                if (firstCluster < FAT_SMALLEST_LEGAL_CLUSTER_NUMBER || firstCluster == afatfs.freeFile.firstCluster) {
+                    continue;
+                }
+
+                if (entry->attrib & FAT_FILE_ATTRIBUTE_DIRECTORY) {
+                    if (afatfs.dirWalkDepth == AFATFS_DIR_WALK_DEPTH) {
+                        afatfs.dirWalkState = AFATFS_DIR_WALK_FAILED;
+                        return;
+                    }
+                    level->entry++;
+                    afatfs.dirWalk[afatfs.dirWalkDepth++] = (afatfsDirWalkLevel_t) { .cluster = firstCluster };
+                    afatfs.dirWalkClusters++;
+                    descended = true;
+                    break;
+                }
+
+                const uint32_t clusters = afatfs_divideRoundingUp(entry->fileSize, afatfs_clusterSize());
+
+                if (memcmp(entry->filename + 8, "TER", 3) == 0) {
+                    afatfs.terrainClusters += clusters;
+                    afatfs.dirWalkClusters += clusters;
+                } else if (memcmp(entry->filename, "LOG", 3) == 0 && memcmp(entry->filename + 8, "TXT", 3) == 0) {
+                    // The blackbox takes whole superclusters from the freefile
+                    const uint32_t taken = afatfs_divideRoundingUp(entry->fileSize, afatfs_superClusterSize()) * afatfs_fatEntriesPerSector();
+
+                    afatfs.logTailClusters += taken - clusters;
+                    afatfs.dirWalkClusters += taken;
+                } else {
+                    afatfs.dirWalkClusters += clusters;
+                }
+            }
+
+            afatfs.freeCountDueUs = now + AFATFS_FREE_COUNT_GAP_US;
+            if (ended) {
+                afatfs.dirWalkDepth--;
+            } else if (!descended) {
+                level->entry = 0;
+                level->sector++;
+                if (!level->cluster && level->sector == afatfs.rootDirectorySectors) {
+                    afatfs.dirWalkDepth--;
+                }
+            }
+        }
+    }
+
+    if (status == AFATFS_OPERATION_FAILURE
+        || (status == AFATFS_OPERATION_IN_PROGRESS && cmpTimeUs(now, afatfs.freeCountDueUs) > AFATFS_FREE_COUNT_TIMEOUT_US)) {
+        afatfs.dirWalkState = AFATFS_DIR_WALK_FAILED;
+    } else if (afatfs.dirWalkDepth == 0) {
+        afatfs.dirWalkState = AFATFS_DIR_WALK_DONE;
+    }
+}
+
+// Kept out of line, or LTO inlines it through afatfs_poll() into scheduler(), which is FAST_CODE
+static NOINLINE void afatfs_countFreeClustersContinue(void)
+{
+    const uint32_t endCluster = afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;
+    const timeUs_t now = micros();
+
+    // Given up on an unreadable FAT sector, or counted and walked
+    if (afatfs.freeCountNextCluster > endCluster
+        || (afatfs.freeCountNextCluster == endCluster && afatfs.dirWalkState >= AFATFS_DIR_WALK_DONE)) {
+        return;
+    }
+
+    // Paused until asked for, and while files are open so that the count never holds up a log's writes
+    bool paused = !afatfs.freeCountWanted || afatfs.currentDirectory.operation.operation != AFATFS_FILE_OPERATION_NONE;
+    for (int i = 0; i < AFATFS_MAX_OPEN_FILES; i++) {
+        paused |= afatfs.openFiles[i].type != AFATFS_FILE_TYPE_NONE;
+    }
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+    // and while the refill works on the FAT: its reads would hold one of the count's past the unreadable timeout
+    paused |= afatfs.refill.phase != AFATFS_REFILL_IDLE;
+#endif
+    if (paused) {
+        afatfs.freeCountDueUs = now + AFATFS_FREE_COUNT_GAP_US;
+        return;
+    }
+
+    // The freefile's own chain holds no free cluster: its FAT sectors needn't be read
+    const uint32_t freeFileEnd = afatfs.freeFile.firstCluster + afatfs_freeFileClusters();
+    if (afatfs.freeCountNextCluster >= afatfs.freeFile.firstCluster && afatfs.freeCountNextCluster < freeFileEnd) {
+        afatfs.freeCountNextCluster = MIN(freeFileEnd, endCluster);
+        return;
+    }
+
+    // A gap after each sector: terrain only takes the card from the blackbox while afatfs_isIdle()
+    if (cmpTimeUs(now, afatfs.freeCountDueUs) < 0) {
+        return;
+    }
+
+    if (afatfs.freeCountNextCluster == endCluster) {
+        afatfs_dirWalkContinue(now);
+        return;
+    }
+
+    uint32_t fatSectorIndex, fatSectorEntryIndex;
+    afatfsFATSector_t sector;
+
+    afatfs_getFATPositionForCluster(afatfs.freeCountNextCluster, &fatSectorIndex, &fatSectorEntryIndex);
+
+    switch (afatfs_cacheSector(afatfs_fatSectorToPhysical(0, fatSectorIndex), &sector.bytes, AFATFS_CACHE_READ, 0)) {
+        case AFATFS_OPERATION_SUCCESS:
+        {
+            const uint32_t entryEnd = fatSectorEntryIndex + MIN(afatfs_fatEntriesPerSector() - fatSectorEntryIndex, endCluster - afatfs.freeCountNextCluster);
+
+            for (uint32_t i = fatSectorEntryIndex; i < entryEnd; i++) {
+                const uint32_t next = afatfs.filesystemType == FAT_FILESYSTEM_TYPE_FAT16 ? sector.fat16[i] : fat32_decodeClusterNumber(sector.fat32[i]);
+
+                if (fat_isFreeSpace(next)) {
+                    afatfs.freeCountClusters++;
+                }
+            }
+            afatfs.freeCountNextCluster += entryEnd - fatSectorEntryIndex;
+            afatfs.freeCountDueUs = now + AFATFS_FREE_COUNT_GAP_US;
+        }
+        break;
+        case AFATFS_OPERATION_FAILURE:
+            afatfs.freeCountNextCluster = UINT32_MAX;
+        break;
+        default:
+            // A failed read is retried without end: give up on a FAT sector that stays unreadable
+            if (cmpTimeUs(now, afatfs.freeCountDueUs) > AFATFS_FREE_COUNT_TIMEOUT_US) {
+                afatfs.freeCountNextCluster = UINT32_MAX;
+            }
+    }
+}
+#endif
+
+/**
  * Call to set up the initial state for finding the largest block of free space on the device whose corresponding FAT
  * sectors are themselves entirely free space (so the free space has dedicated FAT sectors of its own).
  */
@@ -3500,13 +3892,63 @@ static afatfsOperationStatus_e afatfs_findLargestContiguousFreeBlockContinue(voi
     }
 }
 
+static uint32_t afatfs_freeFileClusters(void)
+{
+    return (afatfs.freeFile.logicalSize + afatfs_clusterSize() - 1) / afatfs_clusterSize();
+}
+
+// Whole superclusters, so every size saved keeps the N superclusters plus one cluster shape
+static uint32_t afatfs_freeFileStepClusters(void)
+{
+    const uint32_t superclusters = AFATFS_FREEFILE_GROW_STEP / afatfs_clusterSize() / afatfs_fatEntriesPerSector();
+
+    return MAX(superclusters, 1U) * afatfs_fatEntriesPerSector();
+}
+
+static void afatfs_freeFileGrowNextBlock(void)
+{
+    // An empty freefile takes the extra cluster with its first block
+    uint32_t step = afatfs_freeFileStepClusters();
+    if (afatfs.freeFile.logicalSize == 0) {
+        step++;
+    }
+
+    afatfs.initState.freeSpaceFAT.blockEnd = MIN(afatfs.initState.freeSpaceFAT.startCluster + step, afatfs.initState.freeSpaceFAT.endCluster);
+    afatfs.initState.freeSpaceFAT.fillEnd = afatfs.initState.freeSpaceFAT.blockEnd;
+    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_GROW_FAT;
+}
+
+// Chain [startCluster, endCluster) onto the freefile a block at a time, the directory entry saved
+// and flushed after each one, so a power cut strands at most one block of chain
+static void afatfs_freeFileGrowBegin(uint32_t startCluster, uint32_t endCluster, bool fromSearch)
+{
+    afatfs.initState.freeSpaceFAT.startCluster = startCluster;
+    afatfs.initState.freeSpaceFAT.endCluster = endCluster;
+    afatfs.initState.freeSpaceFAT.fromSearch = fromSearch;
+    afatfs_freeFileGrowNextBlock();
+}
+
+// Extended as far as it goes: a small freefile moves to the largest free block
+static void afatfs_freeFileExtended(void)
+{
+    if (afatfs.freeFile.logicalSize >= AFATFS_FREEFILE_REGROW_BELOW) {
+        // We've completed freefile init, move on to the next init phase
+        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_LAST + 1;
+    } else {
+        afatfs_findLargestContiguousFreeBlockBegin();
+        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH;
+    }
+}
+
 static void afatfs_freeFileCreated(afatfsFile_t *file)
 {
     if (file) {
         // Did the freefile already have allocated space?
         if (file->logicalSize > 0) {
-            // We've completed freefile init, move on to the next init phase
-            afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_LAST + 1;
+            // Extend it over the free clusters that follow it
+            afatfs.initState.freeSpaceFAT.startCluster = afatfs.freeFile.firstCluster + afatfs_freeFileClusters();
+            afatfs.initState.freeSpaceFAT.endCluster = afatfs.initState.freeSpaceFAT.startCluster;
+            afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_EXTEND_SEARCH;
         } else {
             // Allocate clusters for the freefile
             afatfs_findLargestContiguousFreeBlockBegin();
@@ -3519,9 +3961,40 @@ static void afatfs_freeFileCreated(afatfsFile_t *file)
     }
 }
 
+// Give the old freefile back a block at a time from its end: the smaller size is saved first, then the
+// chain is cut there, then the tail is freed, so a power cut strands at most one block of it
+static void afatfs_freeFileShrinkNextBlock(void)
+{
+    const uint32_t clusters = afatfs_freeFileClusters();
+    const uint32_t kept = clusters > afatfs_freeFileStepClusters() ? clusters - afatfs_freeFileStepClusters() : 0;
+
+    afatfs.initState.freeSpaceFAT.shrinkCluster = afatfs.initState.freeSpaceFAT.shrinkFirst + kept;
+    afatfs.initState.freeSpaceFAT.blockEnd = afatfs.initState.freeSpaceFAT.shrinkFirst + clusters;
+
+    afatfs.freeFile.logicalSize = kept * afatfs_clusterSize();
+    afatfs.freeFile.physicalSize = afatfs.freeFile.logicalSize;
+    if (kept == 0) {
+        afatfs.freeFile.firstCluster = 0;
+    }
+
+    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_SHRINK_SAVE_DIR_ENTRY;
+}
+
+// The old freefile's clusters are free again: take the larger block the search found
+static void afatfs_freeFileReleased(void)
+{
+    afatfs.freeFile.firstCluster = afatfs.initState.freeSpaceFAT.startCluster;
+    afatfs.freeFile.logicalSize = 0;
+    afatfs.freeFile.physicalSize = 0;
+
+    afatfs_freeFileGrowBegin(afatfs.initState.freeSpaceFAT.startCluster, afatfs.initState.freeSpaceFAT.endCluster, true);
+}
+
 #endif
 
-static void afatfs_initContinue(void)
+// Mount-time only. Kept out of line, or LTO inlines it through afatfs_poll() into scheduler(), which
+// is FAST_CODE and fills the F7's ITCM
+static NOINLINE void afatfs_initContinue(void)
 {
 #ifdef AFATFS_USE_FREEFILE
     afatfsOperationStatus_e status;
@@ -3567,6 +4040,112 @@ static void afatfs_initContinue(void)
         case AFATFS_INITIALIZATION_FREEFILE_CREATING:
             afatfs_fileOperationContinue(&afatfs.freeFile);
         break;
+        case AFATFS_INITIALIZATION_FREEFILE_EXTEND_SEARCH:
+        {
+            const uint32_t largestEnd = afatfs.freeFile.firstCluster + FAT_MAXIMUM_FILESIZE / afatfs_clusterSize();
+            const uint32_t searchLimit = MIN(largestEnd, afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER);
+
+            switch (afatfs_findClusterWithCondition(CLUSTER_SEARCH_OCCUPIED, &afatfs.initState.freeSpaceFAT.endCluster, searchLimit)) {
+                case AFATFS_FIND_CLUSTER_FOUND:
+                case AFATFS_FIND_CLUSTER_NOT_FOUND:
+                {
+                    uint32_t freeClusters = afatfs.initState.freeSpaceFAT.endCluster - afatfs.initState.freeSpaceFAT.startCluster;
+
+                    // Leave some clusters for regular files as a new freefile does, unless capped at the file size limit
+                    if (afatfs.initState.freeSpaceFAT.endCluster < largestEnd) {
+                        freeClusters = freeClusters > AFATFS_FREEFILE_LEAVE_CLUSTERS ? freeClusters - AFATFS_FREEFILE_LEAVE_CLUSTERS : 0;
+                    }
+
+                    // Whole superclusters, so the size stays N superclusters plus one cluster
+                    const uint32_t clusters = ((afatfs_freeFileClusters() + freeClusters - 1) & ~(afatfs_fatEntriesPerSector() - 1)) + 1;
+
+                    if (clusters > afatfs_freeFileClusters()) {
+                        afatfs_freeFileGrowBegin(afatfs.initState.freeSpaceFAT.startCluster, afatfs.freeFile.firstCluster + clusters, false);
+                    } else {
+                        afatfs_freeFileExtended();
+                    }
+                    goto doMore;
+                }
+                case AFATFS_FIND_CLUSTER_FATAL:
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                break;
+                case AFATFS_FIND_CLUSTER_IN_PROGRESS:
+                break;
+            }
+        }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_GROW_FAT:
+            // Chain the new clusters before linking them, one FAT sector at a time from the block's end, each on the
+            // card before the one before it: a power cut leaves chains that end in a terminator, never in a free cluster
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                const uint32_t fillEnd = afatfs.initState.freeSpaceFAT.fillEnd;
+                const uint32_t fillStart = MAX(afatfs.initState.freeSpaceFAT.startCluster, (fillEnd - 1) & ~(afatfs_fatEntriesPerSector() - 1));
+                const afatfsFATPattern_e pattern = fillEnd == afatfs.initState.freeSpaceFAT.blockEnd
+                    ? AFATFS_FAT_PATTERN_TERMINATED_CHAIN : AFATFS_FAT_PATTERN_UNTERMINATED_CHAIN;
+                uint32_t fillCluster = fillStart;
+
+                status = afatfs_FATFillWithPattern(pattern, &fillCluster, fillEnd);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    afatfs.initState.freeSpaceFAT.fillEnd = fillStart;
+                    if (fillStart == afatfs.initState.freeSpaceFAT.startCluster) {
+                        afatfs.initState.freeSpaceFAT.startCluster = afatfs.initState.freeSpaceFAT.blockEnd;
+                        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_GROW_LINK;
+                    }
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
+            }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_GROW_LINK:
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                const uint32_t oldEnd = afatfs.freeFile.firstCluster + afatfs_freeFileClusters();
+
+                // An empty freefile has nothing to link to: the block is its whole chain
+                status = afatfs.freeFile.logicalSize == 0 ? AFATFS_OPERATION_SUCCESS : afatfs_FATSetNextCluster(oldEnd - 1, oldEnd);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_GROW_SAVE_DIR_ENTRY;
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
+            }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_GROW_SAVE_DIR_ENTRY:
+            // The new size goes on the card after the chain it describes
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                afatfs.freeFile.logicalSize = (afatfs.initState.freeSpaceFAT.blockEnd - afatfs.freeFile.firstCluster) * afatfs_clusterSize();
+                afatfs.freeFile.physicalSize = afatfs.freeFile.logicalSize;
+
+                status = afatfs_saveDirectoryEntry(&afatfs.freeFile, AFATFS_SAVE_DIRECTORY_NORMAL);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_GROW_SYNC;
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
+            }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_GROW_SYNC:
+            // The directory entry reaches the card before the next block begins
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                if (afatfs.initState.freeSpaceFAT.startCluster < afatfs.initState.freeSpaceFAT.endCluster) {
+                    afatfs_freeFileGrowNextBlock();
+                } else if (afatfs.initState.freeSpaceFAT.fromSearch) {
+                    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_LAST + 1;
+                } else {
+                    afatfs_freeFileExtended();
+                }
+                goto doMore;
+            }
+        break;
         case AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH:
             if (afatfs_findLargestContiguousFreeBlockContinue() == AFATFS_OPERATION_SUCCESS) {
                 // If the freefile ends up being empty then we only have to save its directory entry:
@@ -3580,8 +4159,9 @@ static void afatfs_initContinue(void)
                      */
                     afatfs.initState.freeSpaceSearch.bestGapLength = ((afatfs.initState.freeSpaceSearch.bestGapLength - 1) & ~(afatfs_fatEntriesPerSector() - 1)) + 1;
 
-                    // Anything useful left over?
-                    if (afatfs.initState.freeSpaceSearch.bestGapLength > afatfs_fatEntriesPerSector()) {
+                    // Anything useful left over, and more than an existing freefile already holds?
+                    if (afatfs.initState.freeSpaceSearch.bestGapLength > afatfs_fatEntriesPerSector()
+                        && afatfs.initState.freeSpaceSearch.bestGapLength * afatfs_clusterSize() > afatfs.freeFile.logicalSize) {
                         uint32_t startCluster = afatfs.initState.freeSpaceSearch.bestGapStart;
                         // Points 1-beyond the final cluster of the freefile:
                         uint32_t endCluster = afatfs.initState.freeSpaceSearch.bestGapStart + afatfs.initState.freeSpaceSearch.bestGapLength;
@@ -3591,29 +4171,77 @@ static void afatfs_initContinue(void)
                         afatfs.initState.freeSpaceFAT.startCluster = startCluster;
                         afatfs.initState.freeSpaceFAT.endCluster = endCluster;
 
+                        if (afatfs.freeFile.logicalSize > 0) {
+                            // Give the old freefile's clusters back first; the move continues in afatfs_freeFileReleased()
+                            afatfs.initState.freeSpaceFAT.shrinkFirst = afatfs.freeFile.firstCluster;
+                            afatfs_freeFileShrinkNextBlock();
+                            goto doMore;
+                        }
+
                         afatfs.freeFile.firstCluster = startCluster;
 
-                        afatfs.freeFile.logicalSize = afatfs.initState.freeSpaceSearch.bestGapLength * afatfs_clusterSize();
-                        afatfs.freeFile.physicalSize = afatfs.freeFile.logicalSize;
-
                         // We can write the FAT table for the freefile now
-                        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_UPDATE_FAT;
+                        afatfs_freeFileGrowBegin(startCluster, endCluster, true);
+                    } else if (afatfs.freeFile.logicalSize > 0) {
+                        afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_LAST + 1;
                     } // Else the freefile's FAT chain and filesize remains the default (empty)
+                } else if (afatfs.freeFile.logicalSize > 0) {
+                    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_LAST + 1;
                 }
 
                 goto doMore;
             }
         break;
-        case AFATFS_INITIALIZATION_FREEFILE_UPDATE_FAT:
-            status = afatfs_FATFillWithPattern(AFATFS_FAT_PATTERN_TERMINATED_CHAIN, &afatfs.initState.freeSpaceFAT.startCluster, afatfs.initState.freeSpaceFAT.endCluster);
+        case AFATFS_INITIALIZATION_FREEFILE_SHRINK_SAVE_DIR_ENTRY:
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                status = afatfs_saveDirectoryEntry(&afatfs.freeFile, AFATFS_SAVE_DIRECTORY_NORMAL);
 
-            if (status == AFATFS_OPERATION_SUCCESS) {
-                afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_SAVE_DIR_ENTRY;
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_SHRINK_TERMINATE;
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
+            }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_SHRINK_TERMINATE:
+            // The size on the card is the smaller one before the chain ends there
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                const uint32_t newEnd = afatfs.initState.freeSpaceFAT.shrinkCluster;
 
-                goto doMore;
-            } else if (status == AFATFS_OPERATION_FAILURE) {
-                afatfs.lastError = AFATFS_ERROR_GENERIC;
-                afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                status = newEnd == afatfs.initState.freeSpaceFAT.shrinkFirst ? AFATFS_OPERATION_SUCCESS : afatfs_FATSetNextCluster(newEnd - 1, 0xFFFFFFFF);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    afatfs.initPhase = AFATFS_INITIALIZATION_FREEFILE_SHRINK_FREE;
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
+            }
+        break;
+        case AFATFS_INITIALIZATION_FREEFILE_SHRINK_FREE:
+            // The chain is cut on the card before its tail is freed, one FAT sector at a time from the front:
+            // a multiple-sector write may erase the sectors after the one it stopped at, under entries still chained
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                const uint32_t fillEnd = MIN(afatfs.initState.freeSpaceFAT.blockEnd, (afatfs.initState.freeSpaceFAT.shrinkCluster | (afatfs_fatEntriesPerSector() - 1)) + 1);
+
+                status = afatfs_FATFillWithPattern(AFATFS_FAT_PATTERN_FREE, &afatfs.initState.freeSpaceFAT.shrinkCluster, fillEnd);
+
+                if (status == AFATFS_OPERATION_SUCCESS && afatfs.initState.freeSpaceFAT.shrinkCluster < afatfs.initState.freeSpaceFAT.blockEnd) {
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_SUCCESS) {
+                    if (afatfs.freeFile.logicalSize > 0) {
+                        afatfs_freeFileShrinkNextBlock();
+                    } else {
+                        afatfs_freeFileReleased();
+                    }
+                    goto doMore;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs.lastError = AFATFS_ERROR_GENERIC;
+                    afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_FATAL;
+                }
             }
         break;
         case AFATFS_INITIALIZATION_FREEFILE_SAVE_DIR_ENTRY:
@@ -3631,9 +4259,284 @@ static void afatfs_initContinue(void)
 
         case AFATFS_INITIALIZATION_DONE:
             afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_READY;
+            afatfs.freeCountDueUs = micros();
         break;
     }
 }
+
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+
+// A contiguous file ends where the freefile begins: the freefile can't move under it
+static bool afatfs_contiguousFileOpen(void)
+{
+    for (int i = 0; i < AFATFS_MAX_OPEN_FILES; i++) {
+        if (afatfs.openFiles[i].type != AFATFS_FILE_TYPE_NONE && (afatfs.openFiles[i].mode & AFATFS_FILE_MODE_CONTIGUOUS) != 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Appending a supercluster doesn't search the FAT, so it doesn't count
+static bool afatfs_regularAllocationPossible(void)
+{
+    if (afatfs.currentDirectory.operation.operation != AFATFS_FILE_OPERATION_NONE) {
+        return true;
+    }
+
+    for (int i = 0; i < AFATFS_MAX_OPEN_FILES; i++) {
+        const afatfsFileOperation_e operation = afatfs.openFiles[i].operation.operation;
+
+        if (afatfs.openFiles[i].type != AFATFS_FILE_TYPE_NONE && operation != AFATFS_FILE_OPERATION_NONE
+            && operation != AFATFS_FILE_OPERATION_APPEND_SUPERCLUSTER) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void afatfs_freeFileRefillStop(void)
+{
+    afatfs.refill.claiming = false;
+    afatfs.refill.phase = AFATFS_REFILL_IDLE;
+}
+
+// After a FAT or directory error: no more refills until the card is mounted again
+static void afatfs_freeFileRefillGiveUp(void)
+{
+    afatfs.refill.extendBlocked = true;
+    afatfs.refill.searched = true;
+    afatfs.refill.blockFound = false;
+    afatfs_freeFileRefillStop();
+}
+
+// The old freefile's last cluster is free again: build the new one on the block found
+static void afatfs_freeFileRefillReleased(afatfsFile_t *file)
+{
+    UNUSED(file);
+
+    afatfs.refill.moving = true;
+    afatfs.refill.claimStart = afatfs.refill.blockStart;
+    afatfs.refill.claimCursor = afatfs.refill.blockStart;
+    afatfs.refill.phase = AFATFS_REFILL_CLAIM_SEARCH;
+}
+
+// A log that can't grow can go on in a new file: the freefile has room or is being refilled
+bool afatfs_freeFileCanContinue(void)
+{
+    const afatfsRefill_t *refill = &afatfs.refill;
+
+    if (refill->regularFull) {
+        return false;
+    }
+
+    return afatfs.freeFile.logicalSize >= afatfs_superClusterSize() || refill->phase != AFATFS_REFILL_IDLE
+        || !refill->extendBlocked || !refill->searched || refill->blockFound;
+}
+
+bool afatfs_freeFileHasRoom(void)
+{
+    return !afatfs.filesystemFull && afatfs.freeFile.logicalSize >= afatfs_superClusterSize();
+}
+
+// Out of line like afatfs_initContinue(), to stay out of the ITCM
+static NOINLINE void afatfs_freeFileRefillPoll(void)
+{
+    afatfsRefill_t *refill = &afatfs.refill;
+    const uint32_t fatEntriesPerSector = afatfs_fatEntriesPerSector();
+    afatfsOperationStatus_e status;
+
+    switch (refill->phase) {
+        case AFATFS_REFILL_IDLE:
+            // A log that could no longer grow has been closed, and there is room for a new one
+            if (afatfs.filesystemFull && !refill->regularFull && afatfs.freeFile.logicalSize >= afatfs_superClusterSize() && !afatfs_contiguousFileOpen()) {
+                afatfs.filesystemFull = false;
+            }
+
+            if (afatfs.freeFile.logicalSize >= AFATFS_FREEFILE_REFILL_BELOW) {
+                break;
+            }
+
+            if (afatfs.freeFile.logicalSize == 0) {
+                refill->extendBlocked = true;
+            }
+
+            if (!refill->extendBlocked) {
+                refill->moving = false;
+                refill->claimStart = afatfs.freeFile.firstCluster + afatfs_freeFileClusters();
+                refill->claimCursor = refill->claimStart;
+                refill->phase = AFATFS_REFILL_CLAIM_SEARCH;
+            } else if (!refill->searched) {
+                afatfs_findLargestContiguousFreeBlockBegin();
+                refill->phase = AFATFS_REFILL_BLOCK_SEARCH;
+            } else if (refill->blockFound && afatfs.freeFile.logicalSize < afatfs_superClusterSize() && !afatfs_contiguousFileOpen()
+                && !afatfs_fileIsBusy(&afatfs.freeFile)) {
+                // The freefile has run out and the log that used it is closed: give back its last cluster and move it
+                if (afatfs.freeFile.logicalSize > 0) {
+                    refill->phase = AFATFS_REFILL_RELEASE;
+                    afatfs_ftruncate(&afatfs.freeFile, afatfs_freeFileRefillReleased);
+                } else {
+                    afatfs_freeFileRefillReleased(NULL);
+                }
+            }
+        break;
+        case AFATFS_REFILL_CLAIM_SEARCH:
+        {
+            // Don't start while a regular allocation may have picked a cluster without marking it in the FAT yet
+            if (!refill->claiming) {
+                if (afatfs_regularAllocationPossible()) {
+                    break;
+                }
+                refill->claiming = true;
+            }
+
+            const uint32_t base = refill->moving ? refill->blockStart : afatfs.freeFile.firstCluster;
+            const uint32_t oldClusters = refill->claimStart - base;
+            const uint32_t largestEnd = base + FAT_MAXIMUM_FILESIZE / afatfs_clusterSize();
+            // A new freefile is a whole number of superclusters plus one cluster
+            const uint32_t claimClusters = AFATFS_FREEFILE_REFILL_SUPERCLUSTERS * fatEntriesPerSector + (refill->moving ? 1 : 0);
+            const uint32_t searchLimit = MIN(MIN(refill->claimStart + claimClusters + AFATFS_FREEFILE_LEAVE_CLUSTERS, largestEnd),
+                afatfs.numClusters + FAT_SMALLEST_LEGAL_CLUSTER_NUMBER);
+
+            switch (afatfs_findClusterWithCondition(CLUSTER_SEARCH_OCCUPIED, &refill->claimCursor, searchLimit)) {
+                case AFATFS_FIND_CLUSTER_FOUND:
+                case AFATFS_FIND_CLUSTER_NOT_FOUND:
+                {
+                    uint32_t freeClusters = refill->claimCursor - refill->claimStart;
+
+                    // Leave some clusters for regular files as a new freefile does, unless capped at the file size limit
+                    if (refill->claimCursor < largestEnd) {
+                        freeClusters = freeClusters > AFATFS_FREEFILE_LEAVE_CLUSTERS ? freeClusters - AFATFS_FREEFILE_LEAVE_CLUSTERS : 0;
+                    }
+                    freeClusters = MIN(freeClusters, claimClusters);
+
+                    // Whole superclusters, so the size stays N superclusters plus one cluster
+                    const uint32_t clusters = oldClusters + freeClusters == 0 ? 0 : ((oldClusters + freeClusters - 1) & ~(fatEntriesPerSector - 1)) + 1;
+
+                    if (clusters > MAX(oldClusters, fatEntriesPerSector)) {
+                        refill->claimEnd = base + clusters;
+                        refill->claimCursor = refill->claimEnd;
+                        refill->phase = AFATFS_REFILL_CLAIM_UPDATE_FAT;
+                    } else {
+                        if (refill->moving) {
+                            // The block has been taken since the search: search again
+                            refill->moving = false;
+                            refill->blockFound = false;
+                            refill->searched = false;
+                        } else {
+                            refill->extendBlocked = true;
+                        }
+                        afatfs_freeFileRefillStop();
+                    }
+                }
+                break;
+                case AFATFS_FIND_CLUSTER_FATAL:
+                    afatfs_freeFileRefillGiveUp();
+                break;
+                case AFATFS_FIND_CLUSTER_IN_PROGRESS:
+                break;
+            }
+        }
+        break;
+        case AFATFS_REFILL_CLAIM_UPDATE_FAT:
+            // Chain the claimed clusters before linking them, one FAT sector at a time from the end, each on the card
+            // before the one before it: a power cut leaves chains that end in a terminator, never in a free cluster
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                const uint32_t fillStart = MAX(refill->claimStart, (refill->claimCursor - 1) & ~(fatEntriesPerSector - 1));
+                const afatfsFATPattern_e pattern = refill->claimCursor == refill->claimEnd
+                    ? AFATFS_FAT_PATTERN_TERMINATED_CHAIN : AFATFS_FAT_PATTERN_UNTERMINATED_CHAIN;
+                uint32_t fillCluster = fillStart;
+
+                status = afatfs_FATFillWithPattern(pattern, &fillCluster, refill->claimCursor);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    refill->claimCursor = fillStart;
+                    if (fillStart == refill->claimStart) {
+                        // They are marked in the FAT now
+                        refill->claiming = false;
+                        refill->phase = refill->moving ? AFATFS_REFILL_CLAIM_SAVE_DIR_ENTRY : AFATFS_REFILL_CLAIM_LINK;
+                    }
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs_freeFileRefillGiveUp();
+                }
+            }
+        break;
+        case AFATFS_REFILL_CLAIM_LINK:
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                status = afatfs_FATSetNextCluster(refill->claimStart - 1, refill->claimStart);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    refill->phase = AFATFS_REFILL_CLAIM_SAVE_DIR_ENTRY;
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs_freeFileRefillGiveUp();
+                }
+            }
+        break;
+        case AFATFS_REFILL_CLAIM_SAVE_DIR_ENTRY:
+            // The new size goes on the card after the chain it describes
+            if (afatfs_flush() && !afatfs.cacheFlushInProgress) {
+                if (refill->moving) {
+                    afatfs.freeFile.firstCluster = refill->blockStart;
+                }
+                afatfs.freeFile.logicalSize = (refill->claimEnd - afatfs.freeFile.firstCluster) * afatfs_clusterSize();
+                afatfs.freeFile.physicalSize = afatfs.freeFile.logicalSize;
+
+                status = afatfs_saveDirectoryEntry(&afatfs.freeFile, AFATFS_SAVE_DIRECTORY_NORMAL);
+
+                if (status == AFATFS_OPERATION_SUCCESS) {
+                    // The refill writes the FAT itself, past afatfs_freeCountAdjust(): count again once no file is open
+                    if (afatfs.freeCountNextCluster != UINT32_MAX) {
+                        afatfs.freeCountNextCluster = FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;
+                        afatfs.freeCountClusters = 0;
+                        // As at mount: a time left from the last count would pass for an unreadable sector
+                        afatfs.freeCountDueUs = micros();
+                    }
+                    if (refill->moving) {
+                        refill->moving = false;
+                        refill->blockFound = false;
+                        refill->searched = false;
+                        refill->extendBlocked = false;
+                    } else if (afatfs.freeFile.logicalSize >= afatfs_superClusterSize() && !refill->regularFull) {
+                        // A log that had just run out can go on in the same file
+                        afatfs.filesystemFull = false;
+                    }
+                    afatfs_freeFileRefillStop();
+                } else if (status == AFATFS_OPERATION_FAILURE) {
+                    afatfs_freeFileRefillGiveUp();
+                }
+            }
+        break;
+        case AFATFS_REFILL_BLOCK_SEARCH:
+            status = afatfs_findLargestContiguousFreeBlockContinue();
+
+            if (status == AFATFS_OPERATION_SUCCESS) {
+                // Room for at least a supercluster and the clusters left for regular files?
+                refill->blockFound = afatfs.initState.freeSpaceSearch.bestGapLength > fatEntriesPerSector + AFATFS_FREEFILE_LEAVE_CLUSTERS;
+                refill->blockStart = afatfs.initState.freeSpaceSearch.bestGapStart;
+                refill->searched = true;
+                afatfs_freeFileRefillStop();
+            } else if (status == AFATFS_OPERATION_FAILURE) {
+                refill->searched = true;
+                refill->blockFound = false;
+                afatfs_freeFileRefillStop();
+            }
+        break;
+        case AFATFS_REFILL_RELEASE:
+            afatfs_fileOperationContinue(&afatfs.freeFile);
+
+            // A truncation that fails ends without calling afatfs_freeFileRefillReleased()
+            if (refill->phase == AFATFS_REFILL_RELEASE && afatfs.freeFile.operation.operation == AFATFS_FILE_OPERATION_NONE) {
+                refill->searched = true;
+                refill->blockFound = false;
+                afatfs_freeFileRefillStop();
+            }
+        break;
+    }
+}
+
+#endif
 
 /**
  * Check to see if there are any pending operations on the filesystem and perform a little work (without waiting on the
@@ -3653,6 +4556,12 @@ NOINLINE void afatfs_poll(void)
             break;
             case AFATFS_FILESYSTEM_STATE_READY:
                 afatfs_fileOperationsPoll();
+#ifdef USE_BLACKBOX_SDCARD_SPLIT
+                afatfs_freeFileRefillPoll();
+#endif
+#if defined(AFATFS_USE_FREEFILE) && !defined(BOOTLOADER)
+                afatfs_countFreeClustersContinue();
+#endif
             break;
             default:
                 ;
@@ -3677,12 +4586,12 @@ bool afatfs_isCurrentDirRoot(void)
 
 void afatfs_init(void)
 {
-#ifdef STM32H7
     afatfs.cache = afatfs_cache;
-#endif
     afatfs.filesystemState = AFATFS_FILESYSTEM_STATE_INITIALIZATION;
     afatfs.initPhase = AFATFS_INITIALIZATION_READ_MBR;
     afatfs.lastClusterAllocated = FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;
+    afatfs.freeCountNextCluster = FAT_SMALLEST_LEGAL_CLUSTER_NUMBER;
+    afatfs.freeCountClusters = 0;
 }
 
 /**
@@ -3753,7 +4662,9 @@ uint32_t afatfs_getFreeBufferSpace(void)
 {
     uint32_t result = 0;
     for (int i = 0; i < AFATFS_NUM_CACHE_SECTORS; i++) {
-        if (!afatfs.cacheDescriptor[i].locked && (afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_EMPTY || afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_IN_SYNC)) {
+        // A retained sector is never evicted (see afatfs_allocateCacheSector()): no room to write
+        if (!afatfs.cacheDescriptor[i].locked && afatfs.cacheDescriptor[i].retainCount == 0
+            && (afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_EMPTY || afatfs.cacheDescriptor[i].state == AFATFS_CACHE_STATE_IN_SYNC)) {
             result += AFATFS_SECTOR_SIZE;
         }
     }
