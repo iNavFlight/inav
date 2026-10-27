@@ -60,6 +60,9 @@
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN       CW270_DEG
 #define ICM42605_CS_PIN          PC4
+#if defined(KAKUTEF4) || defined(KAKUTEF4V2)
+#define ICM42605_EXTI_PIN       PC5
+#endif
 #define ICM42605_SPI_BUS         BUS_SPI1
 
 #if defined(KAKUTEF4V2) || defined(KAKUTEF4V23) || defined(KAKUTEF4V24)
