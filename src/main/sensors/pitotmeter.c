@@ -521,8 +521,12 @@ static bool isPitotAirspeedValid(void)
     return ret;
 }
 
-bool pitotGetValidForAirspeed(void)
+bool pitotIsValidForAirspeed(bool requireAccurateVirtualPitot)
 {
+    if (pitotAirspeedValidCached && detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL && requireAccurateVirtualPitot) {
+        return isEstimatedWindSpeedValid();
+    }
+
     return pitotAirspeedValidCached;
 }
 #endif /* PITOT */
