@@ -21,37 +21,24 @@
 #include <stdbool.h>
 
 #include "config/mztc_camera.h"
+#include "msp_protocol_v2_inav.h"
 
 #ifdef USE_MZTC
 
 /*
- * MassZero Thermal Camera MSP V2 commands.
+ * MassZero Thermal Camera MSP V2 payload layouts.
  *
- * These live in INAV's own 0x2000-0x2FFF range. The 0x3000 block belongs to
- * the Betaflight compatibility commands. MSP2_BETAFLIGHT_BIND is 0x3000.
- * MSP2_RX_BIND is 0x3001. That block is out of reach here.
+ * The command IDs live in msp/msp_protocol_v2_inav.h with the rest of the
+ * INAV MSP2 catalogue. They occupy 0x2240 through 0x2249 in INAV's own
+ * 0x2000-0x2FFF range.
  *
- * Every command listed below is handled in fc_msp.c. There are no reserved or
- * aliased identifiers: an ID exists only if something answers it.
+ * Every command is handled in fc_msp.c. There are no reserved or aliased
+ * identifiers: an ID exists only if something answers it.
  *
  * All payloads are little endian. Every field is read and written one at a
  * time with the sbuf helpers. No C struct is cast over the stream buffer, which
  * keeps compiler padding and alignment off the wire.
  */
-
-// Out (flight controller to host)
-#define MSP2_MZTC_CONFIG                0x2240
-#define MSP2_MZTC_STATUS                0x2241
-
-// In (host to flight controller)
-#define MSP2_SET_MZTC_CONFIG            0x2242
-#define MSP2_SET_MZTC_PRESET            0x2243
-#define MSP2_SET_MZTC_PALETTE           0x2244
-#define MSP2_SET_MZTC_ZOOM              0x2245
-#define MSP2_SET_MZTC_SHUTTER           0x2246
-#define MSP2_SET_MZTC_IMAGE_PARAMS      0x2247
-#define MSP2_SET_MZTC_CORRECTION        0x2248
-#define MSP2_SET_MZTC_VIGNETTING        0x2249
 
 /*
  * Payload layouts

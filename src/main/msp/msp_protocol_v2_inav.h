@@ -165,3 +165,15 @@
 // command keeps its number, an unmerged one has no claim on it.
 #define MSP2_INAV_ESC_SRXL2_STATUS              0x2233
 #define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2234
+
+// MassZero Thermal Camera. Payload layouts are documented in msp/msp_mztc.h.
+#define MSP2_MZTC_CONFIG                        0x2240  //out message
+#define MSP2_MZTC_STATUS                        0x2241  //out message
+#define MSP2_SET_MZTC_CONFIG                    0x2242  //in message
+#define MSP2_SET_MZTC_PRESET                    0x2243  //in message
+#define MSP2_SET_MZTC_PALETTE                   0x2244  //in message
+#define MSP2_SET_MZTC_ZOOM                      0x2245  //in message
+#define MSP2_SET_MZTC_SHUTTER                   0x2246  //in message
+#define MSP2_SET_MZTC_IMAGE_PARAMS              0x2247  //in message
+#define MSP2_SET_MZTC_CORRECTION                0x2248  //in message
+#define MSP2_SET_MZTC_VIGNETTING                0x2249  //in message
