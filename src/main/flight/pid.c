@@ -713,8 +713,7 @@ static void updateAutoTransitionTargetPIDCoefficients(const controlConfig_t *con
     const pidBank_t *targetPidBank = targetIsFixedWing ? &targetPidProfile->bank_fw : &targetPidProfile->bank_mc;
 
     if (targetIsFixedWing) {
-        if (controlProfile->throttle.apa_pow > 0 &&
-            pitotGetValidForAirspeed()) {
+        if (controlProfile->throttle.apa_pow > 0 && pitotIsValidForAirspeed(false)) {
             tpaFactor = calculateAutoTransitionTargetAirspeedTPAFactor(targetPidProfile, controlProfile);
             iTermFactor = calculateAutoTransitionTargetAirspeedITermFactor(targetPidProfile, controlProfile);
         } else {
@@ -1302,10 +1301,10 @@ static int16_t tpaPitchThrottleAdjustment(void)
     /* Applies correction to throttle input for throttle based tpa to compensate for speed decrease in climb or increase during descent.
      * +ve correction during descent, -ve correction during climb.
      * e.g. +ve correction during descent increases tpa throttle input attenuating PIDS for increased speed during descent */
- 
+
     const uint8_t tpaPitchCompensationValue = currentControlProfile->throttle.tpa_pitch_compensation;
     int16_t tpaThrottleAdjustment = 0;
-    
+
     if (tpaPitchCompensationValue) {
         tpaThrottleAdjustment = constrain(tpaPitchCompensationValue * RADIANS_TO_DEGREES(-HeadVecEFFiltered.z), -PWM_RANGE_MIN, PWM_RANGE_MIN);
     }
