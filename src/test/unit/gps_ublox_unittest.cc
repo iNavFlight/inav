@@ -19,6 +19,8 @@
 #include "gtest/gtest.h"
 #include "unittest_macros.h"
 
+#include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <stdio.h>
@@ -97,4 +99,279 @@ TEST(GPSUbloxTest, navSigStructureSizes) {
     EXPECT_TRUE(sizeof(ubx_nav_svinfo_channel) == 12);
 
     EXPECT_TRUE(sizeof(ubx_nav_svinfo) == (8 + (12 * UBLOX_MAX_SIGNALS)));
+}
+
+TEST(GPSUbloxTest, DecodeHardwareVersion)
+{
+    const struct {
+        const char *hwVersion;
+        uint8_t expected;
+    } cases[] = {
+        { "00040005",   UBX_HW_VERSION_UBLOX5 },
+        { "00040007",   UBX_HW_VERSION_UBLOX6 },
+        { "00070000",   UBX_HW_VERSION_UBLOX7 },
+        { "00080000",   UBX_HW_VERSION_UBLOX8 },
+        { "00190000",   UBX_HW_VERSION_UBLOX9 },    // also reported by the ZED-F9P
+        { "000A0000",   UBX_HW_VERSION_UBLOX10 },
+        { "000B0000",   UBX_HW_VERSION_UBLOX20 },
+        { "000C0000",   UBX_HW_VERSION_UNKNOWN },
+        { "000a0000",   UBX_HW_VERSION_UNKNOWN },
+        { "0008000",    UBX_HW_VERSION_UNKNOWN },
+        { "00080000XY", UBX_HW_VERSION_UNKNOWN },
+        { "",           UBX_HW_VERSION_UNKNOWN },
+    };
+
+    for (const auto &c : cases) {
+        SCOPED_TRACE(c.hwVersion);
+        ubx_mon_ver ver = {};
+        memcpy(ver.hwVersion, c.hwVersion, std::min(strlen(c.hwVersion), sizeof(ver.hwVersion)));
+        EXPECT_EQ(c.expected, ubloxDecodeHardwareVersion(ver.hwVersion, sizeof(ver.hwVersion)));
+    }
+}
+
+TEST(GPSUbloxTest, ParseProtocolVersion)
+{
+    const size_t extensionLength = 30;
+    const struct {
+        const char *extension;
+        size_t length;
+        bool valid;
+        uint8_t major;
+        uint8_t minor;
+    } cases[] = {
+        { "PROTVER=18.00", extensionLength, true, 18, 0 },
+        { "PROTVER 14.00", extensionLength, true, 14, 0 },
+        { "PROTVER=34.10", extensionLength, true, 34, 10 },
+        { "PROTVER=27.31", extensionLength, true, 27, 31 },
+        { "PROTVER=27.50", extensionLength, true, 27, 50 },
+        { "PROTVER=50.11", extensionLength, true, 50, 11 },
+        { "PROTVER=18.00", 14, true, 18, 0 },
+        { "PROTVER=18.00", 13, false, 0, 0 },
+        { "PROTVER=18.00ABCDEFGHIJKLMNOPQ", extensionLength, false, 0, 0 },
+        { "PROTVER=18.000", extensionLength, false, 0, 0 },
+        { "PROTVER=18.", extensionLength, false, 0, 0 },
+        { "PROTVER=18", extensionLength, false, 0, 0 },
+        { "PROTVER=18.0", extensionLength, false, 0, 0 },
+        { "PROTVER=8.00", extensionLength, false, 0, 0 },
+        { "PROTVER=50.xx", extensionLength, false, 0, 0 },
+        { "PROTVER:18.00", extensionLength, false, 0, 0 },
+        { "protver=18.00", extensionLength, false, 0, 0 },
+        { "FWVER=HPG 2.10", extensionLength, false, 0, 0 },
+        { "", extensionLength, false, 0, 0 },
+        { "", 0, false, 0, 0 },
+    };
+
+    for (const auto &c : cases) {
+        SCOPED_TRACE(testing::Message() << "'" << c.extension << "' length " << c.length);
+        char extension[extensionLength] = {};
+        memcpy(extension, c.extension, std::min(strlen(c.extension), sizeof(extension)));
+        uint8_t major = 0;
+        uint8_t minor = 0;
+        EXPECT_EQ(c.valid, ubloxParseProtocolVersion(extension, c.length, &major, &minor));
+        if (c.valid) {
+            EXPECT_EQ(c.major, major);
+            EXPECT_EQ(c.minor, minor);
+        }
+    }
+}
+
+TEST(GPSUbloxTest, RefineHardwareVersion)
+{
+    const size_t fieldLength = 30;
+    const uint8_t M9 = UBX_HW_VERSION_UBLOX9;
+    const uint8_t F9 = UBX_HW_VERSION_UBLOX_F9;
+    const struct {
+        const char *receiver;
+        uint8_t hwVersion;
+        const char *swVersion;
+        size_t swLength;
+        const char *module;     // NULL: MON-VER without a "MOD=" extension
+        size_t moduleLength;
+        uint8_t expected;
+    } cases[] = {
+        { "ZED-F9P HPG 1.51",           M9, "EXT CORE 1.00 (9e1716)", fieldLength, "MOD=ZED-F9P",  fieldLength, F9 },
+        { "ZED-F9P HPG 1.32",           M9, "EXT CORE 1.00 (0fa0ae)", fieldLength, "MOD=ZED-F9P",  fieldLength, F9 },
+        { "ZED-F9P without MOD",        M9, "EXT CORE 1.00 (9e1716)", fieldLength, NULL,           0,           F9 },
+        { "ZED-F9R",                    M9, "",                       fieldLength, "MOD=ZED-F9R",  fieldLength, F9 },
+        { "NEO-F9P",                    M9, "",                       fieldLength, "MOD=NEO-F9P",  fieldLength, F9 },
+        { "NEO-M9N",                    M9, "EXT CORE 4.04 (7f89f7)", fieldLength, "MOD=NEO-M9N",  fieldLength, M9 },
+        { "M9 without MOD",             M9, "EXT CORE 4.04 (7f89f7)", fieldLength, NULL,           0,           M9 },
+        { "MOD overrides F9 core",      M9, "EXT CORE 1.00 (9e1716)", fieldLength, "MOD=NEO-M9N",  fieldLength, M9 },
+        { "MOD overrides M9 core",      M9, "EXT CORE 4.04 (7f89f7)", fieldLength, "MOD=ZED-F9P",  fieldLength, F9 },
+        { "empty MOD",                  M9, "EXT CORE 1.00 (9e1716)", fieldLength, "MOD=",         fieldLength, M9 },
+        { "F without 9",                M9, "",                       fieldLength, "MOD=F",        fieldLength, M9 },
+        { "MOD cut after F9",           M9, "",                       fieldLength, "MOD=ZED-F9P",  10,          F9 },
+        { "MOD cut inside F9",          M9, "",                       fieldLength, "MOD=ZED-F9P",  9,           M9 },
+        { "MOD cut before its prefix",  M9, "EXT CORE 1.00 (9e1716)", fieldLength, "MOD=ZED-F9P",  3,           F9 },
+        { "not a MOD field",            M9, "EXT CORE 4.04 (7f89f7)", fieldLength, "FWVER=F9",     fieldLength, M9 },
+        { "core cut before the minor",  M9, "EXT CORE 1.00 (9e1716)", 10,          NULL,           0,           M9 },
+        { "core cut after the dot",     M9, "EXT CORE 1.00 (9e1716)", 11,          NULL,           0,           F9 },
+        { "core 10.x",                  M9, "EXT CORE 10.00",         fieldLength, NULL,           0,           M9 },
+        { "M9 without strings",         M9, "",                       fieldLength, NULL,           0,           M9 },
+        { "M8 with F9 strings",         UBX_HW_VERSION_UBLOX8,   "EXT CORE 1.00 (9e1716)", fieldLength, "MOD=ZED-F9P",  fieldLength, UBX_HW_VERSION_UBLOX8 },
+        { "M10 with F9 strings",        UBX_HW_VERSION_UBLOX10,  "EXT CORE 1.00 (9e1716)", fieldLength, "MOD=ZED-F9P",  fieldLength, UBX_HW_VERSION_UBLOX10 },
+        { "ZED-X20P",                   UBX_HW_VERSION_UBLOX20,  "EXT HPG 2.10 (b0eda3)",  fieldLength, "MOD=ZED-X20P", fieldLength, UBX_HW_VERSION_UBLOX20 },
+        { "X20 with F9 strings",        UBX_HW_VERSION_UBLOX20,  "EXT CORE 1.00 (9e1716)", fieldLength, "MOD=ZED-F9P",  fieldLength, UBX_HW_VERSION_UBLOX20 },
+        { "unknown with F9 strings",    UBX_HW_VERSION_UNKNOWN,  "EXT CORE 1.00 (9e1716)", fieldLength, "MOD=ZED-F9P",  fieldLength, UBX_HW_VERSION_UNKNOWN },
+        { "F9 stays F9",                F9, "EXT CORE 4.04 (7f89f7)", fieldLength, "MOD=NEO-M9N",  fieldLength, F9 },
+    };
+
+    for (const auto &c : cases) {
+        SCOPED_TRACE(c.receiver);
+        char swVersion[fieldLength] = {};
+        char module[fieldLength] = {};
+        memcpy(swVersion, c.swVersion, std::min(strlen(c.swVersion), sizeof(swVersion)));
+        if (c.module) {
+            memcpy(module, c.module, std::min(strlen(c.module), sizeof(module)));
+        }
+        EXPECT_EQ(c.expected, ubloxRefineHardwareVersion(c.hwVersion, swVersion, c.swLength, c.module ? module : NULL, c.moduleLength));
+    }
+
+    // Text after a NUL does not belong to the field
+    const char afterNul[fieldLength] = { 'M', 'O', 'D', '=', 'Z', '\0', 'F', '9' };
+    EXPECT_EQ(M9, ubloxRefineHardwareVersion(M9, "EXT CORE 1.00 (9e1716)", fieldLength, afterNul, fieldLength));
+
+    // An unterminated field is read up to its length and not beyond
+    char unterminated[fieldLength];
+    memset(unterminated, 'X', sizeof(unterminated));
+    memcpy(unterminated, "MOD=", 4);
+    unterminated[fieldLength - 2] = 'F';
+    unterminated[fieldLength - 1] = '9';
+    EXPECT_EQ(F9, ubloxRefineHardwareVersion(M9, NULL, 0, unterminated, fieldLength));
+    EXPECT_EQ(M9, ubloxRefineHardwareVersion(M9, NULL, 0, unterminated, fieldLength - 1));
+    EXPECT_EQ(M9, ubloxRefineHardwareVersion(M9, NULL, 0, NULL, 0));
+}
+
+TEST(GPSUbloxTest, CapabilitiesFollowHardwareOrProtocol)
+{
+    const struct {
+        const char *receiver;
+        uint8_t hwVersion;
+        uint8_t protMajor;
+        uint8_t protMinor;
+        bool canConfigureGnss;
+        bool useM10GnssKeys;
+        bool useEnableKeys;
+        uint8_t navHz;
+    } cases[] = {
+        { "M5",                 UBX_HW_VERSION_UBLOX5,   0,  0, false, false, false,  5 },
+        { "M6",                 UBX_HW_VERSION_UBLOX6,   0,  0, false, false, false,  5 },
+        { "M7",                 UBX_HW_VERSION_UBLOX7,   0,  0, false, false, false, 10 },
+        { "M7 14.00",           UBX_HW_VERSION_UBLOX7,  14,  0, false, false, false, 10 },
+        { "M8",                 UBX_HW_VERSION_UBLOX8,   0,  0, true,  false, false, 10 },
+        { "M8 18.00",           UBX_HW_VERSION_UBLOX8,  18,  0, true,  false, false, 10 },
+        { "M9 32.01",           UBX_HW_VERSION_UBLOX9,  32,  1, true,  false, false, 10 },
+        { "F9P not refined 27.50", UBX_HW_VERSION_UBLOX9, 27, 50, true,  false, false, 10 },
+        { "F9 27.31",           UBX_HW_VERSION_UBLOX_F9, 27, 31, true, false, true,  10 },
+        { "F9 27.50",           UBX_HW_VERSION_UBLOX_F9, 27, 50, true, false, true,  10 },
+        { "F9 0.00",            UBX_HW_VERSION_UBLOX_F9,  0,  0, true, false, false, 10 },
+        { "M10",                UBX_HW_VERSION_UBLOX10,  0,  0, true,  false, false, 10 },
+        { "M10 34.10",          UBX_HW_VERSION_UBLOX10, 34, 10, true,  true,  false, 10 },
+        { "X20 50.11",          UBX_HW_VERSION_UBLOX20, 50, 11, true,  true,  true,  10 },
+        { "unknown 50.11",      UBX_HW_VERSION_UNKNOWN, 50, 11, true,  true,  false, 10 },
+        { "unknown 50.10",      UBX_HW_VERSION_UNKNOWN, 50, 10, true,  true,  false, 10 },
+        { "unknown 34.00",      UBX_HW_VERSION_UNKNOWN, 34,  0, true,  true,  false, 10 },
+        { "unknown 33.99",      UBX_HW_VERSION_UNKNOWN, 33, 99, true,  false, false, 10 },
+        { "unknown 24.00",      UBX_HW_VERSION_UNKNOWN, 24,  0, true,  false, false, 10 },
+        { "unknown 23.01",      UBX_HW_VERSION_UNKNOWN, 23,  1, true,  false, false, 10 },
+        { "unknown 15.00",      UBX_HW_VERSION_UNKNOWN, 15,  0, true,  false, false, 10 },
+        { "unknown 14.99",      UBX_HW_VERSION_UNKNOWN, 14, 99, false, false, false,  5 },
+        { "unknown 0.00",       UBX_HW_VERSION_UNKNOWN,  0,  0, false, false, false,  5 },
+    };
+
+    for (const auto &c : cases) {
+        SCOPED_TRACE(c.receiver);
+        EXPECT_EQ(c.canConfigureGnss, ubloxCanConfigureGnss(c.hwVersion, c.protMajor, c.protMinor));
+        EXPECT_EQ(c.useM10GnssKeys, ubloxUseM10GnssKeys(c.hwVersion, c.protMajor, c.protMinor));
+        EXPECT_EQ(c.useEnableKeys, ubloxUseGnssEnableKeys(c.hwVersion, c.protMajor, c.protMinor));
+        EXPECT_EQ(c.navHz, ubloxNavHzFor(c.hwVersion, c.protMajor, c.protMinor, 10));
+        EXPECT_EQ(c.navHz == 10, ubloxCanConfigureNavRate(c.hwVersion, c.protMajor, c.protMinor));
+    }
+}
+
+TEST(GPSUbloxTest, NavHzFollowsMinimumMeasurementPeriod)
+{
+    const struct {
+        const char *receiver;
+        uint8_t hwVersion;
+        uint8_t protMajor;
+        uint8_t protMinor;
+        uint8_t configuredHz;
+        uint8_t navHz;
+    } cases[] = {
+        { "M5 50 Hz",            UBX_HW_VERSION_UBLOX5,   0,  0,  50,  5 },
+        { "M8 18.00 10 Hz",      UBX_HW_VERSION_UBLOX8,  18,  0,  10, 10 },
+        { "M8 18.00 20 Hz",      UBX_HW_VERSION_UBLOX8,  18,  0,  20, 20 },
+        { "M8 18.00 21 Hz",      UBX_HW_VERSION_UBLOX8,  18,  0,  21, 20 },
+        { "M8 18.00 50 Hz",      UBX_HW_VERSION_UBLOX8,  18,  0,  50, 20 },
+        { "unknown 23.01 25 Hz", UBX_HW_VERSION_UNKNOWN, 23,  1,  25, 20 },
+        { "unknown 24.00 25 Hz", UBX_HW_VERSION_UNKNOWN, 24,  0,  25, 25 },
+        { "M10 34.10 10 Hz",     UBX_HW_VERSION_UBLOX10, 34, 10,  10, 10 },
+        { "M10 34.10 40 Hz",     UBX_HW_VERSION_UBLOX10, 34, 10,  40, 40 },
+        { "M10 34.10 50 Hz",     UBX_HW_VERSION_UBLOX10, 34, 10,  50, 40 },
+        { "X20 50.11 200 Hz",    UBX_HW_VERSION_UBLOX20, 50, 11, 200, 40 },
+    };
+
+    for (const auto &c : cases) {
+        SCOPED_TRACE(c.receiver);
+        EXPECT_EQ(c.navHz, ubloxNavHzFor(c.hwVersion, c.protMajor, c.protMinor, c.configuredHz));
+    }
+}
+
+TEST(GPSUbloxTest, GnssEnableKeysSwitchOnlyWholeConstellations)
+{
+    const uint8_t all = UBX_MON_GNSS_GPS_MASK | UBX_MON_GNSS_GLONASS_MASK | UBX_MON_GNSS_BEIDOU_MASK | UBX_MON_GNSS_GALILEO_MASK;
+    const uint8_t withoutGlonass = all & ~UBX_MON_GNSS_GLONASS_MASK;
+    const struct {
+        const char *name;
+        bool sbas;
+        bool galileo;
+        bool beidou;
+        bool glonass;
+        uint8_t supported;
+        uint8_t count;
+        ubx_config_data8_payload_t keys[UBLOX_GNSS_ENABLE_KEYS_MAX];
+    } cases[] = {
+        { "GPS, Galileo and BeiDou", true, true, true, false, all, 5,
+            { { UBLOX_CFG_SIGNAL_SBAS_ENA, 1 }, { UBLOX_CFG_SIGNAL_GAL_ENA, 1 }, { UBLOX_CFG_SIGNAL_BDS_ENA, 1 },
+              { UBLOX_CFG_QZSS_ENA, 1 }, { UBLOX_CFG_GLO_ENA, 0 } } },
+        { "all constellations", true, true, true, true, all, 5,
+            { { UBLOX_CFG_SIGNAL_SBAS_ENA, 1 }, { UBLOX_CFG_SIGNAL_GAL_ENA, 1 }, { UBLOX_CFG_SIGNAL_BDS_ENA, 1 },
+              { UBLOX_CFG_QZSS_ENA, 1 }, { UBLOX_CFG_GLO_ENA, 1 } } },
+        { "GPS only without SBAS", false, false, false, false, all, 5,
+            { { UBLOX_CFG_SIGNAL_SBAS_ENA, 0 }, { UBLOX_CFG_SIGNAL_GAL_ENA, 0 }, { UBLOX_CFG_SIGNAL_BDS_ENA, 0 },
+              { UBLOX_CFG_QZSS_ENA, 1 }, { UBLOX_CFG_GLO_ENA, 0 } } },
+        { "GLONASS without SBAS", false, false, false, true, all, 5,
+            { { UBLOX_CFG_SIGNAL_SBAS_ENA, 0 }, { UBLOX_CFG_SIGNAL_GAL_ENA, 0 }, { UBLOX_CFG_SIGNAL_BDS_ENA, 0 },
+              { UBLOX_CFG_QZSS_ENA, 1 }, { UBLOX_CFG_GLO_ENA, 1 } } },
+        { "X20 HPG 2.00 without GLONASS", true, true, true, true, withoutGlonass, 4,
+            { { UBLOX_CFG_SIGNAL_SBAS_ENA, 1 }, { UBLOX_CFG_SIGNAL_GAL_ENA, 1 }, { UBLOX_CFG_SIGNAL_BDS_ENA, 1 },
+              { UBLOX_CFG_QZSS_ENA, 1 } } },
+        { "Galileo only supported", true, true, true, true, UBX_MON_GNSS_GPS_MASK | UBX_MON_GNSS_GALILEO_MASK, 3,
+            { { UBLOX_CFG_SIGNAL_SBAS_ENA, 1 }, { UBLOX_CFG_SIGNAL_GAL_ENA, 1 }, { UBLOX_CFG_QZSS_ENA, 1 } } },
+        { "nothing supported", true, true, true, true, 0, 2,
+            { { UBLOX_CFG_SIGNAL_SBAS_ENA, 1 }, { UBLOX_CFG_QZSS_ENA, 1 } } },
+        { "nothing supported without SBAS", false, true, true, true, 0, 2,
+            { { UBLOX_CFG_SIGNAL_SBAS_ENA, 0 }, { UBLOX_CFG_QZSS_ENA, 1 } } },
+    };
+
+    for (const auto &c : cases) {
+        SCOPED_TRACE(c.name);
+        ubx_config_data8_payload_t keys[UBLOX_GNSS_ENABLE_KEYS_MAX + 1];
+        memset(keys, 0xAA, sizeof(keys));
+
+        const uint8_t count = ubloxGnssEnableKeys(keys, c.sbas, c.galileo, c.beidou, c.glonass, c.supported);
+
+        ASSERT_EQ(c.count, count);
+        for (unsigned i = 0; i < count; i++) {
+            SCOPED_TRACE(testing::Message() << "key " << i);
+            EXPECT_EQ(c.keys[i].key, keys[i].key);
+            EXPECT_EQ(c.keys[i].value, keys[i].value);
+        }
+        // Per-signal keys are never written, and nothing past the count
+        for (unsigned i = count; i < UBLOX_GNSS_ENABLE_KEYS_MAX + 1; i++) {
+            EXPECT_EQ(0xAAAAAAAAu, keys[i].key);
+            EXPECT_EQ(0xAA, keys[i].value);
+        }
+    }
 }

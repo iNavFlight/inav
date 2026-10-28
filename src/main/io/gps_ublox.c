@@ -32,7 +32,6 @@
 
 
 #include "common/axis.h"
-#include "common/typeconversion.h"
 #include "common/gps_conversion.h"
 #include "common/maths.h"
 #include "common/utils.h"
@@ -120,6 +119,7 @@ static struct {
     int capMaxGnss;
     uint8_t defaultGnss;
     uint8_t enabledGnss;
+    bool monGnssUnsupported;    // MON-GNSS came back in a version the parser does not read
 } ubx_capabilities = { };
 
 // Example packet sizes from UBlox u-center from a Glonass capable GPS receiver.
@@ -475,6 +475,16 @@ static void configureGNSS10(void)
         ubloxSendSetCfgBytes(gnssConfigValues, 12);
 }
 
+static void configureGNSSEnables(void)
+{
+    ubx_config_data8_payload_t gnssConfigValues[UBLOX_GNSS_ENABLE_KEYS_MAX];
+    const uint8_t count = ubloxGnssEnableKeys(gnssConfigValues, gpsState.gpsConfig->sbasMode != SBAS_NONE,
+        gpsState.gpsConfig->ubloxUseGalileo, gpsState.gpsConfig->ubloxUseBeidou, gpsState.gpsConfig->ubloxUseGlonass,
+        ubx_capabilities.supported);
+
+    ubloxSendSetCfgBytes(gnssConfigValues, count);
+}
+
 static void configureGNSS(void)
 {
     int blocksUsed = 0;
@@ -530,12 +540,6 @@ static void configureMSG(uint8_t msg_class, uint8_t id, uint8_t rate)
  */
 static void configureRATE(uint16_t measRate)
 {
-    if(ubloxVersionLT(24, 0)) {
-        measRate = MAX(50, measRate);
-    } else {
-        measRate = MAX(25, measRate);
-    }
-
     if (ubloxVersionLTE(23, 1)) {
         send_buffer.message.header.msg_class = CLASS_CFG;
         send_buffer.message.header.msg_id = MSG_CFG_RATE;
@@ -564,6 +568,11 @@ static void configureRATE(uint16_t measRate)
     }
 }
 
+static uint8_t ubloxEffectiveNavHz(void)
+{
+    return ubloxNavHzFor(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor, gpsState.gpsConfig->ubloxNavHz);
+}
+
 /*
  */
 static void configureSBAS(void)
@@ -577,53 +586,6 @@ static void configureSBAS(void)
     send_buffer.message.payload.sbas.scanmode2=0;
     send_buffer.message.payload.sbas.scanmode1=ubloxScanMode1[gpsState.gpsConfig->sbasMode];
     sendConfigMessageUBLOX();
-}
-
-static void gpsDecodeProtocolVersion(const char *proto, size_t bufferLength)
-{
-    if (bufferLength > 13 && (!strncmp(proto, "PROTVER=", 8) || !strncmp(proto, "PROTVER ", 8))) {
-        proto+=8;
-
-        float ver = fastA2F(proto);
-
-        gpsState.swVersionMajor = (uint8_t)ver;
-        gpsState.swVersionMinor = (uint8_t)((ver - gpsState.swVersionMajor) * 100.0f);
-    }
-}
-
-static uint8_t gpsDecodeHardwareVersion(const char * szBuf, unsigned nBufSize)
-{
-    // ublox_5   hwVersion 00040005
-    if (strncmp(szBuf, "00040005", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX5;
-    }
-
-    // ublox_6   hwVersion 00040007
-    if (strncmp(szBuf, "00040007", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX6;
-    }
-
-    // ublox_7   hwVersion 00070000
-    if (strncmp(szBuf, "00070000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX7;
-    }
-
-    // ublox_M8  hwVersion 00080000
-    if (strncmp(szBuf, "00080000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX8;
-    }
-
-    // ublox_M9  hwVersion 00190000
-    if (strncmp(szBuf, "00190000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX9;
-    }
-
-    // ublox_M10 hwVersion 000A0000
-    if (strncmp(szBuf, "000A0000", nBufSize) == 0) {
-        return UBX_HW_VERSION_UBLOX10;
-    }
-
-    return UBX_HW_VERSION_UNKNOWN;
 }
 
 static bool gpsParseFrameUBLOX(void)
@@ -732,9 +694,23 @@ static bool gpsParseFrameUBLOX(void)
         _new_speed = true;
         break;
     case MSG_VER:
-        if (_class == CLASS_MON) {
-            gpsState.hwVersion = gpsDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
-            if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) {
+        if (_class == CLASS_MON && _payload_length >= sizeof(ubx_mon_ver)) {
+            gpsState.hwVersion = ubloxDecodeHardwareVersion(_buffer.ver.hwVersion, sizeof(_buffer.ver.hwVersion));
+            // Parsed before the gates below so receivers missing from the hardware ID table are not treated as legacy
+            const char *module = NULL;
+            for (unsigned j = sizeof(ubx_mon_ver); j + 30 <= _payload_length; j += 30) {
+                const char *extension = (const char *)(_buffer.bytes + j);
+                uint8_t major, minor;
+                if (ubloxParseProtocolVersion(extension, 30, &major, &minor)) {
+                    gpsState.swVersionMajor = major;
+                    gpsState.swVersionMinor = minor;
+                }
+                if (strncmp(extension, "MOD=", 4) == 0) {
+                    module = extension;
+                }
+            }
+            gpsState.hwVersion = ubloxRefineHardwareVersion(gpsState.hwVersion, _buffer.ver.swVersion, sizeof(_buffer.ver.swVersion), module, 30);
+            if (ubloxCanConfigureGnss(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
                 if (_buffer.ver.swVersion[9] > '2' || true) {
                     // check extensions;
                     // after hw + sw vers; each is 30 bytes
@@ -759,12 +735,6 @@ static bool gpsParseFrameUBLOX(void)
                         }
                     }
                 }
-                for(int j = 40; j < _payload_length; j += 30) {
-                    if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
-                        gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
-                        break;
-                    }
-                }
             }
         }
         break;
@@ -776,6 +746,8 @@ static bool gpsParseFrameUBLOX(void)
                 ubx_capabilities.enabledGnss = _buffer.gnss.enabled;
                 ubx_capabilities.capMaxGnss = _buffer.gnss.maxConcurrent;
                 gpsState.lastCapaUpdMs = millis();
+            } else {
+                ubx_capabilities.monGnssUnsupported = true;
             }
         }
         break;
@@ -1125,10 +1097,8 @@ STATIC_PROTOTHREAD(gpsConfigure)
     }// end message config
 
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_SHORT_TIMEOUT);
-    if ((gpsState.hwVersion >= UBX_HW_VERSION_UBLOX7)) {
-        configureRATE(hz2rate(gpsState.gpsConfig->ubloxNavHz)); // default 10Hz
-    } else {
-        configureRATE(hz2rate(5)); // 5Hz
+    configureRATE(hz2rate(ubloxEffectiveNavHz()));
+    if (!ubloxCanConfigureNavRate(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
         gpsConfigMutable()->ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT;
     }
     ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
@@ -1151,14 +1121,12 @@ STATIC_PROTOTHREAD(gpsConfigure)
     ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
 
     // Configure GNSS for M8N and later
-    if (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX8) { // TODO: This check can be remove in INAV 9.0.0
+    if (ubloxCanConfigureGnss(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
         gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
-        bool use_VALSET = 0;
-        if (ubloxVersionGT(23,1)) {
-            use_VALSET = 1;
-        }
 
-        if ( use_VALSET && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10) ) {
+        if (ubloxUseGnssEnableKeys(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
+            configureGNSSEnables();
+        } else if (ubloxUseM10GnssKeys(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
             configureGNSS10();
         } else {
             configureGNSS();
@@ -1250,26 +1218,41 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Attempt to detect GPS hw version
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    gpsState.swVersionMajor = 0;
+    gpsState.swVersionMinor = 0;
     gpsState.autoConfigStep = 0;
 
     // Configure GPS module if enabled
     if (gpsState.gpsConfig->autoConfig) {
+        // Before MON-VER, whose extensions set the constellation bits
+        ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+        ubx_capabilities.monGnssUnsupported = false;
         do {
+            // gps.c counts its timeout from this call, not from received frames, so the retries would be cut short
+            gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
             pollVersion();
             gpsState.autoConfigStep++;
-            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN), GPS_CFG_CMD_TIMEOUT_MS);
-        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN);
+            ptWaitTimeout((gpsState.hwVersion != UBX_HW_VERSION_UNKNOWN || gpsState.swVersionMajor != 0), GPS_CFG_CMD_TIMEOUT_MS);
+        } while(gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES &&
+            gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN && gpsState.swVersionMajor == 0);
+
+        // Without a version the receiver would be set up on the legacy path, so restart like a communication loss
+        if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN && gpsState.swVersionMajor == 0) {
+            ptStop(0);
+        }
 
         gpsState.autoConfigStep = 0;
-        ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
         // M7 and earlier will never get pass this step, so skip it (#9440).
         // UBLOX documents that this is M8N and later
-        if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
+        if (ubloxCanConfigureGnss(gpsState.hwVersion, gpsState.swVersionMajor, gpsState.swVersionMinor)) {
             do {
+                // MON-VER was answered, so stay alive even when MON-GNSS (version 1 on the X20) is not parsed
+                gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
                 pollGnssCapabilities();
                 gpsState.autoConfigStep++;
-                ptWaitTimeout((ubx_capabilities.capMaxGnss != 0), GPS_CFG_CMD_TIMEOUT_MS);
-            } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0);
+                ptWaitTimeout((ubx_capabilities.capMaxGnss != 0 || ubx_capabilities.monGnssUnsupported), GPS_CFG_CMD_TIMEOUT_MS);
+            } while (gpsState.autoConfigStep < GPS_VERSION_RETRY_TIMES && ubx_capabilities.capMaxGnss == 0 &&
+                !ubx_capabilities.monGnssUnsupported);
         }
 
         // Configure GPS
@@ -1290,17 +1273,19 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
             if ((millis() - gpsState.lastCapaPoolMs) > GPS_CAPA_INTERVAL) {
                 gpsState.lastCapaPoolMs = millis();
                 gnssPolled=true;
-                if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN)
+                if (gpsState.hwVersion == UBX_HW_VERSION_UNKNOWN && gpsState.swVersionMajor == 0)
                 {
                     pollVersion();
                 }
 
-                pollGnssCapabilities();
+                if (!ubx_capabilities.monGnssUnsupported) {
+                    pollGnssCapabilities();
+                }
             }
         }
 
          /* Periodically poll MON-RF (~1s) for HW > UBLOX8 if OSD widget requested. Do not change ACK state. */
-        if ((!gnssPolled) && gpsState.hwVersion > UBX_HW_VERSION_UBLOX8 && osdMonRfWidgetEnabled) {
+        if ((!gnssPolled) && UBX_HW_GENERATION(gpsState.hwVersion) > UBX_HW_GENERATION(UBX_HW_VERSION_UBLOX8) && osdMonRfWidgetEnabled) {
             if ((millis() - lastMonRfMs) > 1000) {
                 lastMonRfMs = millis();
                 pollMonRf();
