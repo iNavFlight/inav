@@ -21,7 +21,6 @@
 
 #include "platform.h"
 
-#include "build/debug.h"
 #include "build/build_config.h"
 
 #include "common/maths.h"
@@ -46,10 +45,6 @@
 #define MZTC_FLAG_READ       0x01
 #define MZTC_FLAG_SUCCESS    0x03
 #define MZTC_FLAG_ERROR      0x04
-
-// Error codes reported by the camera in the first payload byte of an error reply
-#define MZTC_ERR_NO_COMMAND  0x00
-#define MZTC_ERR_THRESHOLD   0x01
 
 // Camera commands, as class and subclass pairs
 #define MZTC_CLASS_DEVICE            0x74
@@ -111,7 +106,6 @@ STATIC_ASSERT(MZTC_MAX_PERCENT == SETTING_MZTC_BRIGHTNESS_MAX, mztc_percent_max_
 // Internal state
 static mztcStatus_t mztcStatus;
 static serialPort_t *mztcSerialPort = NULL;
-static timeMs_t mztcLastUpdateTime = 0;
 static timeMs_t mztcLastPortRetry = 0;
 static timeMs_t mztcLastProbeTime = 0;
 static timeMs_t mztcLastCalibrationTime = 0;
@@ -160,13 +154,7 @@ static uint8_t mztcRxExpected = 0;
 // The defaults come from the SETTING_*_DEFAULT macros that the settings
 // generator emits from settings.yaml. The CLI defaults and the fresh-EEPROM
 // defaults cannot drift apart.
-// Version 2. Version 1 dropped the five unused RC channel fields, the
-// temperature settings and the crosshair flag, and widened last_calibration.
-// Version 2 replaces the inert mode field with preset and removes update_rate,
-// which shifts every field after the first byte. An older record read at the
-// new offsets would apply garbage to real camera settings, so the bump makes
-// it fall back to defaults instead.
-PG_REGISTER_WITH_RESET_TEMPLATE(mztcConfig_t, mztcConfig, PG_MZTC_CAMERA_CONFIG, 2);
+PG_REGISTER_WITH_RESET_TEMPLATE(mztcConfig_t, mztcConfig, PG_MZTC_CAMERA_CONFIG, 0);
 
 PG_RESET_TEMPLATE(mztcConfig_t, mztcConfig,
     .preset = SETTING_MZTC_PRESET_DEFAULT,
@@ -406,19 +394,6 @@ STATIC_UNIT_TESTED void mztcHandlePacket(const uint8_t *packet, uint8_t len)
                 mztcStatus.status = MZTC_STATUS_READY;
             }
         }
-        if (payloadLen >= 1) {
-            switch (payload[0]) {
-            case MZTC_ERR_NO_COMMAND:
-                debug[1] = 0x01;
-                break;
-            case MZTC_ERR_THRESHOLD:
-                debug[1] = 0x02;
-                break;
-            default:
-                debug[1] = 0x03;
-                break;
-            }
-        }
         break;
 
     default:
@@ -601,7 +576,6 @@ void mztcInit(void)
     // The port is opened from the update loop so that a missing or busy UART
     // does not stall init.
     mztcStatus.status = MZTC_STATUS_INITIALIZING;
-    mztcLastUpdateTime = millis();
     mztcLastPortRetry = 0;
     mztcLastCalibrationTime = millis();
 }
@@ -669,8 +643,6 @@ void mztcUpdate(timeUs_t currentTimeUs)
         mztcConfigurationPending = false;
         mztcSendConfiguration();
     }
-
-    mztcLastUpdateTime = now;
 
     // A periodic probe both feeds the receive timeout and measures link quality.
     if ((now - mztcLastProbeTime) >= MZTC_PROBE_INTERVAL_MS) {

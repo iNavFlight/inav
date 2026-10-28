@@ -5482,8 +5482,6 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
     CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS|LED|PINIO|BEEPER>]]", cliTimerOutputMode),
-#ifdef USE_MZTC
-#endif
 };
 
 static void cliHelp(char *cmdline)

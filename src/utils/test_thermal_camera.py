@@ -1,86 +1,92 @@
 #!/usr/bin/env python3
-"""
-Test script to verify thermal camera communication on COM13
+"""Bench smoke test for a MassZero thermal camera on a local serial port.
+
+Sends a handful of read commands and one write command directly to the
+camera and prints the raw replies. Use it to confirm the camera and the
+wiring before involving the flight controller. thermal_bridge.py is the
+companion that connects the camera to a SITL instance.
 """
 
-import serial
+import argparse
+import sys
 import time
 
-# Configuration
-SERIAL_PORT = 'COM13'
-SERIAL_BAUD = 115200
+import serial  # pyserial
 
-def send_command(ser, class_cmd, subclass_cmd, flags=0x01, data=None):
-    """Send a command packet to the thermal camera"""
+START_BYTE = 0xF0
+END_BYTE = 0xFF
+DEVICE_ADDRESS = 0x36
+FLAG_WRITE = 0x00
+FLAG_READ = 0x01
+
+
+def hexdump(data):
+    return ' '.join('%02X' % b for b in data)
+
+
+def send_command(ser, class_cmd, subclass_cmd, flags=FLAG_READ, data=None):
+    """Send one command packet and print whatever comes back."""
     if data is None:
         data = []
-    
-    # Build packet
+
     packet = bytearray()
-    packet.append(0xF0)  # Start byte
-    packet.append(len(data) + 4)  # Size
-    packet.append(0x36)  # Device address
+    packet.append(START_BYTE)
+    packet.append(len(data) + 4)
+    packet.append(DEVICE_ADDRESS)
     packet.append(class_cmd)
     packet.append(subclass_cmd)
     packet.append(flags)
     packet.extend(data)
-    
-    # Calculate checksum
-    checksum = 0x36 + class_cmd + subclass_cmd + flags + sum(data)
+    checksum = DEVICE_ADDRESS + class_cmd + subclass_cmd + flags + sum(data)
     packet.append(checksum & 0xFF)
-    packet.append(0xFF)  # End byte
-    
-    # Send packet
-    print(f"Sending: {' '.join([f'{b:02X}' for b in packet])}")
+    packet.append(END_BYTE)
+
+    print("Sending:  %s" % hexdump(packet))
     ser.write(packet)
-    
-    # Wait for response
+
     time.sleep(0.1)
     response = ser.read(256)
     if response:
-        print(f"Response: {' '.join([f'{b:02X}' for b in response])}")
+        print("Response: %s" % hexdump(response))
         return response
-    else:
-        print("No response")
-        return None
+    print("No response")
+    return None
+
 
 def main():
-    print("Testing MassZero Thermal Camera on COM13")
-    print("-" * 50)
-    
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('port', help="serial port the camera is on, for example COM13 or /dev/ttyUSB0")
+    parser.add_argument('--baud', type=int, default=115200, help="baud rate (default 115200)")
+    args = parser.parse_args()
+
     try:
-        # Open serial port
-        ser = serial.Serial(SERIAL_PORT, SERIAL_BAUD, timeout=1.0)
-        print(f"Opened {SERIAL_PORT} at {SERIAL_BAUD} baud")
-        
-        # Clear any pending data
+        ser = serial.Serial(args.port, args.baud, timeout=1.0)
+    except serial.SerialException as e:
+        print("Error: %s" % e, file=sys.stderr)
+        return 1
+    print("Opened %s at %d baud" % (args.port, args.baud))
+
+    with ser:
+        # Drop anything already buffered so the first reply lines up.
         ser.read_all()
-        
-        # Test 1: Read device model
+
         print("\n1. Reading device model...")
         send_command(ser, 0x74, 0x02)
-        
-        # Test 2: Read FPGA version
+
         print("\n2. Reading FPGA version...")
         send_command(ser, 0x74, 0x03)
-        
-        # Test 3: Read software version
+
         print("\n3. Reading software version...")
         send_command(ser, 0x74, 0x05)
-        
-        # Test 4: Read initialization status
+
         print("\n4. Reading initialization status...")
         send_command(ser, 0x7C, 0x14)
-        
-        # Test 5: Try to set brightness (write command)
+
         print("\n5. Setting brightness to 50...")
-        send_command(ser, 0x78, 0x02, flags=0x00, data=[50])
-        
-        ser.close()
-        
-    except Exception as e:
-        print(f"Error: {e}")
+        send_command(ser, 0x78, 0x02, flags=FLAG_WRITE, data=[50])
+
+    return 0
+
 
 if __name__ == "__main__":
-    main()
-
+    sys.exit(main())
