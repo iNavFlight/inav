@@ -101,7 +101,7 @@ protected:
 
     bool airspeedValid() {
         pitotUpdate();   // virtual pitot: sets lastSeenHealthyMs, refreshes validity cache
-        return pitotIsValidForAirspeed(false);
+        return pitotIsValidForAirspeed(true);
     }
 };
 
