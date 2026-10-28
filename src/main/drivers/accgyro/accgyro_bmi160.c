@@ -214,6 +214,7 @@ bool bmi160AccDetect(accDev_t *acc)
 
     acc->initFn = bmi160AccInit;
     acc->readFn = bmi160AccReadScratchpad;
+    acc->accAlign = acc->busDev->param;
 
     return true;
 }
