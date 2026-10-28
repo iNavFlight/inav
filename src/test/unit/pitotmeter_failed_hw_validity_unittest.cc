@@ -21,7 +21,7 @@
  * Real sensors/pitotmeter.c is linked and driven through pitotUpdate() with a
  * fake pitot device. While armed, implausible readings (vs. GPS-derived virtual
  * airspeed) latch pitotHardwareFailed. Once failed, getAirspeedEstimate() falls
- * back to the virtual estimate, so pitotGetValidForAirspeed() must be true only
+ * back to the virtual estimate, so pitotIsValidForAirspeed() must be true only
  * when GPS_FIX && validVelNE && validVelD && virtual airspeed > 0.
  */
 
@@ -143,7 +143,7 @@ protected:
 TEST_F(FailedHardwarePitotValidity, FailedPitotValidWhenGpsVelocitiesValid) {
     armAndFailPitot();
     tick();
-    EXPECT_TRUE(pitotGetValidForAirspeed());
+    EXPECT_TRUE(pitotIsValidForAirspeed(false));
 }
 
 TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenHorizontalVelocityInvalid) {
@@ -151,7 +151,7 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenHorizontalVelocityInv
     gpsSol.flags.validVelNE = false;
     tick();
     ASSERT_TRUE(pitotHasFailed());
-    EXPECT_FALSE(pitotGetValidForAirspeed());
+    EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
 
 TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenVerticalVelocityInvalid) {
@@ -159,7 +159,7 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenVerticalVelocityInval
     gpsSol.flags.validVelD = false;
     tick();
     ASSERT_TRUE(pitotHasFailed());
-    EXPECT_FALSE(pitotGetValidForAirspeed());
+    EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
 
 TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenVirtualAirspeedZero) {
@@ -167,7 +167,7 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenVirtualAirspeedZero) 
     posControl.actualState.vel3D = 0.0f;   // wind estimate invalid -> virtual airspeed 0
     tick();
     ASSERT_TRUE(pitotHasFailed());
-    EXPECT_FALSE(pitotGetValidForAirspeed());
+    EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
 
 TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWithoutGpsFix) {
@@ -175,7 +175,7 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWithoutGpsFix) {
     DISABLE_STATE(GPS_FIX);
     tick();
     ASSERT_TRUE(pitotHasFailed());
-    EXPECT_FALSE(pitotGetValidForAirspeed());
+    EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
 
 TEST_F(FailedHardwarePitotValidity, HealthyPitotValidRegardlessOfGpsVelocityFlags) {
@@ -186,5 +186,5 @@ TEST_F(FailedHardwarePitotValidity, HealthyPitotValidRegardlessOfGpsVelocityFlag
     gpsSol.flags.validVelNE = false;
     gpsSol.flags.validVelD = false;
     tick();
-    EXPECT_TRUE(pitotGetValidForAirspeed());
+    EXPECT_TRUE(pitotIsValidForAirspeed(false));
 }
