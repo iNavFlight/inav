@@ -89,6 +89,9 @@ typedef enum {
     BOXTERRAINAGLHOLD = 61,
     BOXINFLIGHTMENU  = 62,
     BOXTHRUSTREVERSE = 63,
+#ifdef USE_MZTC
+    BOXMZTCCALIBRATE = 64,
+#endif
     CHECKBOX_ITEM_COUNT
 } boxId_e;
 
