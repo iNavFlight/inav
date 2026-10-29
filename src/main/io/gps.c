@@ -146,7 +146,8 @@ PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT,
     .ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT,
     .ubloxNavHz = SETTING_GPS_UBLOX_NAV_HZ_DEFAULT,
-    .autoBaudMax = SETTING_GPS_AUTO_BAUD_MAX_SUPPORTED_DEFAULT
+    .autoBaudMax = SETTING_GPS_AUTO_BAUD_MAX_SUPPORTED_DEFAULT,
+    .ubloxUseNavic = SETTING_GPS_UBLOX_USE_NAVIC_DEFAULT
 );
 
 int gpsBaudRateToInt(gpsBaudRate_e baudrate)

@@ -2048,6 +2048,16 @@ Enable use of Glonass satellites. This is at the expense of other regional const
 
 ---
 
+### gps_ublox_use_navic
+
+Enable use of NavIC satellites, the Indian regional system, on receivers that have it, such as the u-blox F10. They are only visible over India and the region around it. Receivers without NavIC ignore this setting [OFF/ON].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### ground_test_mode
 
 For developer ground test use. Disables motors, sets heading status = Trusted on FW.

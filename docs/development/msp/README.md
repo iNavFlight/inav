@@ -2336,6 +2336,12 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `eph` | `uint16_t` | 2 | cm | Estimated Horizontal Position Accuracy (`gpsSol.eph`) |
 | `epv` | `uint16_t` | 2 | cm | Estimated Vertical Position Accuracy (`gpsSol.epv`) |
 | `hwVersion` | `uint8_t` | 1 | - | GPS hardware version bit-field: bits[7:6]=series (0b01=u-blox Neo/M), bits[5:0]=generation. E.g. 0x48=M8, 0x49=M9, 0x4A=M10, 0=unknown. |
+| `supportedGnss` | `uint8_t` | 1 | Bitmask | Bitmask: major constellations the receiver reports in UBX-MON-GNSS: Bit 0=GPS, Bit 1=GLONASS, Bit 2=BeiDou, Bit 3=Galileo. 0 if the receiver has not reported them, or the provider is not u-blox |
+| `enabledGnss` | `uint8_t` | 1 | Bitmask | Bitmask: which of those constellations the receiver says are running. Same bit order as `supportedGnss` |
+| `extendedGnss` | `uint8_t` | 1 | Bitmask | Bitmask: augmentation and regional systems listed in the UBX-MON-VER extensions, which UBX-MON-GNSS does not carry: Bit 0=SBAS, Bit 1=QZSS, Bit 2=NavIC |
+| `maxGnss` | `uint8_t` | 1 | Count | How many major constellations the receiver can track at the same time, as reported by UBX-MON-GNSS. 0 if unknown |
+| `moduleNameLength` | `uint8_t` | 1 | - | Length of the module name string that follows. 0 if the receiver does not report one |
+| `moduleName` | `char[]` | array | - | Module name as the receiver reports it in the UBX-MON-VER extensions (e.g., "NEO-M10N"). Length given by previous field |
 
 **Notes:** Requires `USE_GPS`.
 
