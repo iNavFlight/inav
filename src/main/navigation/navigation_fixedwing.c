@@ -99,6 +99,21 @@
 #define NAV_FW_GUARD_REDUCE_RATE_DPS     20.0f    // bank-limit reduce rate
 #define NAV_FW_GUARD_RECOVER_RATE_DPS    5.0f     // bank-limit recover rate
 #define NAV_FW_GUARD_RECOVER_HOLDOFF_MS  1000     // healthy time before recovery starts
+#define NAV_FW_GUARD_PITCH_REDUCE_DPS    20.0f    // climb-pitch ceiling reduce rate when thrust is insufficient
+#define NAV_FW_GUARD_PITCH_RECOVER_DPS   2.0f     // climb-pitch ceiling recover rate
+#define NAV_FW_GUARD_SPEED_LOW_FRAC      0.93f    // speed below this fraction of the reference = losing energy
+#define NAV_FW_GUARD_SPEED_OK_FRAC       0.96f    // speed back above this fraction of the reference = recovered
+#define NAV_FW_GUARD_SPEED_VLOW_FRAC     0.88f    // speed this far below the reference needs no sustained pin (airspeed only)
+#define NAV_FW_GUARD_SPEED_VOK_FRAC      0.92f    // ...back above this fraction clears it
+#define NAV_FW_GUARD_DECEL_ENTER_PCT_S   0.012f   // speed falling faster than this fraction of the reference per second = bleeding energy
+#define NAV_FW_GUARD_DECEL_EXIT_PCT_S    0.004f   // ...and no longer once it slows below this
+#define NAV_FW_GUARD_DECEL_FILTER_HZ     0.7f
+#define NAV_FW_GUARD_DECEL_SPEED_FRAC    0.97f    // deceleration only counts once speed is actually this far below the reference
+#define NAV_FW_GUARD_PINNED_MIN_S        1.0f     // pitch demand loaded this long separates a stall from a zoom climb
+#define NAV_FW_GUARD_LOAD_FRAC           0.5f     // "loaded" = demanding at least this fraction of the climb-pitch ceiling...
+#define NAV_FW_GUARD_LOAD_MIN_DECIDEG    30.0f    // ...and at least this much nose-up
+#define NAV_FW_GUARD_SPEED_REF_RISE_S    0.5f     // reference speed follows a speed increase with this time constant
+#define NAV_FW_GUARD_SPEED_REF_FALL_S    60.0f    // ...and a speed decrease with this one: a stall bleeds off over seconds and must stay visible
 
 #define NAV_FW_CROSSTRACK_RATE_CUTOFF_HZ 3.0f     // cross-track error rate LPF
 
@@ -180,9 +195,19 @@ typedef struct {
 
 typedef struct {
     float effectiveBankLimit;   // adaptive nav bank limit (energy guard), deg; 0 = not yet initialised
+    float climbPitchCut;        // climb-pitch ceiling reduction, decideg; 0 = full nav_fw_climb_angle
+    float speedRef;             // slow peak-following speed reference, cm/s
+    float pinnedSec;            // time the pitch demand has been above half of the ceiling, s
+    bool speedLow;              // speed below LOW_FRAC of speedRef (moderate loss)
+    bool speedVeryLow;          // speed below VLOW_FRAC of speedRef (large loss)
+    bool speedFalling;          // filtered deceleration above DECEL_ENTER_PCT_S of speedRef
+    float prevSpeed;
+    pt1Filter_t decelFilter;
+    bool speedIsAirspeed;       // speedRef is in airspeed (pitot) rather than ground speed
     float targetVzBaseline;
     timeUs_t lastUpdateUs;
     timeUs_t lastTriggerUs;
+    timeUs_t lastPitchTriggerUs;
     pt1Filter_t deficitFilter;
     pt1Filter_t riseFilter;
     bool deficitLatched;
@@ -237,6 +262,7 @@ void resetFixedWingAltitudeController(void)
     posControl.rcAdjustment[PITCH] = 0;
     isPitchAdjustmentValid = false;
     throttleSpeedAdjustment = 0;
+    fwGuard.climbPitchCut = 0.0f;
 
     pt1FilterSetCutoff(&pitchFilterState, getSmoothnessCutoffFreq(NAV_FW_BASE_PITCH_CUTOFF_FREQUENCY_HZ));
     pt1FilterReset(&pitchFilterState, 0.0f);
@@ -275,7 +301,7 @@ static void updateAltitudeVelocityAndPitchController_FW(timeDelta_t deltaMicros)
     }
 
     // Here we use negative values for dive for better clarity
-    const float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle);
+    const float maxClimbDeciDeg = DEGREES_TO_DECIDEGREES(navConfig()->fw.max_climb_angle) - fwGuard.climbPitchCut;
     const float minDiveDeciDeg = -DEGREES_TO_DECIDEGREES(navConfig()->fw.max_dive_angle);
 
     // Default control based on climb rate (velocity)
@@ -404,6 +430,11 @@ static void fwTurnStateReset(void)
     fwTurn.ff.prevLegBearing = -1;
     // 0 = use the full ceiling until the guard re-syncs on its next run
     fwGuard.effectiveBankLimit = 0.0f;
+    // climbPitchCut survives: the altitude controller keeps running through a lateral reset
+    fwGuard.speedFalling = false;
+    fwGuard.speedLow = false;
+    fwGuard.speedVeryLow = false;
+    fwGuard.pinnedSec = 0.0f;
 }
 
 /*
@@ -555,6 +586,15 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t autoThrottl
         fwGuard.effectiveBankLimit = maxBank;
     }
 
+    float speed = posControl.actualState.velXY;     // cm/s
+    bool speedIsAirspeed = false;
+#ifdef USE_PITOT
+    if (pitotGetValidForAirspeed()) {
+        speed = getAirspeedEstimate();
+        speedIsAirspeed = true;
+    }
+#endif
+
     const timeDeltaLarge_t dtUs = currentTimeUs - fwGuard.lastUpdateUs;
     fwGuard.lastUpdateUs = currentTimeUs;
     // First call / gap (controller was inactive): resync, skip integration this step.
@@ -566,6 +606,17 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t autoThrottl
         pt1FilterReset(&fwGuard.riseFilter, 0.0f);
         fwGuard.deficitLatched = false;
         fwGuard.lastTriggerUs = currentTimeUs;
+        fwGuard.climbPitchCut = 0.0f;
+        fwGuard.speedRef = speed;
+        fwGuard.speedIsAirspeed = speedIsAirspeed;
+        fwGuard.prevSpeed = speed;
+        fwGuard.speedFalling = false;
+        pt1FilterSetCutoff(&fwGuard.decelFilter, NAV_FW_GUARD_DECEL_FILTER_HZ);
+        pt1FilterReset(&fwGuard.decelFilter, 0.0f);
+        fwGuard.speedLow = false;
+        fwGuard.speedVeryLow = false;
+        fwGuard.pinnedSec = 0.0f;
+        fwGuard.lastPitchTriggerUs = currentTimeUs;
         return;
     }
     const float dtSec = US2S(dtUs);
@@ -612,6 +663,57 @@ static void updateFwEnergyBankGuard(timeUs_t currentTimeUs, uint16_t autoThrottl
         fwGuard.effectiveBankLimit += NAV_FW_GUARD_RECOVER_RATE_DPS * dtSec;
     }
     fwGuard.effectiveBankLimit = constrainf(fwGuard.effectiveBankLimit, NAV_FW_GUARD_PHI_FLOOR_DEG, maxBank);
+
+    // Losing speed while demanding a large nose-up: thrust cannot hold altitude, so stop asking for nose-up.
+    // Speed is judged against a slow peak-following reference, so a dive recovery (excess speed) is left
+    // alone and no stall speed is needed. A moderate loss needs the unmet climb and a sustained pin; a
+    // large loss needs only the nose-up demand.
+    if (speedIsAirspeed != fwGuard.speedIsAirspeed) {
+        // Airspeed and ground speed are not comparable: restart the reference on the new source
+        fwGuard.speedIsAirspeed = speedIsAirspeed;
+        fwGuard.speedRef = speed;
+        fwGuard.prevSpeed = speed;
+        pt1FilterReset(&fwGuard.decelFilter, 0.0f);
+        fwGuard.speedFalling = false;
+        fwGuard.speedLow = false;
+        fwGuard.speedVeryLow = false;
+    }
+    const float decel = -pt1FilterApply3(&fwGuard.decelFilter, (speed - fwGuard.prevSpeed) / dtSec, dtSec);   // cm/s^2, positive = slowing
+    fwGuard.prevSpeed = speed;
+    const float speedRefTauS = (speed > fwGuard.speedRef) ? NAV_FW_GUARD_SPEED_REF_RISE_S : NAV_FW_GUARD_SPEED_REF_FALL_S;
+    fwGuard.speedRef += (speed - fwGuard.speedRef) * MIN(1.0f, dtSec / speedRefTauS);
+    if (speed < NAV_FW_GUARD_SPEED_LOW_FRAC * fwGuard.speedRef) {
+        fwGuard.speedLow = true;
+    } else if (speed > NAV_FW_GUARD_SPEED_OK_FRAC * fwGuard.speedRef) {
+        fwGuard.speedLow = false;
+    }
+    if (speed < NAV_FW_GUARD_SPEED_VLOW_FRAC * fwGuard.speedRef) {
+        fwGuard.speedVeryLow = true;
+    } else if (speed > NAV_FW_GUARD_SPEED_VOK_FRAC * fwGuard.speedRef) {
+        fwGuard.speedVeryLow = false;
+    }
+    if (decel > NAV_FW_GUARD_DECEL_ENTER_PCT_S * fwGuard.speedRef) {
+        fwGuard.speedFalling = true;
+    } else if (decel < NAV_FW_GUARD_DECEL_EXIT_PCT_S * fwGuard.speedRef) {
+        fwGuard.speedFalling = false;
+    }
+    const float pitchDemand = (float)posControl.rcAdjustment[PITCH];
+    // The minimum applies only to arming; it must not drop out as the ceiling shrinks, or the cut would release mid-recovery
+    const bool noseUp = pitchDemand >= NAV_FW_GUARD_LOAD_MIN_DECIDEG || fwGuard.climbPitchCut > 0.0f;
+    const bool pitchPinned = noseUp && pitchDemand >= NAV_FW_GUARD_LOAD_FRAC * (maxClimbDeciDeg - fwGuard.climbPitchCut);
+    fwGuard.pinnedSec = pitchPinned ? (fwGuard.pinnedSec + dtSec) : 0.0f;
+    // Ground speed swings with the wind on every turn, so without airspeed a large loss alone is not proof of under-thrust
+    const bool veryLowSpeedTrigger = noseUp && fwGuard.speedVeryLow && (fwGuard.speedIsAirspeed || fwGuard.deficitLatched);
+    const bool underThrust = veryLowSpeedTrigger ||
+        (pitchPinned && (fwGuard.speedLow || (fwGuard.speedFalling && speed < NAV_FW_GUARD_DECEL_SPEED_FRAC * fwGuard.speedRef)) && fwGuard.deficitLatched && fwGuard.pinnedSec >= NAV_FW_GUARD_PINNED_MIN_S);
+    if (underThrust) {
+        fwGuard.climbPitchCut += DEGREES_TO_DECIDEGREES(NAV_FW_GUARD_PITCH_REDUCE_DPS) * dtSec;
+        fwGuard.lastPitchTriggerUs = currentTimeUs;
+    } else if (!fwGuard.deficitLatched && (currentTimeUs - fwGuard.lastPitchTriggerUs) > ((timeUs_t)NAV_FW_GUARD_RECOVER_HOLDOFF_MS * 1000)) {
+        // Hold the ceiling until the climb demand is being met again, otherwise pitch returns to the limit and speed bleeds off again
+        fwGuard.climbPitchCut -= DEGREES_TO_DECIDEGREES(NAV_FW_GUARD_PITCH_RECOVER_DPS) * dtSec;
+    }
+    fwGuard.climbPitchCut = constrainf(fwGuard.climbPitchCut, 0.0f, maxClimbDeciDeg);
 
     DEBUG_SET(DEBUG_FW_TURN, 6, lrintf(fwGuard.effectiveBankLimit)); // energy-guard bank ceiling [deg]
 }
