@@ -31,18 +31,24 @@
 
 #ifdef USE_MZTC
 
+// Three letters per palette, in mztcPaletteMode_e order.
+static const char *const mztcOsdPaletteNames[] = {
+    "WHT", "BLK", "FU1", "RBW", "FU2", "IR1", "IR2",
+    "SEP", "CL1", "CL2", "ICE", "RAI", "GRN", "RED"
+};
+
+static const char *const mztcOsdZoomNames[] = { "1X", "2X", "4X", "8X" };
+
 void mztcOsdFormatStatus(char *buff, textAttributes_t *attr)
 {
     const mztcStatus_t *status = mztcGetStatus();
     const char *text;
+    bool linkUp = true;
 
     switch (status->status) {
     case MZTC_STATUS_READY:
     case MZTC_STATUS_CAPTURING:
-        text = "OK ";
-        break;
-    case MZTC_STATUS_INITIALIZING:
-        text = "INI";
+        text = "OK";
         break;
     case MZTC_STATUS_CALIBRATING:
         text = "FFC";
@@ -53,16 +59,41 @@ void mztcOsdFormatStatus(char *buff, textAttributes_t *attr)
     case MZTC_STATUS_ALERT:
         text = "ALT";
         break;
+    case MZTC_STATUS_INITIALIZING:
+        text = "INI";
+        linkUp = false;
+        break;
     case MZTC_STATUS_ERROR:
         text = "ERR";
+        linkUp = false;
         break;
     case MZTC_STATUS_OFFLINE:
     default:
         text = "OFF";
+        linkUp = false;
         break;
     }
 
-    tfp_sprintf(buff, "IR %s", text);
+    if (linkUp) {
+        // Zoom and palette are the values the driver last sent, the same
+        // commanded state the in-flight adjustments step through. They are
+        // only meaningful while a camera is listening.
+        const mztcConfig_t *cfg = mztcConfig();
+        const char *zoom = cfg->zoom_level < ARRAYLEN(mztcOsdZoomNames) ?
+            mztcOsdZoomNames[cfg->zoom_level] : "--";
+        const char *palette = cfg->palette_mode < ARRAYLEN(mztcOsdPaletteNames) ?
+            mztcOsdPaletteNames[cfg->palette_mode] : "---";
+        tfp_sprintf(buff, "IR %s %s %s", text, zoom, palette);
+    } else {
+        tfp_sprintf(buff, "IR %s", text);
+    }
+
+    // Pad to a constant width so a shorter state never leaves characters of
+    // the previous one on screen.
+    for (unsigned i = strlen(buff); i < MZTC_OSD_ELEMENT_LENGTH - 1; i++) {
+        buff[i] = ' ';
+    }
+    buff[MZTC_OSD_ELEMENT_LENGTH - 1] = '\0';
 
     if (status->status == MZTC_STATUS_ERROR || status->status == MZTC_STATUS_OFFLINE) {
         TEXT_ATTRIBUTES_ADD_BLINK(*attr);

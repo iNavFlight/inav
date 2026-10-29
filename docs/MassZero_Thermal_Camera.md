@@ -310,7 +310,32 @@ The element below is an ordinary INAV OSD item. Position and enable it through t
 
 | Element | Shows |
 | --- | --- |
-| `OSD_MZTC_STATUS` | A three letter link state: `OK`, `INI`, `FFC`, `REC`, `ALT`, `ERR` or `OFF`. Blinks on `ERR` and `OFF` |
+| `OSD_MZTC_STATUS` | The link state, and while the link is up the current zoom and palette, as in `IR OK 2X WHT`. Blinks on `ERR` and `OFF` |
+
+The link states are `OK`, `INI`, `FFC`, `REC`, `ALT`, `ERR` and `OFF`. Zoom
+reads `1X`, `2X`, `4X` or `8X`. It reflects the value the in-flight zoom
+adjustment steps through, so the pilot sees the step land. The palette codes
+follow the `mztc_palette_mode` order:
+
+| Code | Palette |
+| --- | --- |
+| `WHT` | White hot |
+| `BLK` | Black hot |
+| `FU1` | Fusion 1 |
+| `RBW` | Rainbow |
+| `FU2` | Fusion 2 |
+| `IR1` | Iron red 1 |
+| `IR2` | Iron red 2 |
+| `SEP` | Sepia |
+| `CL1` | Color 1 |
+| `CL2` | Color 2 |
+| `ICE` | Ice fire |
+| `RAI` | Rain |
+| `GRN` | Green hot |
+| `RED` | Red hot |
+
+Zoom and palette disappear while the state is `INI`, `ERR` or `OFF`. A camera
+that is not listening has no current zoom or palette to report.
 
 ## Application setups
 

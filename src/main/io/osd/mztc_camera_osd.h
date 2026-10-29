@@ -32,12 +32,18 @@
  * and schedules no updates of its own. It only formats the text that
  * osdDrawSingleElement() then draws.
  *
- * The function writes a NUL-terminated string into buff. The caller must
- * supply at least MZTC_OSD_ELEMENT_LENGTH bytes. It sets *attr for blink when
- * the link needs attention.
+ * The function writes a NUL-terminated string into buff, always exactly
+ * MZTC_OSD_ELEMENT_LENGTH - 1 characters, space padded, so state changes
+ * never leave stale characters on screen. The caller must supply at least
+ * MZTC_OSD_ELEMENT_LENGTH bytes. It sets *attr for blink when the link
+ * needs attention.
+ *
+ * While the link is up the element carries the commanded zoom and palette
+ * after the link state, as in "IR OK 2X WHT". The widest output is
+ * "IR FFC 2X WHT", 13 characters.
  */
 
-#define MZTC_OSD_ELEMENT_LENGTH 12
+#define MZTC_OSD_ELEMENT_LENGTH 14
 
 void mztcOsdFormatStatus(char *buff, textAttributes_t *attr);
 

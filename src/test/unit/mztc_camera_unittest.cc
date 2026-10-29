@@ -15,7 +15,9 @@
  * along with INAV.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <vector>
 
@@ -27,6 +29,7 @@ extern "C" {
 #include "common/utils.h"
 #include "config/mztc_camera.h"
 #include "io/mztc_camera.h"
+#include "io/osd/mztc_camera_osd.h"
 // The driver reads the THERMAL CALIBRATE switch, so the test provides
 // IS_RC_MODE_ACTIVE and needs the box id enum.
 #include "fc/rc_modes.h"
@@ -947,6 +950,83 @@ TEST_F(MztcLinkTest, EveryTransmittedPacketIsWellFormed)
     EXPECT_GE(packets, 9);
 }
 
+/*
+ * OSD element formatter. The element reports the link state, and while the
+ * link is up, the commanded zoom and palette. The output width never varies,
+ * so a state change cannot leave characters of the previous state on screen.
+ */
+
+class MztcOsdTest : public MztcLinkTest {
+protected:
+    char buff[MZTC_OSD_ELEMENT_LENGTH];
+    textAttributes_t attr;
+
+    void SetUp() override
+    {
+        MztcLinkTest::SetUp();
+        memset(buff, 0xA5, sizeof(buff));
+        attr = TEXT_ATTRIBUTES_NONE;
+    }
+};
+
+TEST_F(MztcOsdTest, LinkUpShowsZoomAndPalette)
+{
+    mztcTestSetStatus(MZTC_STATUS_READY);
+    mztcConfigMutable()->zoom_level = MZTC_ZOOM_2X;
+    mztcConfigMutable()->palette_mode = MZTC_PALETTE_WHITE_HOT;
+    mztcOsdFormatStatus(buff, &attr);
+    EXPECT_STREQ("IR OK 2X WHT ", buff);
+    EXPECT_EQ(TEXT_ATTRIBUTES_NONE, attr);
+}
+
+TEST_F(MztcOsdTest, WidestStateFillsTheElementExactly)
+{
+    mztcTestSetStatus(MZTC_STATUS_CALIBRATING);
+    mztcConfigMutable()->zoom_level = MZTC_ZOOM_8X;
+    mztcConfigMutable()->palette_mode = MZTC_PALETTE_RED_HOT;
+    mztcOsdFormatStatus(buff, &attr);
+    EXPECT_STREQ("IR FFC 8X RED", buff);
+}
+
+TEST_F(MztcOsdTest, LinkDownHidesZoomAndPaletteAndBlinks)
+{
+    mztcTestSetStatus(MZTC_STATUS_OFFLINE);
+    mztcOsdFormatStatus(buff, &attr);
+    EXPECT_STREQ("IR OFF       ", buff);
+    EXPECT_NE(TEXT_ATTRIBUTES_NONE, attr);
+}
+
+TEST_F(MztcOsdTest, InitializingHidesZoomAndDoesNotBlink)
+{
+    mztcTestSetStatus(MZTC_STATUS_INITIALIZING);
+    mztcOsdFormatStatus(buff, &attr);
+    EXPECT_STREQ("IR INI       ", buff);
+    EXPECT_EQ(TEXT_ATTRIBUTES_NONE, attr);
+}
+
+TEST_F(MztcOsdTest, EveryStateKeepsConstantWidth)
+{
+    const uint8_t states[] = {
+        MZTC_STATUS_OFFLINE, MZTC_STATUS_INITIALIZING, MZTC_STATUS_READY,
+        MZTC_STATUS_CAPTURING, MZTC_STATUS_CALIBRATING, MZTC_STATUS_ERROR,
+        MZTC_STATUS_ALERT, MZTC_STATUS_RECORDING
+    };
+    for (size_t i = 0; i < ARRAYLEN(states); i++) {
+        mztcTestSetStatus(states[i]);
+        mztcOsdFormatStatus(buff, &attr);
+        EXPECT_EQ(MZTC_OSD_ELEMENT_LENGTH - 1u, strlen(buff)) << "state " << (int)states[i];
+    }
+}
+
+TEST_F(MztcOsdTest, OutOfRangeValuesDegradeToPlaceholders)
+{
+    mztcTestSetStatus(MZTC_STATUS_READY);
+    mztcConfigMutable()->zoom_level = 200;
+    mztcConfigMutable()->palette_mode = 200;
+    mztcOsdFormatStatus(buff, &attr);
+    EXPECT_STREQ("IR OK -- --- ", buff);
+}
+
 // Everything the driver needs from the rest of the firmware. No real serial
 // port is ever opened. serialWriteBufShim captures what the driver transmits so
 // the transmit tests can assert on the actual wire bytes.
@@ -1000,6 +1080,17 @@ void serialWriteBufShim(void *, const uint8_t *data, int count)
     for (int i = 0; i < count; i++) {
         txBytes.push_back(data[i]);
     }
+}
+
+// The OSD formatter prints through the firmware's own tfp_sprintf. The host
+// library sprintf covers everything the formatter uses.
+int tfp_sprintf(char *s, const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    const int n = vsprintf(s, fmt, ap);
+    va_end(ap);
+    return n;
 }
 
 }

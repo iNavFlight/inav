@@ -36,7 +36,7 @@ set_property(SOURCE flight_imu_unittest.cc PROPERTY depends     "build/debug.c"
 set_property(SOURCE maths_unittest.cc PROPERTY depends "common/maths.c")
 
 set_property(SOURCE mztc_camera_unittest.cc PROPERTY depends
-    "io/mztc_camera.c" "common/maths.c")
+    "io/mztc_camera.c" "io/osd/mztc_camera_osd.c" "common/maths.c")
 set_property(SOURCE mztc_camera_unittest.cc PROPERTY definitions USE_MZTC)
 
 set_property(SOURCE navigation_fixedwing_turn_math_unittest.cc PROPERTY depends
