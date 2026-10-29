@@ -724,8 +724,7 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     static float lastspeed = -1.0f;
     float currentspeed = 0;
 #ifdef USE_PITOT
-    if (pitotGetValidForAirspeed())
-    {
+    if (pitotIsValidForAirspeed(true)) {
         // first choice is airspeed
 		currentspeed = getAirspeedEstimate();
         *acc_ignore_slope_multipiler = 4.0f;
@@ -746,14 +745,15 @@ static void imuCalculateTurnRateacceleration(fpVector3_t *vEstcentrifugalAccelBF
     }
     else
     {
-        //third choice is fixedWingReferenceAirspeed
+        // third choice is fixedWingReferenceAirspeed
         currentspeed = pidProfile()->fixedWingReferenceAirspeed;
         *acc_ignore_slope_multipiler = 1.0f;
     }
+
     float speed_change = lastspeed > 0 ? currentspeed - lastspeed : 0;
-    vEstcentrifugalAccelBF->x = -speed_change/dT;
-    vEstcentrifugalAccelBF->y = -currentspeed*imuMeasuredRotationBFFiltered.z;
-    vEstcentrifugalAccelBF->z = currentspeed*imuMeasuredRotationBFFiltered.y;
+    vEstcentrifugalAccelBF->x = -speed_change / dT;
+    vEstcentrifugalAccelBF->y = -currentspeed * imuMeasuredRotationBFFiltered.z;
+    vEstcentrifugalAccelBF->z = currentspeed * imuMeasuredRotationBFFiltered.y;
     lastspeed = currentspeed;
 }
 

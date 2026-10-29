@@ -2365,35 +2365,26 @@ static bool missionVTOLTransitionPointReady(const bool transitionToFixedWing, co
     return true;
 }
 
-#ifdef USE_PITOT
-static bool hasUsableTransitionAirspeed(float *airspeedCmS)
+bool hasUsableTransitionAirspeed(float *airspeedCmS)
 {
-    if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
+#ifdef USE_PITOT
+    if (!sensors(SENSOR_PITOT) || !pitotIsValidForAirspeed(false) || pitotHasFailed()) {
         return false;
     }
 
-    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE) {
-        return false;
-    }
+    const float measuredAirspeedCmS = getAirspeedEstimate();
 
-    const float measuredAirspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
-        getAirspeedEstimate() :
-        pitot.airSpeed;
-
-    if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {
+    if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {  // why ??
         return false;
     }
 
     *airspeedCmS = MAX(measuredAirspeedCmS, 0.0f);
     return true;
-}
 #else
-static bool hasUsableTransitionAirspeed(float *airspeedCmS)
-{
     UNUSED(airspeedCmS);
     return false;
-}
 #endif
+}
 
 static bool beginNavigationFwToMcProtectionTransition(void)
 {
