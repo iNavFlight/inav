@@ -56,7 +56,7 @@ typedef struct i2cDevice_s {
     ioTag_t sda;
     rccPeriphTag_t rcc;
     I2CSpeed speed;
-#if defined(STM32F7) || defined(STM32H7) || defined(AT32F43x) 
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)
     uint8_t ev_irq;
     uint8_t er_irq;
     uint8_t af;
@@ -68,6 +68,34 @@ void i2cInit(I2CDevice device);
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess);
 bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess);
 bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess);
-bool i2cBusy(I2CDevice device, bool *error);
+
+// Non-blocking transfers: start returns immediately (false if the bus is busy or the transfer could not be started),
+// completion and the result are polled with i2cBusy(). Platforms without an asynchronous driver complete the
+// transfer synchronously inside the start call, return true and let i2cBusy() report the bus as idle with the outcome.
+bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess);
+bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool allowRawAccess);
+bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, const uint8_t *data, bool allowRawAccess);   // data must stay valid until i2cBusy() reports idle
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error);   // pending state and outcome of the given slave's transfer
+
+// Outcome of the last completed non-blocking transfer of every 7-bit slave address on one bus. The platform drivers
+// keep one per bus so that a device still reads its own result after another device has used the bus in between.
+typedef struct {
+    volatile uint32_t failed[4];    // one bit per address, set = the last transfer to that address failed
+} i2cAddrResults_t;
+
+static inline void i2cAddrResultSet(i2cAddrResults_t *results, uint8_t addr_, bool error)
+{
+    const uint32_t mask = 1u << (addr_ & 31);
+    if (error) {
+        results->failed[(addr_ >> 5) & 3] |= mask;
+    } else {
+        results->failed[(addr_ >> 5) & 3] &= ~mask;
+    }
+}
+
+static inline bool i2cAddrResultFailed(const i2cAddrResults_t *results, uint8_t addr_)
+{
+    return (results->failed[(addr_ >> 5) & 3] >> (addr_ & 31)) & 1u;
+}
 
 uint16_t i2cGetErrorCounter(void);

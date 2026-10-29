@@ -123,23 +123,48 @@ static bool qmc5883pInit(magDev_t * mag)
     return ack;
 }
 
-static bool qmc5883pRead(magDev_t * mag)
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t qmc5883pStatus;
+static uint8_t qmc5883pData[QMC5883P_DATA_BYTES];
+
+// Two transfers per sample: the status byte first, the data only when DRDY confirms a fresh sample
+static busReadStepResult_e qmc5883pReadStart(magDev_t * mag, bool firstStep)
 {
-    uint8_t status;
-    uint8_t buf[QMC5883P_DATA_BYTES];
+    static bool statusStarted = false;
 
-    // set magData to zero for case of failed read
-    mag->magADCRaw[X] = 0;
-    mag->magADCRaw[Y] = 0;
-    mag->magADCRaw[Z] = 0;
-
-    bool ack = busRead(mag->busDev, QMC5883P_REG_STATUS, &status);
-    if (!ack || (status & QMC5883P_STATUS_DRDY_MASK) == 0) {
-        return false;
+    if (firstStep) {
+        statusStarted = false;
+        qmc5883pStatus = 0;
     }
 
-    ack = busReadBuf(mag->busDev, QMC5883P_REG_DATA_OUTPUT_X, buf, QMC5883P_DATA_BYTES);
-    if (!ack) {
+    if (!statusStarted) {
+        if (!busReadBufStart(mag->busDev, QMC5883P_REG_STATUS, &qmc5883pStatus, 1)) {
+            return BUS_READ_STEP_BUSY;
+        }
+        statusStarted = true;
+        return BUS_READ_STEP_NEXT;
+    }
+
+    if ((qmc5883pStatus & QMC5883P_STATUS_DRDY_MASK) == 0) {
+        return BUS_READ_STEP_LAST;     // nothing new to fetch, qmc5883pRead() reports the miss
+    }
+
+    if (!busReadBufStart(mag->busDev, QMC5883P_REG_DATA_OUTPUT_X, qmc5883pData, sizeof(qmc5883pData))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    return BUS_READ_STEP_LAST;
+}
+
+static bool qmc5883pRead(magDev_t * mag)
+{
+    const uint8_t *buf = qmc5883pData;
+
+    if ((qmc5883pStatus & QMC5883P_STATUS_DRDY_MASK) == 0) {
+        // set magData to zero for case of failed read
+        mag->magADCRaw[X] = 0;
+        mag->magADCRaw[Y] = 0;
+        mag->magADCRaw[Z] = 0;
         return false;
     }
 
@@ -196,6 +221,7 @@ bool qmc5883pDetect(magDev_t * mag)
     }
 
     mag->init = qmc5883pInit;
+    mag->readStart = qmc5883pReadStart;
     mag->read = qmc5883pRead;
 
     return true;
