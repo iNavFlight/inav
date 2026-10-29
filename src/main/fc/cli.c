@@ -4397,6 +4397,9 @@ static void cliStatus(char *cmdline)
         if(gpsUbloxHasGlonass())
             cliPrintLinef("    Glonass %d/%d", gpsUbloxGlonassEnabled(), gpsUbloxGlonassDefault());
         cliPrintLinef("    Max concurrent: %d", gpsUbloxMaxGnss());
+        if (gpsUbloxGnssNotAsSet()) {
+            cliPrintLine("    The receiver runs other constellations than the settings");
+        }
     }
 
     // If we are blocked by PWM init - provide more information

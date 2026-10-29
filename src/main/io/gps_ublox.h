@@ -107,14 +107,17 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 
 #define UBLOX_CFG_SIGNAL_GAL_ENA        0x10310021 // U1
 #define UBLOX_CFG_SIGNAL_GAL_E1_ENA     0x10310007 // U1
+#define UBLOX_CFG_SIGNAL_GAL_E5A_ENA    0x10310009 // U1 dual band only
 
 #define UBLOX_CFG_SIGNAL_BDS_ENA        0x10310022 // U1
 #define UBLOX_CFG_SIGNAL_BDS_B1_ENA     0x1031000d // U1
 #define UBLOX_CFG_SIGNAL_BDS_B1C_ENA    0x1031000f // U1 default off
+#define UBLOX_CFG_SIGNAL_BDS_B2A_ENA    0x10310028 // U1 dual band only
 
 #define UBLOX_CFG_QZSS_ENA              0x10310024 // U1
 #define UBLOX_CFG_QZSS_L1CA_ENA         0x10310012 // U1
 #define UBLOX_CFG_QZSS_L1S_ENA          0x10310014 // U1
+#define UBLOX_CFG_QZSS_L5_ENA           0x10310017 // U1 dual band only
 
 #define UBLOX_CFG_GLO_ENA               0x10310025 // U1 default off - may conflict with other constelations
 #define UBLOX_CFG_GLO_L1_ENA            0x10310018 // U1 default off
@@ -517,6 +520,7 @@ typedef enum {
     MSG_CFG_NAV_SETTINGS = 0x24,
     MSG_CFG_SBAS = 0x16,
     MSG_CFG_GNSS = 0x3e,
+    MSG_CFG_VALGET = 0x8b,
     MSG_MON_GNSS = 0x28,
     MSG_NAV_SIG = 0x43,
     MSG_MON_RF = 0x38
@@ -536,6 +540,7 @@ typedef enum {
 } ubx_nav_status_bits_t;
 
 uint8_t gpsUbloxMaxGnss(void);
+uint8_t gpsUbloxGnssNotAsSet(void);
 timeMs_t gpsUbloxCapLastUpdate(void);
 
 bool gpsUbloxHasGalileo(void);
