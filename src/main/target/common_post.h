@@ -185,6 +185,13 @@ extern uint8_t __config_end;
 #endif
 #endif
 
+// Only where the target names a stream (UARTx_RX_DMA): which one is free depends on the
+// board, as the timers, the ADC and the SD card share them
+#if defined(UART1_RX_DMA) || defined(UART2_RX_DMA) || defined(UART3_RX_DMA) || defined(UART4_RX_DMA) || \
+    defined(UART5_RX_DMA) || defined(UART6_RX_DMA) || defined(UART7_RX_DMA) || defined(UART8_RX_DMA)
+#define USE_UART_RX_DMA
+#endif
+
 #ifdef USE_ESC_SENSOR
     #define USE_RPM_FILTER
 #endif

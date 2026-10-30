@@ -150,6 +150,63 @@ STM32H7 uses DMAMUX which eliminates most DMA conflicts:
 - Fewer headaches for target developers
 - Conflicts still possible but rare, and some channels (e.g. `TIM15_CH2`, see above) have no DMA request line at all regardless of DMAMUX
 
+## UART Receive Through DMA
+
+A UART can receive through a DMA stream instead of taking an interrupt for every byte.
+A target turns this on per port, by naming a stream for it in `target.h`:
+
+```c
+#define UART2_RX_DMA            DMA_TAG(2, 5, 0)    // DMA2 stream 5
+```
+
+A port without `UARTx_RX_DMA` behaves exactly as before, and a target that names none
+builds exactly as before.
+
+**What it changes.** The stream writes into the port's receive ring by itself, so a busy
+port no longer costs an interrupt per byte, and bytes that arrive while interrupts are
+held off (an internal flash write, for instance) are not lost. The ring and its size do
+not change. On an H7 at 480 MHz the saving measured around 240 cycles per byte, a fraction
+of a percent of the CPU; relatively it is larger on a slower MCU with a busy port.
+
+**Which ports use it.** Those whose owner reads through the ring: GPS, MSP, telemetry and
+the like. Serial receivers (CRSF, SBUS, IBUS, GHST, SRXL2, ...) take each byte through a
+callback as it lands, because they find their frames by timing, so their port stays on the
+interrupt even when the target names a stream for it.
+
+### Choosing the stream
+
+**F4 and F7.** Each UART's receiver is wired to fixed streams on a fixed channel, and the
+build fails if the tag names any other:
+
+| UART | Stream and channel |
+|------|--------------------|
+| UART1 | `DMA_TAG(2, 2, 4)` or `DMA_TAG(2, 5, 4)` |
+| UART2 | `DMA_TAG(1, 5, 4)` |
+| UART3 | `DMA_TAG(1, 1, 4)` |
+| UART4 | `DMA_TAG(1, 2, 4)` |
+| UART5 | `DMA_TAG(1, 0, 4)` |
+| UART6 | `DMA_TAG(2, 1, 5)` or `DMA_TAG(2, 2, 5)` |
+| UART7 | `DMA_TAG(1, 3, 5)` |
+| UART8 | `DMA_TAG(1, 6, 5)` |
+
+**H7 and AT32F43x.** The DMAMUX connects any UART to any stream (channel, on the AT32),
+so only the controller and the stream matter; leave the last field 0.
+
+**The stream has to be free on that board.** The streams are shared, so this is a
+property of the target rather than of the MCU:
+
+- *Timer outputs.* A stream any `DEF_TIM()` entry in `target.c` is mapped to is refused at
+  runtime, and the port stays on the interrupt: MSP ports open before the motors do, and a
+  motor is not going to lose DSHOT to a serial port. On an H7 the `dmavar` of `DEF_TIM()` is
+  the stream: 0 to 7 are DMA1 streams 0 to 7, 8 to 15 are DMA2 streams 0 to 7.
+- *The ADC* is not checked, so avoid its stream: on F4 and AT32 `ADC1_DMA_STREAM` where the
+  target sets it, otherwise DMA2 stream 0 and DMA2 channel 1; DMA2 stream 0 on F7; DMA2
+  stream 0, 1 or 2 on H7, for `ADC_INSTANCE` ADC1, ADC2 or ADC3.
+- *Two UARTs* cannot share one; the second keeps its interrupt.
+
+On an H7 the ring of a port receiving through DMA moves to D2 SRAM, where the data cache
+does not reach: 256 bytes per port named.
+
 ## Related Documentation
 
 - **overview.md** - Target system basics
