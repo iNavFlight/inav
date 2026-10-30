@@ -1574,8 +1574,10 @@ static void loadSlowState(blackboxSlowState_t *slow)
 
 #ifdef USE_ESC_SENSOR
     escSensorData_t * escSensor = escSensorGetData();
-    slow->escRPM = escSensor->rpm;
-    slow->escTemperature = escSensor->temperature;
+    if (escSensor) {
+        slow->escRPM = escSensor->rpm;
+        slow->escTemperature = escSensor->temperature;
+    }
 #endif
 
 #ifdef USE_DRONECAN
@@ -1601,7 +1603,7 @@ static bool writeSlowFrameIfNeeded(bool allowPeriodicWrite)
     if (shouldWrite) {
         loadSlowState(&slowHistory);
     } else {
-        blackboxSlowState_t newSlowState;
+        blackboxSlowState_t newSlowState = {0};
 
         loadSlowState(&newSlowState);
 
@@ -2153,6 +2155,7 @@ static bool blackboxWriteSysinfo(void)
 #endif
         BLACKBOX_PRINT_HEADER_LINE("serialrx_provider", "%d",               rxConfig()->serialrx_provider);
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_protocol", "%d",              motorConfig()->motorPwmProtocol);
+        BLACKBOX_PRINT_HEADER_LINE("motor_poles", "%d",                     motorConfig()->motorPoleCount);
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_rate", "%d",                  getEscUpdateFrequency());
         BLACKBOX_PRINT_HEADER_LINE("debug_mode", "%d",                      systemConfig()->debug_mode);
         BLACKBOX_PRINT_HEADER_LINE("features", "%d",                        featureConfig()->enabledFeatures);
