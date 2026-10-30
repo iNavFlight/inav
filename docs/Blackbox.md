@@ -136,6 +136,8 @@ The Blackbox currently provides two settings (`blackbox_rate_num` and `blackbox_
 
 If you're using a slower MicroSD card, you may need to reduce your logging rate to reduce the number of corrupted logged frames that `blackbox_decode` complains about. A rate of 1/2 is likely to work for most craft.
 
+When logging to an onboard SD card, the Blackbox skips a few loop iterations when the card falls behind, instead of writing frames that would be cut off, and resumes on the next I frame with a `LOGGING_RESUME` event. The CLI command `sd_info` shows how often that happened.
+
 You can change the logging rate settings by entering the CLI tab in the [INAV Configurator][] and using the `set` command, like so:
 
 ```

@@ -102,29 +102,89 @@ void blackboxOpen(void)
 }
 #endif // UNIT_TEST
 
-void blackboxWrite(uint8_t value)
+// Bytes this iteration and the most any iteration wrote, for blackboxDeviceBufferLow()
+static uint16_t blackboxIterationBytes;
+static uint16_t blackboxLargestIteration;
+
+void blackboxIterationBegin(void)
 {
+    blackboxIterationBytes = 0;
+}
+
+void blackboxIterationEnd(void)
+{
+    if (blackboxIterationBytes > blackboxLargestIteration) {
+        blackboxLargestIteration = blackboxIterationBytes;
+    }
+}
+
+uint16_t blackboxGetLargestIteration(void)
+{
+    return blackboxLargestIteration;
+}
+
+// The encoders write byte by byte; the device gets blocks, one call instead of one per byte.
+// A block goes out when full and at the end of every blackboxUpdate(), so the order is kept
+#define BLACKBOX_WRITE_BLOCK_SIZE 128
+// Only the CPU touches it (afatfs copies it into its cache), so it can live outside main RAM
+static FASTRAM uint8_t blackboxWriteBlock[BLACKBOX_WRITE_BLOCK_SIZE];
+static uint16_t blackboxWriteBlockCount;
+
+void blackboxWriteFlush(void)
+{
+    const uint16_t count = blackboxWriteBlockCount;
+    if (count == 0) {
+        return;
+    }
+    blackboxWriteBlockCount = 0;
+
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
     case BLACKBOX_DEVICE_FLASH:
-        flashfsWriteByte(value); // Write byte asynchronously
+        // Byte by byte: an asynchronous flashfsWrite() drops a whole block the busy chip can't take
+        for (int i = 0; i < count; i++) {
+            flashfsWriteByte(blackboxWriteBlock[i]);
+        }
         break;
 #endif
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-        afatfs_fputc(blackboxSDCard.logFile, value);
+    {
+        const uint32_t written = afatfs_fwrite(blackboxSDCard.logFile, blackboxWriteBlock, count);
+        // A busy card takes the rest at the next flush; a full or failed one never will
+        if (written < count && !afatfs_isFull() && afatfs_getFilesystemState() == AFATFS_FILESYSTEM_STATE_READY) {
+            memmove(blackboxWriteBlock, blackboxWriteBlock + written, count - written);
+            blackboxWriteBlockCount = count - written;
+        }
         break;
+    }
 #endif
 #if defined(SITL_BUILD)
     case BLACKBOX_DEVICE_FILE:
-        fputc(value, blackboxFile.file_handler);
+        fwrite(blackboxWriteBlock, 1, count, blackboxFile.file_handler);
         break;
 #endif
     case BLACKBOX_DEVICE_SERIAL:
     default:
-        serialWrite(blackboxPort, value);
+        // Byte by byte: serialWriteBuf() waits for room on a port without block writes
+        for (int i = 0; i < count; i++) {
+            serialWrite(blackboxPort, blackboxWriteBlock[i]);
+        }
         break;
     }
+}
+
+void blackboxWrite(uint8_t value)
+{
+    blackboxIterationBytes++;
+
+    if (blackboxWriteBlockCount == BLACKBOX_WRITE_BLOCK_SIZE) {
+        blackboxWriteFlush();
+        if (blackboxWriteBlockCount == BLACKBOX_WRITE_BLOCK_SIZE) {
+            return;     // The card took nothing: this byte is lost, as it was before blocks
+        }
+    }
+    blackboxWriteBlock[blackboxWriteBlockCount++] = value;
 }
 
 // Print the null-terminated string 's' to the blackbox device and return the number of bytes written
@@ -132,6 +192,8 @@ int blackboxPrint(const char *s)
 {
     int length;
     const uint8_t *pos;
+
+    blackboxWriteFlush();
 
     switch (blackboxConfig()->device) {
 
@@ -144,8 +206,11 @@ int blackboxPrint(const char *s)
 
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
-        length = strlen(s);
-        afatfs_fwrite(blackboxSDCard.logFile, (const uint8_t*) s, length); // Ignore failures due to buffers filling up
+        // Through the block, behind any bytes the card has not taken yet
+        for (pos = (const uint8_t *)s; *pos; pos++) {
+            blackboxWrite(*pos);
+        }
+        length = pos - (const uint8_t *)s;
         break;
 #endif
 
@@ -171,6 +236,54 @@ int blackboxPrint(const char *s)
     return length;
 }
 
+// afatfs drops what does not fit, often halfway through a frame: pause below the largest
+// iteration plus a margin (256 bytes at least), resume from twice that
+#define BLACKBOX_SDCARD_SECTOR_SIZE         512
+#define BLACKBOX_SDCARD_PAUSE_MIN_BYTES     256
+#define BLACKBOX_SDCARD_PAUSE_MARGIN_BYTES  64
+
+#ifdef USE_SDCARD
+// The free cache sectors, and what is left of the sector being written
+static int32_t blackboxSDCardWritableBytes(void)
+{
+    uint32_t position;
+    // A busy file (a seek or a new cluster queued) takes nothing, whatever the cache holds
+    if (!afatfs_ftell(blackboxSDCard.logFile, &position)) {
+        return 0;
+    }
+    int32_t writable = afatfs_getFreeBufferSpace();
+    if ((position % BLACKBOX_SDCARD_SECTOR_SIZE) != 0) {
+        writable += BLACKBOX_SDCARD_SECTOR_SIZE - position % BLACKBOX_SDCARD_SECTOR_SIZE;
+    }
+    return writable;
+}
+
+static int32_t blackboxSDCardPauseBelow(void)
+{
+    return MAX(BLACKBOX_SDCARD_PAUSE_MIN_BYTES, blackboxLargestIteration + BLACKBOX_SDCARD_PAUSE_MARGIN_BYTES);
+}
+#endif
+
+bool blackboxDeviceBufferLow(void)
+{
+#ifdef USE_SDCARD
+    if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD) {
+        return blackboxSDCardWritableBytes() < blackboxSDCardPauseBelow();
+    }
+#endif
+    return false;
+}
+
+bool blackboxDeviceBufferRecovered(void)
+{
+#ifdef USE_SDCARD
+    if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD) {
+        return blackboxSDCardWritableBytes() >= 2 * blackboxSDCardPauseBelow();
+    }
+#endif
+    return true;
+}
+
 /**
  * If there is data waiting to be written to the blackbox device, attempt to write (a portion of) that now.
  *
@@ -178,6 +291,8 @@ int blackboxPrint(const char *s)
  */
 void blackboxDeviceFlush(void)
 {
+    blackboxWriteFlush();
+
     switch (blackboxConfig()->device) {
 #ifdef USE_FLASHFS
         /*
@@ -201,6 +316,8 @@ void blackboxDeviceFlush(void)
  */
 bool blackboxDeviceFlushForce(void)
 {
+    blackboxWriteFlush();
+
     switch (blackboxConfig()->device) {
     case BLACKBOX_DEVICE_SERIAL:
         // Nothing to speed up flushing on serial, as serial is continuously being drained out of its buffer
@@ -542,6 +659,8 @@ bool blackboxDeviceBeginLog(void)
  */
 bool blackboxDeviceEndLog(bool retainLog)
 {
+    blackboxWriteFlush();
+
 #ifndef USE_SDCARD
     (void) retainLog;
 #endif
@@ -549,6 +668,10 @@ bool blackboxDeviceEndLog(bool retainLog)
     switch (blackboxConfig()->device) {
 #ifdef USE_SDCARD
     case BLACKBOX_DEVICE_SDCARD:
+        // What a busy card has not taken yet goes before the close
+        if (blackboxWriteBlockCount > 0) {
+            return false;
+        }
         // Keep retrying until the close operation queues
         if (
             (retainLog && afatfs_fclose(blackboxSDCard.logFile, NULL))
@@ -632,6 +755,8 @@ int32_t blackboxGetLogNumber(void)
  */
 void blackboxReplenishHeaderBudget(void)
 {
+    blackboxWriteFlush();
+
     int32_t freeSpace;
 
     switch (blackboxConfig()->device) {
