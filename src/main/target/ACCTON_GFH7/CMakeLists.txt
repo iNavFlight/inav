@@ -1,0 +1,1 @@
+target_stm32h743xi(ACCTON_GFH7 HSE_MHZ 16)
