@@ -803,6 +803,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | ESC |  |
 | FW_TURN |  |
 | MAG |  |
+| AUTOLAND |  |
 
 ---
 
@@ -3840,6 +3841,16 @@ P gain of Heading Hold controller (Fixedwing)
 
 ---
 
+### nav_fw_land_aim_offset
+
+The glide path meets the ground this far [cm] before the landing site, in either landing direction: the aircraft floats past that point while it slows down, and touches down nearer the site.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 10000 |
+
+---
+
 ### nav_fw_land_approach_length
 
 Length of the final approach
@@ -3850,6 +3861,16 @@ Length of the final approach
 
 ---
 
+### nav_fw_land_approach_speed
+
+Airspeed [cm/s] the landing holds with the throttle, through the Auto Speed controller, from the wind circle to the throttle cut, within `fw_auto_speed_min_speed` and `fw_auto_speed_max_speed`; the wind circle is planned for it. With flaps it can be lower than the cruise speed: a smaller circle, gentler turns and a slower touchdown. Half the headwind along the final is added to it. On the descending legs the throttle may go below `nav_fw_min_thr`, down to idle, to hold it. It needs a valid airspeed (a pitot, or `pitot_hardware` VIRTUAL with a wind estimate) and is never held on ground speed, which downwind would fly the aircraft slower than set; without it, or at 0, the throttle follows the pitch as in the rest of the navigation.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 5000 |
+
+---
+
 ### nav_fw_land_dive_angle
 
 Dive angle that airplane will use during final landing phase. During dive phase, motor is stopped or IDLE and roll control is locked to 0 degrees
@@ -3857,6 +3878,26 @@ Dive angle that airplane will use during final landing phase. During dive phase,
 | Default | Min | Max |
 | --- | --- | --- |
 | 2 | -20 | 20 |
+
+---
+
+### nav_fw_land_downwind_offset
+
+Flies a landing circuit instead of the classic approach: the edge of the wind circle is this far [cm] from the landing site, on the side the approach direction of fwapproach gives seen from approach heading 1, whatever the landing direction (the free side of the runway); the downwind leg is the circle's tangent the aircraft comes out on heading downwind (next to the runway when fw_loiter_direction turns towards it, two radii further out otherwise), then base and final. 0 keeps the classic approach (wind circle over the land site, turning point 4 loiter radii out).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 50000 |
+
+---
+
+### nav_fw_land_final_alt
+
+Altitude above the landing site at the start of the final [cm]; the downwind and base legs descend linearly from the approach altitude to it. 0 uses two thirds of the approach altitude.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 30000 |
 
 ---
 
@@ -3890,6 +3931,26 @@ Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder
 
 ---
 
+### nav_fw_land_flare_sink
+
+Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set, the landing flares on its sink rate: it asks the height / `nav_fw_land_flare_time` down to this sink, held from there to the ground, starting where that equals the sink the aircraft has and blending from it; the pitch is the flight path angle of that sink plus the angle of attack, up to `nav_fw_land_flare_pitch`, and the power comes off over the flare. The final is aimed short by the flare's run, so the wheels touch at `nav_fw_land_aim_offset`. 0 keeps the pitch glide and flare.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 500 |
+
+---
+
+### nav_fw_land_flare_time
+
+Time constant [ds] of the sink-rate flare (`nav_fw_land_flare_sink` set): its target sink is the height / this down to the flare sink, and it starts where that target equals the sink the aircraft has, between `nav_fw_land_flare_alt` and twice `nav_fw_land_glide_alt`. Longer is gentler and longer over the ground; it should be at least twice the time the aircraft takes to answer a pitch command with its flight path, about a second on a small model.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 20 | 5 | 60 |
+
+---
+
 ### nav_fw_land_glide_alt
 
 Initial altitude of the glide phase
@@ -3907,6 +3968,16 @@ Pitch value for glide phase. In degrees.
 | Default | Min | Max |
 | --- | --- | --- |
 | 0 | -15 | 45 |
+
+---
+
+### nav_fw_land_loiter_radius
+
+Radius of the wind circle flown before the approach, also the turn allowance of the landing circuit [cm]. 0 uses nav_fw_loiter_radius.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 30000 |
 
 ---
 

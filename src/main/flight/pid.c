@@ -1660,6 +1660,14 @@ static void nullRateController(pidState_t *pidState, float dT, float dT_inv) {
  * On top of that, after stick is relased, it also locks Iterm to prevent it from accumulating error and unloading it after
  */
 static void iTermLockApply(pidState_t *pidState, const float rateTarget, const float rateError) {
+#ifdef USE_FW_AUTOLAND
+    // no stick input in the autoland, and its power coming off needs the trim the lock held back for seconds
+    if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
+        pidState->attenuation.aI = pidState->attenuation.aP = pidState->attenuation.aD = 1.0f;
+        pidState->attenuation.targetOverThresholdTimeMs = 0;
+        return;
+    }
+#endif
     const float maxRate = currentControlProfile->stabilized.rates[pidState->axis] * 10.0f;
 
     //Compute damping factor based on rate target and max rate scaled by fw_iterm_lock_rate_threshold

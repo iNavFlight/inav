@@ -2071,6 +2071,12 @@ static mspResult_e mspFwApproachOutCommand(sbuf_t *dst, sbuf_t *src)
         sbufWriteU16(dst, fwAutolandApproachConfig(idx)->landApproachHeading1);
         sbufWriteU16(dst, fwAutolandApproachConfig(idx)->landApproachHeading2);
         sbufWriteU8(dst, fwAutolandApproachConfig(idx)->isSeaLevelRef);
+        for (int i = 0; i < 4; i++) {
+            sbufWriteU8(dst, fwAutolandApproachConfig(idx)->runwayStart[i]);
+        }
+        for (int i = 0; i < 4; i++) {
+            sbufWriteU8(dst, fwAutolandApproachConfig(idx)->runwayStartHeight[i]);
+        }
         return MSP_RESULT_ACK;
     } else {
          return MSP_RESULT_ERROR;
@@ -3965,6 +3971,17 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
                 fwAutolandApproachConfigMutable(i)->landApproachHeading2 = head2;
             }
             fwAutolandApproachConfigMutable(i)->isSeaLevelRef = sbufReadU8(src);
+            // the runway starts and their heights, when sent: an older sender leaves them as they are
+            for (int k = 0; k < 8; k++) {
+                uint8_t value;
+                if (sbufReadU8Safe(&value, src)) {
+                    if (k < 4) {
+                        fwAutolandApproachConfigMutable(i)->runwayStart[k] = value;
+                    } else {
+                        fwAutolandApproachConfigMutable(i)->runwayStartHeight[k - 4] = value;
+                    }
+                }
+            }
         } else {
             return MSP_RESULT_ERROR;
         }
