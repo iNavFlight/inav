@@ -835,8 +835,7 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
     const uint32_t elapsedMs = currentTimeMs - mixerProfileAT.transitionStartTime;
     const uint32_t transitionTimerMs = MAX(0, currentMixerConfig.switchTransitionTimer) * 100;
     float airspeedCmS = 0.0f;
-    const bool usableAirspeedAvailable =
-        airspeedThresholdCmS > 0 && hasUsableTransitionAirspeed(&airspeedCmS);
+    const bool usableAirspeedAvailable = airspeedThresholdCmS > 0 && hasUsableTransitionAirspeed(&airspeedCmS);
 
     if (isTailSitterManualToMcCapture() && !usableAirspeedAvailable) {
         // Timer fallback is acceptable for the established tilt/pusher paths,

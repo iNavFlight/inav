@@ -2368,7 +2368,7 @@ static bool missionVTOLTransitionPointReady(const bool transitionToFixedWing, co
 bool hasUsableTransitionAirspeed(float *airspeedCmS)
 {
 #ifdef USE_PITOT
-    if (!sensors(SENSOR_PITOT) || !pitotIsValidForAirspeed(false) || pitotHasFailed()) {
+    if (!pitotIsValidForAirspeed(false)) {
         return false;
     }
 
