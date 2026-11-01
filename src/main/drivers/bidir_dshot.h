@@ -61,5 +61,7 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex);
 float getDshotRpm(uint8_t motorIndex);
 // Mechanical frequency from the last decoded eRPM frame, unfiltered (see bidir_dshot.c); 0 once it is stale
 float getMotorFrequencyHz(uint8_t motorIndex);
+// No eRPM frame decoded within the timeout: getMotorFrequencyHz() reads 0 then, as for a stopped motor
+bool isDshotErpmStale(uint8_t motorIndex);
 bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex);
 #endif

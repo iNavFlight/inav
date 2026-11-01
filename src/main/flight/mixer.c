@@ -526,7 +526,7 @@ static NOINLINE bool applyDynamicIdle(float dT)
         return false;
     }
 
-    // A motor whose replies stop decoding keeps its last RPM: the static idle unless most of every motor's replies decode
+    // The static idle unless most of every motor's replies decode
     const uint8_t minDecoded = dynamicIdleLinkOk ? DYNAMIC_IDLE_LEAVE_PERCENT : DYNAMIC_IDLE_ENTER_PERCENT;
     float minHz = 1e6f;
     for (int i = 0; i < motorCount; i++) {
@@ -538,6 +538,11 @@ static NOINLINE bool applyDynamicIdle(float dT)
         if (frames->lastWindowTotal < DYNAMIC_IDLE_MIN_REPLIES || frames->lastWindowSuccess < minDecoded) {
             dynamicIdleLinkOk = false;
             return false;
+        }
+        // A short run of lost replies reads 0 Hz, which the PID would take for a stopped motor and raise the idle
+        // to its limit; the 1 s window above decides when the link is gone
+        if (isDshotErpmStale(i)) {
+            continue;
         }
         minHz = MIN(minHz, getMotorFrequencyHz(i));
     }

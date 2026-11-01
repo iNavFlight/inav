@@ -140,14 +140,18 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
     return rawValue;
 }
 
+bool isDshotErpmStale(uint8_t motorIndex)
+{
+    return millis() - motorTelemetry[motorIndex].lastErpmMs > DSHOT_ERPM_TIMEOUT_MS;
+}
+
 float getMotorFrequencyHz(uint8_t motorIndex)
 {
-    const dshotTelemetryMotorState_t *state = &motorTelemetry[motorIndex];
-    if (millis() - state->lastErpmMs > DSHOT_ERPM_TIMEOUT_MS) {
+    if (isDshotErpmStale(motorIndex)) {
         return 0.0f;
     }
 
-    return state->telemetryData[DSHOT_TELEMETRY_TYPE_ERPM] * erpmToHz;
+    return motorTelemetry[motorIndex].telemetryData[DSHOT_TELEMETRY_TYPE_ERPM] * erpmToHz;
 }
 
 float getDshotRpm(uint8_t motorIndex)
