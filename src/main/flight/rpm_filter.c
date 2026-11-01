@@ -46,6 +46,9 @@
 #ifdef USE_RPM_FILTER
 
 #define RPM_FILTER_RPM_LPF_HZ 150
+// Serial ESC telemetry ages by one per missed reply of that motor (SRXL2 only once its own
+// stale timeout passed): a single CRC error keeps the value, a silent ESC drops to 0
+#define RPM_FILTER_MAX_ESC_DATA_AGE 2
 #define RPM_FILTER_HARMONICS 3
 
 PG_REGISTER_WITH_RESET_TEMPLATE(rpmFilterConfig_t, rpmFilterConfig, PG_RPM_FILTER_CONFIG, 1);
@@ -184,6 +187,8 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
     UNUSED(currentTimeUs);
 
     uint8_t motorCount = getMotorCount();
+    // Debug holds eRPM/100 like Betaflight's eRPM[] blackbox field, so log tools can reuse it
+    const float hzToErpm100 = 60.0f * (motorConfig()->motorPoleCount / 2.0f) / ERPM_PER_LSB;
     /*
      * For each motor, read its frequency, filter it and update the notches. Both sources
      * hand over their latest raw value; the LPF runs here, at this task's fixed rate, so its
@@ -199,18 +204,19 @@ void rpmFilterUpdateTask(timeUs_t currentTimeUs)
 #endif
         {
 #ifdef USE_ESC_SENSOR
-            motorFrequency = (float)getEscTelemetry(i)->rpm / 60.0f;
+            const escSensorData_t *escData = getEscTelemetry(i);
+            motorFrequency = escData->dataAge <= RPM_FILTER_MAX_ESC_DATA_AGE ? (float)escData->rpm / 60.0f : 0.0f;
 #else
             motorFrequency = 0.0f;
 #endif
         }
+        // Raw telemetry before the LPF; blackbox has no per-motor field
+        if (i < DEBUG32_VALUE_COUNT) {
+            DEBUG_SET(DEBUG_RPM_FILTER, i, lrintf(motorFrequency * hzToErpm100));
+        }
+
         const float baseFrequency = pt1FilterApply(&motorFrequencyFilter[i], motorFrequency);
         rpmGyroUpdateFn(&gyroRpmFilters, i, baseFrequency);
-
-        // Per-motor RPM as the notch sees it (after the LPF); blackbox has no per-motor field
-        if (i < DEBUG32_VALUE_COUNT) {
-            DEBUG_SET(DEBUG_RPM_FILTER, i, lrintf(baseFrequency * 60.0f));
-        }
     }
 }
 
