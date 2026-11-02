@@ -2886,6 +2886,16 @@ Selection of mag hardware. See Wiki Sensor auto detect and hardware failure dete
 
 ---
 
+### mag_learn
+
+Refits the compass offsets (magzero; maggain is kept) from the readings of each flight and saves them after disarm, when the flight turned through at least 270 degrees and the fit agrees with the stored calibration. Needs a calibrated compass; airplanes and multirotors only. The blackbox logs the estimate as magBias. Not on targets with 512 KB of flash or less.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### mag_to_use
 
 Allow to chose between built-in and external compass sensor if they are connected to separate buses. Currently only for REVO target

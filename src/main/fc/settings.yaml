@@ -664,6 +664,12 @@ groups:
         field: yawDeciDegrees
         min: -1800
         max: 3600
+      - name: mag_learn
+        description: "Refits the compass offsets (magzero; maggain is kept) from the readings of each flight and saves them after disarm, when the flight turned through at least 270 degrees and the fit agrees with the stored calibration. Needs a calibrated compass; airplanes and multirotors only. The blackbox logs the estimate as magBias. Not on targets with 512 KB of flash or less."
+        condition: USE_MAG_LEARN
+        default_value: OFF
+        field: magLearn
+        type: bool
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t

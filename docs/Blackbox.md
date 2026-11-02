@@ -167,6 +167,7 @@ The CLI command `blackbox` allows setting which Blackbox fields are recorded to 
 * `PEAKS_P` - Pitch axis noise peak
 * `PEAKS_Y` - Yaw axis noise peak
 * `SERVOS` - Servo outputs (for planes, tris, etc.)
+* `MAG_LEARN` - In-flight compass offset learning (`mag_learn`), in the slow frame; logged only while the setting is ON
 
 On a board with two IMUs, `gyro_secondary_enabled` adds `gyroRaw2[0..2]`, the second
 sensor's rates in deg/s, in the same body frame as `gyroRaw` and with that sensor's
