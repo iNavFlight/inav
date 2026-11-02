@@ -3585,7 +3585,9 @@ static void afatfs_dirWalkContinue(timeUs_t now)
 
                 const uint32_t firstCluster = (afatfs.filesystemType == FAT_FILESYSTEM_TYPE_FAT32 ? (uint32_t) entry->firstClusterHigh << 16 : 0) | entry->firstClusterLow;
 
-                if (firstCluster < FAT_SMALLEST_LEGAL_CLUSTER_NUMBER || firstCluster == afatfs.freeFile.firstCluster) {
+                // The freefile by where its entry is: used up, its first cluster is the next file's
+                if (firstCluster < FAT_SMALLEST_LEGAL_CLUSTER_NUMBER
+                    || (physicalSector == afatfs.freeFile.directoryEntryPos.sectorNumberPhysical && level->entry == afatfs.freeFile.directoryEntryPos.entryIndex)) {
                     continue;
                 }
 
