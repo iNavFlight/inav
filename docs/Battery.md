@@ -70,6 +70,14 @@ set vbat_warning_cell_voltage = 340
 set vbat_min_cell_voltage = 330
 ```
 
+## BEC voltage
+
+The BEC supplies the servo rail, which on these boards also powers the flight controller. When it sags under a servo load, the board can reset or the servos glitch, so it is worth watching apart from the pack.
+
+The NEXUS, the NEXUS X/XR, the Vantac RF007 and the FlyDragon Pro measure the servo rail on their own ADC, on PC1, as Rotorflight does for the same boards. On the FlyDragon Pro that is the servo plug bank; PC2, the output of its built-in regulator, is not read. `bec_adc_channel` selects the channel, PC1's by default, and `vbec_scale` calibrates it as `vbat_scale` does the pack.
+
+`status` in the CLI shows it. The OSD element "BEC voltage" shows it, and blinks below `vbec_warning_voltage` (0.01 V units, 0 for no warning).
+
 # Current Monitoring
 
 Current monitoring (amperage) is supported by connecting a current meter to the appropriate current meter ADC input (see the documentation for your particular board).

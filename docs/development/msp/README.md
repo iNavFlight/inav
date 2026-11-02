@@ -3215,8 +3215,9 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `remainingCapacity` | `uint32_t` | 4 | Capacity unit (`batteryMetersConfig()->capacity_unit`) | Estimated remaining capacity (`getBatteryRemainingCapacity()`) |
 | `percentageRemaining` | `uint8_t` | 1 | % | Estimated remaining capacity percentage (`calculateBatteryPercentage()`) |
 | `rssi` | `uint16_t` | 2 | Raw (0-1023) | RSSI value (`getRSSI()`) |
+| `becVoltage` | `uint16_t` | 2 | 0.01V | BEC voltage (`becGetVoltage()`) on boards with a BEC input; 0xFFFF on the others, and with `bec_adc_channel` = 0 |
 
-**Notes:** Requires `USE_CURRENT_METER`/`USE_ADC` for current-related fields; values fall back to zero when unavailable. Capacity fields are reported in the units configured by `batteryMetersConfig()->capacity_unit` (mAh or mWh).
+**Notes:** Requires `USE_CURRENT_METER`/`USE_ADC` for current-related fields; values fall back to zero when unavailable. Capacity fields are reported in the units configured by `batteryMetersConfig()->capacity_unit` (mAh or mWh). Older firmware ends after `rssi`.
 
 ## <a id="msp2_inav_misc"></a>`MSP2_INAV_MISC (8195 / 0x2003)`
 **Description:** Retrieves miscellaneous configuration settings, superseding `MSP_MISC` with higher precision and capacity fields.  

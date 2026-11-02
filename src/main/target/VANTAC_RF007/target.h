@@ -126,7 +126,8 @@
 #define ADC_CHANNEL_3_PIN           PC0
 
 #define VBAT_ADC_CHANNEL            ADC_CHN_3 // port labelled "EXT-V"
-//BEC ADC is ADC_CHN_2
+#define BEC_ADC_CHANNEL             ADC_CHN_2
+#define VBEC_SCALE_DEFAULT          620  // Rotorflight's scale / divider, 1216 / 196
 //BUS ADC is ADC_CHN_1
 
 #define VBAT_SCALE_DEFAULT          2464
