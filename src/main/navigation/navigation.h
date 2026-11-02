@@ -95,6 +95,9 @@ typedef struct {
     fwAutolandApproachDirection_e approachDirection;
     int16_t landApproachHeading1;
     int16_t landApproachHeading2;
+    // heading 1, its reverse, heading 2, its reverse
+    uint8_t runwayStart[4];         // [m] where the runway begins before the site; 0: nav_fw_land_aim_offset
+    uint8_t runwayStartHeight[4];   // [dm] height the final crosses the runway start at
 } navFwAutolandApproach_t;
 
 PG_DECLARE_ARRAY(navFwAutolandApproach_t, MAX_FW_LAND_APPOACH_SETTINGS, fwAutolandApproachConfig);
@@ -108,6 +111,13 @@ typedef struct navFwAutolandConfig_s
     uint8_t flarePitch;
     uint16_t maxTailwind;
     int8_t glidePitch;
+    uint16_t loiterRadius;
+    uint16_t downwindOffset;
+    uint16_t finalAlt;
+    uint32_t aimOffset;
+    uint16_t flareSink;
+    uint16_t approachSpeed;
+    uint8_t flareTime;
 } navFwAutolandConfig_t;
 
 PG_DECLARE(navFwAutolandConfig_t, navFwAutolandConfig);
