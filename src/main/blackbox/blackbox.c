@@ -692,6 +692,11 @@ static uint16_t blackboxPFrameIndex;
 static uint16_t blackboxIFrameIndex;
 static uint16_t blackboxSlowFrameIterationTimer;
 static bool blackboxLoggedAnyFrames;
+#ifdef USE_SDCARD
+// Set while closing the current log to open a new one (SD wraparound) instead of stopping.
+// Skips the header start delay, which exists only for serial devices.
+static bool blackboxSplitting;
+#endif
 
 /*
  * We store voltages in I-frames relative to this, which was the voltage when the blackbox was activated.
@@ -930,6 +935,9 @@ static void blackboxSetState(BlackboxState newState)
         break;
     case BLACKBOX_STATE_RUNNING:
         blackboxSlowFrameIterationTimer = blackboxSInterval; //Force a slow frame to be written on the first iteration
+#ifdef USE_SDCARD
+        blackboxSplitting = false;
+#endif
         break;
     case BLACKBOX_STATE_SHUTTING_DOWN:
         xmitState.u.startTime = millis();
@@ -1671,6 +1679,10 @@ void blackboxStart(void)
         return;
     }
 
+#ifdef USE_SDCARD
+    blackboxSplitting = false;
+#endif
+
     blackboxValidateConfig();
 
     if (!blackboxDeviceOpen()) {
@@ -1714,6 +1726,11 @@ void blackboxStart(void)
  */
 void blackboxFinish(void)
 {
+#ifdef USE_SDCARD
+    // A stop request ends any split in progress; otherwise SHUTTING_DOWN would open a new log again and never stop
+    blackboxSplitting = false;
+#endif
+
     switch (blackboxState) {
     case BLACKBOX_STATE_DISABLED:
     case BLACKBOX_STATE_STOPPED:
@@ -2371,7 +2388,11 @@ void blackboxUpdate(timeUs_t currentTimeUs)
          * Once the UART has had time to init, transmit the header in chunks so we don't overflow its transmit
          * buffer, overflow the OpenLog's buffer, or keep the main loop busy for too long.
          */
+#ifdef USE_SDCARD
+        if (blackboxSplitting || millis() > xmitState.u.startTime + 100) {
+#else
         if (millis() > xmitState.u.startTime + 100) {
+#endif
             if (blackboxDeviceReserveBufferSpace(BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION) == BLACKBOX_RESERVE_SUCCESS) {
                 for (int i = 0; i < BLACKBOX_TARGET_HEADER_BUDGET_PER_ITERATION && blackboxHeader[xmitState.headerIndex] != '\0'; i++, xmitState.headerIndex++) {
                     blackboxWrite(blackboxHeader[xmitState.headerIndex]);
@@ -2471,13 +2492,27 @@ void blackboxUpdate(timeUs_t currentTimeUs)
          */
         if (blackboxDeviceEndLog(blackboxLoggedAnyFrames) && (millis() > xmitState.u.startTime + BLACKBOX_SHUTDOWN_TIMEOUT_MILLIS || blackboxDeviceFlushForce())) {
             blackboxDeviceClose();
-            blackboxSetState(BLACKBOX_STATE_STOPPED);
+#ifdef USE_SDCARD
+            if (blackboxSplitting) {
+                blackboxSetState(BLACKBOX_STATE_PREPARE_LOG_FILE);
+            } else
+#endif
+            {
+                blackboxSetState(BLACKBOX_STATE_STOPPED);
+            }
         }
         break;
     default:
         break;
     }
 
+    // SD wraparound: close this log; the new one is opened by BLACKBOX_STATE_PREPARE_LOG_FILE
+#ifdef USE_SDCARD
+    if ((blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_PAUSED) && blackboxDeviceNeedsNewLog()) {
+        blackboxSplitting = true;
+        blackboxSetState(BLACKBOX_STATE_SHUTTING_DOWN);
+    } else
+#endif
     // Did we run out of room on the device? Stop!
     if (isBlackboxDeviceFull()) {
         blackboxSetState(BLACKBOX_STATE_STOPPED);
