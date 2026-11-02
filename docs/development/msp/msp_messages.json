@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 2
+        "patch": 4
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -2351,13 +2351,37 @@
                     {
                         "name": "freeSpaceKB",
                         "ctype": "uint32_t",
-                        "desc": "Free space in KiB (`afatfs_getContiguousFreeSpace() / 1024`). 0 if `USE_SDCARD` disabled",
+                        "desc": "Free space in KiB for the next log: the freefile (`afatfs_getContiguousFreeSpace() / 1024`), at most 4 GiB. 0 if `USE_SDCARD` disabled",
                         "units": ""
                     },
                     {
                         "name": "totalSpaceKB",
                         "ctype": "uint32_t",
                         "desc": "Total space in KiB (`sdcard_getMetadata()->numBlocks / 2`). 0 if `USE_SDCARD` disabled",
+                        "units": ""
+                    },
+                    {
+                        "name": "cardFreeSpaceKB",
+                        "ctype": "uint32_t",
+                        "desc": "Free space of the whole card in KiB (`afatfs_getFreeSpaceKB()`): the freefile plus the free clusters outside it, which the freefile grows into at later boots. Counted from the first request on, while disarmed and no file is open; 0xFFFFFFFF until the count has finished, while the card is not ready, or for good if a FAT sector could not be read. 0 if `USE_SDCARD` disabled",
+                        "units": ""
+                    },
+                    {
+                        "name": "logTailsKB",
+                        "ctype": "uint32_t",
+                        "desc": "Taken space in KiB that holds no data at the end of the logs: each log (`LOG*.TXT`) takes whole superclusters from the freefile (`afatfs_getTakenSpaceKB()`). After the free count the card's directories are read; 0xFFFFFFFF until then, while the card is not ready, or for good if a directory could not be read or nests deeper than 4. 0 if `USE_SDCARD` disabled",
+                        "units": ""
+                    },
+                    {
+                        "name": "terrainKB",
+                        "ctype": "uint32_t",
+                        "desc": "Space in KiB held by terrain files (`*.TER`), as `logTailsKB`",
+                        "units": ""
+                    },
+                    {
+                        "name": "lostKB",
+                        "ctype": "uint32_t",
+                        "desc": "Taken space in KiB outside the freefile that no file or directory holds, left by interrupted writes, as `logTailsKB`",
                         "units": ""
                     }
                 ]
