@@ -958,7 +958,8 @@ int16_t getThrottlePercent(bool useScaled)
     } else {
         thr = (rxGetChannelValue(THROTTLE) - PWM_RANGE_MIN) * 100 / (PWM_RANGE_MAX - PWM_RANGE_MIN);
     }
-    return thr;
+    // Below idle (disarmed, motor stop) it would go negative: MSP, iBus and MAVLink send it unsigned
+    return MAX(thr, 0);
 }
 
 uint16_t setDesiredThrottle(uint16_t throttle, bool allowMotorStop)
