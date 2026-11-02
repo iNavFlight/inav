@@ -16,7 +16,11 @@
  */
 
 #define TARGET_BOARD_IDENTIFIER "FWF7"
+#ifdef FLYWOOF722PROV2
+#define USBD_PRODUCT_STRING     "FLYWOOF722PROV2"
+#else
 #define USBD_PRODUCT_STRING     "FLYWOOF722PRO"
+#endif
 
 /*** Indicators ***/
 #define LED0                    PC15
@@ -33,6 +37,20 @@
 
 #define USE_TARGET_IMU_HARDWARE_DESCRIPTORS
 
+#ifdef FLYWOOF722PROV2
+// An ICM-42688-P or an LSM6DSK320X, and a place for a second IMU on the same bus
+#define USE_DUAL_GYRO
+#define GYRO1_CS_PIN            PA4
+#define GYRO2_CS_PIN            PB2
+
+#define USE_IMU_ICM42605
+#define IMU_ICM42605_ALIGN      CW270_DEG
+#define ICM42605_SPI_BUS        BUS_SPI1
+
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN       CW270_DEG
+#define LSM6DXX_SPI_BUS         BUS_SPI1
+#else
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW0_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
@@ -47,6 +65,7 @@
 #define IMU_BMI270_ALIGN        CW180_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA4
+#endif
 
 
 #define USE_SPI_DEVICE_2        // MAX7456
@@ -109,10 +128,12 @@
 /*** BARO & MAG ***/
 #define USE_BARO
 #define BARO_I2C_BUS            BUS_I2C1
+#define USE_BARO_DPS310
+#ifndef FLYWOOF722PROV2
 #define USE_BARO_BMP280
 #define USE_BARO_MS5611
-#define USE_BARO_DPS310
 #define USE_BARO_SPL06
+#endif
 
 #define USE_MAG
 #define MAG_I2C_BUS             BUS_I2C1
