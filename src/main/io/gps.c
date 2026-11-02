@@ -362,7 +362,10 @@ void updateEstimatedGPSFix(void)
 
 void gpsProcessNewDriverData(void)
 {
+    // gpsHeartbeat is toggled on gpsSol only, so the driver copy must not reset it
+    const bool gpsHeartbeat = gpsSol.flags.gpsHeartbeat;
     gpsSol = gpsSolDRV;
+    gpsSol.flags.gpsHeartbeat = gpsHeartbeat;
 
 #if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     processDisableGPSFix();
@@ -600,8 +603,8 @@ bool gpsUpdate(void)
         // Call GPS protocol thread
         gpsProviders[gpsState.gpsConfig->provider].protocol();
 
-        // Check for GPS timeout
-        if ((millis() - gpsState.lastMessageMs) > gpsState.baseTimeoutMs) {
+        // Check for GPS timeout: the protocol may ask for longer, never for less than the base
+        if ((millis() - gpsState.lastMessageMs) > MAX(gpsState.timeoutMs, gpsState.baseTimeoutMs)) {
             sensorsClear(SENSOR_GPS);
             DISABLE_STATE(GPS_FIX);
             gpsSol.fixType = GPS_NO_FIX;

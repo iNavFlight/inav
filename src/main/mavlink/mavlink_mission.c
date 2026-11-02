@@ -1,5 +1,8 @@
 #include "mavlink/mavlink_internal.h"
 
+#include "flight/mixer.h"
+#include "flight/mixer_profile.h"
+
 #include "mavlink/mavlink_guided.h"
 #include "mavlink/mavlink_mission.h"
 #include "mavlink/mavlink_runtime.h"
@@ -27,12 +30,6 @@ static navWaypoint_t mavlinkMissionUploadWaypoints[NAV_MAX_WAYPOINTS];
 static uint8_t mavlinkMissionUploadWaypointCount;
 static uint8_t mavlinkMissionUploadSequenceWaypointNumbers[MAVLINK_MISSION_UPLOAD_MAX_ITEMS];
 static int16_t mavlinkMissionCurrentSpeedCmS;
-
-typedef struct mavlinkMissionSnapshot_s {
-    uint8_t waypointCount;
-    bool missionCompleted;
-    navWaypoint_t waypoints[NAV_MAX_WAYPOINTS];
-} mavlinkMissionSnapshot_t;
 
 static void mavlinkClearMissionUploadBuffer(void)
 {
@@ -169,37 +166,11 @@ static bool mavlinkPersistMission(void)
 #endif
 }
 
-static void mavlinkSnapshotMission(mavlinkMissionSnapshot_t *snapshot)
-{
-    snapshot->waypointCount = getWaypointCount();
-    snapshot->missionCompleted = mavlinkContext.missionCompleted;
-    for (uint8_t i = 0; i < snapshot->waypointCount; i++) {
-        getWaypoint(i + 1, &snapshot->waypoints[i]);
-    }
-}
-
-static void mavlinkRestoreMission(const mavlinkMissionSnapshot_t *snapshot)
-{
-    resetWaypointList();
-    for (uint8_t i = 0; i < snapshot->waypointCount; i++) {
-        setWaypoint(i + 1, &snapshot->waypoints[i]);
-    }
-    mavlinkContext.missionCompleted = snapshot->missionCompleted;
-}
-
 static bool mavlinkClearPersistedMission(void)
 {
-    mavlinkMissionSnapshot_t previousMission;
-    mavlinkSnapshotMission(&previousMission);
-
     resetWaypointList();
     mavlinkContext.missionCompleted = false;
-    if (mavlinkPersistMission()) {
-        return true;
-    }
-
-    mavlinkRestoreMission(&previousMission);
-    return false;
+    return mavlinkPersistMission();
 }
 
 static bool mavlinkMissionCoordinateIsValid(int32_t lat, int32_t lon)
@@ -412,14 +383,24 @@ static bool mavlinkCommitMissionUpload(void)
         return false;
     }
 
+    /* setWaypoint() silently no-ops while NAV_WP_MODE is active, and that flight
+     * mode flag is not cleared synchronously with disarm() - only later, when the
+     * nav task next runs switchNavigationFlightModes(). Catching it here, before
+     * mavlinkClearPersistedMission()/resetWaypointList() touch anything, rejects
+     * an upload that lands in that window instead of silently wiping the mission.
+     * This must run before the waypointCount == 0 check below too: an upload
+     * that resolves to zero real waypoints (e.g. a single DO_CHANGE_SPEED item)
+     * is not the same as an explicit MISSION_CLEAR_ALL/MISSION_COUNT(0), and
+     * must not bypass the guard by taking the clear path. */
+    if (FLIGHT_MODE(NAV_WP_MODE)) {
+        return false;
+    }
+
     if (mavlinkMissionUploadWaypointCount == 0) {
         return mavlinkClearPersistedMission();
     }
 
     mavlinkMissionUploadWaypoints[mavlinkMissionUploadWaypointCount - 1].flag = NAV_WP_FLAG_LAST;
-
-    mavlinkMissionSnapshot_t previousMission;
-    mavlinkSnapshotMission(&previousMission);
 
     resetWaypointList();
 
@@ -428,7 +409,6 @@ static bool mavlinkCommitMissionUpload(void)
     }
 
     if (!isWaypointListValid() || !mavlinkPersistMission()) {
-        mavlinkRestoreMission(&previousMission);
         return false;
     }
 
@@ -468,16 +448,10 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         currentTimeMs - mavMissionTransfer.lastActivityMs >= MAVLINK_MISSION_DOWNLOAD_TIMEOUT_MS) {
         mavlinkResetMissionTransfer();
     }
+}
 
-    if (currentTimeMs - mavlinkContext.lastMissionCurrentMs < MAVLINK_MISSION_CURRENT_INTERVAL_MS) {
-        return;
-    }
-
-    const uint8_t sendMask = mavlinkActivePortMask();
-    if (sendMask == 0) {
-        return;
-    }
-
+void mavlinkSendMissionCurrent(void)
+{
     const uint16_t total = getWaypointCount();
     const bool active = FLIGHT_MODE(NAV_WP_MODE);
     const uint16_t seq = total > 0 && active && getActiveWpNumber() > 0 ? getActiveWpNumber() - 1 : 0;
@@ -489,7 +463,7 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         // LAND) the FSM parks in NAV_STATE_WAYPOINT_FINISHED, which still
         // maps to NAV_WP_MODE - a landed vehicle must not report ACTIVE
         // until the pilot flips the mode switch. A re-flight clears
-        // missionCompleted on the WP-mode rising edge above.
+        // missionCompleted on the WP-mode rising edge in mavlinkMissionUpdate().
         missionState = MISSION_STATE_COMPLETE;
     } else if (active) {
         missionState = MISSION_STATE_ACTIVE;
@@ -497,7 +471,6 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         missionState = MISSION_STATE_NOT_STARTED;
     }
 
-    mavSendMask = sendMask;
     mavlink_msg_mission_current_pack(
         mavlinkGetCommonConfig()->sysid,
         MAV_COMP_ID_AUTOPILOT1,
@@ -510,8 +483,6 @@ void mavlinkMissionUpdate(timeMs_t currentTimeMs)
         0,
         0);
     mavlinkSendMessage();
-    mavSendMask = 0;
-    mavlinkContext.lastMissionCurrentMs = currentTimeMs;
 }
 
 static bool mavlinkHandleArmedGuidedMissionItem(
@@ -769,6 +740,57 @@ static bool mavlinkHandleMissionItemCommon(
             wp.lon = lon;
             wp.alt = mavlinkMissionAltitudeToCentimeters(altMeters);
             wp.p3 = mavlinkFrameUsesAbsoluteAltitude(frame) ? NAV_WP_ALTMODE : 0;
+
+            /* A LAND item's altitude is where the aircraft touches down, not an altitude to
+             * hold on the way there. Ground stations send zero for it - QGC forces it to zero
+             * outright - and INAV flies the approach leg with the waypoint altitude as its
+             * target, so taking it literally descends all the way in from the previous
+             * waypoint instead of arriving overhead and then landing. Approach at the
+             * altitude of the preceding waypoint and let the LAND action do the descent.
+             *
+             * Rotary platforms only. A fixed wing cannot stop over the point and descend, so
+             * it keeps the altitude it was given: with an autoland approach configured the
+             * landing altitudes come from that config and the waypoint contributes only its
+             * position, and without one the existing descending approach is left alone. A
+             * VTOL counts as rotary here because it lands on its multirotor profile. */
+            const bool rotaryLanding = isMultirotorTypePlatform(mixerConfig()->platformType) ||
+                                       platformTypeConfigured(PLATFORM_MULTIROTOR) ||
+                                       platformTypeConfigured(PLATFORM_TRICOPTER) ||
+                                       platformTypeConfigured(PLATFORM_HELICOPTER);
+
+            /* Only a relative-frame zero is the ground station's "unspecified" sentinel. An
+             * absolute frame gives zero a real meaning, and a negative relative altitude is a
+             * deliberate touchdown below the reference, so neither is second-guessed here. */
+            const bool unspecifiedLandingAltitude = wp.alt == 0 &&
+                                                    (wp.p3 & NAV_WP_ALTMODE) != NAV_WP_ALTMODE;
+
+            if (rotaryLanding && unspecifiedLandingAltitude) {
+                /* The approach altitude has to come from the last item that actually carries
+                 * one. JUMP, SET_POI and SET_HEAD are appended to the list too, and their alt
+                 * is either unset or unrelated to the flown path, so walk back past them. */
+                for (uint8_t i = mavlinkMissionUploadWaypointCount; i > 0; i--) {
+                    const navWaypoint_t *previous = &mavlinkMissionUploadWaypoints[i - 1];
+
+                    if (!(previous->action == NAV_WP_ACTION_WAYPOINT ||
+                          previous->action == NAV_WP_ACTION_HOLD_TIME ||
+                          previous->action == NAV_WP_ACTION_LAND)) {
+                        continue;
+                    }
+
+                    wp.alt = previous->alt;
+                    wp.p3 = previous->p3;
+                    break;
+                }
+
+                /* Nothing in the mission carried an altitude - a LAND as the first item, or
+                 * preceded only by JUMP/POI/SET_HEAD. Fall back to the configured RTH
+                 * altitude, which is already centimetres above home and so matches the
+                 * relative frame this branch runs in. It is only a default: if it is zero,
+                 * because the RTH alt mode in use ignores it, the approach stays as sent. */
+                if (wp.alt == 0) {
+                    wp.alt = navConfig()->general.rth_altitude;
+                }
+            }
             break;
 
         case MAV_CMD_DO_JUMP:

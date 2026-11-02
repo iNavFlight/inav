@@ -26,6 +26,35 @@ on:
 
 
 jobs:
+  verify-line-endings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check for Windows Line Endings
+        run: |
+          # Fetch the target branch so git diff can compare against it
+          git fetch origin ${{ github.base_ref }} --depth=1
+
+          # 1. Get files changed in this PR
+          # 2. Filter for extensions: .c, .txt, or .h (case-insensitive)
+          # 3. Only look at files that still exist (filter out deleted files via --diff-filter=d)
+          CHANGED_FILES=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }}...HEAD | grep -iE '(\.c|\.txt|\.h|Makefile)$' || true)
+
+          if [ -n "$CHANGED_FILES" ]; then
+            echo "Checking modified files for CRLF: "
+            echo "$CHANGED_FILES"
+            
+            # Use git grep on just the filtered list of modified files
+            # -I ignores binary files, -l lists files with matches, $'\r' looks for carriage returns
+            if echo "$CHANGED_FILES" | xargs git grep -I -l $'\r' --; then
+              echo "::error::Windows CRLF (^M) line endings detected in new/modified C or Text files!"
+              exit 1
+            fi
+          else
+            echo "No modified .c, .txt, or .h files found in this PR."
+          fi
   detect:
     runs-on: ubuntu-latest
     outputs:
@@ -236,7 +265,15 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: echo "$BASE_REF" > base_ref.txt
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "$BASE_REF" > base_ref.txt
+          # The build is refs/pull/<n>/merge, whose first parent is the base it contains
+          # (cat-file, because the depth-1 checkout hides parents from rev-parse)
+          set -- $(git cat-file commit HEAD | sed -n '/^$/q;s/^parent //p')
+          if [ $# -eq 2 ] && [ "$2" = "$HEAD_SHA" ]; then
+            echo "$1" >> base_ref.txt
+          fi
       - name: Upload base ref
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4

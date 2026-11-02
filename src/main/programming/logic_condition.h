@@ -96,7 +96,7 @@ typedef enum {
     LOGIC_CONDITION_LAST
 } logicOperation_e;
 
-typedef enum logicOperandType_s {
+typedef enum {
     LOGIC_CONDITION_OPERAND_TYPE_VALUE = 0,
     LOGIC_CONDITION_OPERAND_TYPE_RC_CHANNEL,
     LOGIC_CONDITION_OPERAND_TYPE_FLIGHT,

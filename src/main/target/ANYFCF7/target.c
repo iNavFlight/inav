@@ -40,7 +40,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,  CH2, PB5,  TIM_USE_OUTPUT_AUTO,                  0, 0 ), // S4_OUT DMA1_ST5
     DEF_TIM(TIM5,  CH1, PA0,  TIM_USE_OUTPUT_AUTO,                  0, 0 ), // S7_OUT DMA1_ST2
     DEF_TIM(TIM2,  CH2, PB3,  TIM_USE_OUTPUT_AUTO | TIM_USE_LED,    0, 0 ), // S8_OUT DMA1_ST6
-    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO,                  0, 0 ), // S9_OUT DMA1_ST4
+    DEF_TIM(TIM3,  CH1, PB4,  TIM_USE_OUTPUT_AUTO,                  0, 0 ), // S9_OUT DMA1_ST4 -- clash with S2_OUT, DSHOT does not work
     
 
 };

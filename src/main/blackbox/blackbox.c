@@ -682,6 +682,8 @@ static struct {
 // Cache for FLIGHT_LOG_FIELD_CONDITION_* test results:
 static uint64_t blackboxConditionCache;
 
+// The cache holds a bit for every condition up to and including LAST, which is NEVER, so
+// it needs LAST + 1 bits. A dual-gyro target takes the 64th
 STATIC_ASSERT((sizeof(blackboxConditionCache) * 8) > FLIGHT_LOG_FIELD_CONDITION_LAST, too_many_flight_log_conditions);
 
 static uint32_t blackboxIFrameInterval;
@@ -813,7 +815,7 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
         return feature(FEATURE_VBAT);
 
     case FLIGHT_LOG_FIELD_CONDITION_AMPERAGE:
-        return feature(FEATURE_CURRENT_METER) && batteryMetersConfig()->current.type == CURRENT_SENSOR_ADC;
+        return isAmperageConfigured();
 
     case FLIGHT_LOG_FIELD_CONDITION_SURFACE:
 #ifdef USE_RANGEFINDER
@@ -863,20 +865,15 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
 #ifdef USE_DUAL_GYRO
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY:
-        /*
-         * With the second gyro in the control path, its samples belong to the
-         * log wherever the first gyro's raw samples go: one aircraft with two
-         * sensors reads as the same field twice, not as a measurement and an
-         * optional extra. The separate flag is what asks for it when the sensor
-         * is being read for analysis alone.
-         */
         if (!gyro.secondaryInitialized) {
             return false;
         }
+        // In the control path its samples belong wherever the first gyro's raw samples go
         if (gyroConfig()->gyro_fusion != GYRO_FUSION_OFF) {
             return blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_RAW);
         }
-        return blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_SECONDARY);
+        // The setting that asks for the field, not merely a second sensor that is running
+        return gyroConfig()->gyro_secondary_enabled;
 #endif
 
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL:
@@ -947,6 +944,14 @@ static void blackboxSetState(BlackboxState newState)
         ;
     }
     blackboxState = newState;
+
+#ifdef USE_DUAL_GYRO
+    // The second gyro is read only for the log, so only while frames are being written.
+    // Every other state above STOPPED, the headers, a log paused from the switch, and
+    // the shutdown, writes no main frame, so a reading taken there goes nowhere and the
+    // transaction on the bus is spent for nothing
+    gyroSetSecondaryLogging(newState == BLACKBOX_STATE_RUNNING);
+#endif
 }
 
 static void writeIntraframe(void)
@@ -1205,7 +1210,8 @@ static void writeInterframe(void)
      */
     blackboxWriteSignedVB((int32_t) (blackboxHistory[0]->time - 2 * blackboxHistory[1]->time + blackboxHistory[2]->time));
 
-    int32_t deltas[8];
+    // Up to 9 optional fields below: vbat, amperage, mag x3, baro, pitot, surface, rssi
+    int32_t deltas[9];
     arraySubInt32(deltas, blackboxCurrent->axisPID_Setpoint, blackboxLast->axisPID_Setpoint, XYZ_AXIS_COUNT);
     blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
 
@@ -1539,7 +1545,7 @@ static void loadSlowState(blackboxSlowState_t *slow)
     for (int i = 0; i < XYZ_AXIS_COUNT; i++)
     {
 #ifdef USE_WIND_ESTIMATOR
-        slow->wind[i] = getEstimatedWindSpeed(i);
+        slow->wind[i] = getEstimatedWindSpeed(i);  // raw; Z is NEU
 #else
         slow->wind[i] = 0;
 #endif
@@ -2098,7 +2104,7 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("thr_mid", "%d",                         currentControlProfile->throttle.rcMid8);
         BLACKBOX_PRINT_HEADER_LINE("thr_expo", "%d",                        currentControlProfile->throttle.rcExpo8);
         BLACKBOX_PRINT_HEADER_LINE("tpa_rate", "%d",                        currentControlProfile->throttle.dynPID);
-        BLACKBOX_PRINT_HEADER_LINE("tpa_breakpoint", "%d",                  currentControlProfile->throttle.pa_breakpoint);
+        BLACKBOX_PRINT_HEADER_LINE("tpa_breakpoint", "%d",                  currentControlProfile->throttle.tpa_breakpoint);
         BLACKBOX_PRINT_HEADER_LINE("rates", "%d,%d,%d",                     currentControlProfile->stabilized.rates[ROLL],
                                                                             currentControlProfile->stabilized.rates[PITCH],
                                                                             currentControlProfile->stabilized.rates[YAW]);

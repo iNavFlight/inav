@@ -58,7 +58,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH3, PB10, TIM_USE_OUTPUT_AUTO, 0, 0), // S7
 
     // Motor 8
-    DEF_TIM(TIM2, CH4, PB11, TIM_USE_OUTPUT_AUTO, 0, 0), // S8
+    DEF_TIM(TIM2, CH4, PB11, TIM_USE_OUTPUT_AUTO, 0, 0), // S8 -- clash with S1, DSHOT does not work
 
     // Servo 1
     DEF_TIM(TIM4, CH1, PB6, TIM_USE_OUTPUT_AUTO, 0, 0), // S9

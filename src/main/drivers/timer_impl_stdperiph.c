@@ -268,15 +268,31 @@ void impl_timerChCaptureCompareEnable(TCH_t * tch, bool enable)
 
 static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 {
-    if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
-        TCH_t * tch = (TCH_t *)descriptor->userParam;
+    TCH_t * tch = (TCH_t *)descriptor->userParam;
 
-        // In circular mode, let DMA keep running - don't disable the stream
-        if (tch->dmaState == TCH_DMA_CIRCULAR) {
-            DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
-            return;
+    if (tch->dmaState == TCH_DMA_CIRCULAR) {
+        // Let DMA keep running - don't disable the stream. HT/TC are only
+        // enabled here when a refill callback is registered (see
+        // impl_timerPWMSetDMACircular); non-refilling circular consumers
+        // never reach this branch.
+        if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_HTIF)) {
+            DMA_CLEAR_FLAG(descriptor, DMA_IT_HTIF);
+            if (tch->dmaRefillCallback) {
+                tch->dmaRefillCallback(tch, false);
+            }
         }
 
+        if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
+            DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
+            if (tch->dmaRefillCallback) {
+                tch->dmaRefillCallback(tch, true);
+            }
+        }
+
+        return;
+    }
+
+    if (DMA_GET_FLAG_STATUS(descriptor, DMA_IT_TCIF)) {
         tch->dmaState = TCH_DMA_IDLE;
 
         TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
@@ -284,6 +300,11 @@ static void impl_timerDMA_IRQHandler(DMA_t descriptor)
 
         DMA_CLEAR_FLAG(descriptor, DMA_IT_TCIF);
     }
+}
+
+void impl_timerPWMSetDMARefillCallback(TCH_t * tch, timerDmaRefillFn * callback)
+{
+    tch->dmaRefillCallback = callback;
 }
 
 bool impl_timerPWMConfigChannelDMA(TCH_t * tch, void * dmaBuffer, uint8_t dmaBufferElementSize, uint32_t dmaBufferElementCount)
@@ -471,7 +492,7 @@ void impl_pwmBurstDMAStart(burstDmaTimer_t * burstDmaTimer, uint32_t BurstLength
     TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, ENABLE);
 }
 
-void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize)
 {
     if (!tch->dma || !tch->dma->ref) {
         return;
@@ -495,7 +516,6 @@ void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, b
 
         if (circular) {
             burstDmaTimer->dmaBurstStream->CR |= DMA_SxCR_CIRC;
-            DMA_SetCurrDataCounter(burstDmaTimer->dmaBurstStream, dmaBufferSize);
             DMA_ITConfig(burstDmaTimer->dmaBurstStream, DMA_IT_TC, DISABLE);
             tch->dmaState = TCH_DMA_CIRCULAR;
         } else {
@@ -504,10 +524,18 @@ void impl_pwmBurstDMASetCircular(burstDmaTimer_t * burstDmaTimer, TCH_t * tch, b
             tch->dmaState = TCH_DMA_IDLE;
         }
 
+        // M0AR/NDTR writes are only accepted while EN = 0 (checked above)
+        burstDmaTimer->dmaBurstStream->M0AR = (uint32_t)dmaBuffer;
+        DMA_SetCurrDataCounter(burstDmaTimer->dmaBurstStream, dmaBufferSize);
+
         __DSB();
 
-        DMA_Cmd(burstDmaTimer->dmaBurstStream, ENABLE);
-        TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, ENABLE);
+        // Normal mode: leave the stream stopped, as after a completed frame;
+        // the next frame is started by impl_pwmBurstDMAStart()
+        if (circular) {
+            DMA_Cmd(burstDmaTimer->dmaBurstStream, ENABLE);
+            TIM_DMACmd(burstDmaTimer->timer, burstDmaTimer->burstRequestSource, ENABLE);
+        }
     }
 }
 #endif
@@ -563,11 +591,18 @@ void impl_timerPWMStopDMA(TCH_t * tch)
 {
     TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], DISABLE);
     DMA_Cmd(tch->dma->ref, DISABLE);
+
+    // STM32F4/F7 RM: poll EN bit until stream is actually disabled
+    uint32_t timeout = 10000; // ~60us at 168MHz, well above worst-case disable latency
+    while ((tch->dma->ref->CR & DMA_SxCR_EN) && timeout--) {
+        __NOP();
+    }
+
     tch->dmaState = TCH_DMA_IDLE;
     TIM_Cmd(tch->timHw->tim, ENABLE);
 }
 
-void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferSize)
+void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, void * dmaBuffer, uint32_t dmaBufferSize)
 {
     if (!tch->dma || !tch->dma->ref) {
         return;
@@ -593,21 +628,35 @@ void impl_timerPWMSetDMACircular(TCH_t * tch, bool circular, uint32_t dmaBufferS
 
         if (circular) {
             tch->dma->ref->CR |= DMA_SxCR_CIRC;
-            DMA_SetCurrDataCounter(tch->dma->ref, dmaBufferSize);
-            // Disable TC interrupt — in circular mode, TC fires every cycle
-            // and the IRQ handler would otherwise disable the stream
-            DMA_ITConfig(tch->dma->ref, DMA_IT_TC, DISABLE);
+            if (tch->dmaRefillCallback) {
+                // Refill consumer needs an IRQ every half-cycle to keep the
+                // buffer fed
+                DMA_ITConfig(tch->dma->ref, DMA_IT_HT | DMA_IT_TC, ENABLE);
+            } else {
+                // Disable TC interrupt — in circular mode, TC fires every cycle
+                // and the IRQ handler would otherwise disable the stream
+                DMA_ITConfig(tch->dma->ref, DMA_IT_TC, DISABLE);
+            }
             tch->dmaState = TCH_DMA_CIRCULAR;
         } else {
             tch->dma->ref->CR &= ~DMA_SxCR_CIRC;
+            DMA_ITConfig(tch->dma->ref, DMA_IT_HT, DISABLE);
             DMA_ITConfig(tch->dma->ref, DMA_IT_TC, ENABLE);
             tch->dmaState = TCH_DMA_IDLE;
         }
 
+        // M0AR/NDTR writes are only accepted while EN = 0 (checked above)
+        tch->dma->ref->M0AR = (uint32_t)dmaBuffer;
+        DMA_SetCurrDataCounter(tch->dma->ref, dmaBufferSize);
+
         // Ensure register writes are visible to DMA before re-enabling
         __DSB();
 
-        DMA_Cmd(tch->dma->ref, ENABLE);
-        TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], ENABLE);
+        // Normal mode: leave the stream stopped, as after a completed frame; the next
+        // frame is started by impl_timerPWMPrepareDMA()/impl_timerPWMStartDMA()
+        if (circular) {
+            DMA_Cmd(tch->dma->ref, ENABLE);
+            TIM_DMACmd(tch->timHw->tim, lookupDMASourceTable[tch->timHw->channelIndex], ENABLE);
+        }
     }
 }

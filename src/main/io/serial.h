@@ -59,6 +59,9 @@ typedef enum {
     FUNCTION_MSP_OSD                    = (1 << 25), // 33554432
     FUNCTION_GIMBAL                     = (1 << 26), // 67108864
     FUNCTION_GIMBAL_HEADTRACKER         = (1 << 27), // 134217728
+    /* 28 is left free: the Configurator already assigns it to the MassZero thermal
+     * camera, whose firmware side is not on this branch yet. */
+    FUNCTION_ESC_SRXL2                  = (1 << 29), // 536870912: Spektrum Smart ESC (Smart Throttle)
 } serialPortFunction_e;
 
 #define FUNCTION_VTX_MSP FUNCTION_MSP_OSD
@@ -159,6 +162,7 @@ void serialRemovePort(serialPortIdentifier_e identifier);
 uint8_t serialGetAvailablePortCount(void);
 bool serialIsPortAvailable(serialPortIdentifier_e identifier);
 bool isSerialConfigValid(const serialConfig_t *serialConfig);
+uint32_t serialGetDuplicatedSinglePortFunctions(const serialPortConfig_t *portConfigToCheck);
 serialPortConfig_t *serialFindPortConfiguration(serialPortIdentifier_e identifier);
 bool doesConfigurationUsePort(serialPortIdentifier_e portIdentifier);
 serialPortConfig_t *findSerialPortConfig(serialPortFunction_e function);

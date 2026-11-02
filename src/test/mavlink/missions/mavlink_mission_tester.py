@@ -5,7 +5,7 @@ Usage:
   conda run -n drone python src/test/mavlink/missions/mavlink_mission_tester.py --config src/test/mavlink/missions/mavlink_mission_tester.ini
 
 Expected external setup:
-  ./cmake/build_SITL/inav_9.1.0_SITL --serialport=/dev/ttyUSB0 --serialuart=3 --baudrate=460800 --path="../mydev/branch/mavlink_multiport2/eeprom.bin" --chanmap=M01-01,S02-02,S01-03,S04-04
+  ./cmake/build_SITL/bin/SITL.elf --serialport=/dev/ttyUSB0 --serialuart=3 --baudrate=460800 --path="../mydev/branch/mavlink_multiport2/eeprom.bin" --chanmap=M01-01,S02-02,S01-03,S04-04
   cd src/test/mavlink/missions/results
   mavproxy.py --master=tcp:127.0.0.1:5763 --force-connected --nowait --daemon --out=udp:127.0.0.1:14550
 """
