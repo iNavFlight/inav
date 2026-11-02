@@ -9,6 +9,9 @@ set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY depends
 set_property(SOURCE accgyro_lsm6dxx_unittest.cc PROPERTY definitions USE_IMU_LSM6DXX)
 
 set_property(SOURCE adsb_unittest.cc PROPERTY depends "io/adsb.c" "common/maths.c")
+
+set_property(SOURCE blackbox_encoding_unittest.cc PROPERTY depends "blackbox/blackbox_encoding.c" "common/encoding.c")
+set_property(SOURCE blackbox_encoding_unittest.cc PROPERTY definitions USE_BLACKBOX)
 set_property(SOURCE adsb_unittest.cc PROPERTY definitions USE_ADSB MAX_ADSB_VEHICLES=5 ADSB_LIMIT_CM=6400000)
 set_property(SOURCE adsb_unittest.cc PROPERTY extra_includes "../../lib/main/MAVLink")
 
@@ -175,6 +178,11 @@ set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY depends
 # pid.c is #included by the access shim so the test can see its file-static state
 set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY extra_sources
     "../test/unit/pid_apa_iterm_update_access.c")
+
+set_property(SOURCE pid_fw_iterm_lock_fade_unittest.cc PROPERTY depends
+    "common/maths.c" "common/filter.c" "common/lulu.c")
+set_property(SOURCE pid_fw_iterm_lock_fade_unittest.cc PROPERTY extra_sources
+    "../test/unit/pid_fw_iterm_lock_fade_access.c")
 
 set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)

@@ -281,15 +281,15 @@ static int8_t profileDetect(void) {
         profile_comp_array[i].max_voltage = profile->cells * profile->voltage.cellDetect;
     }
 
-    // Sort profiles by max voltage. Insertion sort: qsort() adds about 650 B of flash where nothing else uses it
+    // Sort profiles by max voltage; insertion sort keeps equal profiles in index order and avoids linking qsort
     for (uint8_t i = 1; i < MAX_BATTERY_PROFILE_COUNT; ++i) {
-        const profile_comp_t p = profile_comp_array[i];
-        int j = i - 1;
-        while (j >= 0 && profile_comp_array[j].max_voltage > p.max_voltage) {
+        const profile_comp_t key = profile_comp_array[i];
+        int8_t j = i - 1;
+        while (j >= 0 && profile_comp_array[j].max_voltage > key.max_voltage) {
             profile_comp_array[j + 1] = profile_comp_array[j];
-            j--;
+            --j;
         }
-        profile_comp_array[j + 1] = p;
+        profile_comp_array[j + 1] = key;
     }
 
     // Return index of the first profile where vbat <= profile_max_voltage

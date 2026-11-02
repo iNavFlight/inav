@@ -96,6 +96,7 @@ typedef struct SPIDevice_s {
     const uint32_t * divisorMap;
     volatile uint16_t errorCount;
     bool initDone;
+    bool leadingEdge;
 } spiDevice_t;
 
 bool spiInitDevice(SPIDevice device, bool leadingEdge);
@@ -117,6 +118,9 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge);
     void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed);
     uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t in);
     bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len);
+#if defined(STM32H7) || defined(STM32F7)
+    bool spiTransferRegister(SPI_TypeDef *instance, uint8_t reg, uint8_t *rxData, const uint8_t *txData, int len);
+#endif
 
     uint16_t spiGetErrorCounter(SPI_TypeDef *instance);
     void spiResetErrorCounter(SPI_TypeDef *instance);

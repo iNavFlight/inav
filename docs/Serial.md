@@ -48,6 +48,7 @@ e.g. after configuring a port for GPS enable the GPS feature.
 * All telemetry systems except MSP will ignore any attempts to override the baudrate.
 * MSP/CLI can be shared with EITHER Blackbox OR telemetry (LTM or MAVlink, not RX telemetry).  In shared mode blackbox or telemetry will be output only when armed.
 * Smartport telemetry cannot be shared with MSP.
+* SBUS servo output (`SERVO_SERIAL`) can only be used on one port. The `serial` CLI command refuses to assign it to a second port. If a saved configuration already has it on several ports, only the first one in the `serial` list outputs SBUS.
 * No other serial port sharing combinations are valid.
 * You can use as many different telemetry systems as you like at the same time.
 * You can only use each telemetry system once.  e.g.  FrSky telemetry cannot be used on two port, but LTN Telemetry and FrSky on two different ports is fine.
