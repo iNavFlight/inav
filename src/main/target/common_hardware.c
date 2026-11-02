@@ -433,7 +433,9 @@
 
 /** OTHER HARDWARE **/
 
-#if defined(USE_MAX7456)
+#if defined(USE_MAX7456) || defined(USE_MS7456)
+    // MS7456 is register-compatible with the MAX7456 but requires SPI mode 0
+    // (CPOL=0/CPHA=0), which DEVFLAGS_SPI_MODE_0 selects here.
     BUSDEV_REGISTER_SPI(busdev_max7456,     DEVHW_MAX7456,      MAX7456_SPI_BUS,    MAX7456_CS_PIN,     NONE,           DEVFLAGS_USE_RAW_REGISTERS | DEVFLAGS_SPI_MODE_0,  0);
 #endif
 

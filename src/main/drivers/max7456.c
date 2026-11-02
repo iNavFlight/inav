@@ -23,7 +23,7 @@
 
 #include "platform.h"
 
-#ifdef USE_MAX7456
+#if defined(USE_MAX7456) || defined(USE_MS7456)
 
 #if defined(MAX7456_USE_BOUNDS_CHECKS)
 #define BOUNDS_CHECK_FAILED() __asm("BKPT #0")
