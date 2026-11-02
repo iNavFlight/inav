@@ -179,6 +179,11 @@ set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY depends
 set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY extra_sources
     "../test/unit/pid_apa_iterm_update_access.c")
 
+set_property(SOURCE pid_fw_iterm_lock_fade_unittest.cc PROPERTY depends
+    "common/maths.c" "common/filter.c" "common/lulu.c")
+set_property(SOURCE pid_fw_iterm_lock_fade_unittest.cc PROPERTY extra_sources
+    "../test/unit/pid_fw_iterm_lock_fade_access.c")
+
 set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
