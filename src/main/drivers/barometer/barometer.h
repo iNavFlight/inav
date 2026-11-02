@@ -32,4 +32,6 @@ typedef struct baroDev_s {
     baroOpFuncPtr start_up;
     baroOpFuncPtr get_up;
     baroCalculateFuncPtr calculate;
+    // get_ut/get_up return false while their read is on its way; they are called again
+    bool asyncRead;
 } baroDev_t;
