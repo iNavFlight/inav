@@ -130,6 +130,7 @@
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
 #include "sensors/battery.h"
+#include "sensors/bec.h"
 #include "sensors/rangefinder.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -812,6 +813,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, getBatteryRemainingCapacity());
         sbufWriteU8(dst, calculateBatteryPercentage());
         sbufWriteU16(dst, getRSSI());
+#ifdef USE_BEC_VOLTAGE
+        sbufWriteU16(dst, becGetSource() != BEC_SOURCE_NONE ? becGetVoltage() : 0xFFFF);
+#else
+        sbufWriteU16(dst, 0xFFFF);
+#endif
         break;
 
     case MSP2_INAV_GET_LINK_STATS:
@@ -1728,6 +1734,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
          * bytes are MAX_SUPPORTED_MOTORS and MAX_SUPPORTED_SERVOS, the ceilings. */
         sbufWriteU8(dst, srxl2MotorCount());
         sbufWriteU8(dst, getMotorCount());
+#ifdef ESC_CONNECTOR_UART
+        sbufWriteU8(dst, 1);
+        sbufWriteU8(dst, ESC_CONNECTOR_UART);
+#else
+        sbufWriteU8(dst, 0);
+#endif
         break;
 #endif
 
