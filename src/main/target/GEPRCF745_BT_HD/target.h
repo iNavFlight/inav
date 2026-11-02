@@ -65,6 +65,7 @@
 #define IMU1_ALIGN              CW180_DEG
 #define IMU1_SPI_BUS            BUS_SPI1
 #define IMU1_CS_PIN             PA4
+#define IMU1_EXTI_PIN           PD0
 
 
 
@@ -72,6 +73,7 @@
 #define IMU2_ALIGN              CW0_DEG
 #define IMU2_SPI_BUS            BUS_SPI2
 #define IMU2_CS_PIN             PB12
+#define IMU2_EXTI_PIN           PD8
 
 
 // *************** I2C/Baro/Mag *********************

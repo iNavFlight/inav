@@ -67,6 +67,7 @@
 #define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         SPI1_NSS_PIN
+#define ICM42605_EXTI_PIN       PD0
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C
