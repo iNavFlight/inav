@@ -33,7 +33,7 @@ Every platform implements the same `drivers/bus_i2c.h` API:
 |---|---|
 | STM32F4 | Own interrupt-driven engine in `bus_i2c_stm32f40x.c`, ported from the Betaflight `bus_i2c_stm32f4xx.c` driver. Blocking calls use the same engine and wait for it. |
 | STM32F7/H7 | `HAL_I2C_Mem_Read_IT()` and friends, completion through the `HAL_I2C_*CpltCallback()` / `HAL_I2C_ErrorCallback()` hooks. |
-| AT32F43x | `i2c_memory_read_int()` and friends from `i2c_application`. The library sends the slave and register address synchronously (tens of µs, bounded by the library timeout), only the data phase runs in the interrupt. A NACK in that address phase is reported like any other failed transfer: the start call returns `true` and `i2cBusy()` reports the error at once. |
+| AT32F43x | The `i2c_application` interrupt handler for the data phase. Its `i2c_memory_*_int()` calls busy-wait for the slave and register address, so the driver does not use them: it sends the register byte from its own event interrupt wrapper and, for a read, issues the repeated START there at TDC (the register byte goes out with a software STOP). The start call only programs the peripheral and checks BUSYF once. |
 | RP2350, software I2C, SITL | Synchronous: the start call completes the transfer and returns `true`, `i2cBusy()` is always `false` and carries the outcome. A NACK is a failed transfer, not a refused start. |
 
 `i2cWriteStart()` copies the data byte into driver-owned storage, the caller
@@ -75,10 +75,9 @@ phase on the F4), not the time since the start:
 
 A NACK or a bus error ends a non-blocking transfer at once: the error is
 recorded for its owner and the counter shown by `status` goes up. The
-peripheral is not reinitialised for that, it is fine after a NACK. This
-includes the AT32 address phase, which runs inside the start call: the call
-returns `true` and `i2cBusy()` reports the failure, so an unplugged sensor
-costs one short failed start per attempt and nothing more. The F4 driver
+peripheral is not reinitialised for that, it is fine after a NACK, so an
+unplugged sensor costs one short failed transfer per attempt and nothing
+more. The F4 driver
 never reinitialised on a NACK for blocking calls either; the HAL and AT32
 blocking calls keep reinitialising on failure, as before.
 
@@ -192,12 +191,11 @@ Drivers for other buses (SPI gyros, MSP, fake sensors) need no change.
 | `debug[4]` | longest wait for a START / STOP bit release in µs (F4 only) |
 | `debug[5]` | I2C error counter, also shown by `status` |
 | `debug[6]` | interrupt enables found at transfer start (F4 only, 1024 is normal) |
-| `debug[7]` | time spent in the start call in µs, should be a few µs on F4/F7/H7 |
+| `debug[7]` | time spent in the start call in µs, should be a few µs |
 
 ## Known limitations
 
 * No bus arbitration queue: a device that finds the bus busy retries later.
   Fine at the 10 to 60 Hz rates the sensors use.
-* On the AT32 the start call blocks for the address phase of the transfer.
 * The RP2350 driver is still blocking.
 * SPI stays synchronous.

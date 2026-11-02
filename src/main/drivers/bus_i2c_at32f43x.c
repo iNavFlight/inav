@@ -97,12 +97,18 @@ typedef struct {
     bool pending;
     uint8_t addr;               // 7-bit address of the current / last non-blocking transfer
     timeUs_t startUs;           // start time of the transfer, for the debug statistics
+    volatile timeUs_t endUs;    // time of the STOPF interrupt that ended it
     uint16_t lastPcount;        // bytes left at the previous look, a change means the transfer moves
     uint32_t stuckUs;           // time looked at without progress, a long gap between looks counts as I2C_STUCK_LOOK_GAP_US
     timeUs_t lookUs;            // time of the previous look
     uint32_t heldUs;            // time starts were refused with the bus busy and nothing of ours in flight
     timeUs_t heldLookUs;        // time of the previous refused start
     uint8_t txByte;             // data of a non-blocking single byte write, must outlive the call
+    // Register phase of a non-blocking register transfer, run by i2cEventIrq() ahead of the i2c_application handler
+    volatile bool sendReg;      // regByte goes out at the first TDIS
+    uint8_t regByte;
+    uint8_t * volatile rxBuf;   // a read follows: at TDC after the register byte a repeated START switches to receive
+    volatile uint8_t rxLen;     // length of that read, 0 when no read follows
     i2cAddrResults_t addrResults;   // outcome per slave address, survives i2cInit()
 } i2cState_t;
 
@@ -127,10 +133,88 @@ static void i2cDebugPublish(void)
     DEBUG_SET(DEBUG_I2C, 7, i2cStats.startCallUs);
 }
 
+/*
+ * The i2c_application library only puts the data phase of a register transfer in the interrupt, its *_memory_*_int()
+ * functions busy-wait for the address and register byte. The register phase is done here instead, everything else is
+ * left to the library handler.
+ */
 static void i2cEventIrq(I2CDevice device)
 {
+    i2cState_t * state = &i2cState[device];
+    i2c_handle_type * handle = &state->handle;
+
     i2cStats.eventIrqs++;
-    i2c_evt_irq_handler(&i2cState[device].handle);
+
+    if (state->sendReg || state->rxLen) {
+        if (i2c_flag_get(handle->i2cx, I2C_ACKFAIL_FLAG) != RESET) {
+            // Address or register byte not acknowledged. The hardware sends the STOP, the library handler clears the
+            // flag and ends the transfer at STOPF. It flags the error only while pcount is non-zero, which is no
+            // longer the case once the register byte of a read is out
+            handle->error_code = I2C_ERR_ACKFAIL;
+            state->sendReg = false;
+            state->rxLen = 0;
+        }
+        else if (state->sendReg && i2c_flag_get(handle->i2cx, I2C_TDIS_FLAG) != RESET) {
+            i2c_data_send(handle->i2cx, state->regByte);
+            handle->pcount--;
+            handle->psize--;
+            state->sendReg = false;
+            return;
+        }
+        else if (state->rxLen && i2c_flag_get(handle->i2cx, I2C_TDC_FLAG) != RESET) {
+            // Register byte is out, repeated START for the read. Setting START clears TDC
+            handle->mode = I2C_INT_MA_RX;
+            handle->pbuff = state->rxBuf;
+            handle->pcount = state->rxLen;
+            state->rxLen = 0;
+            i2c_interrupt_enable(handle->i2cx, I2C_TD_INT, FALSE);
+            i2c_interrupt_enable(handle->i2cx, I2C_RD_INT, TRUE);
+            i2c_start_transfer(handle, state->addr << 1, I2C_GEN_START_READ);
+            return;
+        }
+    }
+
+    // STOPF ends every interrupt driven transfer, also a NACKed one
+    const bool stop = (i2c_flag_get(handle->i2cx, I2C_STOPF_FLAG) != RESET);
+
+    i2c_evt_irq_handler(handle);
+
+    if (stop) {
+        state->endUs = micros();
+    }
+}
+
+// Kick off a transfer whose register byte is sent by i2cEventIrq(). With rxLen != 0 a read of rxLen bytes into rxBuf
+// follows, otherwise the len bytes of buf are written after the register byte. Nothing waits on the bus here
+static void i2cStartRegisterTransfer(i2cState_t * state, uint8_t reg, uint8_t *buf, uint8_t len, bool reading)
+{
+    i2c_handle_type * handle = &state->handle;
+
+    handle->status = 0;     // I2C_START, private to i2c_application.c like I2C_END
+    handle->error_code = I2C_OK;
+    handle->mode = I2C_INT_MA_TX;
+
+    state->regByte = reg;
+    state->sendReg = true;
+
+    if (reading) {
+        // Register byte alone with a software STOP, so TDC fires after it instead of a STOP going out
+        state->rxBuf = buf;
+        state->rxLen = len;
+        handle->pbuff = NULL;
+        handle->pcount = 1;
+        handle->psize = 1;
+        i2c_transmit_set(handle->i2cx, state->addr << 1, 1, I2C_SOFT_STOP_MODE, I2C_GEN_START_WRITE);
+    }
+    else {
+        // Register byte and data in one transfer, the library handler sends the data from TDIS
+        state->rxLen = 0;
+        handle->pbuff = buf;
+        handle->pcount = len + 1;
+        i2c_start_transfer(handle, state->addr << 1, I2C_GEN_START_WRITE);
+    }
+
+    i2c_interrupt_enable(handle->i2cx, I2C_ERR_INT | I2C_TDC_INT | I2C_STOP_INT | I2C_ACKFIAL_INT | I2C_TD_INT, TRUE);
 }
 
 static void i2cErrorIrq(I2CDevice device)
@@ -239,7 +323,7 @@ static void i2cPollPending(I2CDevice device)
     // start in between would have its status overwritten with I2C_END by that STOP. A transfer that never reaches the
     // end after an error interrupt is caught by the stuck check below
     if (i2c_wait_end(&state->handle, 0) != I2C_ERR_TIMEOUT) {
-        i2cStats.lastTransferUs = micros() - state->startUs;
+        i2cStats.lastTransferUs = state->endUs - state->startUs;
         if (state->handle.error_code != I2C_OK) {
             i2cErrorCount++;    // keep the "I2C Errors" count of status / MSP meaningful for non-blocking transfers
         }
@@ -263,10 +347,10 @@ static void i2cWaitForIdle(I2CDevice device)
 }
 
 /*
- * Start an interrupt driven transfer. The i2c_application layer sends the slave and register address synchronously
- * (a few tens of microseconds), the data phase runs from the interrupt handlers.
- * Returns false if the bus is busy or the transfer could not be started. A NACK during the address phase is a finished,
- * failed transfer: true is returned and i2cBusy() reports the failure, like for a NACK in the data phase.
+ * Start an interrupt driven transfer. Only the peripheral registers are set up here, the whole transfer including the
+ * slave and register address runs from the interrupt handlers.
+ * Returns false if the bus is busy or the transfer could not be started. A NACK is reported by i2cBusy() like any other
+ * failed transfer.
  */
 static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool allowRawAccess, bool reading, uint8_t len, uint8_t *buf)
 {
@@ -285,37 +369,15 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool
     if (state->pending)
         return false;
 
+    const bool raw = (reg_ == 0xFF && allowRawAccess);
+
+    if (!reading && len == 0 && raw)
+        return false;   // nothing to send
+
     const timeUs_t callStartUs = micros();
-    i2cStats.eventIrqs = 0;
 
-    i2c_status_type status;
-
-    if (reading) {
-        if (reg_ == 0xFF && allowRawAccess) {
-            status = i2c_master_receive_int(&state->handle, addr_ << 1, buf, len, I2C_DEFAULT_TIMEOUT);
-        }
-        else {
-            status = i2c_memory_read_int(&state->handle, I2C_MEM_ADDR_WIDIH_8, addr_ << 1, reg_, buf, len, I2C_DEFAULT_TIMEOUT);
-        }
-    }
-    else if (len == 0) {
-        if (reg_ == 0xFF && allowRawAccess) {
-            return false;   // nothing to send
-        }
-        // Register byte alone, sent as a plain one byte transfer
-        state->txByte = reg_;
-        status = i2c_master_transmit_int(&state->handle, addr_ << 1, &state->txByte, 1, I2C_DEFAULT_TIMEOUT);
-    }
-    else {
-        if (reg_ == 0xFF && allowRawAccess) {
-            status = i2c_master_transmit_int(&state->handle, addr_ << 1, buf, len, I2C_DEFAULT_TIMEOUT);
-        }
-        else {
-            status = i2c_memory_write_int(&state->handle, I2C_MEM_ADDR_WIDIH_8, addr_ << 1, reg_, buf, len, I2C_DEFAULT_TIMEOUT);
-        }
-    }
-
-    if (status == I2C_ERR_STEP_1) {
+    // Checked once instead of the library's busy-wait on BUSYF
+    if (i2c_flag_get(state->handle.i2cx, I2C_BUSYF_FLAG) != RESET) {
         // Bus busy with nothing of ours in flight: the previous STOP may still be going out. A bus that stays busy is
         // held by a slave or a confused peripheral and only a reset clears it, the stuck check never sees it
         if (i2cBusHeld(state)) {
@@ -325,30 +387,29 @@ static bool i2cStartTransfer(I2CDevice device, uint8_t addr_, uint8_t reg_, bool
         return false;   // try again later
     }
 
-    if (status != I2C_OK) {
-        /* the hardware has sent a STOP, wait for the stop flag and clear it */
-        i2c_wait_flag(&state->handle, I2C_STOPF_FLAG, I2C_EVENT_CHECK_NONE, I2C_DEFAULT_TIMEOUT);
-        i2c_flag_clear(state->handle.i2cx, I2C_STOPF_FLAG);
+    i2cStats.eventIrqs = 0;
+    state->addr = addr_;    // the interrupt handler addresses the repeated START with it
+    state->sendReg = false; // left over by a transfer that was aborted by a reset
+    state->rxLen = 0;
 
-        if (state->handle.error_code == I2C_ERR_ACKFAIL) {
-            // The slave did not answer its address or the register byte. The peripheral is fine after a NACK, so no
-            // reset: record the failure for the owner and let it find out from i2cBusy(). An unplugged sensor would
-            // otherwise cost a reinit and an unstick on every retry
-            i2c_reset_ctrl2_register(&state->handle);
-            i2cErrorCount++;
-            i2cStats.lastTransferUs = micros() - callStartUs;
-            i2cAddrResultSet(&state->addrResults, addr_, true);
-            state->heldUs = 0;
-            state->heldLookUs = callStartUs;
-            return true;
-        }
-
-        return i2cHandleHardwareFailure(device);
+    // With BUSYF clear the library *_int() calls below return at once, their own BUSYF wait does not loop
+    if (reading && raw) {
+        i2c_master_receive_int(&state->handle, addr_ << 1, buf, len, I2C_DEFAULT_TIMEOUT);
+    }
+    else if (!reading && len == 0) {
+        // Register byte alone, sent as a plain one byte transfer
+        state->txByte = reg_;
+        i2c_master_transmit_int(&state->handle, addr_ << 1, &state->txByte, 1, I2C_DEFAULT_TIMEOUT);
+    }
+    else if (raw) {
+        i2c_master_transmit_int(&state->handle, addr_ << 1, buf, len, I2C_DEFAULT_TIMEOUT);
+    }
+    else {
+        i2cStartRegisterTransfer(state, reg_, buf, len, reading);
     }
 
     state->heldUs = 0;
     state->heldLookUs = callStartUs;
-    state->addr = addr_;
     state->startUs = callStartUs;
     state->lastPcount = state->handle.pcount;
     state->stuckUs = 0;
