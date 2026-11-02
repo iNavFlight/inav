@@ -803,6 +803,8 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | ESC |  |
 | FW_TURN |  |
 | MAG |  |
+| RPM_FILTER |  |
+| DYN_IDLE |  |
 
 ---
 
@@ -944,6 +946,26 @@ Sets the DShot beeper tone
 
 ---
 
+### dshot_bidir_enabled
+
+Enable bidirectional DShot telemetry on motor outputs. Required for RPM filtering without a separate ESC telemetry UART
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### dshot_edt_enabled
+
+Enable extended DShot telemetry (temperature, voltage, current in addition to eRPM). The ESC is asked for it on every arm, so the values appear after the first arm
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### dterm_lpf2_hz
 
 Dterm pre-differentiation LPF cutoff (Hz). Filters gyro before differentiation to reduce noise amplification. Higher = less delay, more noise. 0 = disabled. Values around 200-250Hz can add smoothing with small delay.
@@ -1026,6 +1048,56 @@ Q factor for dynamic notches
 | Default | Min | Max |
 | --- | --- | --- |
 | 120 | 1 | 1000 |
+
+---
+
+### dynamic_idle_d_gain
+
+D gain of `dynamic_idle_min_rpm`, on how fast the slowest motor slows down
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 0 | 250 |
+
+---
+
+### dynamic_idle_i_gain
+
+I gain of `dynamic_idle_min_rpm`: it rises fast and falls slowly
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 1 | 250 |
+
+---
+
+### dynamic_idle_max_increase
+
+The most `dynamic_idle_min_rpm` may raise the motors' low end, in tenths of a percent of the motor range: 150 is 15 %
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 150 | 10 | 255 |
+
+---
+
+### dynamic_idle_min_rpm
+
+Multirotor only, ported from Betaflight, needs `dshot_bidir_enabled`. The slowest speed the motors are kept at once the throttle has been raised [RPM]; the low end of the motor output then moves with it, starting from the lowest DShot value instead of `throttle_idle`. Until the throttle has passed `airmode_throttle_threshold` once after arming the motors go no higher than `throttle_idle`. Betaflight's `dyn_idle_min_rpm` is in hundreds of RPM: 35 there is 3500 here. It starts once at least 80% of every motor's replies decode and falls back to `throttle_idle` below 50%. 0 disables it.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 20000 |
+
+---
+
+### dynamic_idle_p_gain
+
+P gain of `dynamic_idle_min_rpm`, on how far the slowest motor is below it
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 50 | 1 | 250 |
 
 ---
 
