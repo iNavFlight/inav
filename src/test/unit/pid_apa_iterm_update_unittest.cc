@@ -20,7 +20,7 @@
 // pidState[axis].kI is never recomputed and stops tracking airspeed.
 //
 // Links the real flight/pid.c and drives updatePIDCoefficients(); only the
-// airspeed source (getAirspeedEstimate / pitotGetValidForAirspeed) and the
+// airspeed source (getAirspeedEstimate / pitotIsValidForAirspeed) and the
 // unrelated dependencies of the rest of pid.c are stubbed.
 
 #include "gtest/gtest.h"
@@ -83,7 +83,7 @@ extern "C" {
 
     // Airspeed source: the one thing this test actually drives
     float getAirspeedEstimate(void) { return g_airspeedCmS; }
-    bool pitotGetValidForAirspeed(void) { return g_pitotValid; }
+    bool pitotIsValidForAirspeed(bool) { return g_pitotValid; }
     bool pitotIsHealthy(void) { return g_pitotValid; }
 
     // Everything below is only referenced from code paths this test never runs
