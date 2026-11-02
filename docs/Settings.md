@@ -286,6 +286,16 @@ Wind compensation in heading estimation from gps groundcourse(fixed wing only)
 
 ---
 
+### ahrs_gsf_yaw
+
+Airplanes only. Uses the heading the GSF estimator learns in flight from GPS velocity and the IMU, without the compass, once it has settled: it replaces the GPS course as the AHRS's GPS heading (sharing with the compass as set by ahrs_gps_yaw_weight), the compass is left out while it disagrees with it, and a heading far from it with no compass to hold it is reset to it, at most twice a flight. Off, the estimator still runs and the blackbox logs it (GSF). Not on targets with 512 KB of flash or less.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### ahrs_inertia_comp_method
 
 Inertia force compensation method when gps is avaliable, VELNED use the accleration from gps, TURNRATE calculates accleration by turnrate multiplied by speed, ADAPTIVE choose best result from two in each ahrs loop
@@ -2883,6 +2893,16 @@ Selection of mag hardware. See Wiki Sensor auto detect and hardware failure dete
 | MLX90393 |  |
 | LIS2MDL |  |
 | FAKE |  |
+
+---
+
+### mag_learn
+
+Refits the compass offsets (magzero; maggain is kept) from the readings of each flight and saves them after disarm, when the flight turned through at least 270 degrees and the fit agrees with the stored calibration. Needs a calibrated compass; airplanes and multirotors only. The blackbox logs the estimate as magBias. Not on targets with 512 KB of flash or less.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 

@@ -47,6 +47,7 @@
 #include "fc/runtime_config.h"
 
 #include "flight/dynamic_lpf.h"
+#include "flight/gsf_yaw.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/pid.h"
@@ -404,6 +405,9 @@ void fcTasksInit(void)
 #ifdef USE_GPS
     setTaskEnabled(TASK_GPS, feature(FEATURE_GPS));
 #endif
+#ifdef USE_GSF_YAW
+    setTaskEnabled(TASK_GSF_YAW, feature(FEATURE_GPS) && sensors(SENSOR_ACC));
+#endif
 #ifdef USE_TERRAIN
     setTaskEnabled(TASK_TERRAIN, terrainConfig()->terrainEnabled);
     setTaskEnabled(TASK_TERRAIN_IO, terrainConfig()->terrainEnabled);
@@ -596,6 +600,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "COMPASS",
         .taskFunc = taskUpdateCompass,
         .desiredPeriod = TASK_PERIOD_HZ(10),      // Compass is updated at 10 Hz
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_GSF_YAW
+    [TASK_GSF_YAW] = {
+        .taskName = "GSF_YAW",
+        .taskFunc = taskGsfYaw,
+        .desiredPeriod = TASK_PERIOD_HZ(50),      // the filter steps on 20 ms windows of IMU data
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif
