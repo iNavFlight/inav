@@ -321,12 +321,18 @@ static void pwmAssignOutput(timMotorServoHardware_t *timOutputs, timerHardware_t
     }
 }
 
+static bool motorsUseHardwareTimers(void)
+{
+    return getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer;
+}
+
 void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
 {
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
-    const uint8_t motorCount = getMotorCount();
+    // A motor driven over a serial bus has no pad: reserving one would only take a servo's timer
+    const uint8_t motorCount = motorsUseHardwareTimers() ? getMotorCount() : 0;
 
     // Count servo outputs needed across all mixer profiles, matching
     // computeServoCount() / getServoCount() which also walk all profiles.
@@ -408,11 +414,6 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
             }
         }
     }
-}
-
-static bool motorsUseHardwareTimers(void)
-{
-    return getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer;
 }
 
 static bool servosUseHardwareTimers(void)
