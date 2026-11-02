@@ -265,7 +265,15 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: echo "$BASE_REF" > base_ref.txt
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "$BASE_REF" > base_ref.txt
+          # The build is refs/pull/<n>/merge, whose first parent is the base it contains
+          # (cat-file, because the depth-1 checkout hides parents from rev-parse)
+          set -- $(git cat-file commit HEAD | sed -n '/^$/q;s/^parent //p')
+          if [ $# -eq 2 ] && [ "$2" = "$HEAD_SHA" ]; then
+            echo "$1" >> base_ref.txt
+          fi
       - name: Upload base ref
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
