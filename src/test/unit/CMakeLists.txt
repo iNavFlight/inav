@@ -1,3 +1,6 @@
+set_property(SOURCE chirp_unittest.cc PROPERTY depends "flight/chirp.c")
+set_property(SOURCE chirp_flight_unittest.cc PROPERTY depends "flight/chirp.c" "flight/chirp_flight.c")
+
 # XXX: This should come from main project once everything
 # uses cmake
 set(MAIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../src/main")

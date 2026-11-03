@@ -93,7 +93,9 @@ tables:
       "AUTOTRIM", "AUTOTUNE", "RATE_DYNAMICS", "LANDING", "POS_EST",
       "ADAPTIVE_FILTER", "HEADTRACKER", "GPS", "LULU", "SBUS2", "OSD_REFRESH",
       "MAG_CALIB", "VTOL_TRANSITION", "VTOL_MC_PROTECT", "TERRAIN_NAV", "ESC",
-      "FW_TURN", "MAG"]
+      "FW_TURN", "MAG", "CHIRP"]
+  - name: chirp_axis
+    values: ["OFF", "ROLL", "PITCH", "YAW"]
   - name: vtol_mc_protection_mode
     values: ["OFF", "NAV", "NAV_AND_STABILIZED"]
   - name: aux_operator
@@ -1723,6 +1725,32 @@ groups:
         type: uint8_t
         min: 0
         max: 99
+
+  - name: PG_CHIRP_CONFIG
+    headers: ["flight/chirp_flight.h"]
+    type: chirpConfig_t
+    condition: USE_CHIRP
+    members:
+      - name: chirp_axis
+        description: "Experimental multirotor rate chirp axis. OFF disables excitation. Requires manual-throttle ANGLE flight and CHIRP Blackbox logging. See Multirotor Chirp.md."
+        field: axis
+        type: uint8_t
+        table: chirp_axis
+        default_value: "OFF"
+      - name: chirp_trigger_channel
+        description: "Dedicated receiver switch channel for the experimental chirp test (5 = AUX1). Observe low (900-1300) in valid flight conditions, then high (1700-2100) to start one sweep. Do not share with other functions."
+        field: triggerChannel
+        type: uint8_t
+        min: 5
+        max: 12
+        default_value: 5
+      - name: chirp_amplitude
+        description: "Peak chirp perturbation in degrees/second. Select a small excitation appropriate to the aircraft; the test does not change PID gains."
+        field: amplitude
+        type: uint8_t
+        min: 1
+        max: 30
+        default_value: 10
 
   - name: PG_EZ_TUNE
     headers: ["flight/ez_tune.h"]
