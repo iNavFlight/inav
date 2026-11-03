@@ -526,27 +526,27 @@ static void applyStepAdjustment(controlConfig_t *controlConfig, uint8_t adjustme
             // TODO: Need to call something to take it into account?
             break;
         case ADJUSTMENT_POS_XY_P:
-            applyAdjustmentPID(ADJUSTMENT_POS_XY_P, &pidBankMutable()->pid[PID_POS_XY].P, delta);
+            applyAdjustmentPID(ADJUSTMENT_POS_XY_P, &pidItemMutable(PID_POS_XY)->P, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_POS_XY_I:
-            applyAdjustmentPID(ADJUSTMENT_POS_XY_I, &pidBankMutable()->pid[PID_POS_XY].I, delta);
+            applyAdjustmentPID(ADJUSTMENT_POS_XY_I, &pidItemMutable(PID_POS_XY)->I, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_POS_XY_D:
-            applyAdjustmentPID(ADJUSTMENT_POS_XY_D, &pidBankMutable()->pid[PID_POS_XY].D, delta);
+            applyAdjustmentPID(ADJUSTMENT_POS_XY_D, &pidItemMutable(PID_POS_XY)->D, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_POS_Z_P:
-            applyAdjustmentPID(ADJUSTMENT_POS_Z_P, &pidBankMutable()->pid[PID_POS_Z].P, delta);
+            applyAdjustmentPID(ADJUSTMENT_POS_Z_P, &pidItemMutable(PID_POS_Z)->P, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_POS_Z_I:
-            applyAdjustmentPID(ADJUSTMENT_POS_Z_I, &pidBankMutable()->pid[PID_POS_Z].I, delta);
+            applyAdjustmentPID(ADJUSTMENT_POS_Z_I, &pidItemMutable(PID_POS_Z)->I, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_POS_Z_D:
-            applyAdjustmentPID(ADJUSTMENT_POS_Z_D, &pidBankMutable()->pid[PID_POS_Z].D, delta);
+            applyAdjustmentPID(ADJUSTMENT_POS_Z_D, &pidItemMutable(PID_POS_Z)->D, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE:
@@ -557,27 +557,27 @@ static void applyStepAdjustment(controlConfig_t *controlConfig, uint8_t adjustme
             // TODO: navigationUsePIDs()?
             break;
         case ADJUSTMENT_VEL_XY_P:
-            applyAdjustmentPID(ADJUSTMENT_VEL_XY_P, &pidBankMutable()->pid[PID_VEL_XY].P, delta);
+            applyAdjustmentPID(ADJUSTMENT_VEL_XY_P, &pidItemMutable(PID_VEL_XY)->P, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_VEL_XY_I:
-            applyAdjustmentPID(ADJUSTMENT_VEL_XY_I, &pidBankMutable()->pid[PID_VEL_XY].I, delta);
+            applyAdjustmentPID(ADJUSTMENT_VEL_XY_I, &pidItemMutable(PID_VEL_XY)->I, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_VEL_XY_D:
-            applyAdjustmentPID(ADJUSTMENT_VEL_XY_D, &pidBankMutable()->pid[PID_VEL_XY].D, delta);
+            applyAdjustmentPID(ADJUSTMENT_VEL_XY_D, &pidItemMutable(PID_VEL_XY)->D, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_VEL_Z_P:
-            applyAdjustmentPID(ADJUSTMENT_VEL_Z_P, &pidBankMutable()->pid[PID_VEL_Z].P, delta);
+            applyAdjustmentPID(ADJUSTMENT_VEL_Z_P, &pidItemMutable(PID_VEL_Z)->P, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_VEL_Z_I:
-            applyAdjustmentPID(ADJUSTMENT_VEL_Z_I, &pidBankMutable()->pid[PID_VEL_Z].I, delta);
+            applyAdjustmentPID(ADJUSTMENT_VEL_Z_I, &pidItemMutable(PID_VEL_Z)->I, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_VEL_Z_D:
-            applyAdjustmentPID(ADJUSTMENT_VEL_Z_D, &pidBankMutable()->pid[PID_VEL_Z].D, delta);
+            applyAdjustmentPID(ADJUSTMENT_VEL_Z_D, &pidItemMutable(PID_VEL_Z)->D, delta);
             navigationUsePIDs();
             break;
         case ADJUSTMENT_FW_MIN_THROTTLE_DOWN_PITCH_ANGLE:

@@ -794,10 +794,10 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
     case MSP2_PID:
         for (int i = 0; i < PID_ITEM_COUNT; i++) {
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].P, 0, 255));
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].I, 0, 255));
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].D, 0, 255));
-            sbufWriteU8(dst, constrain(pidBank()->pid[i].FF, 0, 255));
+            sbufWriteU8(dst, constrain(pidItem(i)->P, 0, 255));
+            sbufWriteU8(dst, constrain(pidItem(i)->I, 0, 255));
+            sbufWriteU8(dst, constrain(pidItem(i)->D, 0, 255));
+            sbufWriteU8(dst, constrain(pidItem(i)->FF, 0, 255));
         }
         #ifdef USE_EZ_TUNE
             ezTuneUpdate();
@@ -2032,10 +2032,10 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_SET_PID:
         if (dataSize == PID_ITEM_COUNT * 4) {
             for (int i = 0; i < PID_ITEM_COUNT; i++) {
-                pidBankMutable()->pid[i].P = sbufReadU8(src);
-                pidBankMutable()->pid[i].I = sbufReadU8(src);
-                pidBankMutable()->pid[i].D = sbufReadU8(src);
-                pidBankMutable()->pid[i].FF = sbufReadU8(src);
+                pidItemMutable(i)->P = sbufReadU8(src);
+                pidItemMutable(i)->I = sbufReadU8(src);
+                pidItemMutable(i)->D = sbufReadU8(src);
+                pidItemMutable(i)->FF = sbufReadU8(src);
             }
             schedulePidGainsUpdate();
             navigationUsePIDs();

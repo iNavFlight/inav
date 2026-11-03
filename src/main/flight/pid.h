@@ -185,6 +185,9 @@ PG_DECLARE(pidAutotuneConfig_t, pidAutotuneConfig);
 
 const pidBank_t * pidBank(void);
 pidBank_t * pidBankMutable(void);
+// Single PID row. Navigation rows follow the active platform's navigation controller, the rest follow pid_type
+const pid8_t * pidItem(pidIndex_e item);
+pid8_t * pidItemMutable(pidIndex_e item);
 
 extern int16_t axisPID[];
 extern int32_t axisPID_P[], axisPID_I[], axisPID_D[], axisPID_F[], axisPID_Setpoint[];

@@ -1718,7 +1718,7 @@ static void osdDisplayNavPIDValues(uint8_t elemPosX, uint8_t elemPosY, const cha
     textAttributes_t elemAttr;
     char buff[4];
 
-    const pid8_t *pid = &pidBank()->pid[pidIndex];
+    const pid8_t *pid = pidItem(pidIndex);
     pidType_e pidType = pidIndexGetType(pidIndex);
 
     displayWrite(osdDisplayPort, elemPosX, elemPosY, str);
