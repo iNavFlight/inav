@@ -219,6 +219,13 @@ typedef enum
 
 extern bool lockMainPID(void);
 extern void unlockMainPID(void);
+// Lockstep clock (target.c, --lockstep): the simulator's physics time drives
+// micros().
+extern bool simLockstepEnabled(void);
+extern bool simLockstepActive(void);
+extern void simLockstepSetTime(int64_t physicsUs);
+extern bool simLockstepWaitAnswered(uint32_t timeoutMs);
+extern void simLockstepLoopPass(void);
 extern void parseArguments(int argc, char *argv[]);
 extern char *strnstr(const char *s, const char *find, size_t slen);
 extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);

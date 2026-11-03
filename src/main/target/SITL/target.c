@@ -74,6 +74,7 @@ static struct timespec start_time;
 static uint8_t pwmMapping[MAX_MOTORS + MAX_SERVOS];
 static uint8_t mappingCount = 0;
 static bool useImu = false;
+static bool lockstep = false;
 static char *simIp = NULL;
 static int simPort = 0;
 
@@ -231,6 +232,7 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--simip=[ip]                   IP-Address oft the simulator host. If not specified localhost (127.0.0.1) is used.\n");
     fprintf(stderr, "--simport=[port]               Port oft the simulator host.\n");
     fprintf(stderr, "--useimu                       Use IMU sensor data from the simulator instead of using attitude data from the simulator directly (experimental, not recommended).\n");
+    fprintf(stderr, "--lockstep                     Run on the simulator's physics time (RealFlight interface only): the clock advances only with each ExchangeData reply. For simulators that step their physics once per request.\n");
     fprintf(stderr, "--serialuart=[uart]            UART number on which serial receiver is configured in SITL, f.e. 3 for UART3\n");
     fprintf(stderr, "--serialport=[serialport]      Host's serial port to which serial receiver/proxy FC is connected, f.e. COM3, /dev/ttyACM3\n");
     fprintf(stderr, "--baudrate=[baudrate]          Serial receiver baudrate (default: 115200).\n");
@@ -257,6 +259,7 @@ void parseArguments(int argc, char *argv[])
         static struct option longOpt[] = {
             {"sim", required_argument, 0, 's'},
             {"useimu", no_argument, 0, 'u'},
+            {"lockstep", no_argument, 0, 'l'},
             {"chanmap", required_argument, 0, 'c'},
             {"simip", required_argument, 0, 'i'},
             {"simport", required_argument, 0, 'p'},
@@ -301,6 +304,9 @@ void parseArguments(int argc, char *argv[])
                 break;
             case 'u':
                 useImu = true;
+                break;
+            case 'l':
+                lockstep = true;
                 break;
             case 'i':
                 simIp = optarg;
@@ -394,12 +400,141 @@ void unlockMainPID(void)
     pthread_mutex_unlock(&mainLoopLock);
 }
 
-// Replacements for system functions
-timeUs_t micros(void) {
+// Lockstep clock (--lockstep). Once the main loop runs, INAV's time is the
+// m-currentPhysicsTime-SEC of the latest ExchangeData reply
+// (sim/realFlight.c) in whole microseconds plus a fixed offset, so it
+// advances only as the simulator steps: a stalled or paused simulator pauses
+// the flight controller with it, and every task runs at its rate in
+// simulated time. During boot, including the exchanges made by init, time is
+// the host's monotonic clock. The next ExchangeData, which carries the
+// outputs answering a reply, is sent only after a main-loop scheduler pass
+// that began at the reply's time found no task due (simLockstepLoopPass):
+// the gyro, the PID loop and every other task due at that time run first, as
+// on a real flight controller between two gyro samples, so the simulator
+// cannot starve them. delay() and delayMicroseconds() stay on the host clock.
+static bool simLoopRunning = false;
+static bool simClockActive = false;
+static int64_t simClockOffsetUs = 0;
+static uint64_t simClockUs = 0;
+// the clock value whose reply is owed an answer, and the last one answered
+static uint64_t simAnswerOwedUs = 0;
+static uint64_t simAnsweredUs = 0;
+static pthread_mutex_t simClockLock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t simClockMoved = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t simClockAnswered = PTHREAD_COND_INITIALIZER;
+// Scheduler passes at one simulated time before the answer goes anyway: an
+// event-driven task signalled on every check must not hold the simulator up.
+#define SIM_MAX_BUSY_PASSES 100
+// Host time the idle main loop waits for the clock to move before it polls
+// the serial proxy and loopback again.
+#define SIM_IDLE_WAIT_US 10000
+
+static uint64_t microsReal(void)
+{
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     return (now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
+}
+
+static void deadlineAfterUs(struct timespec *ts, uint64_t us)
+{
+    clock_gettime(CLOCK_REALTIME, ts);
+    const uint64_t ns = (uint64_t)ts->tv_nsec + us * 1000;
+    ts->tv_sec += ns / 1000000000;
+    ts->tv_nsec = ns % 1000000000;
+}
+
+bool simLockstepEnabled(void)
+{
+    return lockstep;
+}
+
+bool simLockstepActive(void)
+{
+    return __atomic_load_n(&simClockActive, __ATOMIC_ACQUIRE);
+}
+
+void simLockstepSetTime(int64_t physicsUs)
+{
+    if (!__atomic_load_n(&simLoopRunning, __ATOMIC_ACQUIRE)) {
+        // boot: init code may wait on millis() before the main loop runs
+        return;
+    }
+    pthread_mutex_lock(&simClockLock);
+    if (!simClockActive) {
+        // continue from the boot clock, 1 ms on
+        simClockOffsetUs = (int64_t)microsReal() + 1000 - physicsUs;
+    }
+    const int64_t clockUs = physicsUs + simClockOffsetUs;
+    // never backwards: a repeated time does not move the clock and is owed
+    // no new answer
+    if (clockUs > 0 && (uint64_t)clockUs > simClockUs) {
+        __atomic_store_n(&simClockUs, (uint64_t)clockUs, __ATOMIC_RELEASE);
+        simAnswerOwedUs = (uint64_t)clockUs;
+        pthread_cond_broadcast(&simClockMoved);
+    }
+    __atomic_store_n(&simClockActive, true, __ATOMIC_RELEASE);
+    pthread_mutex_unlock(&simClockLock);
+}
+
+bool simLockstepWaitAnswered(uint32_t timeoutMs)
+{
+    struct timespec deadline;
+    deadlineAfterUs(&deadline, (uint64_t)timeoutMs * 1000);
+    pthread_mutex_lock(&simClockLock);
+    while (simAnsweredUs != simAnswerOwedUs) {
+        if (pthread_cond_timedwait(&simClockAnswered, &simClockLock, &deadline) == ETIMEDOUT) {
+            break;
+        }
+    }
+    const bool answered = simAnsweredUs == simAnswerOwedUs;
+    pthread_mutex_unlock(&simClockLock);
+    return answered;
+}
+
+void simLockstepLoopPass(void)
+{
+    // the clock when this pass began: when the previous call returned
+    static uint64_t passStartUs = 0;
+    static uint32_t lastExecutions = 0;
+    static uint32_t busyPasses = 0;
+    if (!simLockstepActive()) {
+        __atomic_store_n(&simLoopRunning, true, __ATOMIC_RELEASE);
+        return;
+    }
+    const uint32_t executions = schedulerTaskExecutionCount();
+    const bool ranTask = executions != lastExecutions;
+    lastExecutions = executions;
+    pthread_mutex_lock(&simClockLock);
+    const uint64_t owedUs = simAnswerOwedUs;
+    // a pass that began before the reply moved the clock proves nothing
+    if (owedUs != simAnsweredUs && passStartUs == owedUs) {
+        if (!ranTask || ++busyPasses >= SIM_MAX_BUSY_PASSES) {
+            // every task due at this simulated time has run: answer
+            simAnsweredUs = owedUs;
+            busyPasses = 0;
+            pthread_cond_broadcast(&simClockAnswered);
+        }
+    } else {
+        busyPasses = 0;
+    }
+    if (simAnsweredUs == simAnswerOwedUs) {
+        // nothing can become due before the clock moves
+        struct timespec deadline;
+        deadlineAfterUs(&deadline, SIM_IDLE_WAIT_US);
+        pthread_cond_timedwait(&simClockMoved, &simClockLock, &deadline);
+    }
+    passStartUs = simClockUs;
+    pthread_mutex_unlock(&simClockLock);
+}
+
+// Replacements for system functions
+timeUs_t micros(void) {
+    if (simLockstepActive()) {
+        return (timeUs_t)__atomic_load_n(&simClockUs, __ATOMIC_ACQUIRE);
+    }
+    return (timeUs_t)microsReal();
 }
 
 uint64_t microsISR(void)
