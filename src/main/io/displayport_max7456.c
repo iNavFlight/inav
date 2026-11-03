@@ -20,7 +20,7 @@
 
 #include "platform.h"
 
-#if defined(USE_MAX7456) || defined(USE_MS7456)
+#ifdef USE_MAX7456
 
 #include "common/utils.h"
 
