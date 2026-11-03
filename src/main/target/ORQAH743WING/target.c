@@ -31,13 +31,23 @@ BUSDEV_REGISTER_SPI_TAG(busdev_icm42688_2, DEVHW_ICM42605, IMU2_SPI_BUS,   IMU2_
 
 BUSDEV_REGISTER_SPI(busdev_max7456,    DEVHW_MAX7456,  MAX7456_SPI_BUS,    MAX7456_CS_PIN, NONE, DEVFLAGS_USE_RAW_REGISTERS,  0);
 
-BUSDEV_REGISTER_I2C(busdev_bmp085,      DEVHW_BMP085,       BARO_I2C_BUS,     0x77,    NONE,           DEVFLAGS_NONE,      0);
-BUSDEV_REGISTER_I2C(busdev_ms5607,      DEVHW_MS5607,       BARO_I2C_BUS,     0x77,    NONE,           DEVFLAGS_USE_RAW_REGISTERS, 0);
-BUSDEV_REGISTER_I2C(busdev_spl06,     DEVHW_SPL06,        BARO_I2C_BUS,      0x76,     NONE,           DEVFLAGS_NONE,      0);
-BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310_0,     BARO_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
-BUSDEV_REGISTER_I2C(busdev_dps310_1,    DEVHW_DPS310_1,     BARO_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE, 0);
+BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310,     BARO_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
+BUSDEV_REGISTER_I2C(busdev_dps310_1,    DEVHW_DPS310,     BARO_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE, 0);
     
 BUSDEV_REGISTER_I2C(busdev_lis2mdl,     DEVHW_LIS2MDL,      MAG_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS,    0x0D,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_hmc5883,     DEVHW_HMC5883,      MAG_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_qmc5883p,     DEVHW_QMC5883P,      MAG_I2C_BUS,    0x2C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ak8963,      DEVHW_AK8963,       MAG_I2C_BUS,     0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ak8975,      DEVHW_AK8975,       MAG_I2C_BUS,     0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_lis3mdl,     DEVHW_LIS3MDL,      MAG_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ist8310_0,   DEVHW_IST8310_0,    MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ist8310_1,   DEVHW_IST8310_1,    MAG_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_ist8308,     DEVHW_IST8308,      MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_vcm5883,     DEVHW_VCM5883,      MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+BUSDEV_REGISTER_I2C(busdev_mlx90393,     DEVHW_MLX90393,      MAG_I2C_BUS,    0x0C,               NONE,           DEVFLAGS_NONE,  0);
+
 
 BUSDEV_REGISTER_I2C(busdev_ms4525,      DEVHW_MS4525,       PITOT_I2C_BUS,     0x28,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
 
