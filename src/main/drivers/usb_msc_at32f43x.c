@@ -242,7 +242,8 @@ uint8_t mscStart(void)
         }
     */
 
-    // msc_struct lives in .fastram_bss, which the AT32 startup code does not zero
+    // msc_struct lives in .fastram_bss.msc_only (FASTRAM_MSC_ONLY, build/build_config.h),
+    // which the AT32 startup code does not zero
     memset(msc_class_handler.pdata, 0, sizeof(msc_type));
 
     /* init usb */
