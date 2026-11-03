@@ -23,6 +23,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "config/profile_name.h"
+
 typedef struct controlConfig_s {
 
     struct {
@@ -63,4 +65,6 @@ typedef struct controlConfig_s {
     } rateDynamics;
 #endif
 
+
+    char name[MAX_PROFILE_NAME_LENGTH + 1];
 } controlConfig_t;
