@@ -192,7 +192,7 @@ Here are the OSD Elements provided by INAV.
 | 157 | OSD_CUSTOM_ELEMENT_7                             | 8.0.0  |       |
 | 158 | OSD_CUSTOM_ELEMENT_8                             | 8.0.0  |       |
 | 159 | OSD_LQ_DOWNLINK                                  | 8.0.0  |       |
-| 160 | OSD_RX_POWER_DOWNLINK                            | 8.0.0  |       |
+| 160 | OSD_RX_POWER_DOWNLINK                            | 8.0.0  | The element is hidden while the receiver transmit power is 0 mW, which is also the value when the RC link does not report it. MSP receivers that send `MSP2_COMMON_SET_MSP_RC_INFO` and mLRS as MAVLink receiver report it (mLRS at 0 dBm or less reads as 0 mW). INAV does not read it from CRSF links such as ExpressLRS. |
 | 161 | OSD_RX_BAND                                      | 8.0.0  |       |
 | 162 | OSD_RX_MODE                                      | 8.0.0  |       |
 | 163 | OSD_COURSE_TO_FENCE                              | 8.0.0  |       |
