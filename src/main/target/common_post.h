@@ -193,13 +193,13 @@ extern uint8_t __config_end;
 //    motors from a PIO program that only transmits, so the setting is hidden there
 //    and stays off. STM32F7 is excluded as well for now, F7 targets lack the flash.
 //  - USE_DSHOT_BIDIR_TIMER: the motor timer channels send the frame and are turned
-//    round to capture the reply (pwm_output.c). STM32F4 and STM32H7.
+//    round to capture the reply (dshot/dshot.c). STM32F4 and STM32H7.
 //  - USE_DSHOT_BITBANG: the motor pins are driven as plain GPIO by DMA, paced by a
 //    spare TMR1/TMR8 channel, and sampled the same way for the reply
 //    (dshot_bitbang.c). AT32F43x, where timer channel 4 cannot capture both edges
 //    (see AT32_BIDIR_DSHOT.md in the repository root). Used whenever
 //    dshot_bidir_enabled is on and a whole TMR8 or TMR1 is free, otherwise the motors
-//    fall back to plain DSHOT on their timers (pwmMotorPostInit()).
+//    fall back to plain DSHOT on their timers (dshotMotorPostInit()).
 #if defined(USE_DSHOT_DMAR) && !defined(USE_DSHOT)
 #error "USE_DSHOT_DMAR requires USE_DSHOT"
 #endif

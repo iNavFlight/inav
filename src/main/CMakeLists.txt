@@ -252,12 +252,14 @@ main_sources(COMMON_SRC
     drivers/pwm_esc_detect.h
     drivers/pwm_mapping.c
     drivers/pwm_mapping.h
-    drivers/bidir_dshot.c
-    drivers/bidir_dshot.h
-    drivers/dshot_bitbang.c
-    drivers/dshot_bitbang.h
-    drivers/dshot_bitbang_decode.c
-    drivers/dshot_bitbang_decode.h
+    drivers/dshot/bidir_dshot.c
+    drivers/dshot/bidir_dshot.h
+    drivers/dshot/dshot.c
+    drivers/dshot/dshot.h
+    drivers/dshot/dshot_bitbang.c
+    drivers/dshot/dshot_bitbang.h
+    drivers/dshot/dshot_bitbang_decode.c
+    drivers/dshot/dshot_bitbang_decode.h
     drivers/pwm_output.c
     drivers/pwm_output.h
     drivers/pinio.c

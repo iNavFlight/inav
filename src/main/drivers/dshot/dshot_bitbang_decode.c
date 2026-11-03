@@ -27,8 +27,8 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
-#include "drivers/bidir_dshot.h"
-#include "drivers/dshot_bitbang_decode.h"
+#include "drivers/dshot/bidir_dshot.h"
+#include "drivers/dshot/dshot_bitbang_decode.h"
 #include "drivers/time.h"
 
 // A reply is 21 GCR bits; allow two bits of timing slack either way

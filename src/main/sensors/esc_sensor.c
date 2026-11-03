@@ -41,7 +41,7 @@
 #include "config/parameter_group_ids.h"
 
 #include "flight/mixer.h"
-#include "drivers/bidir_dshot.h"
+#include "drivers/dshot/bidir_dshot.h"
 #include "drivers/pwm_output.h"
 #include "sensors/esc_sensor.h"
 #include "drivers/pwm_mapping.h"

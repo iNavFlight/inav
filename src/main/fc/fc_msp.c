@@ -47,7 +47,7 @@
 #include "drivers/compass/compass.h"
 #include "drivers/compass/compass_msp.h"
 #include "drivers/barometer/barometer_msp.h"
-#include "drivers/bidir_dshot.h"
+#include "drivers/dshot/bidir_dshot.h"
 #include "drivers/pitotmeter/pitotmeter_msp.h"
 #include "sensors/battery_sensor_fake.h"
 #include "drivers/bus_i2c.h"

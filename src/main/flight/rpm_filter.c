@@ -38,7 +38,7 @@
 #include "common/maths.h"
 #include "common/filter.h"
 #include "flight/mixer.h"
-#include "drivers/bidir_dshot.h"
+#include "drivers/dshot/bidir_dshot.h"
 #include "sensors/esc_sensor.h"
 #include "fc/config.h"
 #include "fc/settings.h"

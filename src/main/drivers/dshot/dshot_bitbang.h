@@ -33,7 +33,7 @@ typedef enum {
     DSHOT_BITBANG_STATUS_TOO_MANY_PORTS,    // motors spread over more GPIO ports than there are groups
 } dshotBitbangStatus_e;
 
-// Selected for this boot by the motor driver (pwmMotorPreconfigure()); bitRateHz is the
+// Selected for this boot by the DSHOT driver (dshotInit()); bitRateHz is the
 // DSHOT bit rate, 150000 / 300000 / 600000
 void dshotBitbangInit(uint32_t bitRateHz);
 bool dshotBitbangIsActive(void);

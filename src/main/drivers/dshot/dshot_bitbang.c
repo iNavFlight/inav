@@ -33,7 +33,7 @@
  *
  * This is the only bidirectional DSHOT on AT32F43x: timer channel 4 cannot capture both
  * edges there (see AT32_BIDIR_DSHOT.md in the repository root). Plain DSHOT keeps using the
- * timer driver in pwm_output.c, which also owns the frame contents, the DSHOT commands and
+ * timer driver in dshot.c, which also owns the frame contents, the DSHOT commands and
  * the update rate; this module only drives the pins and reads the replies.
  *
  * DEBUG_ESC: debug[0] replies decoded, debug[1] windows without a reply, debug[2] replies
@@ -57,10 +57,10 @@
 #include "common/maths.h"
 #include "common/utils.h"
 
-#include "drivers/bidir_dshot.h"
+#include "drivers/dshot/bidir_dshot.h"
 #include "drivers/dma.h"
-#include "drivers/dshot_bitbang.h"
-#include "drivers/dshot_bitbang_decode.h"
+#include "drivers/dshot/dshot_bitbang.h"
+#include "drivers/dshot/dshot_bitbang_decode.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
 #include "drivers/nvic.h"
