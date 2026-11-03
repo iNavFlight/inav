@@ -48,6 +48,7 @@
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
+#include "flight/mixer_disarmed_dshot.h"
 #include "flight/pid.h"
 #include "flight/servos.h"
 
@@ -375,7 +376,16 @@ void FAST_CODE writeMotors(void)
         if (isMotorProtocolDigital()) {
             // If we use DSHOT we need to convert motorValue to DSHOT ranges
             if (feature(FEATURE_REVERSIBLE_MOTORS)) {
-                if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
+                if (!ARMING_FLAG(ARMED)) {
+                    // mixTable() never runs while disarmed, so reversibleMotorsThrottleState is stale.
+                    motorValue = calculateDisarmedReversibleMotorsDshotValue(
+                        motor[i],
+                        reversibleMotorsConfig()->deadband_low,
+                        reversibleMotorsConfig()->deadband_high,
+                        motorConfig()->mincommand,
+                        getMaxThrottle()
+                    );
+                } else if (reversibleMotorsThrottleState == MOTOR_DIRECTION_FORWARD) {
                     motorValue = handleOutputScaling(
                         motor[i],
                         throttleRangeMin,
