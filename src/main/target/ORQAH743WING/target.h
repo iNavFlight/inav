@@ -18,7 +18,7 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "ORH7W"
+#define TARGET_BOARD_IDENTIFIER "ORWG"
 #define USBD_PRODUCT_STRING     "ORQAH743WING"
 
 #define USE_TARGET_CONFIG
@@ -54,7 +54,7 @@
 #define SPI3_MOSI_PIN           PC12
 
 #define IMU2_ALIGN              CW0_DEG
-#define IMU2_SPI_BUS            BUS_SPI2
+#define IMU2_SPI_BUS            BUS_SPI3
 #define IMU2_CS_PIN             PE12
 
 // *************** SPI2 OSD ***********************
@@ -95,9 +95,6 @@
 
 #define USE_BARO
 #define BARO_I2C_BUS BUS_I2C4
-#define USE_BARO_BMP280
-#define USE_BARO_MS5611
-#define USE_BARO_SPL06
 #define USE_BARO_DPS310
 
 #define USE_MAG

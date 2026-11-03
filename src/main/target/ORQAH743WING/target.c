@@ -31,8 +31,8 @@ BUSDEV_REGISTER_SPI_TAG(busdev_icm42688_2, DEVHW_ICM42605, IMU2_SPI_BUS,   IMU2_
 
 BUSDEV_REGISTER_SPI(busdev_max7456,    DEVHW_MAX7456,  MAX7456_SPI_BUS,    MAX7456_CS_PIN, NONE, DEVFLAGS_USE_RAW_REGISTERS,  0);
 
-BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310,     BARO_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
-BUSDEV_REGISTER_I2C(busdev_dps310_1,    DEVHW_DPS310,     BARO_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE, 0);
+BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310_0,     BARO_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
+BUSDEV_REGISTER_I2C(busdev_dps310_1,    DEVHW_DPS310_1,     BARO_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE, 0);
     
 BUSDEV_REGISTER_I2C(busdev_lis2mdl,     DEVHW_LIS2MDL,      MAG_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE,  0);
 BUSDEV_REGISTER_I2C(busdev_qmc5883,     DEVHW_QMC5883,      MAG_I2C_BUS,    0x0D,               NONE,           DEVFLAGS_NONE,  0);
