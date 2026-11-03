@@ -256,9 +256,9 @@ static void max7456WaitUntilNoBusy(void)
 // changes were successfully performed.
 static bool max7456OSDSetEnabled(bool enabled)
 {
-    if (enabled && !(state.registers.vm0 | OSD_ENABLE)) {
+    if (enabled && !(state.registers.vm0 & OSD_ENABLE)) {
         state.registers.vm0 |= OSD_ENABLE;
-    } else if (!enabled && (state.registers.vm0 | OSD_ENABLE)) {
+    } else if (!enabled && (state.registers.vm0 & OSD_ENABLE)) {
         state.registers.vm0 &= ~OSD_ENABLE;
     } else {
         // No changes needed
@@ -343,43 +343,32 @@ uint8_t max7456GetRowsCount(void)
 }
 
 // The MS7456 programs its internal clock/PLL from the detected video mode;
-// these registers are outside the MAX7456 register map.
-static bool ms7456ClockConfig(bool u8_mode, unsigned short u16_htotal, unsigned short u16_pixclk)
+// these registers are outside the MAX7456 register map. htotal is the video
+// line length (1728 PAL / 1716 NTSC) and pixclk is the pixel clock in 10 kHz.
+static bool ms7456ClockConfig(unsigned short htotal, unsigned short pixclk)
 {
-    const uint8_t Decimal_value[25] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 24, 28, 36, 40, 48, 56, 72, 80, 112, 144 };
-    const uint8_t Hexadecimal_value[25] = { 0x0, 0x1, 0x24, 0x81, 0x40, 0xA4, 0x48, 0x82, 0x74, 0x41, 0xA5, 0xC8, 0x83, 0xF4, 0xC1, 0xA6, 0xC9, 0xF5, 0xC2, 0xA7, 0xCA, 0xF6, 0xC3, 0xCB, 0xF7 };
-    uint32_t Fvco;
-    bool result = false;
-    uint8_t u8_reg_dat = 0;
-    uint16_t u16_reg_dat;
-    uint8_t u8_input_sel;
-    signed char i;
+    // PLL VCO multiplier values and their encoded register dividers.
+    const uint8_t pllMultipliers[25] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 24, 28, 36, 40, 48, 56, 72, 80, 112, 144 };
+    const uint8_t pllDividers[25] = { 0x0, 0x1, 0x24, 0x81, 0x40, 0xA4, 0x48, 0x82, 0x74, 0x41, 0xA5, 0xC8, 0x83, 0xF4, 0xC1, 0xA6, 0xC9, 0xF5, 0xC2, 0xA7, 0xCA, 0xF6, 0xC3, 0xCB, 0xF7 };
+    uint32_t fVco;
+    uint8_t regData;
+    uint16_t regData16;
     uint8_t regVal;
+    int i;
 
     busWrite(state.dev, 0x6E, 0x00);
     busWrite(state.dev, 0x6D, 0x10);
     busWrite(state.dev, 0x6E, 0x80);
 
-    if (u8_mode) {
-        u8_input_sel = 0;
-        u8_reg_dat = 0x02;
-    } else {
-        u8_input_sel = 0x02;
-        u8_reg_dat = 0x09;
-        u16_htotal = (u16_pixclk * 10000 / 16875) >> 2;      //16875 = 27000000/0x640
-        busWrite(state.dev, 0x7B, 0x64);
-    }
-
-    u16_htotal -= 1;
-    busWrite(state.dev, 0x77, (uint8_t)u16_htotal);
-    busWrite(state.dev, 0x78, (uint8_t)(u16_htotal >> 8));
+    htotal -= 1;
+    busWrite(state.dev, 0x77, (uint8_t)htotal);
+    busWrite(state.dev, 0x78, (uint8_t)(htotal >> 8));
 
     for (i = 24; i >= 0; i--) {
-        Fvco = (uint32_t)u16_pixclk * (uint32_t)Decimal_value[i];
-        if (Fvco >= 60000UL && Fvco < 84000UL) {
-            busWrite(state.dev, 0x6D, 0x00 | u8_input_sel);
-            busWrite(state.dev, 0x7C, 0x00 | u8_reg_dat);
-            result = true;
+        fVco = (uint32_t)pixclk * (uint32_t)pllMultipliers[i];
+        if (fVco >= 60000UL && fVco < 84000UL) {
+            busWrite(state.dev, 0x6D, 0x00);
+            busWrite(state.dev, 0x7C, 0x02);
             break;
         }
     }
@@ -388,33 +377,31 @@ static bool ms7456ClockConfig(bool u8_mode, unsigned short u16_htotal, unsigned 
         return false;
     }
 
-    if (result) {
-        busWrite(state.dev, 0x70, Hexadecimal_value[i]);
-        u8_reg_dat = (27000000UL / 10000) / 100 / 3 - 1;
-        busWrite(state.dev, 0x71, u8_reg_dat);
-        u16_reg_dat = Fvco * (u8_reg_dat + 1) / (27000000UL / 10000) - 5;
+    busWrite(state.dev, 0x70, pllDividers[i]);
+    regData = (27000000UL / 10000) / 100 / 3 - 1;   // post divider = 8
+    busWrite(state.dev, 0x71, regData);
+    regData16 = fVco * (regData + 1) / (27000000UL / 10000) - 5;
 
-        busRead(state.dev, 0x78 | MAX7456ADD_READ, &regVal);
-        regVal &= ~0xF0;
-        busWrite(state.dev, 0x78, (uint8_t)(u16_reg_dat << 4) | regVal);
-        busWrite(state.dev, 0x79, (uint8_t)(u16_reg_dat >> 4));
-    }
+    busRead(state.dev, 0x78 | MAX7456ADD_READ, &regVal);
+    regVal &= ~0xF0;
+    busWrite(state.dev, 0x78, (uint8_t)(regData16 << 4) | regVal);
+    busWrite(state.dev, 0x79, (uint8_t)(regData16 >> 4));
 
-    if (Decimal_value[i] <= 7) {
-        u8_reg_dat = 1;
-    } else if (Decimal_value[i] <= 14) {
-        u8_reg_dat = 2;
+    if (pllMultipliers[i] <= 7) {
+        regData = 1;
+    } else if (pllMultipliers[i] <= 14) {
+        regData = 2;
     } else {
-        u8_reg_dat = 3;
+        regData = 3;
     }
-    busWrite(state.dev, 0x74, u8_reg_dat);
+    busWrite(state.dev, 0x74, regData);
     busWrite(state.dev, 0x76, 0x2D);
     busWrite(state.dev, 0x75, 0x0C);
-    busWrite(state.dev, 0x6D, 0x40 | u8_input_sel);
+    busWrite(state.dev, 0x6D, 0x40);
     busWrite(state.dev, 0x6E, 0x81);
-    delay(10);
+    delay(10);   // MS7456 PLL lock time
 
-    return result;
+    return true;
 }
 
 //because MAX7456 need some time to detect video system etc. we need to wait for a while to initialize it at startup
@@ -461,9 +448,9 @@ static void max7456ReInit(void)
     // The MS7456 needs its clock/PLL programmed for the detected video mode.
     if (state.deviceType == MAX7456_DEVICE_TYPE_MS) {
         if (vm0Mode & VIDEO_MODE_PAL) {
-            ms7456ClockConfig(true, 1728, 2700);
+            ms7456ClockConfig(1728, 2700);
         } else {
-            ms7456ClockConfig(true, 1716, 2700);
+            ms7456ClockConfig(1716, 2700);
         }
     }
 
@@ -621,15 +608,23 @@ void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
     }
 }
 
-// MS7456 cannot use the DMM attribute path; write each dirty character
-// directly to display memory instead.
+// The MS7456 does not use the DMM attribute/clear path, so each dirty
+// character is written directly to display memory. Blink, invert, solid-bg
+// and characters beyond 255 are therefore ignored on the MS7456.
 static bool max7456DrawScreenPartialMS(void)
 {
-    bool drew = false;
+    int next;
+    size_t pos;
+    uint_fast16_t updatedCharCount = 0;
 
-    for (size_t pos = 0; pos < ARRAYLEN(osdCharacterGridBuffer); pos++) {
-        if (!bitArrayGet(screenIsDirty, pos)) {
-            continue;
+    for (pos = 0; pos < ARRAYLEN(osdCharacterGridBuffer);) {
+        next = BITARRAY_FIND_FIRST_SET(screenIsDirty, pos);
+        if (next < 0) {
+            break;
+        }
+        pos = next;
+        if (pos >= ARRAYLEN(osdCharacterGridBuffer)) {
+            BOUNDS_CHECK_FAILED();
         }
 
         uint8_t chr = CHAR_BYTE(osdCharacterGridBuffer[pos]);
@@ -646,10 +641,13 @@ static bool max7456DrawScreenPartialMS(void)
         max7456OSDSetEnabled(true);
 
         bitArrayClr(screenIsDirty, pos);
-        drew = true;
+        if (++updatedCharCount == MAX_CHARS2UPDATE) {
+            break;
+        }
+        pos++;
     }
 
-    return drew;
+    return updatedCharCount > 0;
 }
 
 // Must be called with the lock held. Returns whether any new characters
@@ -832,11 +830,16 @@ void max7456RefreshAll(void)
             }
         }
 
-        // Mark non-blank characters as dirty
+        // Mark characters as dirty. The MS7456 has no DMM clear command, so
+        // every position (including blanks) is rewritten to erase stale chars.
         BITARRAY_CLR_ALL(screenIsDirty);
-        for (unsigned ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
-            if (!CHAR_IS_BLANK(osdCharacterGridBuffer[ii])) {
-                bitArraySet(screenIsDirty, ii);
+        if (state.deviceType == MAX7456_DEVICE_TYPE_MS) {
+            BITARRAY_SET_ALL(screenIsDirty);
+        } else {
+            for (unsigned ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+                if (!CHAR_IS_BLANK(osdCharacterGridBuffer[ii])) {
+                    bitArraySet(screenIsDirty, ii);
+                }
             }
         }
 
