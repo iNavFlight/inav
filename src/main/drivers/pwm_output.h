@@ -57,6 +57,7 @@ struct timerHardware_s;
 
 void pwmMotorPreconfigure(void);
 bool pwmMotorConfig(const struct timerHardware_s *timerHardware, uint8_t motorIndex, bool enableOutput);
+bool pwmMotorPostInit(void);
 
 void pwmServoPreconfigure(void);
 bool pwmServoConfig(const struct timerHardware_s *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput);

@@ -254,6 +254,10 @@ main_sources(COMMON_SRC
     drivers/pwm_mapping.h
     drivers/bidir_dshot.c
     drivers/bidir_dshot.h
+    drivers/dshot_bitbang.c
+    drivers/dshot_bitbang.h
+    drivers/dshot_bitbang_decode.c
+    drivers/dshot_bitbang_decode.h
     drivers/pwm_output.c
     drivers/pwm_output.h
     drivers/pinio.c

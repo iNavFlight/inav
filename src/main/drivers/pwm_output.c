@@ -36,6 +36,7 @@
 #include "drivers/io_impl.h"
 #include "drivers/nvic.h"
 #include "drivers/bidir_dshot.h"
+#include "drivers/dshot_bitbang.h"
 #include "drivers/time.h"
 #include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
@@ -73,7 +74,7 @@
 #define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
 #define MAX_DMA_TIMERS          8
 
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
 /* Telemetry reply window, measured from the frame start: the 18-slot frame, then the ESC's
  * ~30 us turnaround and its 21-bit GCR reply at 5/4 of the DSHOT bit rate (17 slots).
  * DSHOT_TELEMETRY_DEADTIME_US covers the turnaround plus margin for ESC timing variation. */
@@ -136,7 +137,7 @@ typedef struct {
 #ifdef USE_DSHOT_DMAR
     timerDMASafeType_t *dmaBurstBuffer;
 #endif
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
     bool telemetryInputActive;
 #endif
 #endif
@@ -170,7 +171,7 @@ static timeUs_t digitalMotorUpdateIntervalUs = 0;
 static timeUs_t digitalMotorLastUpdateUs;
 static timeUs_t lastCommandSent = 0;
 static timeUs_t commandPostDelay = 0;
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
 static bool dshotTelemetryPending = false;
 /* One stamp for the whole frame, taken in the main loop just before the frames start, so
  * the completion ISR has no clock to read. Turning a port back to output resets the
@@ -200,7 +201,7 @@ burstDmaTimer_t burstDmaTimers[MAX_DMA_TIMERS];
 uint8_t burstDmaTimersCount = 0;
 #endif
 
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
 // GCR decode algorithm ported from Betaflight (GPLv3)
 static uint16_t dshotDecodeTelemetryPacket(const uint32_t buffer[], uint32_t count);
 static bool pwmDshotDecodeTelemetry(void);
@@ -307,6 +308,12 @@ void pwmShutdownPulsesForAllMotors(uint8_t motorCount)
 void pwmDisableMotors(void)
 {
     pwmMotorsEnabled = false;
+#ifdef USE_DSHOT_BITBANG
+    // The 4-way interface takes the pins next: finish the frame and reply in flight first
+    if (dshotBitbangIsActive()) {
+        dshotBitbangStop();
+    }
+#endif
 }
 
 void pwmEnableMotors(void)
@@ -343,7 +350,18 @@ void pwmSetMotorDMACircular(bool circular)
     // A frame started by pwmCompleteMotorUpdate() may still be in flight for this long
     const uint32_t frameUs = DSHOT_DMA_BUFFER_SIZE * DSHOT_MOTOR_BITLENGTH * 1000000UL / dshotHz;
 
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BITBANG
+    if (dshotBitbangIsActive()) {
+        // Bitbang ports idle as plain GPIO: before the write finish the exchange in flight
+        // and leave the lines to their pulls; the next frame takes the pins back
+        if (circular) {
+            dshotBitbangDisconnect();
+        }
+        return;
+    }
+#endif
+
+#ifdef USE_DSHOT_BIDIR_TIMER
     // No keep-alive frames for bidir: the ESC sees a frame gap for the flash write, as in
     // Betaflight, with the line held at its idle level only by the pull.
     if (useDshotTelemetry) {
@@ -493,20 +511,14 @@ static uint8_t getBurstDmaTimerIndex(TIM_TypeDef *timer)
 }
 #endif
 
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
 // The CC1..CC4 DMA request bits sit next to each other in DIER on every supported MCU
 static uint32_t dshotDmaSource(const pwmOutputPort_t *port)
 {
-#if !defined(AT32F43x)
     STATIC_ASSERT(TIM_DMA_CC2 == TIM_DMA_CC1 << 1 && TIM_DMA_CC4 == TIM_DMA_CC1 << 3, tim_dma_cc_bits_adjacent);
     return TIM_DMA_CC1 << port->tch->timHw->channelIndex;
-#else
-    STATIC_ASSERT(TMR_C2_DMA_REQUEST == TMR_C1_DMA_REQUEST << 1 && TMR_C4_DMA_REQUEST == TMR_C1_DMA_REQUEST << 3, tmr_dma_request_bits_adjacent);
-    return TMR_C1_DMA_REQUEST << port->tch->timHw->channelIndex;
-#endif
 }
 
-#if !defined(AT32F43x)
 // Per-channel DMA request bit in DIER; the LL and SPL drivers only offer fixed-channel variants
 static inline void dshotDmaReqEnable(TIM_TypeDef *tim, uint32_t dmaSource)
 {
@@ -551,14 +563,6 @@ static dshotChannelRegs_t dshotChannelRegs(const pwmOutputPort_t *port)
 #define DSHOT_CCMR_OUTPUT   (TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1)
 // CCER channel nibble for capture: both edges, channel on
 #define DSHOT_CCER_INPUT    (TIM_CCER_CC1E | TIM_CCER_CC1P | TIM_CCER_CC1NP)
-#else
-// The channel identifiers are evenly spaced, so channelIndex maps onto them linearly
-static uint32_t dshotTimChannel(const pwmOutputPort_t *port)
-{
-    STATIC_ASSERT(TMR_SELECT_CHANNEL_4 == TMR_SELECT_CHANNEL_1 + 3 * (TMR_SELECT_CHANNEL_2 - TMR_SELECT_CHANNEL_1), tmr_channel_ids_linear);
-    return TMR_SELECT_CHANNEL_1 + port->tch->timHw->channelIndex * (TMR_SELECT_CHANNEL_2 - TMR_SELECT_CHANNEL_1);
-}
-#endif
 
 static uint16_t dshotDecodeTelemetryPacket(const uint32_t buffer[], uint32_t count)
 {
@@ -625,7 +629,6 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     // channel's normal polarity whenever telemetry is active, matching Betaflight.
     const bool inverted = ((port->tch->timHw->output & TIMER_OUTPUT_INVERTED) != 0) ^ useDshotTelemetry;
 
-#if !defined(AT32F43x)
     // Telemetry input capture widens ARR to 0xffff (see pwmDshotSetDirectionInput);
     // restore the DSHOT bit period now, bypassing the ARR preload shadow so it
     // takes effect immediately instead of after the next update event.
@@ -660,43 +663,10 @@ static void pwmDshotSetDirectionOutput(pwmOutputPort_t *port)
     DMA_CLEAR_FLAG(port->tch->dma, DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_TEIF | DMA_IT_DMEIF | DMA_IT_FEIF);
     stream->CR = (stream->CR & ~(DMA_SxCR_DIR | DMA_SxCR_EN)) | DMA_SxCR_DIR_0;
     port->telemetryInputActive = false;
-#else
-    // Telemetry input capture widens the period to 0xffff (see pwmDshotSetDirectionInput);
-    // restore the DSHOT bit period now, bypassing the period buffer so it takes effect
-    // immediately, and reset the counter so a stale count above the new period doesn't
-    // have to run all the way round (TMR2/TMR5 are 32-bit) before the first compare.
-    tmr_period_buffer_enable(port->tch->timHw->tim, FALSE);
-    tmr_period_value_set(port->tch->timHw->tim, DSHOT_MOTOR_BITLENGTH - 1);
-    tmr_period_buffer_enable(port->tch->timHw->tim, TRUE);
-    tmr_counter_value_set(port->tch->timHw->tim, 0);
-
-    tmr_output_config_type output = {0};
-    tmr_output_default_para_init(&output);
-    output.oc_mode = TMR_OUTPUT_CONTROL_PWM_MODE_A;
-    if (port->tch->timHw->output & TIMER_OUTPUT_N_CHANNEL) {
-        output.oc_output_state = FALSE;
-        output.occ_output_state = TRUE;
-        output.occ_polarity = inverted ? TMR_OUTPUT_ACTIVE_LOW : TMR_OUTPUT_ACTIVE_HIGH;
-        output.occ_idle_state = FALSE;
-    } else {
-        output.oc_output_state = TRUE;
-        output.occ_output_state = FALSE;
-        output.oc_polarity = inverted ? TMR_OUTPUT_ACTIVE_LOW : TMR_OUTPUT_ACTIVE_HIGH;
-        output.oc_idle_state = TRUE;
-    }
-    tmr_output_channel_config(port->tch->timHw->tim, dshotTimChannel(port), &output);
-    tmr_channel_value_set(port->tch->timHw->tim, dshotTimChannel(port), 0);
-    tmr_output_channel_buffer_enable(port->tch->timHw->tim, dshotTimChannel(port), TRUE);
-    dma_channel_enable(port->tch->dma->ref, FALSE);
-    port->tch->dma->ref->maddr = (uint32_t)port->dmaBuffer;
-    port->tch->dma->ref->dtcnt = DSHOT_DMA_BUFFER_SIZE;
-    port->telemetryInputActive = false;
-#endif
 }
 
 FAST_CODE static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
 {
-#if !defined(AT32F43x)
     // Runs in the DMA completion ISR for every motor in turn, so it only writes registers:
     // no HAL/LL init calls, and the stream is reconfigured in place (hardware clears its EN
     // bit at end of transfer, the wait below only covers the flag/EN ordering).
@@ -740,25 +710,6 @@ FAST_CODE static void pwmDshotSetDirectionInput(pwmOutputPort_t *port)
     stream->NDTR = GCR_TELEMETRY_INPUT_LEN;
     stream->CR = cr | DMA_SxCR_EN;
     dshotDmaReqEnable(tim, dshotDmaSource(port));
-#else
-    // Widen the period so the free-running counter doesn't wrap every DSHOT bit period
-    // (20 ticks) while timing GCR edges, which span ~21 bits per telemetry frame.
-    tmr_period_buffer_enable(port->tch->timHw->tim, TRUE);
-    tmr_period_value_set(port->tch->timHw->tim, 0xffff);
-
-    tmr_input_config_type input;
-    tmr_input_default_para_init(&input);
-    input.input_channel_select = dshotTimChannel(port);
-    input.input_mapped_select = TMR_CC_CHANNEL_MAPPED_DIRECT;
-    input.input_filter_value = 2;
-    input.input_polarity_select = TMR_INPUT_BOTH_EDGE;
-    tmr_input_channel_init(port->tch->timHw->tim, &input, TMR_CHANNEL_INPUT_DIV_1);
-    port->tch->dma->ref->paddr = (uint32_t)port->ccr;
-    port->tch->dma->ref->maddr = (uint32_t)port->dmaBuffer;
-    port->tch->dma->ref->dtcnt = GCR_TELEMETRY_INPUT_LEN;
-    dma_channel_enable(port->tch->dma->ref, TRUE);
-    tmr_dma_request_enable(port->tch->timHw->tim, dshotDmaSource(port), TRUE);
-#endif
     port->telemetryInputActive = true;
 }
 
@@ -800,15 +751,10 @@ FAST_CODE static void pwmDshotDmaIrqHandler(DMA_t descriptor)
     // userParam is the motor index (see motorConfigDshot())
     pwmOutputPort_t *port = motors[descriptor->userParam].pwmPort;
 
-#if defined(AT32F43x)
-    dma_channel_enable(port->tch->dma->ref, FALSE);
-    tmr_dma_request_enable(port->tch->timHw->tim, dshotDmaSource(port), FALSE);
-#else
     // The stream disabled itself at end of transfer (normal mode). The DMA request must go
     // too: CCR is 0 after the frame, so compare matches keep a request pending and the stream
     // would serve it as a bogus first capture the moment it is re-enabled for input.
     dshotDmaReqDisable(port->tch->timHw->tim, dshotDmaSource(port));
-#endif
 
     // Same bookkeeping as the timer driver's handler (timerPWMDMAInProgress())
     if (port->tch->dmaState == TCH_DMA_ACTIVE) {
@@ -855,15 +801,9 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
         }
 
         uint32_t edges = 0;
-#if defined(AT32F43x)
-        edges = GCR_TELEMETRY_INPUT_LEN - dma_data_number_get(port->tch->dma->ref);
-        tmr_dma_request_enable(port->tch->timHw->tim, dshotDmaSource(port), FALSE);
-        dma_channel_enable(port->tch->dma->ref, FALSE);
-#else
         edges = GCR_TELEMETRY_INPUT_LEN - port->tch->dma->ref->NDTR;
         dshotDmaReqDisable(port->tch->timHw->tim, dshotDmaSource(port));
         CLEAR_BIT(port->tch->dma->ref->CR, DMA_SxCR_EN);
-#endif
 
         // Too few edges is no reply at all
         uint16_t rawValue = DSHOT_TELEMETRY_NOEDGE;
@@ -889,7 +829,7 @@ static bool NOINLINE pwmDshotDecodeTelemetry(void)
     // Re-armed during the loop: some port is in input again, hold the frame until it is back
     return !dshotTelemetryPending;
 }
-#endif // USE_DSHOT_BIDIR
+#endif // USE_DSHOT_BIDIR_TIMER
 
 static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware, uint32_t dshotHz, bool enableOutput, uint8_t motorIndex)
 {
@@ -901,7 +841,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
         return NULL;
     }
 
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
     if (enableOutput && useDshotTelemetry) {
         // Bidir signalling idles high, but holding the line high with no edges
         // during ESC boot triggers the BLHeli/Bluejay bootloader-entry check
@@ -938,7 +878,7 @@ static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware,
         // Only mark as DSHOT channel if DMA was set successfully
         ZERO_FARRAY(port->dmaBuffer);
         port->configured = true;
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
         if (useDshotTelemetry) {
             // Inverted signalling and per-frame direction switching; the port takes the
             // stream's completion interrupt over from the timer driver
@@ -1041,6 +981,17 @@ bool isMotorProtocolDigital(void)
     return isMotorProtocolDshot();
 }
 
+// A motor with an output behind it: a timer port, or a bitbanged pin
+static bool isMotorOutputConfigured(int index)
+{
+#ifdef USE_DSHOT_BITBANG
+    if (dshotBitbangIsActive()) {
+        return dshotBitbangMotorIsConfigured(index);
+    }
+#endif
+    return motors[index].pwmPort && motors[index].pwmPort->configured;
+}
+
 void pwmRequestMotorTelemetry(int motorIndex)
 {
     if (!isMotorProtocolDigital()) {
@@ -1049,7 +1000,7 @@ void pwmRequestMotorTelemetry(int motorIndex)
 
     const int motorCount = getMotorCount();
     for (int index = 0; index < motorCount; index++) {
-        if (motors[index].pwmPort && motors[index].pwmPort->configured && index == motorIndex) {
+        if (isMotorOutputConfigured(index) && index == motorIndex) {
             motors[index].requestTelemetry = true;
         }
     }
@@ -1127,8 +1078,13 @@ void pwmCompleteMotorUpdate(void) {
         return;
     }
 
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
     if (useDshotTelemetry && !pwmDshotDecodeTelemetry()) {
+        return;
+    }
+#endif
+#ifdef USE_DSHOT_BITBANG
+    if (dshotBitbangIsActive() && !dshotBitbangDecodeTelemetry()) {
         return;
     }
 #endif
@@ -1152,7 +1108,24 @@ void pwmCompleteMotorUpdate(void) {
 #ifdef USE_DSHOT
     if (isMotorProtocolDshot()) {
 
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BITBANG
+        if (dshotBitbangIsActive()) {
+            // No frames while the motors are disabled: the 4-way interface owns the pins then
+            if (!pwmMotorsEnabled || !executeDShotCommands()) {
+                return;
+            }
+            for (int index = 0; index < motorCount; index++) {
+                if (dshotBitbangMotorIsConfigured(index)) {
+                    dshotBitbangWrite(index, prepareDshotPacket(motors[index].value, motors[index].requestTelemetry));
+                    motors[index].requestTelemetry = false;
+                }
+            }
+            dshotBitbangUpdateComplete();
+            return;
+        }
+#endif
+
+#ifdef USE_DSHOT_BIDIR_TIMER
         if (dshotPinsDisconnected) {
             dshotConnectOutputs();
             dshotPinsDisconnected = false;
@@ -1187,7 +1160,7 @@ void pwmCompleteMotorUpdate(void) {
             }
         }
 
-#ifdef USE_DSHOT_BIDIR
+#ifdef USE_DSHOT_BIDIR_TIMER
         if (useDshotTelemetry) {
             // Reference for the reply window; the completion ISRs don't read the clock
             dshotTelemetryFrameStampUs = micros();
@@ -1247,6 +1220,13 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
+#ifdef USE_DSHOT_BITBANG
+            // Bidirectional DSHOT is bitbanged on this MCU (dshot_bitbang.c); plain DSHOT
+            // stays on the timers
+            if (useDshotTelemetry) {
+                dshotBitbangInit(getDshotHz(initMotorProtocol) / DSHOT_MOTOR_BITLENGTH);
+            }
+#endif
             motorConfigDigitalUpdateInterval(getEscUpdateFrequency());
             motorWritePtr = pwmWriteDigital;
             break;
@@ -1317,6 +1297,13 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
     case PWM_TYPE_DSHOT600:
     case PWM_TYPE_DSHOT300:
     case PWM_TYPE_DSHOT150:
+#ifdef USE_DSHOT_BITBANG
+        if (dshotBitbangIsActive()) {
+            // Only the pin is taken, its timer channel stays free; the pin joins its GPIO
+            // port's group in dshotBitbangPostInit(), once every other timer user has chosen
+            return dshotBitbangMotorConfig(timerHardware, motorIndex, enableOutput);
+        }
+#endif
         motors[motorIndex].pwmPort = motorConfigDshot(timerHardware, getDshotHz(initMotorProtocol), enableOutput, motorIndex);
         break;
 #endif
@@ -1333,9 +1320,43 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
     return (motors[motorIndex].pwmPort != NULL);
 }
 
+// After every other timer and DMA user has had its pick (fc_init). Bitbang DSHOT needs a
+// whole spare timer: without one the motors go back to plain DSHOT on their own timer
+// channels and bidirectional telemetry stays off for this boot, rather than blocking arming
+// over a feature the airframe can fly without.
+bool pwmMotorPostInit(void)
+{
+#ifdef USE_DSHOT_BITBANG
+    if (dshotBitbangIsActive() && !dshotBitbangPostInit()) {
+        LOG_ERROR(PWM, "Bitbang DSHOT unavailable (status %d), bidirectional DSHOT off", dshotBitbangGetStatus());
+        dshotBitbangRelease();
+        useDshotTelemetry = false;
+
+        const uint32_t dshotHz = getDshotHz(initMotorProtocol);
+        for (int index = 0; index < getMotorCount(); index++) {
+            const timerHardware_t *timHw;
+            bool enableOutput;
+            if (!dshotBitbangGetMotorOutput(index, &timHw, &enableOutput)) {
+                continue;
+            }
+            motors[index].pwmPort = motorConfigDshot(timHw, dshotHz, enableOutput, index);
+            if (motors[index].pwmPort == NULL) {
+                return false;
+            }
+        }
+    }
+#endif
+    return true;
+}
+
 // Helper function for ESC passthrough
 ioTag_t pwmGetMotorPinTag(int motorIndex)
 {
+#ifdef USE_DSHOT_BITBANG
+    if (dshotBitbangIsActive()) {
+        return dshotBitbangGetMotorPinTag(motorIndex);
+    }
+#endif
     if (motors[motorIndex].pwmPort) {
         return motors[motorIndex].pwmPort->tch->timHw->tag;
     }
@@ -1349,6 +1370,12 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
 // on HAL targets a bare IOConfigGPIO(IOCFG_AF_PP) programs AF0 and the timer loses the pin.
 void pwmRestoreMotorPin(int motorIndex)
 {
+#ifdef USE_DSHOT_BITBANG
+    if (dshotBitbangIsActive()) {
+        dshotBitbangRestoreMotorPin(motorIndex);
+        return;
+    }
+#endif
     if (motors[motorIndex].pwmPort) {
         const timerHardware_t *timHw = motors[motorIndex].pwmPort->tch->timHw;
         IOConfigGPIOAF(IOGetByTag(timHw->tag), IOCFG_AF_PP, timHw->alternateFunction);

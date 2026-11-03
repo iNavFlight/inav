@@ -51,6 +51,7 @@
 #include "drivers/bus.h"
 #include "drivers/dma.h"
 #include "drivers/bidir_dshot.h"
+#include "drivers/dshot_bitbang.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
@@ -768,6 +769,21 @@ void init(void)
 #endif
 #ifdef USE_DSHOT_BIDIR
     initDshotTelemetry();
+#endif
+#ifdef USE_DSHOT_BITBANG
+    // After every other timer and DMA user: the bitbang pacers take what is left. Without
+    // a spare timer the motors fall back to plain DSHOT, and the ESC sensor, which signed
+    // up for the motor-line telemetry above, is set up again for its serial source, if any
+    const bool dshotTelemetryWasActive = isDshotTelemetryActive();
+    if (!pwmMotorPostInit()) {
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+    }
+    if (dshotTelemetryWasActive && !isDshotTelemetryActive()) {
+        DISABLE_STATE(ESC_SENSOR_ENABLED);
+#ifdef USE_ESC_SENSOR
+        escSensorInitialize();
+#endif
+    }
 #endif
 
 #ifdef USE_SERIAL_GIMBAL
