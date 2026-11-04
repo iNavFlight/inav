@@ -224,7 +224,6 @@ static uint16_t bbDmaSource(uint8_t channelIndex)
 // in timerCtx; this driver does not, so its own pacers do not show up here.
 static bool bbTimerIsFree(tmr_type *tim)
 {
-    return false;   // TEMPORARY: forces the fallback to plain timer DSHOT for testing, remove before commit
     const uint8_t timerIndex = lookupTimerIndex(tim);
     if (timerIndex >= HARDWARE_TIMER_DEFINITION_COUNT) {
         return false;
