@@ -322,7 +322,7 @@ bool MSPIntf::requestCraftName(char *name, uint8_t bufLen) {
     uint16_t recvSize = 0;
     if (!name || bufLen == 0) return false;
     if (request(MSP_NAME, name, bufLen - 1, &recvSize)) {
-        name[min((uint16_t)(bufLen - 1), recvSize)] = ' ';
+        name[min((uint16_t)(bufLen - 1), recvSize)] = '\0';
         return true;
     }
     return false;
