@@ -37,10 +37,21 @@ jobs:
       # without regenerating.
       - name: Check the generated files are in sync
         run: |
-          if ! git diff --exit-code -- msp/schema/enums.yaml msp/schema/constants.yaml \
-                 msp/c msp/python msp/js msp/arduino docs/development/msp/README.md docs/development/msp/enums.md
+          generated=(msp/schema/enums.yaml msp/schema/constants.yaml
+                     msp/c msp/python msp/js msp/arduino
+                     docs/development/msp/README.md docs/development/msp/enums.md)
+          if ! git diff --exit-code -- "${generated[@]}"
           then
             echo "::error::MSP generated files are stale. Run: ./msp/build.sh generate"
+            exit 1
+          fi
+          # git diff ignores untracked files: a generated file the commit forgot to
+          # add must fail here too.
+          changes="$(git status --porcelain -- "${generated[@]}")"
+          if [ -n "$changes" ]
+          then
+            echo "::error::MSP generated files are untracked. Run: ./msp/build.sh generate and commit"
+            echo "$changes"
             exit 1
           fi
       - name: Build and test the generated library
