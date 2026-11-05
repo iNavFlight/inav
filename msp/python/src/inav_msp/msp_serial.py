@@ -219,7 +219,10 @@ class _MSPParser:
                     return None
                 self.length_expected |= (b & 0xFF) << 8
                 if self.length_expected > MAX_PAYLOAD_LEN:
-                    raise ValueError(f"MSP V2 payload length {self.length_expected} exceeds limit {MAX_PAYLOAD_LEN}")
+                    # A declared length over the limit is malformed input, not
+                    # a transport failure: discard the header and resync.
+                    self.reset()
+                    continue
                 self.payload = bytearray()
                 self.length_received = 0
                 # go to payload or checksum
@@ -262,7 +265,10 @@ class _MSPParser:
                 self.length_expected += (b & 0xFF) << 8
                 self.checksum ^= (b & 0xFF)
                 if self.length_expected > MAX_PAYLOAD_LEN:
-                    raise ValueError(f"MSP V1 payload length {self.length_expected} exceeds limit {MAX_PAYLOAD_LEN}")
+                    # A declared length over the limit is malformed input, not
+                    # a transport failure: discard the header and resync.
+                    self.reset()
+                    continue
                 self.payload = bytearray()
                 self.length_received = 0
                 self.state = 7
