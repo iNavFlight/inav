@@ -127,5 +127,9 @@ class MSPIntf {
     uint32_t _timeout = 500;
     uint32_t _last_status_arming_flags = 0; // Cache for isArmed()
 
+    // Fixed-size replies must carry the whole struct: a short or empty frame
+    // would leave part of the caller's struct stale.
+    bool requestFixed(uint16_t messageID, void *payload, uint16_t size);
+
     static uint8_t crc8_dvb_s2(uint8_t crc, unsigned char a);
 };
