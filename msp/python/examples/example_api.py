@@ -283,7 +283,7 @@ def main() -> None:
 
             print()
             try:
-                ack_local = api.set_local_target(x_cm=100.0, y_cm=0.0, z_cm=0.0)
+                ack_local = api.set_local_target(forward_cm=100.0, right_cm=0.0, up_cm=0.0)
                 print("SET_LOCAL_TARGET ack:\n" + pp(ack_local))
                 show_info(api.info)
             except Exception as exc:

@@ -87,6 +87,12 @@ class ApiTest(unittest.TestCase):
         )
         self.assertEqual(len(self.serial.requests[-1][1]), 17)
 
+    def test_set_local_target_packs_body_frame_offsets(self) -> None:
+        self.api.set_local_target(forward_cm=100.0, right_cm=-20.0, up_cm=30.0)
+        code, payload, _ = self.serial.requests[-1]
+        self.assertEqual(code, InavMSP.MSP2_INAV_SET_LOCAL_TARGET)
+        self.assertEqual(payload, struct.pack("<iii", 100, -20, 30))
+
     def test_get_fc_version_reads_connected_firmware(self) -> None:
         self.assertEqual(
             self.api.get_fc_version(),
