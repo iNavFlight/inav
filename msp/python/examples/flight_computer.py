@@ -220,6 +220,11 @@ class FlightComputer:
                 latitude=latitude,
                 longitude=longitude,
                 altitude=altitude,
+                # Plain waypoint action: no speed override, no hold time, and
+                # the relative-altitude datum.
+                param1=0,
+                param2=0,
+                param3=0,
                 flag=0
             )
             logging.info(f"Waypoint {index} set: {latitude}, {longitude} @ {altitude}m")
