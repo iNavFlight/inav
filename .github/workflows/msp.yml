@@ -3,12 +3,12 @@ on:
   push:
     paths:
       - 'msp/**'
-      - 'src/main/msp/**'
+      - 'src/main/**'
       - '.github/workflows/msp.yml'
   pull_request:
     paths:
       - 'msp/**'
-      - 'src/main/msp/**'
+      - 'src/main/**'
       - '.github/workflows/msp.yml'
 permissions:
   contents: read
