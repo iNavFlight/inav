@@ -259,6 +259,16 @@ static const char * const hardwareSensorStatusNames[] = {
     "NONE", "OK", "UNAVAILABLE", "FAILING"
 };
 
+// Not a hardwareSensorStatus_e value: MSP and blackbox pack that enum into two bits
+static const char *hardwareSensorStatusName(hardwareSensorStatus_e status, bool isCalibrated)
+{
+    if (status == HW_SENSOR_OK && !isCalibrated) {
+        return "UNCALIBRATED";
+    }
+
+    return hardwareSensorStatusNames[status];
+}
+
 static const char * const *sensorHardwareNames[] = {
         gyroNames,
         table_acc_hardware,
@@ -934,6 +944,12 @@ static void cliSerial(char *cmdline)
         return;
     }
 
+    const uint32_t duplicatedFunctions = serialGetDuplicatedSinglePortFunctions(&portConfig);
+    if (duplicatedFunctions) {
+        cliPrintErrorLinef("Function %d is already assigned to another port", (int)duplicatedFunctions);
+        return;
+    }
+
     memcpy(currentConfig, &portConfig, sizeof(portConfig));
 }
 
@@ -999,9 +1015,9 @@ static void cliSerialPassthrough(char *cmdline)
                 baud = fastA2I(tok);
                 break;
             case 2:
-                if (strstr(tok, "rx") || strstr(tok, "RX"))
+                if (sl_strstr(tok, "rx") || sl_strstr(tok, "RX"))
                     mode |= MODE_RX;
-                if (strstr(tok, "tx") || strstr(tok, "TX"))
+                if (sl_strstr(tok, "tx") || sl_strstr(tok, "TX"))
                     mode |= MODE_TX;
                 break;
             case 3:
@@ -4014,7 +4030,7 @@ static void cliSet(char *cmdline)
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
             cliPrintLinefeed();
         }
-    } else if ((eqptr = strstr(cmdline, "=")) != NULL) {
+    } else if ((eqptr = strchr(cmdline, '=')) != NULL) {
         // has equals
 
         char *lastNonSpaceCharacter = eqptr;
@@ -4191,8 +4207,8 @@ static void cliStatus(char *cmdline)
 
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, PITOT=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
-        hardwareSensorStatusNames[getHwAccelerometerStatus()],
-        hardwareSensorStatusNames[getHwCompassStatus()],
+        hardwareSensorStatusName(getHwAccelerometerStatus(), STATE(ACCELEROMETER_CALIBRATED)),
+        hardwareSensorStatusName(getHwCompassStatus(), STATE(COMPASS_CALIBRATED)),
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
@@ -4367,9 +4383,9 @@ static void cliStatus(char *cmdline)
         }
         cliPrintLinefeed();
         cliPrintLinef("  SATS: %i", gpsSol.numSat);
-        cliPrintLinef("  HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
-        cliPrintLinef("  EPH : %f m", (double)(gpsSol.eph / 100.0f));
-        cliPrintLinef("  EPV : %f m", (double)(gpsSol.epv / 100.0f));
+        cliPrintLinef("  HDOP: %d.%02d", gpsSol.hdop / HDOP_SCALE, gpsSol.hdop % HDOP_SCALE);
+        cliPrintLinef("  EPH : %d.%02d m", gpsSol.eph / 100, gpsSol.eph % 100);
+        cliPrintLinef("  EPV : %d.%02d m", gpsSol.epv / 100, gpsSol.epv % 100);
         //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
         cliPrintLinef("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");

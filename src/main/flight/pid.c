@@ -160,6 +160,11 @@ static EXTENDED_FASTRAM int16_t headingHoldTarget;
 static EXTENDED_FASTRAM pt1Filter_t headingHoldRateFilter;
 static EXTENDED_FASTRAM pt1Filter_t fixedWingTpaFilter;
 
+// Time constant of an I-term that opposes a big stick input while the lock holds it (see iTermLockApply)
+#define FW_ITERM_LOCK_FADE_S        0.5f
+// Rate target, as a fraction of the maximum rate, from which the lock counts a stick input as big
+#define FW_ITERM_LOCK_BIG_STICK     0.2f
+
 // Thrust PID Attenuation factor. 0.0f means fully attenuated, 1.0f no attenuation is applied
 STATIC_FASTRAM bool pidGainsUpdateRequired= true;
 FASTRAM int16_t axisPID[FLIGHT_DYNAMICS_INDEX_COUNT];
@@ -1063,7 +1068,7 @@ static void applyAutoTransitionTargetItermLock(autoTransitionTargetPidState_t *p
     const float dampingFactor = attenuation(rateTarget, maxRate * targetPidProfile->fwItermLockRateLimit / 100.0f);
     const bool errorThresholdReached = fabsf(rateError) > maxRate * targetPidProfile->fwItermLockEngageThreshold / 100.0f;
 
-    if (fabsf(rateTarget) > maxRate * 0.2f) {
+    if (fabsf(rateTarget) > maxRate * FW_ITERM_LOCK_BIG_STICK) {
         pidState->attenuation.targetOverThresholdTimeMs = pidLoopNowMs;
     }
 
@@ -1114,6 +1119,11 @@ static int16_t applyAutoTransitionTargetFixedWingRateController(autoTransitionTa
 
     if (!itermFreezeActive) {
         pidState->errorGyroIf += rateError * pidState->kI * dT * pidState->attenuation.aI;
+    }
+
+    if (axis != FD_YAW && pidState->errorGyroIf * rateTarget < 0.0f
+        && fabsf(rateTarget) > controlProfile->stabilized.rates[axis] * 10.0f * FW_ITERM_LOCK_BIG_STICK) {
+        pidState->errorGyroIf *= 1.0f - MIN((1.0f - pidState->attenuation.aI) * dT / FW_ITERM_LOCK_FADE_S, 1.0f);
     }
 
     applyAutoTransitionTargetItermLimiting(pidState, itermLimitActive);
@@ -1302,16 +1312,23 @@ static int16_t tpaPitchThrottleAdjustment(void)
     /* Applies correction to throttle input for throttle based tpa to compensate for speed decrease in climb or increase during descent.
      * +ve correction during descent, -ve correction during climb.
      * e.g. +ve correction during descent increases tpa throttle input attenuating PIDS for increased speed during descent */
-
-    int16_t tpaThrottleAdjustment = 0;
-
+ 
     const uint8_t tpaPitchCompensationValue = currentControlProfile->throttle.tpa_pitch_compensation;
-
-    if (currentControlProfile->throttle.fixedWingTauMs && tpaPitchCompensationValue) {
+    int16_t tpaThrottleAdjustment = 0;
+    
+    if (tpaPitchCompensationValue) {
         tpaThrottleAdjustment = constrain(tpaPitchCompensationValue * RADIANS_TO_DEGREES(-HeadVecEFFiltered.z), -PWM_RANGE_MIN, PWM_RANGE_MIN);
     }
 
     return tpaThrottleAdjustment;
+}
+
+static void resetFixedWingTpaFilterToThrottle(uint16_t throttle)
+{
+    if (currentControlProfile->throttle.fixedWingTauMs > 0) {
+        const uint16_t throttleIdleValue = getThrottleIdleValue();
+        pt1FilterReset(&fixedWingTpaFilter, constrain(throttle + tpaPitchThrottleAdjustment(), throttleIdleValue + 1, getMaxThrottle()));
+    }
 }
 
 static float calculateFixedWingTPAFactor(uint16_t throttle)
@@ -1326,7 +1343,10 @@ static float calculateFixedWingTPAFactor(uint16_t throttle)
     if (ARMING_FLAG(ARMED) && !FLIGHT_MODE(AUTO_TUNE) && dynamicPID && tpaBreakpoint > throttleIdleValue) {
         // throttleIdleValue + 1 to avoid div zero
         uint16_t pitchThrottleSpeedFactor = constrain(throttle + tpaPitchThrottleAdjustment(), throttleIdleValue + 1, getMaxThrottle());
-        pitchThrottleSpeedFactor = pt1FilterApply(&fixedWingTpaFilter, pitchThrottleSpeedFactor);
+
+        if (currentControlProfile->throttle.fixedWingTauMs) {
+            pitchThrottleSpeedFactor = pt1FilterApply(&fixedWingTpaFilter, pitchThrottleSpeedFactor);
+        }
 
         // Calculate TPA according to throttle with compensation for pitch attitude
         tpaFactor = 0.5f + 0.5f * ((tpaBreakpoint - throttleIdleValue) / (float)(pitchThrottleSpeedFactor - throttleIdleValue));
@@ -1361,6 +1381,7 @@ void schedulePidGainsUpdate(void)
 void updatePIDCoefficients(void)
 {
     STATIC_FASTRAM float tpaFactorprev=-1.0f;
+    STATIC_FASTRAM float iTermFactorprev=-1.0f;
 
 #ifdef USE_ANTIGRAVITY
     if (usedPidControllerType == PID_TYPE_PID) {
@@ -1376,13 +1397,21 @@ void updatePIDCoefficients(void)
         pidState[axis].stickPosition = constrain(rxGetChannelValue(axis) - PWM_RANGE_MIDDLE, -500, 500) / 500.0f;
     }
 
+    STATIC_FASTRAM bool fixedWingApaActivePrev = false;
+
     float tpaFactor = 1.0f;
     float iTermFactor = 1.0f;  // Separate factor for I-term scaling
     if (usedPidControllerType == PID_TYPE_PIFF) { // Fixed wing TPA calculation
         if (currentControlProfile->throttle.apa_pow > 0 && pitotGetValidForAirspeed()) {
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
             iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
+            fixedWingApaActivePrev = true;
         } else {
+            // The throttle TPA filter is not fed while APA is active, so restart it from the current throttle
+            if (fixedWingApaActivePrev) {
+                resetFixedWingTpaFilterToThrottle(rcCommand[THROTTLE]);
+                fixedWingApaActivePrev = false;
+            }
             tpaFactor = calculateFixedWingTPAFactor(rcCommand[THROTTLE]);
             iTermFactor = tpaFactor;  // Use same factor for throttle-based TPA
         }
@@ -1391,10 +1420,11 @@ void updatePIDCoefficients(void)
         iTermFactor = tpaFactor;  // Multirotor uses same factor
     }
 
-    if (tpaFactor != tpaFactorprev) {
+    if (tpaFactor != tpaFactorprev || iTermFactor != iTermFactorprev) {
         pidGainsUpdateRequired = true;
     }
     tpaFactorprev = tpaFactor;
+    iTermFactorprev = iTermFactor;
 
     // If nothing changed - don't waste time recalculating coefficients
     if (!pidGainsUpdateRequired) {
@@ -1649,7 +1679,7 @@ static void iTermLockApply(pidState_t *pidState, const float rateTarget, const f
     const bool errorThresholdReached = fabsf(rateError) > maxRate * pidProfile()->fwItermLockEngageThreshold / 100.0f;
 
     //When abs of rate target is above 20% of max rate, we start tracking time
-    if (fabsf(rateTarget) > maxRate * 0.2f) {
+    if (fabsf(rateTarget) > maxRate * FW_ITERM_LOCK_BIG_STICK) {
         pidState->attenuation.targetOverThresholdTimeMs = pidLoopNowMs;
     }
 
@@ -1687,6 +1717,15 @@ static void NOINLINE pidApplyFixedWingRateController(pidState_t *pidState, float
      */
     if (!pidState->itermFreezeActive) {
         pidState->errorGyroIf += rateError * pidState->kI * dT * pidState->attenuation.aI;
+    }
+
+    // The lock holds the I-term at whatever it had when the stick went out. Built in a motion the pilot did not ask
+    // for, it can stand against the stick and eat the feed-forward that is left: then it fades while the stick is out.
+    // Only for the inputs the lock counts as big, so a small correction keeps the trim, and not on yaw, whose rate
+    // target in a banked turn is the turn's and its I-term the rudder trim
+    if (pidState->axis != FD_YAW && pidState->errorGyroIf * rateTarget < 0.0f
+        && fabsf(rateTarget) > currentControlProfile->stabilized.rates[pidState->axis] * 10.0f * FW_ITERM_LOCK_BIG_STICK) {
+        pidState->errorGyroIf *= 1.0f - MIN((1.0f - pidState->attenuation.aI) * dT / FW_ITERM_LOCK_FADE_S, 1.0f);
     }
 
     applyItermLimiting(pidState);
