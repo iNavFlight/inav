@@ -70,6 +70,18 @@ class ParserTest(unittest.TestCase):
         self.assertEqual(len(messages), 1)
         self.assertEqual(messages[0].payload, payload)
 
+    def test_malformed_prefix_does_not_swallow_the_next_frame_sync(self) -> None:
+        self.assertEqual(
+            [(message.version, message.code, message.payload)
+             for message in _MSPParser().feed(b"$M" + response_frame(1, 1, b"\x00\x02\x06"))],
+            [(1, 1, b"\x00\x02\x06")],
+        )
+        self.assertEqual(
+            [(message.version, message.code, message.payload)
+             for message in _MSPParser().feed(b"$X" + response_frame(2, 0x2103, b"\x46\x63\x08"))],
+            [(2, 0x2103, b"\x46\x63\x08")],
+        )
+
     def test_oversized_v2_length_is_discarded_and_resynced(self) -> None:
         declared = MAX_PAYLOAD_LEN + 1
         oversized = bytes([MSP_V1_SYNC_1, MSP_V2_SYNC_2, DIR_TO_FC, 0x00,

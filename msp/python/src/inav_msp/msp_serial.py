@@ -163,8 +163,8 @@ class _MSPParser:
                 elif b == DIR_TO_FC:
                     self.direction = DIR_TO_FC
                 else:
-                    # invalid; resync
-                    self.state = 0
+                    # invalid; resync. A '$' here is the start of another frame.
+                    self.state = 1 if b == MSP_V1_SYNC_1 else 0
                     continue
 
                 if self.version == 1:
