@@ -129,6 +129,23 @@
     #endif
 #endif
 
+#if defined(USE_BARO_BMP58X)
+    #if defined(BMP58X_SPI_BUS)
+    BUSDEV_REGISTER_SPI(busdev_bmp58x_0,    DEVHW_BMP58X_0,     BMP58X_SPI_BUS,     BMP58X_CS_PIN,      NONE,           DEVFLAGS_NONE,      0);
+    #elif defined(BMP58X_I2C_BUS) || defined(BARO_I2C_BUS)
+    #if !defined(BMP58X_I2C_BUS)
+        #define BMP58X_I2C_BUS BARO_I2C_BUS
+    #endif
+    #if defined(BMP58X_I2C_ADDR)
+    BUSDEV_REGISTER_I2C(busdev_bmp58x_0,    DEVHW_BMP58X_0,     BMP58X_I2C_BUS,     BMP58X_I2C_ADDR,    NONE,           DEVFLAGS_NONE,      0);
+    #else
+    // SDO low selects 0x46, SDO high 0x47; boards ship with both, so the driver probes both
+    BUSDEV_REGISTER_I2C(busdev_bmp58x_0,    DEVHW_BMP58X_0,     BMP58X_I2C_BUS,     0x46,               NONE,           DEVFLAGS_NONE,      0);
+    BUSDEV_REGISTER_I2C(busdev_bmp58x_1,    DEVHW_BMP58X_1,     BMP58X_I2C_BUS,     0x47,               NONE,           DEVFLAGS_NONE,      0);
+    #endif
+    #endif
+#endif
+
 #if defined(USE_BARO_SPL06)
     #if defined(SPL06_SPI_BUS)
       BUSDEV_REGISTER_SPI(busdev_spl06,     DEVHW_SPL06,        SPL06_SPI_BUS,      SPL06_CS_PIN,       NONE,           DEVFLAGS_NONE,      0);
