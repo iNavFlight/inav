@@ -734,7 +734,7 @@ MSP_STATIC_ASSERT(sizeof(mspSetOsdConfig_dataSize_eq_3Request_t) == 3, mspSetOsd
 
 // MSP_OSD_CHAR_WRITE (MSPv1) id=87
 // Writes character data to the OSD font memory.
-// Notes: Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`.
+// Notes: Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`. Returns error if no OSD display port is active, the display port cannot store font characters (e.g. MSP DisplayPort), or the OSD device is not available.
 typedef struct MSP_PACKED {
     uint16_t address;  // Character slot index (0-1023).
     uint8_t charData[OSD_CHAR_BYTES];  // All 64 bytes, including driver metadata.
@@ -743,7 +743,7 @@ MSP_STATIC_ASSERT(sizeof(mspOsdCharWrite_payloadSize_ge_OSD_CHAR_BYTES_2_ge66_by
 
 // MSP_OSD_CHAR_WRITE (MSPv1) id=87
 // Writes character data to the OSD font memory.
-// Notes: Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`.
+// Notes: Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`. Returns error if no OSD display port is active, the display port cannot store font characters (e.g. MSP DisplayPort), or the OSD device is not available.
 typedef struct MSP_PACKED {
     uint8_t address;  // Character slot index (0-255).
     uint8_t charData[OSD_CHAR_BYTES];  // All 64 bytes, including driver metadata.
@@ -752,7 +752,7 @@ MSP_STATIC_ASSERT(sizeof(mspOsdCharWrite_payloadSize_eq_OSD_CHAR_BYTES_1_65_byte
 
 // MSP_OSD_CHAR_WRITE (MSPv1) id=87
 // Writes character data to the OSD font memory.
-// Notes: Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`.
+// Notes: Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`. Returns error if no OSD display port is active, the display port cannot store font characters (e.g. MSP DisplayPort), or the OSD device is not available.
 typedef struct MSP_PACKED {
     uint16_t address;  // Character slot index (0-1023).
     uint8_t charData[OSD_CHAR_VISIBLE_BYTES];  // Visible pixel data only (no metadata).
@@ -761,7 +761,7 @@ MSP_STATIC_ASSERT(sizeof(mspOsdCharWrite_payloadSize_eq_OSD_CHAR_VISIBLE_BYTES_2
 
 // MSP_OSD_CHAR_WRITE (MSPv1) id=87
 // Writes character data to the OSD font memory.
-// Notes: Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`.
+// Notes: Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`. Returns error if no OSD display port is active, the display port cannot store font characters (e.g. MSP DisplayPort), or the OSD device is not available.
 typedef struct MSP_PACKED {
     uint8_t address;  // Character slot index (0-255).
     uint8_t charData[OSD_CHAR_VISIBLE_BYTES];  // Visible pixel data only (no metadata).

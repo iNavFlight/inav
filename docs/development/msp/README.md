@@ -1742,7 +1742,7 @@ since INAV 1.0
 
 Writes character data to the OSD font memory.
 
-> Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`.
+> Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`. Returns error if no OSD display port is active, the display port cannot store font characters (e.g. MSP DisplayPort), or the OSD device is not available.
 
 **variant: payloadSize >= OSD_CHAR_BYTES + 2 (>=66 bytes)**
 
