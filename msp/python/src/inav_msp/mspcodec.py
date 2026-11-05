@@ -196,7 +196,20 @@ def _encode(fields: list, values: Mapping[str, Any], name: str) -> bytes:
             continue
         if kind == "discriminated":
             case = value.get("case") or ("index" if "settingIndex" in value else "name")
-            parts.append(_encode(field["cases"][case], value, name))
+            case_fields = field["cases"][case]
+            if field["by"] == "leading-zero" and case == "index":
+                # The leading zero is the wire discriminator that selects the
+                # index case, so the encoder emits it rather than requiring the
+                # caller to supply it. An explicitly supplied one must still be
+                # a discriminator: anything else would select the name case.
+                discriminator = case_fields[0]
+                supplied = value.get(discriminator["name"], 0)
+                if supplied != 0:
+                    raise MSPPackError(
+                        f"{name}.{field['name']}: {discriminator['name']!r} selects the "
+                        f"index case and must be 0, got {supplied}")
+                value = {**value, discriminator["name"]: 0}
+            parts.append(_encode(case_fields, value, name))
             continue
 
         if kind == "layout":

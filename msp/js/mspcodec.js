@@ -309,7 +309,22 @@ function encodeFields(fields, values, name) {
         }
         if (kind === 'discriminated') {
             const caseName = value.case || ('settingIndex' in value ? 'index' : 'name');
-            parts.push(encodeFields(field.cases[caseName], value, name));
+            const caseFields = field.cases[caseName];
+            let caseValues = value;
+            if (field.by === 'leading-zero' && caseName === 'index') {
+                // The leading zero is the wire discriminator that selects the
+                // index case, so the encoder emits it rather than requiring the
+                // caller to supply it. An explicitly supplied one must still be
+                // a discriminator: anything else would select the name case.
+                const discriminator = caseFields[0];
+                const supplied = value[discriminator.name] ?? 0;
+                if (supplied !== 0) {
+                    throw new MSPPackError(`${name}.${field.name}: '${discriminator.name}' selects the ` +
+                        `index case and must be 0, got ${supplied}`);
+                }
+                caseValues = { ...value, [discriminator.name]: 0 };
+            }
+            parts.push(encodeFields(caseFields, caseValues, name));
             continue;
         }
         if (kind === 'layout') {

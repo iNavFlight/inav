@@ -4,7 +4,7 @@ import struct
 import unittest
 
 from inav_msp.lib import InavMSP
-from inav_msp.mspcodec import MSPCodec
+from inav_msp.mspcodec import MSPCodec, MSPPackError
 
 
 
@@ -12,6 +12,38 @@ class CodecTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.codec = MSPCodec()
+
+    def test_indexed_setting_encodes_the_leading_zero_discriminator(self) -> None:
+        payload = self.codec.pack_request(
+            InavMSP.MSP2_COMMON_SETTING,
+            {"settingIdentifier": {"settingIndex": 0x04D2}},
+        )
+        self.assertEqual(payload, b"\x00\xd2\x04")
+        self.assertEqual(
+            self.codec.unpack_request(InavMSP.MSP2_COMMON_SETTING, payload),
+            {"settingIdentifier": {"case": "index", "zero": 0, "settingIndex": 0x04D2}},
+        )
+
+    def test_indexed_setting_set_encodes_index_then_value(self) -> None:
+        payload = self.codec.pack_request(
+            InavMSP.MSP2_COMMON_SET_SETTING,
+            {"settingIdentifier": {"settingIndex": 3}, "settingValue": [1, 2]},
+        )
+        self.assertEqual(payload, b"\x00\x03\x00\x01\x02")
+
+    def test_explicit_index_discriminator_must_stay_zero(self) -> None:
+        with self.assertRaises(MSPPackError):
+            self.codec.pack_request(
+                InavMSP.MSP2_COMMON_SETTING,
+                {"settingIdentifier": {"case": "index", "zero": 1, "settingIndex": 3}},
+            )
+
+    def test_named_setting_still_encodes_as_a_cstring(self) -> None:
+        payload = self.codec.pack_request(
+            InavMSP.MSP2_COMMON_SETTING,
+            {"settingIdentifier": {"case": "name", "settingName": "pid_roll_p"}},
+        )
+        self.assertEqual(payload, b"pid_roll_p\x00")
 
     def test_empty_variable_character_array_decodes(self) -> None:
         self.assertEqual(self.codec.unpack_reply(InavMSP.MSP_NAME, b""), {"craftName": ""})
