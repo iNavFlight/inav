@@ -516,6 +516,7 @@ Selection of baro hardware. See Wiki Sensor auto detect and hardware failure det
 | MSP |  |
 | FAKE |  |
 | CRSF |  |
+| BMP58X |  |
 
 ---
 
