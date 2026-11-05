@@ -168,9 +168,9 @@ Some files are generated from other source files. If your change touches the sou
 | Source changed | Regenerate with | Output file(s) | CI-enforced? |
 |---|---|---|---|
 | `src/main/fc/settings.yaml` | `python3 src/utils/update_cli_docs.py` | `docs/Settings.md` | Yes — `.github/workflows/docs.yml` diffs against a freshly regenerated copy and fails the build if stale |
-| Source enum headers under `src/main`, or `docs/development/msp/msp_messages.json` | `src/utils/gen_msp_docs.sh` | `docs/development/msp/inav_enums.json`, `docs/development/msp/inav_enums_ref.md`, `docs/development/msp/README.md` | Partly — `.github/workflows/msp.yml` diffs `README.md` against a freshly regenerated copy and fails the build if stale. The enum files are not diffed, because they are rebuilt from every enum under `src/main` and would fail the job for unrelated changes |
+| MSP schema (`msp/schema/msp_v2.yaml`), or source enums/`#define`s under `src/main` | `./msp/build.sh generate` | `msp/schema/{enums,constants}.yaml`, `msp/c/`, `msp/python/`, `msp/arduino/`, `docs/development/msp/` (`README.md`, `enums.md`) (and the firmware's `src/main/msp/msp_protocol*.h`) | Yes — `.github/workflows/msp.yml` regenerates from source and fails the build if any generated file is stale |
 
-`msp_messages.json` itself is hand-authored — there is no script that generates it. When a new MSP handler is added to `fc_msp.c`, a corresponding entry must be added to `msp_messages.json` by hand; `src/utils/check_msp.py` runs in CI and fails the build when a command defined in the `src/main/msp/msp_protocol*.h` headers has no entry in the spec, or vice versa. See `docs/development/msp/README.md` for the full regeneration and versioning rules.
+The MSP protocol lives in one hand-authored file, `msp/schema/msp_v2.yaml` (message ids, versions, groups, wire layout). Enums and constants are **harvested from the INAV C source** into `msp/schema/{enums,constants}.yaml`; the C/Python/Arduino libraries, the firmware headers, and the reference docs are all generated from that schema. When you add or change an MSP handler in `fc_msp.c`, update `msp/schema/msp_v2.yaml` and run `./msp/build.sh generate`. See `docs/development/msp/README.md` for the full workflow.
 
 ### Force pushing
 
@@ -182,7 +182,7 @@ Force push is only acceptable on your own feature branch, and only if it hasn't 
 
 Never blindly accept `git checkout --ours <file>` or `--theirs <file>` for a conflict without verifying the result — both silently discard one side entirely. Understand what each side changed relative to the common ancestor (`git diff <merge-base> <branch> -- <file>`) and construct the resolution so both intents are preserved. (These flags describe `git merge` conflicts; during a `git rebase`, `--ours`/`--theirs` swap meaning.)
 
-This matters most for the generated files above: if `--ours`/`--theirs` is used on `inav_enums.json` or `msp_messages.json` during a conflict, cross-check the result against the actually-merged source (`fc_msp.c` for MSP handlers, the relevant headers for enums) rather than trusting either branch's snapshot — a mechanical `--theirs` resolution has silently dropped real message/enum entries before.
+This matters most for the generated files above: if a conflict lands in the generated MSP library or in the harvested `msp/schema/{enums,constants}.yaml`, do not hand-resolve them — resolve the conflict in the hand-authored source (`msp/schema/msp_v2.yaml`, or the relevant `src/main` source for enums/`#define`s) and re-run `./msp/build.sh generate` so the generated files are rebuilt from the merged source rather than a mechanically-picked branch snapshot.
 
 ## Branching and release workflow
 

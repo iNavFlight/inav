@@ -23,15 +23,7 @@ import time
 from pymavlink import mavutil
 import yaml
 
-try:
-    from mspapi2.msp_api import MSPApi
-except ModuleNotFoundError:
-    SCRIPT_DIR = Path(__file__).resolve().parent
-    WORKSPACE_ROOT = SCRIPT_DIR.parents[3]
-    MSPAPI2_REPO = WORKSPACE_ROOT / "mspapi2"
-    if MSPAPI2_REPO.exists():
-        sys.path.insert(0, str(MSPAPI2_REPO))
-    from mspapi2.msp_api import MSPApi
+from inav_msp.msp_api import MSPApi  # pip install -e msp/python
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent

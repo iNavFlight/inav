@@ -1,0 +1,8 @@
+// Generated from schema/enums.yaml by msp/generator/gen_js.py. Do not edit by hand.
+
+// INAV enums keyed by their C typedef name. Member names carry the enum's C
+// prefix, so they match the names in the firmware source.
+export const InavEnums = Object.freeze(@ENUMS@);
+
+// Members that exist only under a build condition, by enum then member.
+export const CONDITIONAL_MEMBERS = Object.freeze(@CONDITIONAL@);

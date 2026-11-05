@@ -35,7 +35,7 @@
 
 #include "io/displayport_msp.h"
 
-#include "msp/msp_protocol.h"
+#include "msp_protocol.h"
 #include "msp/msp_serial.h"
 
 #define MSP_OSD_MAX_STRING_LENGTH 30 

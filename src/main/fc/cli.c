@@ -109,7 +109,7 @@ bool cliMode = false;
 #include "rx/crsf.h"
 
 #include "msp/msp_serial.h"
-#include "msp/msp_protocol_v2_common.h"
+#include "msp_protocol_v2_common.h"
 
 #include "scheduler/scheduler.h"
 

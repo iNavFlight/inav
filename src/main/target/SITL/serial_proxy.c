@@ -45,7 +45,7 @@
 
 #include "drivers/time.h"
 #include "msp/msp_serial.h"
-#include "msp/msp_protocol.h"
+#include "msp_protocol.h"
 #include "common/crc.h"
 #include "rx/sim.h"
 
