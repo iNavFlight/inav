@@ -355,7 +355,7 @@ class MSPSerial:
         *,
         max_retries: int = 1,
         reconnect_delay: float = 0.5,
-        log_path: Optional[str] = "msp.log",
+        log_path: Optional[str] = None,
     ) -> None:
         """
         port: serial device path (e.g. '/dev/ttyACM0') or host:port for TCP when tcp=True
@@ -843,7 +843,16 @@ class MSPSerial:
             body = repr(data)
         line = f"{ts} {direction} {body}\n"
         with self._log_lock:
-            if self._log_fp is None:
-                self._log_fp = open(self._log_path, "a", encoding="ascii", errors="ignore")
-            self._log_fp.write(line)
-            self._log_fp.flush()
+            try:
+                if self._log_fp is None:
+                    self._log_fp = open(self._log_path, "a", encoding="ascii", errors="ignore")
+                self._log_fp.write(line)
+                self._log_fp.flush()
+            except OSError as exc:
+                # The frame log is diagnostic only: a full disk or an
+                # unwritable path must not fail a request or stop the reader,
+                # and retrying the same write on every frame would repeat the
+                # failure, so the log is disabled for the rest of the session.
+                self._log_enabled = False
+                self._log_fp = None
+                print(f"msp: {direction} logging to {self._log_path} disabled: {exc}", file=sys.stderr)

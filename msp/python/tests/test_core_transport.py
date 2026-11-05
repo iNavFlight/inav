@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import contextlib
+import io
+import tempfile
 import unittest
 
 from inav_msp.msp_serial import (
@@ -88,6 +91,21 @@ class ParserTest(unittest.TestCase):
             [(message.version, message.code, message.payload) for message in messages],
             [(1, 1, b"\x00\x02\x06")],
         )
+
+
+class LoggingTest(unittest.TestCase):
+    def test_raw_frame_logging_is_opt_in(self) -> None:
+        self.assertFalse(MSPSerial("unused")._log_enabled)
+
+    def test_log_write_failure_disables_the_log_instead_of_raising(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            transport = MSPSerial("unused", log_path=directory)
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                transport._log_io("IN", b"\x24")
+            self.assertFalse(transport._log_enabled)
+            self.assertIsNone(transport._log_fp)
+            self.assertIn(directory, stderr.getvalue())
 
 
 class ReaderTest(unittest.TestCase):
