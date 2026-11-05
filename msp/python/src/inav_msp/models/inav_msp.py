@@ -1196,7 +1196,7 @@ class MSP_ACTIVEBOXES_reply_t(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    activeModes: boxBitmask_t = Field(description='Bitmask: all active modes (`packBoxModeFlags()`). Size depends on `boxBitmask_t` definition')
+    activeModes: bytes = Field(description='Bitmask: all active modes (`packBoxModeFlags()`). Size depends on `boxBitmask_t` definition')
 
 
 MSP_MISC: Final[int] = 114
@@ -2171,7 +2171,7 @@ class MSP2_INAV_STATUS_reply_t(BaseModel):
     cpuLoad: uint16 = Field(description='Average system load percentage [%]')
     profileAndBattProfile: uint8 = Field(description='Bits 0-3: Config profile index (`getConfigProfile()`), Bits 4-7: Battery profile index (`getConfigBatteryProfile()`) [Packed]')
     armingFlags: uint32 = Field(description='Bitmask: Full 32-bit flight controller arming flags (`armingFlags`)')
-    activeModes: boxBitmask_t = Field(description='Bitmask words for active flight modes (`packBoxModeFlags()`)')
+    activeModes: bytes = Field(description='Bitmask words for active flight modes (`packBoxModeFlags()`)')
     mixerProfile: uint8 = Field(description='Current mixer profile index (`getConfigMixerProfile()`) [Index]')
 
 
@@ -3043,7 +3043,7 @@ MSP2_INAV_ESC_TELEM: Final[int] = 8257
 class MSP2_INAV_ESC_TELEM_reply_tescDataItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    esc: escSensorData_t = Field(description="One ESC's telemetry (voltage, current, temperature, RPM, error count); see `escSensorData_t`")
+    esc: bytes = Field(description="One ESC's telemetry (voltage, current, temperature, RPM, error count); see `escSensorData_t`")
 
 
 class MSP2_INAV_ESC_TELEM_reply_t(BaseModel):
@@ -3115,7 +3115,7 @@ MSP2_INAV_LED_STRIP_CONFIG_EX: Final[int] = 8264
 class MSP2_INAV_LED_STRIP_CONFIG_EX_reply_tItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    ledConfig: ledConfig_t = Field(description='Raw `ledConfig_t` structure (5 bytes) holding position, function, overlay, color, direction, and params bitfields (`io/ledstrip.h`).')
+    ledConfig: bytes = Field(description='Raw `ledConfig_t` structure (5 bytes) holding position, function, overlay, color, direction, and params bitfields (`io/ledstrip.h`).')
 
 
 class MSP2_INAV_LED_STRIP_CONFIG_EX_reply_t(BaseModel):
@@ -3133,7 +3133,7 @@ class MSP2_INAV_SET_LED_STRIP_CONFIG_EX_request_t(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     ledIndex: uint8 = Field(description='Index of the LED to configure (0 to `LED_MAX_STRIP_LENGTH - 1`)')
-    ledConfig: ledConfig_t = Field(description='Raw `ledConfig_t` structure (6 bytes) mirroring the firmware layout.')
+    ledConfig: bytes = Field(description='Raw `ledConfig_t` structure (6 bytes) mirroring the firmware layout.')
 
 
 MSP2_INAV_FW_APPROACH: Final[int] = 8266

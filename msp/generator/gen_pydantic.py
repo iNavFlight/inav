@@ -845,6 +845,8 @@ class Emitter:
                 inner = "str"
             elif resolved in INT_PRIMITIVES:
                 inner = base if base in self.v.aliases or base in self.v.enums else resolved
+            elif resolved in EXTERNAL_TYPES:
+                inner = "bytes"
             else:
                 inner = base
             if ref.is_array:
