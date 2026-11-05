@@ -32,7 +32,8 @@ Every platform implements the same `drivers/bus_i2c.h` API:
 | Platform | Implementation |
 |---|---|
 | STM32F4 | Own interrupt-driven engine in `bus_i2c_stm32f40x.c`, ported from the Betaflight `bus_i2c_stm32f4xx.c` driver. Blocking calls use the same engine and wait for it. |
-| STM32F7/H7 | `HAL_I2C_Mem_Read_IT()` and friends, completion through the `HAL_I2C_*CpltCallback()` / `HAL_I2C_ErrorCallback()` hooks. |
+| STM32F7 | Own interrupt-driven engine on the I2C registers in `bus_i2c_stm32f7xx.c`, the ST HAL I2C module is not built. One CR2 write starts a transfer, the handler feeds TXDR / drains RXDR, issues the repeated START of a register read at TC and finishes at STOPF. Blocking calls use the same engine and wait for it. |
+| STM32H7 | `HAL_I2C_Mem_Read_IT()` and friends in `bus_i2c_hal.c`, completion through the `HAL_I2C_*CpltCallback()` / `HAL_I2C_ErrorCallback()` hooks. |
 | AT32F43x | The `i2c_application` interrupt handler for the data phase. Its `i2c_memory_*_int()` calls busy-wait for the slave and register address, so the driver does not use them: it sends the register byte from its own event interrupt wrapper and, for a read, issues the repeated START there at TDC (the register byte goes out with a software STOP). The start call only programs the peripheral and checks BUSYF once. |
 | RP2350, software I2C, SITL | Synchronous: the start call completes the transfer and returns `true`, `i2cBusy()` is always `false` and carries the outcome. A NACK is a failed transfer, not a refused start. |
 
@@ -42,7 +43,9 @@ does not have to keep it alive. Buffers given to `i2cReadStart()` and
 drivers use static buffers.
 
 A write with a zero length sends the register byte alone (the HAL and AT32
-blocking paths refuse zero-length transfers, the drivers wrap that).
+blocking paths refuse zero-length transfers, the drivers wrap that). The F7
+refuses a register write of 255 data bytes: with the register byte that is
+256, one more than its NBYTES field holds.
 
 ## Bus layer (`drivers/bus.h`)
 
@@ -63,8 +66,8 @@ A non-blocking transfer is abandoned when it makes no progress for
 `I2C_TIMEOUT` (10 ms) while somebody looks at it: the peripheral is
 reinitialised with `i2cInit()`, the error counter goes up and the failure is
 recorded for the transfer's owner. Progress is the number of bytes still to
-go (`XferCount` on the HAL, `pcount` on the AT32, byte index and subaddress
-phase on the F4), not the time since the start:
+go (`XferCount` on the H7 HAL, `pcount` on the AT32, byte index and register
+phase on the F4 and F7), not the time since the start:
 
 * A gap between two looks longer than 1 ms counts as 1 ms. A main loop that
   was busy elsewhere for a while (a settings save) does not get a transfer
@@ -77,8 +80,8 @@ A NACK or a bus error ends a non-blocking transfer at once: the error is
 recorded for its owner and the counter shown by `status` goes up. The
 peripheral is not reinitialised for that, it is fine after a NACK, so an
 unplugged sensor costs one short failed transfer per attempt and nothing
-more. The F4 driver
-never reinitialised on a NACK for blocking calls either; the HAL and AT32
+more. The F4 and F7 drivers
+do not reinitialise on a NACK for blocking calls either; the H7 HAL and AT32
 blocking calls keep reinitialising on failure, as before.
 
 The F4 handlers never wait on the bus or reinitialise the peripheral
@@ -93,14 +96,22 @@ does not re-enter until the START is on the bus and EV5 fires. A repeated
 START that never goes out on a held bus shows up as a stuck transfer through
 the progress timeout, like any other stalled phase.
 
+The F7 handler follows the same rule. A NACK needs nothing from it: the
+hardware sends the STOP itself and the transfer ends at STOPF with the error
+recorded. A bus error or an arbitration loss leaves the peripheral anywhere
+in the transfer, so the handler gives up on it and flags the bus; the next
+`i2cBusy()` or start call reinitialises the peripheral from task context,
+like on the F4.
+
 A bus that refuses every start as busy with no transfer of ours in flight
-(`HAL_BUSY` on F7/H7, `BUSYF` on the AT32) is a fault the stuck detection
+(`HAL_BUSY` on the H7, `BUSYF` on the AT32) is a fault the stuck detection
 cannot see, since nothing is in progress. The drivers count the refused
 starts the same way as the stuck looks and reinitialise the peripheral after
 `I2C_TIMEOUT` of them; the error counter goes up and the failure is recorded
 for the address that asked, so the owner sees it on its next `busIsBusy()`.
-The F4 engine does not check the busy flag before a start, a held bus shows
-up there as a stuck transfer.
+The F4 and F7 engines do not check the busy flag before a start: the F7
+peripheral sends the START once the bus is free, so a held bus shows up on
+both as a stuck transfer.
 
 A blocking call issued while a non-blocking transfer is on the bus waits for
 it with the same stuck detection, then runs as before.
@@ -184,13 +195,13 @@ Drivers for other buses (SPI gyros, MSP, fake sensors) need no change.
 
 | Field | Meaning |
 |---|---|
-| `debug[0]` | interrupts during the last transfer (about 10 for a 6 byte read on F4) |
+| `debug[0]` | interrupts during the last transfer (about 10 for a 6 byte read on F4, 8 or 9 on F7) |
 | `debug[1]` | error interrupts since boot |
 | `debug[2]` | duration of the last transfer in µs (about 200 for 6 bytes at 400 kHz) |
-| `debug[3]` | longest single interrupt handler run in µs (F4 only) |
+| `debug[3]` | longest single interrupt handler run in µs (F4 and F7) |
 | `debug[4]` | longest wait for a START / STOP bit release in µs (F4 only) |
 | `debug[5]` | I2C error counter, also shown by `status` |
-| `debug[6]` | interrupt enables found at transfer start (F4 only, 1024 is normal) |
+| `debug[6]` | F4: interrupt enables found at transfer start (1024 is normal). F7: ISR flags at the last error (16 NACK, 256 bus error, 512 arbitration lost) |
 | `debug[7]` | time spent in the start call in µs, should be a few µs |
 
 ## Known limitations
