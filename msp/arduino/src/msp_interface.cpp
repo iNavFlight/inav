@@ -440,7 +440,9 @@ bool MSPIntf::requestBoxIDs(uint8_t *boxIds, uint16_t maxIds, uint16_t *count) {
      if (!boxIds || maxIds == 0 || !count) return false;
      uint16_t recvSize = 0;
      if (request(MSP_BOXIDS, boxIds, maxIds, &recvSize)) {
-         *count = recvSize;
+         // recv() reports the wire size even when it discarded bytes past the
+         // buffer, so count only the IDs that were stored.
+         *count = (recvSize > maxIds) ? maxIds : recvSize;
          return true;
      }
      *count = 0;
@@ -449,10 +451,11 @@ bool MSPIntf::requestBoxIDs(uint8_t *boxIds, uint16_t maxIds, uint16_t *count) {
 
 bool MSPIntf::requestModeRanges(mspModeRangesReply_t *table, uint16_t *count) {
     if (!table || !count) return false;
-    uint16_t recvSize = 0;
     *count = 0;
-    if (!request(MSP_MODE_RANGES, table, sizeof(*table), &recvSize)) return false;
-    *count = (uint16_t)(recvSize / sizeof(table->items[0]));
+    if (!requestFixed(MSP_MODE_RANGES, table, sizeof(*table))) return false;
+    // The reply is the whole fixed table; the wire size cannot exceed what was
+    // stored, so report exactly the entries the table holds.
+    *count = (uint16_t)(sizeof(table->items) / sizeof(table->items[0]));
     return true;
 }
 
@@ -465,7 +468,9 @@ bool MSPIntf::requestRcChannels(mspRcReplyElem_t *channels, uint8_t maxChannels,
         return false;
     }
     if (recvSize == 0 || recvSize % sizeof(mspRcReplyElem_t) != 0) return false;
-    if (received) *received = (uint8_t)(recvSize / sizeof(mspRcReplyElem_t));
+    uint16_t count = (uint16_t)(recvSize / sizeof(mspRcReplyElem_t));
+    if (count > maxChannels) count = maxChannels; // recv() discarded the rest
+    if (received) *received = (uint8_t)count;
     return true;
 }
 
