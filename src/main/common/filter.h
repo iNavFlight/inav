@@ -139,3 +139,4 @@ float alphaBetaGammaFilterApply(alphaBetaGammaFilter_t *filter, float input);
 
 void initFilter(uint8_t filterType, filter_t *filter, float cutoffFrequency, uint32_t refreshRate);
 void assignFilterApplyFn(uint8_t filterType, float cutoffFrequency, filterApplyFnPtr *applyFn);
+double ellipticFilterApply(const uint8_t filterOrder, double input, const double *a_coeffs, const double *b_coeffs, double *filterState);
