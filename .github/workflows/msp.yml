@@ -22,8 +22,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-      - name: Install PyYAML
-        run: pip install pyyaml
+      - name: Install Python dependencies
+        run: pip install pyyaml pyserial
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
