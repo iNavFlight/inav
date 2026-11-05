@@ -26,6 +26,8 @@ class ReadOnlySerial:
             reply = bytes([0, 1, 3, 2])
         elif code == InavMSP.MSP2_INAV_LOCAL_TARGET:
             reply = struct.pack("<iiihhhih", 100, 200, 300, 40, 50, 60, 9000, 70)
+        elif code == InavMSP.MSP_GPSSTATISTICS:
+            reply = struct.pack("<HIIIHHHB", 1500, 3, 7, 100, 120, 130, 140, 72)
         elif code == InavMSP.MSP2_INAV_NAV_TARGET:
             reply = struct.pack("<iiiHhI", 123456789, -234567890, 1234, 90, -25, 4567)
         elif code == InavMSP.MSP_FC_VERSION:
@@ -92,6 +94,19 @@ class ApiTest(unittest.TestCase):
         code, payload, _ = self.serial.requests[-1]
         self.assertEqual(code, InavMSP.MSP2_INAV_SET_LOCAL_TARGET)
         self.assertEqual(payload, struct.pack("<iii", 100, -20, 30))
+
+    def test_gps_statistics_returns_raw_error_and_timeout_counts(self) -> None:
+        self.assertEqual(
+            self.api.get_gps_statistics(),
+            {
+                "lastMessageDt": 1.5,
+                "errors": 3,
+                "timeouts": 7,
+                "hdop": 1.2,
+                "eph": 1.3,
+                "epv": 1.4,
+            },
+        )
 
     def test_get_fc_version_reads_connected_firmware(self) -> None:
         self.assertEqual(

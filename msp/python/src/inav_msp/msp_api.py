@@ -584,13 +584,12 @@ class MSPApi:
             "capacityUnit": InavEnums.batCapacityUnit_e(rep["capacityUnit"]),
         }
 
-    def get_gps_statistics(self) -> Dict[str, float]:
+    def get_gps_statistics(self) -> Dict[str, Union[int, float]]:
         self.info, rep = self._request(InavMSP.MSP_GPSSTATISTICS)
-        packet_count = max(rep["packetCount"], 1)
         return {
             "lastMessageDt": rep["lastMessageDt"] / 1000.0,
-            "errors": rep["errors"] / packet_count,
-            "timeouts": rep["timeouts"] / packet_count,
+            "errors": rep["errors"],
+            "timeouts": rep["timeouts"],
             "hdop": rep["hdop"] / 100.0,
             "eph": rep["eph"] / 100.0,
             "epv": rep["epv"] / 100.0,
