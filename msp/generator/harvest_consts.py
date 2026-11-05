@@ -141,8 +141,12 @@ def uint_type(v: int) -> str:
 def emit_yaml(consts: dict) -> str:
     out = ["# Generated from INAV C source by msp/generator/harvest_consts.py. Do not edit by hand.",
            "version: 1", "package: inav.constants", "", "constants:"]
+    first = True
     for name in sorted(consts):
         kind, val = consts[name]
+        if not first:
+            out.append("")      # blank line between constant definitions
+        first = False
         out.append(f"  {name}:")
         if kind == "configurable":
             out.append("    type: uint16")     # target-supplied; nominal width

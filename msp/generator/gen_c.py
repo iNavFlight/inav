@@ -39,6 +39,8 @@ from pathlib import Path
 
 import yaml
 
+from enum_syntax import split_member
+
 HERE = Path(__file__).resolve().parent
 MSP_ROOT = HERE.parent          # inav/msp
 TEMPLATE_DIR = HERE / "templates"
@@ -453,16 +455,10 @@ def emit_enums(model: Model) -> str:
             if body.get("zero"):
                 out.append(f"    {qual(body['zero'])} = 0,")
             for member in body.get("values") or []:
-                condition = None
-                if isinstance(member, dict):
-                    head, raw = qual(member["name"]), member.get("value")
-                    condition = member.get("condition")
-                    tail = str(raw)
-                else:
-                    head, _, tail = str(member).partition(" = ")
-                    head = qual(head)
-                if not re.fullmatch(r"-?\d+", tail.strip()) and tail.strip():
-                    tail = qual(tail.strip())          # alias to an earlier member
+                member_name, raw, condition = split_member(member)
+                head, tail = qual(member_name), raw or ""
+                if tail and not re.fullmatch(r"-?\d+", tail):
+                    tail = qual(tail)          # alias to an earlier member
                 if head in seen:
                     raise GenError(
                         f"enum member {head!r} is declared by both {seen[head]} and "

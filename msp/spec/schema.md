@@ -253,6 +253,10 @@ enums:
 - `prefix` is optional; when present it is prepended to each member name with
   an underscore in generated output
 - A member is `NAME`, `NAME = INT`, or `NAME = EARLIER_MEMBER`
+- A member may be guarded by a build condition: `- if "COND": NAME = VALUE`.
+  `COND` is a C preprocessor expression and the member exists only when it
+  holds. Backends either compile the guard (C) or expose it as metadata. This
+  is INAV's extension for enums the source declares conditionally.
 - The first unassigned member is `0`; later unassigned members increment from
   the previous member
 - `NAME = EARLIER_MEMBER` declares an alias and must reference a member

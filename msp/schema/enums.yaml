@@ -9,31 +9,21 @@ enums:
     values:
       - ADCINVALID = -1
       - ADCDEV_1 = 0
-      - name: ADCDEV_2
-        value: 1
-        condition: "STM32F4 || STM32F7 || STM32H7"
-      - name: ADCDEV_3
-        value: 2
-        condition: "STM32F4 || STM32F7 || STM32H7"
-      - name: ADCDEV_MAX
-        value: 0
-        condition: "NOT(STM32F4 || STM32F7 || STM32H7)"
+      - if "STM32F4 || STM32F7 || STM32H7": ADCDEV_2 = 1
+      - if "STM32F4 || STM32F7 || STM32H7": ADCDEV_3 = 2
+      - if "NOT(STM32F4 || STM32F7 || STM32H7)": ADCDEV_MAX = 0
       - ADCDEV_COUNT = 1
+
   BlackboxDevice:
     description: From inav/src/main/blackbox/blackbox_io.h
     storage: uint8
     values:
       - BLACKBOX_DEVICE_SERIAL = 0
-      - name: BLACKBOX_DEVICE_FLASH
-        value: 1
-        condition: "USE_FLASHFS"
-      - name: BLACKBOX_DEVICE_SDCARD
-        value: 2
-        condition: "USE_SDCARD"
-      - name: BLACKBOX_DEVICE_FILE
-        value: 3
-        condition: "SITL_BUILD"
+      - if "USE_FLASHFS": BLACKBOX_DEVICE_FLASH = 1
+      - if "USE_SDCARD": BLACKBOX_DEVICE_SDCARD = 2
+      - if "SITL_BUILD": BLACKBOX_DEVICE_FILE = 3
       - BLACKBOX_DEVICE_END = 4
+
   BlackboxState:
     description: From inav/src/main/blackbox/blackbox.h
     storage: uint8
@@ -50,12 +40,14 @@ enums:
       - BLACKBOX_STATE_PAUSED = 9
       - BLACKBOX_STATE_RUNNING = 10
       - BLACKBOX_STATE_SHUTTING_DOWN = 11
+
   CanardRequestResponse:
     description: From inav/src/main/drivers/dronecan/libcanard/canard.h
     storage: uint8
     values:
       - CanardResponse = 0
       - CanardRequest = 1
+
   CanardTransferType:
     description: From inav/src/main/drivers/dronecan/libcanard/canard.h
     storage: uint8
@@ -63,6 +55,7 @@ enums:
       - CanardTransferTypeResponse = 0
       - CanardTransferTypeRequest = 1
       - CanardTransferTypeBroadcast = 2
+
   DjiCraftNameElements_t:
     description: From inav/src/main/io/osd_dji_hd.c
     storage: uint8
@@ -75,6 +68,7 @@ enums:
       - DJI_OSD_CN_DISTANCE = 5
       - DJI_OSD_CN_ADJUSTEMNTS = 6
       - DJI_OSD_CN_MAX_ELEMENTS = 7
+
   FlightLogEvent:
     description: From inav/src/main/blackbox/blackbox_fielddefs.h
     storage: uint8
@@ -85,6 +79,7 @@ enums:
       - FLIGHT_LOG_EVENT_FLIGHTMODE = 30
       - FLIGHT_LOG_EVENT_IMU_FAILURE = 40
       - FLIGHT_LOG_EVENT_LOG_END = 255
+
   FlightLogFieldCondition:
     description: From inav/src/main/blackbox/blackbox_fielddefs.h
     storage: uint8
@@ -148,15 +143,14 @@ enums:
       - FLIGHT_LOG_FIELD_CONDITION_RC_DATA = 56
       - FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND = 57
       - FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW = 58
-      - name: FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY
-        value: 59
-        condition: "USE_DUAL_GYRO"
+      - if "USE_DUAL_GYRO": FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY = 59
       - FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL = 60
       - FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH = 61
       - FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW = 62
       - FLIGHT_LOG_FIELD_CONDITION_NEVER = 63
       - FLIGHT_LOG_FIELD_CONDITION_FIRST = 0
       - FLIGHT_LOG_FIELD_CONDITION_LAST = 63
+
   FlightLogFieldEncoding:
     description: From inav/src/main/blackbox/blackbox_fielddefs.h
     storage: uint8
@@ -168,6 +162,7 @@ enums:
       - FLIGHT_LOG_FIELD_ENCODING_TAG2_3S32 = 7
       - FLIGHT_LOG_FIELD_ENCODING_TAG8_4S16 = 8
       - FLIGHT_LOG_FIELD_ENCODING_NULL = 9
+
   FlightLogFieldPredictor:
     description: From inav/src/main/blackbox/blackbox_fielddefs.h
     storage: uint8
@@ -183,12 +178,14 @@ enums:
       - FLIGHT_LOG_FIELD_PREDICTOR_1500 = 8
       - FLIGHT_LOG_FIELD_PREDICTOR_VBATREF = 9
       - FLIGHT_LOG_FIELD_PREDICTOR_LAST_MAIN_FRAME_TIME = 10
+
   FlightLogFieldSign:
     description: From inav/src/main/blackbox/blackbox_fielddefs.h
     storage: uint8
     values:
       - FLIGHT_LOG_FIELD_UNSIGNED = 0
       - FLIGHT_LOG_FIELD_SIGNED = 1
+
   HardwareMotorTypes_e:
     description: From inav/src/main/drivers/pwm_esc_detect.h
     storage: uint8
@@ -196,6 +193,7 @@ enums:
       - MOTOR_UNKNOWN = 0
       - MOTOR_BRUSHED = 1
       - MOTOR_BRUSHLESS = 2
+
   I2CDevice:
     description: From inav/src/main/drivers/bus_i2c.h
     storage: int8
@@ -205,10 +203,9 @@ enums:
       - I2CDEV_1 = 0
       - I2CDEV_2 = 1
       - I2CDEV_3 = 2
-      - name: I2CDEV_4
-        value: 3
-        condition: "USE_I2C_DEVICE_4"
+      - if "USE_I2C_DEVICE_4": I2CDEV_4 = 3
       - I2CDEV_COUNT = 4
+
   I2CSpeed:
     description: From inav/src/main/drivers/bus_i2c.h
     storage: uint8
@@ -217,6 +214,7 @@ enums:
       - I2C_SPEED_200KHZ = 3
       - I2C_SPEED_400KHZ = 0
       - I2C_SPEED_800KHZ = 1
+
   QUADSPIClockDivider_e:
     description: From inav/src/main/drivers/bus_quadspi.h
     storage: uint8
@@ -226,18 +224,21 @@ enums:
       - QUADSPI_CLOCK_STANDARD = 9
       - QUADSPI_CLOCK_FAST = 3
       - QUADSPI_CLOCK_ULTRAFAST = 1
+
   QUADSPIDevice:
     description: From inav/src/main/drivers/bus_quadspi.h
     storage: int8
     values:
       - QUADSPIINVALID = -1
       - QUADSPIDEV_1 = 0
+
   RCDEVICE_5key_connection_event_e:
     description: From inav/src/main/io/rcdevice.h
     storage: uint8
     values:
       - RCDEVICE_PROTOCOL_5KEY_CONNECTION_OPEN = 1
       - RCDEVICE_PROTOCOL_5KEY_CONNECTION_CLOSE = 2
+
   SDIODevice:
     description: From inav/src/main/drivers/sdio.h
     storage: int8
@@ -245,6 +246,7 @@ enums:
       - SDIOINVALID = -1
       - SDIODEV_1 = 0
       - SDIODEV_2 = 1
+
   SD_CardType_t:
     description: From inav/src/main/drivers/sdcard/sdmmc_sdio.h
     storage: uint8
@@ -257,6 +259,7 @@ enums:
       - SD_HIGH_SPEED_MULTIMEDIA = 5
       - SD_SECURE_DIGITAL_IO_COMBO = 6
       - SD_HIGH_CAPACITY_MMC = 7
+
   SD_Error_t:
     description: From inav/src/main/drivers/sdcard/sdmmc_sdio.h
     storage: uint8
@@ -305,12 +308,14 @@ enums:
       - SD_ERROR = 42
       - SD_BUSY = 43
       - SD_OK = 0
+
   SD_Operation_t:
     description: From inav/src/main/drivers/sdcard/sdmmc_sdio_f4xx.c
     storage: uint8
     values:
       - SD_SINGLE_BLOCK = 0
       - SD_MULTIPLE_BLOCK = 1
+
   SPIClockSpeed_e:
     description: From inav/src/main/drivers/bus_spi.h
     storage: uint8
@@ -320,6 +325,7 @@ enums:
       - SPI_CLOCK_STANDARD = 2
       - SPI_CLOCK_FAST = 3
       - SPI_CLOCK_ULTRAFAST = 4
+
   SPIDevice:
     description: From inav/src/main/drivers/bus_spi.h
     storage: int8
@@ -329,6 +335,7 @@ enums:
       - SPIDEV_2 = 1
       - SPIDEV_3 = 2
       - SPIDEV_4 = 3
+
   Srxl2BindRequest:
     description: From inav/src/main/rx/srxl2_types.h
     storage: uint8
@@ -337,6 +344,7 @@ enums:
       - RequestBindStatus = 181
       - BoundDataReport = 219
       - SetBindInfo = 91
+
   Srxl2BindType:
     description: From inav/src/main/rx/srxl2_types.h
     storage: uint8
@@ -350,6 +358,7 @@ enums:
       - Surface_DSM2_16_5ms = 99
       - DSMR_11ms_22ms = 226
       - DSMR_5_5ms = 228
+
   Srxl2ControlDataCommand:
     description: From inav/src/main/rx/srxl2_types.h
     storage: uint8
@@ -357,6 +366,7 @@ enums:
       - ChannelData = 0
       - FailsafeChannelData = 1
       - VTXData = 2
+
   Srxl2DeviceId:
     description: From inav/src/main/rx/srxl2_types.h
     storage: uint8
@@ -364,6 +374,7 @@ enums:
       - FlightControllerDefault = 48
       - FlightControllerMax = 63
       - Broadcast = 255
+
   Srxl2DeviceType:
     description: From inav/src/main/rx/srxl2_types.h
     storage: uint8
@@ -377,6 +388,7 @@ enums:
       - SRXLServo = 6
       - SRXLServo_2 = 7
       - VTX = 8
+
   Srxl2PacketType:
     description: From inav/src/main/rx/srxl2_types.h
     storage: uint8
@@ -387,6 +399,7 @@ enums:
       - SignalQuality = 85
       - TelemetrySensorData = 128
       - ControlData = 205
+
   Srxl2State:
     description: From inav/src/main/rx/srxl2_types.h
     storage: uint8
@@ -396,6 +409,7 @@ enums:
       - SendHandshake = 2
       - ListenForHandshake = 3
       - Running = 4
+
   UARTDevice_e:
     description: From inav/src/main/drivers/serial_uart.h
     storage: uint8
@@ -409,6 +423,7 @@ enums:
       - UARTDEV_7 = 6
       - UARTDEV_8 = 7
       - UARTDEV_MAX = 8
+
   VIDEO_TYPES:
     description: From inav/src/main/drivers/max7456.h
     storage: uint8
@@ -416,6 +431,7 @@ enums:
       - AUTO = 0
       - PAL = 1
       - NTSC = 2
+
   accEvent_t:
     description: From inav/src/main/telemetry/sim.c
     storage: uint8
@@ -424,6 +440,7 @@ enums:
       - ACC_EVENT_HIGH = 1
       - ACC_EVENT_LOW = 2
       - ACC_EVENT_NEG_X = 3
+
   accel_fsr_e:
     description: From inav/src/main/drivers/accgyro/accgyro_mpu.h
     storage: uint8
@@ -433,6 +450,7 @@ enums:
       - INV_FSR_8G = 2
       - INV_FSR_16G = 3
       - NUM_ACCEL_FSR = 4
+
   accelerationSensor_e:
     description: From inav/src/main/sensors/acceleration.h
     storage: uint8
@@ -452,6 +470,7 @@ enums:
       - ACC_ICM40609D = 12
       - ACC_FAKE = 13
       - ACC_MAX = 13
+
   adcChannel_e:
     description: From inav/src/main/drivers/adc.h
     storage: uint8
@@ -465,6 +484,7 @@ enums:
       - ADC_CHN_6 = 6
       - ADC_CHN_MAX = 6
       - ADC_CHN_COUNT = 7
+
   adcFunction_e:
     description: From inav/src/main/drivers/adc.h
     storage: uint8
@@ -474,6 +494,7 @@ enums:
       - ADC_CURRENT = 2
       - ADC_AIRSPEED = 3
       - ADC_FUNCTION_COUNT = 4
+
   adjustmentFunction_e:
     description: From inav/src/main/fc/rc_adjustments.h
     storage: uint8
@@ -540,12 +561,14 @@ enums:
       - ADJUSTMENT_NAV_WP_MULTI_MISSION_INDEX = 59
       - ADJUSTMENT_NAV_FW_ALT_CONTROL_RESPONSE = 60
       - ADJUSTMENT_FUNCTION_COUNT = 61
+
   adjustmentMode_e:
     description: From inav/src/main/fc/rc_adjustments.h
     storage: uint8
     values:
       - ADJUSTMENT_MODE_STEP = 0
       - ADJUSTMENT_MODE_SELECT = 1
+
   afatfsAppendFreeClusterPhase_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -557,6 +580,7 @@ enums:
       - AFATFS_APPEND_FREE_CLUSTER_PHASE_UPDATE_FILE_DIRECTORY = 3
       - AFATFS_APPEND_FREE_CLUSTER_PHASE_COMPLETE = 4
       - AFATFS_APPEND_FREE_CLUSTER_PHASE_FAILURE = 5
+
   afatfsAppendSuperclusterPhase_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -565,6 +589,7 @@ enums:
       - AFATFS_APPEND_SUPERCLUSTER_PHASE_UPDATE_FREEFILE_DIRECTORY = 1
       - AFATFS_APPEND_SUPERCLUSTER_PHASE_UPDATE_FAT = 2
       - AFATFS_APPEND_SUPERCLUSTER_PHASE_UPDATE_FILE_DIRECTORY = 3
+
   afatfsCacheBlockState_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -574,6 +599,7 @@ enums:
       - AFATFS_CACHE_STATE_READING = 2
       - AFATFS_CACHE_STATE_WRITING = 3
       - AFATFS_CACHE_STATE_DIRTY = 4
+
   afatfsClusterSearchCondition_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -581,12 +607,14 @@ enums:
       - CLUSTER_SEARCH_FREE_AT_BEGINNING_OF_FAT_SECTOR = 0
       - CLUSTER_SEARCH_FREE = 1
       - CLUSTER_SEARCH_OCCUPIED = 2
+
   afatfsDeleteFilePhase_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
     values:
       - AFATFS_DELETE_FILE_DELETE_DIRECTORY_ENTRY = 0
       - AFATFS_DELETE_FILE_DEALLOCATE_CLUSTERS = 1
+
   afatfsError_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.h
     storage: uint8
@@ -595,6 +623,7 @@ enums:
       - AFATFS_ERROR_GENERIC = 1
       - AFATFS_ERROR_BAD_MBR = 2
       - AFATFS_ERROR_BAD_FILESYSTEM_HEADER = 3
+
   afatfsExtendSubdirectoryPhase_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -604,6 +633,7 @@ enums:
       - AFATFS_EXTEND_SUBDIRECTORY_PHASE_WRITE_SECTORS = 1
       - AFATFS_EXTEND_SUBDIRECTORY_PHASE_SUCCESS = 2
       - AFATFS_EXTEND_SUBDIRECTORY_PHASE_FAILURE = 3
+
   afatfsFATPattern_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -611,6 +641,7 @@ enums:
       - AFATFS_FAT_PATTERN_UNTERMINATED_CHAIN = 0
       - AFATFS_FAT_PATTERN_TERMINATED_CHAIN = 1
       - AFATFS_FAT_PATTERN_FREE = 2
+
   afatfsFileOperation_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -621,14 +652,11 @@ enums:
       - AFATFS_FILE_OPERATION_CLOSE = 3
       - AFATFS_FILE_OPERATION_TRUNCATE = 4
       - AFATFS_FILE_OPERATION_UNLINK = 5
-      - name: AFATFS_FILE_OPERATION_APPEND_SUPERCLUSTER
-        value: 6
-        condition: "AFATFS_USE_FREEFILE"
-      - name: AFATFS_FILE_OPERATION_LOCKED
-        value: 7
-        condition: "AFATFS_USE_FREEFILE"
+      - if "AFATFS_USE_FREEFILE": AFATFS_FILE_OPERATION_APPEND_SUPERCLUSTER = 6
+      - if "AFATFS_USE_FREEFILE": AFATFS_FILE_OPERATION_LOCKED = 7
       - AFATFS_FILE_OPERATION_APPEND_FREE_CLUSTER = 8
       - AFATFS_FILE_OPERATION_EXTEND_SUBDIRECTORY = 9
+
   afatfsFileType_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -637,6 +665,7 @@ enums:
       - AFATFS_FILE_TYPE_NORMAL = 1
       - AFATFS_FILE_TYPE_FAT16_ROOT_DIRECTORY = 2
       - AFATFS_FILE_TYPE_DIRECTORY = 3
+
   afatfsFilesystemState_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.h
     storage: uint8
@@ -645,6 +674,7 @@ enums:
       - AFATFS_FILESYSTEM_STATE_FATAL = 1
       - AFATFS_FILESYSTEM_STATE_INITIALIZATION = 2
       - AFATFS_FILESYSTEM_STATE_READY = 3
+
   afatfsFindClusterStatus_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -653,37 +683,28 @@ enums:
       - AFATFS_FIND_CLUSTER_FOUND = 1
       - AFATFS_FIND_CLUSTER_FATAL = 2
       - AFATFS_FIND_CLUSTER_NOT_FOUND = 3
+
   afatfsFreeSpaceSearchPhase_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
     values:
       - AFATFS_FREE_SPACE_SEARCH_PHASE_FIND_HOLE = 0
       - AFATFS_FREE_SPACE_SEARCH_PHASE_GROW_HOLE = 1
+
   afatfsInitializationPhase_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
     values:
       - AFATFS_INITIALIZATION_READ_MBR = 0
       - AFATFS_INITIALIZATION_READ_VOLUME_ID = 1
-      - name: AFATFS_INITIALIZATION_FREEFILE_CREATE
-        value: 2
-        condition: "AFATFS_USE_FREEFILE"
-      - name: AFATFS_INITIALIZATION_FREEFILE_CREATING
-        value: 3
-        condition: "AFATFS_USE_FREEFILE"
-      - name: AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH
-        value: 4
-        condition: "AFATFS_USE_FREEFILE"
-      - name: AFATFS_INITIALIZATION_FREEFILE_UPDATE_FAT
-        value: 5
-        condition: "AFATFS_USE_FREEFILE"
-      - name: AFATFS_INITIALIZATION_FREEFILE_SAVE_DIR_ENTRY
-        value: 6
-        condition: "AFATFS_USE_FREEFILE"
-      - name: AFATFS_INITIALIZATION_FREEFILE_LAST
-        value: 6
-        condition: "AFATFS_USE_FREEFILE"
+      - if "AFATFS_USE_FREEFILE": AFATFS_INITIALIZATION_FREEFILE_CREATE = 2
+      - if "AFATFS_USE_FREEFILE": AFATFS_INITIALIZATION_FREEFILE_CREATING = 3
+      - if "AFATFS_USE_FREEFILE": AFATFS_INITIALIZATION_FREEFILE_FAT_SEARCH = 4
+      - if "AFATFS_USE_FREEFILE": AFATFS_INITIALIZATION_FREEFILE_UPDATE_FAT = 5
+      - if "AFATFS_USE_FREEFILE": AFATFS_INITIALIZATION_FREEFILE_SAVE_DIR_ENTRY = 6
+      - if "AFATFS_USE_FREEFILE": AFATFS_INITIALIZATION_FREEFILE_LAST = 6
       - AFATFS_INITIALIZATION_DONE = 7
+
   afatfsOperationStatus_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.h
     storage: uint8
@@ -691,6 +712,7 @@ enums:
       - AFATFS_OPERATION_IN_PROGRESS = 0
       - AFATFS_OPERATION_SUCCESS = 1
       - AFATFS_OPERATION_FAILURE = 2
+
   afatfsSaveDirectoryEntryMode_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -698,6 +720,7 @@ enums:
       - AFATFS_SAVE_DIRECTORY_NORMAL = 0
       - AFATFS_SAVE_DIRECTORY_FOR_CLOSE = 1
       - AFATFS_SAVE_DIRECTORY_DELETED = 2
+
   afatfsSeek_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.h
     storage: uint8
@@ -705,6 +728,7 @@ enums:
       - AFATFS_SEEK_SET = 0
       - AFATFS_SEEK_CUR = 1
       - AFATFS_SEEK_END = 2
+
   afatfsTruncateFilePhase_e:
     description: From inav/src/main/io/asyncfatfs/asyncfatfs.c
     storage: uint8
@@ -712,13 +736,10 @@ enums:
       - AFATFS_TRUNCATE_FILE_INITIAL = 0
       - AFATFS_TRUNCATE_FILE_UPDATE_DIRECTORY = 0
       - AFATFS_TRUNCATE_FILE_ERASE_FAT_CHAIN_NORMAL = 1
-      - name: AFATFS_TRUNCATE_FILE_ERASE_FAT_CHAIN_CONTIGUOUS
-        value: 2
-        condition: "AFATFS_USE_FREEFILE"
-      - name: AFATFS_TRUNCATE_FILE_PREPEND_TO_FREEFILE
-        value: 3
-        condition: "AFATFS_USE_FREEFILE"
+      - if "AFATFS_USE_FREEFILE": AFATFS_TRUNCATE_FILE_ERASE_FAT_CHAIN_CONTIGUOUS = 2
+      - if "AFATFS_USE_FREEFILE": AFATFS_TRUNCATE_FILE_PREPEND_TO_FREEFILE = 3
       - AFATFS_TRUNCATE_FILE_SUCCESS = 4
+
   airmodeHandlingType_e:
     description: From inav/src/main/fc/rc_controls.h
     storage: uint8
@@ -726,12 +747,14 @@ enums:
       - STICK_CENTER = 0
       - THROTTLE_THRESHOLD = 1
       - STICK_CENTER_ONCE = 2
+
   angle_index_t:
     description: From inav/src/main/common/axis.h
     storage: uint8
     values:
       - AI_ROLL = 0
       - AI_PITCH = 1
+
   armingFlag_e:
     description: From inav/src/main/fc/runtime_config.h
     storage: uint32
@@ -765,6 +788,7 @@ enums:
       - ARMING_DISABLED_DSHOT_BEEPER = 536870912
       - ARMING_DISABLED_LANDING_DETECTED = 1073741824
       - ARMING_DISABLED_ALL_FLAGS = 2147352512
+
   axis_e:
     description: From inav/src/main/common/axis.h
     storage: uint8
@@ -772,6 +796,7 @@ enums:
       - X = 0
       - Y = 1
       - Z = 2
+
   baroSensor_e:
     description: From inav/src/main/sensors/barometer.h
     storage: uint8
@@ -791,24 +816,28 @@ enums:
       - BARO_FAKE = 12
       - BARO_CRSF = 13
       - BARO_MAX = 13
+
   barometerState_e:
     description: From inav/src/main/sensors/barometer.c
     storage: uint8
     values:
       - BAROMETER_NEEDS_SAMPLES = 0
       - BAROMETER_NEEDS_CALCULATION = 1
+
   batCapacityUnit_e:
     description: From inav/src/main/sensors/battery_config_structs.h
     storage: uint8
     values:
       - BAT_CAPACITY_UNIT_MAH = 0
       - BAT_CAPACITY_UNIT_MWH = 1
+
   batVoltageSource_e:
     description: From inav/src/main/sensors/battery_config_structs.h
     storage: uint8
     values:
       - BAT_VOLTAGE_RAW = 0
       - BAT_VOLTAGE_SAG_COMP = 1
+
   batteryState_e:
     description: From inav/src/main/sensors/battery.h
     storage: uint8
@@ -817,6 +846,7 @@ enums:
       - BATTERY_WARNING = 1
       - BATTERY_CRITICAL = 2
       - BATTERY_NOT_PRESENT = 3
+
   baudRate_e:
     description: From inav/src/main/io/serial.h
     storage: uint8
@@ -840,6 +870,7 @@ enums:
       - BAUD_2470000 = 16
       - BAUD_MIN = 0
       - BAUD_MAX = 16
+
   beeperMode_e:
     description: From inav/src/main/io/beeper.h
     storage: uint8
@@ -871,12 +902,14 @@ enums:
       - BEEPER_CAM_CONNECTION_CLOSE = 24
       - BEEPER_ALL = 25
       - BEEPER_PREFERENCE = 26
+
   biquadFilterType_e:
     description: From inav/src/main/common/filter.h
     storage: uint8
     values:
       - FILTER_LPF = 0
       - FILTER_NOTCH = 1
+
   blackboxBufferReserveStatus_e:
     description: From inav/src/main/blackbox/blackbox_io.h
     storage: uint8
@@ -884,6 +917,7 @@ enums:
       - BLACKBOX_RESERVE_SUCCESS = 0
       - BLACKBOX_RESERVE_TEMPORARY_FAILURE = 1
       - BLACKBOX_RESERVE_PERMANENT_FAILURE = 2
+
   blackboxFeatureMask_e:
     description: From inav/src/main/blackbox/blackbox.h
     storage: uint16
@@ -902,6 +936,7 @@ enums:
       - BLACKBOX_FEATURE_GYRO_PEAKS_PITCH = 2048
       - BLACKBOX_FEATURE_GYRO_PEAKS_YAW = 4096
       - BLACKBOX_FEATURE_SERVOS = 8192
+
   bmi270Register_e:
     description: From inav/src/main/drivers/accgyro/accgyro_bmi270.c
     storage: uint8
@@ -947,6 +982,7 @@ enums:
       - BMI270_REG_PWR_CONF = 124
       - BMI270_REG_PWR_CTRL = 125
       - BMI270_REG_CMD = 126
+
   bootLogEventCode_e:
     description: From inav/src/main/drivers/logging_codes.h
     storage: uint8
@@ -977,6 +1013,7 @@ enums:
       - BOOT_EVENT_HARDWARE_IO_CONFLICT = 23
       - BOOT_EVENT_OPFLOW_DETECTION = 24
       - BOOT_EVENT_CODE_COUNT = 25
+
   bootLogFlags_e:
     description: From inav/src/main/drivers/logging_codes.h
     storage: uint16
@@ -986,6 +1023,7 @@ enums:
       - BOOT_EVENT_FLAGS_ERROR = 2
       - BOOT_EVENT_FLAGS_PARAM16 = 16384
       - BOOT_EVENT_FLAGS_PARAM32 = 32768
+
   boxId_e:
     description: From inav/src/main/fc/rc_modes.h
     storage: uint8
@@ -1054,6 +1092,7 @@ enums:
       - BOXINFLIGHTMENU = 62
       - BOXTHRUSTREVERSE = 63
       - CHECKBOX_ITEM_COUNT = 64
+
   busIndex_e:
     description: From inav/src/main/drivers/bus.h
     storage: uint8
@@ -1062,6 +1101,7 @@ enums:
       - BUSINDEX_2 = 1
       - BUSINDEX_3 = 2
       - BUSINDEX_4 = 3
+
   busSpeed_e:
     description: From inav/src/main/drivers/bus.h
     storage: uint8
@@ -1071,6 +1111,7 @@ enums:
       - BUS_SPEED_STANDARD = 2
       - BUS_SPEED_FAST = 3
       - BUS_SPEED_ULTRAFAST = 4
+
   busType_e:
     description: From inav/src/main/drivers/bus.h
     storage: uint8
@@ -1080,6 +1121,7 @@ enums:
       - BUSTYPE_I2C = 1
       - BUSTYPE_SPI = 2
       - BUSTYPE_SDIO = 3
+
   channelType_t:
     description: From inav/src/main/drivers/timer.h
     storage: uint8
@@ -1099,6 +1141,7 @@ enums:
       - TYPE_SERIAL_TX = 12
       - TYPE_SERIAL_RXTX = 13
       - TYPE_TIMER = 14
+
   climbRateToAltitudeControllerMode_e:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -1106,6 +1149,7 @@ enums:
       - ROC_TO_ALT_CURRENT = 0
       - ROC_TO_ALT_CONSTANT = 1
       - ROC_TO_ALT_TARGET = 2
+
   clock_sel_e:
     description: From inav/src/main/drivers/accgyro/accgyro_mpu.h
     storage: uint8
@@ -1113,6 +1157,7 @@ enums:
       - INV_CLK_INTERNAL = 0
       - INV_CLK_PLL = 1
       - NUM_CLK = 2
+
   colorComponent_e:
     description: From inav/src/main/common/color.h
     storage: uint8
@@ -1120,6 +1165,7 @@ enums:
       - RGB_RED = 0
       - RGB_GREEN = 1
       - RGB_BLUE = 2
+
   colorId_e:
     description: From inav/src/main/io/ledstrip.h
     storage: uint8
@@ -1138,12 +1184,14 @@ enums:
       - COLOR_DARK_VIOLET = 11
       - COLOR_MAGENTA = 12
       - COLOR_DEEP_PINK = 13
+
   crsfActiveAntenna_e:
     description: From inav/src/main/telemetry/crsf.c
     storage: uint8
     values:
       - CRSF_ACTIVE_ANTENNA1 = 0
       - CRSF_ACTIVE_ANTENNA2 = 1
+
   crsfAddress_e:
     description: From inav/src/main/rx/crsf.h
     storage: uint8
@@ -1161,6 +1209,7 @@ enums:
       - CRSF_ADDRESS_RADIO_TRANSMITTER = 234
       - CRSF_ADDRESS_CRSF_RECEIVER = 236
       - CRSF_ADDRESS_CRSF_TRANSMITTER = 238
+
   crsfFrameTypeIndex_e:
     description: From inav/src/main/telemetry/crsf.c
     storage: uint8
@@ -1175,6 +1224,7 @@ enums:
       - CRSF_FRAME_RPM_INDEX = 6
       - CRSF_FRAME_AIRSPEED_INDEX = 7
       - CRSF_SCHEDULE_COUNT_MAX = 8
+
   crsfFrameType_e:
     description: From inav/src/main/rx/crsf.h
     storage: uint8
@@ -1200,6 +1250,7 @@ enums:
       - CRSF_FRAMETYPE_MSP_RESP = 123
       - CRSF_FRAMETYPE_MSP_WRITE = 124
       - CRSF_FRAMETYPE_DISPLAYPORT_CMD = 125
+
   crsrRfMode_e:
     description: From inav/src/main/telemetry/crsf.c
     storage: uint8
@@ -1207,6 +1258,7 @@ enums:
       - CRSF_RF_MODE_4_HZ = 0
       - CRSF_RF_MODE_50_HZ = 1
       - CRSF_RF_MODE_150_HZ = 2
+
   crsrRfPower_e:
     description: From inav/src/main/telemetry/crsf.c
     storage: uint8
@@ -1219,6 +1271,7 @@ enums:
       - CRSF_RF_POWER_1000_mW = 5
       - CRSF_RF_POWER_2000_mW = 6
       - CRSF_RF_POWER_250_mW = 7
+
   currentSensor_e:
     description: From inav/src/main/sensors/battery_config_structs.h
     storage: uint8
@@ -1233,6 +1286,7 @@ enums:
       - CURRENT_SENSOR_CAN = 7
       - CURRENT_SENSOR_INA226 = 8
       - CURRENT_SENSOR_MAX = 8
+
   devHardwareType_e:
     description: From inav/src/main/drivers/bus.h
     storage: uint8
@@ -1299,6 +1353,7 @@ enums:
       - DEVHW_IRLOCK = 59
       - DEVHW_PCF8574 = 60
       - DEVHW_INA226 = 61
+
   deviceFlags_e:
     description: From inav/src/main/drivers/bus.h
     storage: uint8
@@ -1307,6 +1362,7 @@ enums:
       - DEVFLAGS_USE_RAW_REGISTERS = 1
       - DEVFLAGS_USE_MANUAL_DEVICE_SELECT = 2
       - DEVFLAGS_SPI_MODE_0 = 4
+
   disarmReason_e:
     description: From inav/src/main/fc/fc_core.h
     storage: uint8
@@ -1320,6 +1376,7 @@ enums:
       - DISARM_NAVIGATION = 7
       - DISARM_LANDING = 8
       - DISARM_REASON_COUNT = 9
+
   displayCanvasBitmapOption_t:
     description: From inav/src/main/drivers/display_canvas.h
     storage: uint8
@@ -1327,6 +1384,7 @@ enums:
       - DISPLAY_CANVAS_BITMAP_OPT_INVERT_COLORS = 1
       - DISPLAY_CANVAS_BITMAP_OPT_SOLID_BACKGROUND = 2
       - DISPLAY_CANVAS_BITMAP_OPT_ERASE_TRANSPARENT = 4
+
   displayCanvasColor_e:
     description: From inav/src/main/drivers/display_canvas.h
     storage: uint8
@@ -1335,6 +1393,7 @@ enums:
       - DISPLAY_CANVAS_COLOR_TRANSPARENT = 1
       - DISPLAY_CANVAS_COLOR_WHITE = 2
       - DISPLAY_CANVAS_COLOR_GRAY = 3
+
   displayCanvasOutlineType_e:
     description: From inav/src/main/drivers/display_canvas.h
     storage: uint8
@@ -1344,6 +1403,7 @@ enums:
       - DISPLAY_CANVAS_OUTLINE_TYPE_RIGHT = 2
       - DISPLAY_CANVAS_OUTLINE_TYPE_BOTTOM = 4
       - DISPLAY_CANVAS_OUTLINE_TYPE_LEFT = 8
+
   displayTransactionOption_e:
     description: From inav/src/main/drivers/display.h
     storage: uint8
@@ -1351,12 +1411,14 @@ enums:
       - DISPLAY_TRANSACTION_OPT_NONE = 0
       - DISPLAY_TRANSACTION_OPT_PROFILED = 1
       - DISPLAY_TRANSACTION_OPT_RESET_DRAWING = 2
+
   displayWidgetType_e:
     description: From inav/src/main/drivers/display_widgets.h
     storage: uint8
     values:
       - DISPLAY_WIDGET_TYPE_AHI = 0
       - DISPLAY_WIDGET_TYPE_SIDEBAR = 1
+
   displayportMspCommand_e:
     description: From inav/src/main/io/displayport_msp.h
     storage: uint8
@@ -1369,11 +1431,13 @@ enums:
       - MSP_DP_OPTIONS = 5
       - MSP_DP_SYS = 6
       - MSP_DP_COUNT = 7
+
   djiOsdProtoWorkarounds_e:
     description: From inav/src/main/io/osd_dji_hd.h
     storage: uint8
     values:
       - DJI_OSD_USE_NON_STANDARD_MSP_ESC_SENSOR_DATA = 1
+
   djiOsdTempSource_e:
     description: From inav/src/main/io/osd_dji_hd.h
     storage: uint8
@@ -1381,12 +1445,14 @@ enums:
       - DJI_OSD_TEMP_ESC = 0
       - DJI_OSD_TEMP_CORE = 1
       - DJI_OSD_TEMP_BARO = 2
+
   djiRssiSource_e:
     description: From inav/src/main/io/osd_dji_hd.h
     storage: uint8
     values:
       - DJI_RSSI = 0
       - DJI_CRSF_LQ = 1
+
   dronecanAsyncState_e:
     description: From inav/src/main/drivers/dronecan/dronecan.h
     storage: uint8
@@ -1395,6 +1461,7 @@ enums:
       - DRONECAN_ASYNC_PENDING = 1
       - DRONECAN_ASYNC_READY = 2
       - DRONECAN_ASYNC_ERROR = 3
+
   dronecanBitrate_e:
     description: From inav/src/main/drivers/dronecan/dronecan.h
     storage: uint8
@@ -1404,6 +1471,7 @@ enums:
       - DRONECAN_BITRATE_500KBPS = 2
       - DRONECAN_BITRATE_1000KBPS = 3
       - DRONECAN_BITRATE_COUNT = 4
+
   dronecanState_e:
     description: From inav/src/main/drivers/dronecan/dronecan.h
     storage: uint8
@@ -1413,12 +1481,14 @@ enums:
       - STATE_DRONECAN_BUS_OFF = 2
       - STATE_DRONECAN_FAILED = 3
       - STATE_DRONECAN_COUNT = 4
+
   dshotCommands_e:
     description: From inav/src/main/drivers/pwm_output.h
     storage: uint8
     values:
       - DSHOT_CMD_SPIN_DIRECTION_NORMAL = 20
       - DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21
+
   dumpFlags_e:
     description: From inav/src/main/fc/cli.c
     storage: uint8
@@ -1431,12 +1501,14 @@ enums:
       - DO_DIFF = 32
       - SHOW_DEFAULTS = 64
       - HIDE_UNUSED = 128
+
   dynamicGyroNotchMode_e:
     description: From inav/src/main/sensors/gyro.h
     storage: uint8
     values:
       - DYNAMIC_NOTCH_MODE_2D = 0
       - DYNAMIC_NOTCH_MODE_3D = 1
+
   emergLandState_e:
     description: From inav/src/main/flight/failsafe.h
     storage: uint8
@@ -1444,6 +1516,7 @@ enums:
       - EMERG_LAND_IDLE = 0
       - EMERG_LAND_IN_PROGRESS = 1
       - EMERG_LAND_HAS_LANDED = 2
+
   escSensorFrameStatus_t:
     description: From inav/src/main/sensors/esc_sensor.c
     storage: uint8
@@ -1451,6 +1524,7 @@ enums:
       - ESC_SENSOR_FRAME_PENDING = 0
       - ESC_SENSOR_FRAME_COMPLETE = 1
       - ESC_SENSOR_FRAME_FAILED = 2
+
   escSensorState_t:
     description: From inav/src/main/sensors/esc_sensor.c
     storage: uint8
@@ -1458,6 +1532,7 @@ enums:
       - ESC_SENSOR_WAIT_STARTUP = 0
       - ESC_SENSOR_READY = 1
       - ESC_SENSOR_WAITING = 2
+
   exBusHeader_e:
     description: From inav/src/main/rx/jetiexbus.h
     storage: uint8
@@ -1469,6 +1544,7 @@ enums:
       - EXBUS_HEADER_DATA_ID = 4
       - EXBUS_HEADER_SUBLEN = 5
       - EXBUS_HEADER_DATA = 6
+
   exDataType_e:
     description: From inav/src/main/telemetry/jetiexbus.c
     storage: uint8
@@ -1480,6 +1556,7 @@ enums:
       - EX_TYPE_30b = 8
       - EX_TYPE_GPS = 9
       - EX_TYPE_DES = 255
+
   exSensors_e:
     description: From inav/src/main/telemetry/jetiexbus.c
     storage: uint8
@@ -1514,6 +1591,7 @@ enums:
       - EX_DEBUG5 = 29
       - EX_DEBUG6 = 30
       - EX_DEBUG7 = 31
+
   exTelHeader_e:
     description: From inav/src/main/telemetry/jetiexbus.c
     storage: uint8
@@ -1527,12 +1605,14 @@ enums:
       - EXTEL_HEADER_RES = 6
       - EXTEL_HEADER_ID = 7
       - EXTEL_HEADER_DATA = 8
+
   failsafeChannelBehavior_e:
     description: From inav/src/main/flight/failsafe.c
     storage: uint8
     values:
       - FAILSAFE_CHANNEL_HOLD = 0
       - FAILSAFE_CHANNEL_NEUTRAL = 1
+
   failsafePhase_e:
     description: From inav/src/main/flight/failsafe.h
     storage: uint8
@@ -1545,6 +1625,7 @@ enums:
       - FAILSAFE_LANDED = 5
       - FAILSAFE_RX_LOSS_MONITORING = 6
       - FAILSAFE_RX_LOSS_RECOVERED = 7
+
   failsafeProcedure_e:
     description: From inav/src/main/flight/failsafe.h
     storage: uint8
@@ -1553,12 +1634,14 @@ enums:
       - FAILSAFE_PROCEDURE_DROP_IT = 1
       - FAILSAFE_PROCEDURE_RTH = 2
       - FAILSAFE_PROCEDURE_NONE = 3
+
   failsafeRxLinkState_e:
     description: From inav/src/main/flight/failsafe.h
     storage: uint8
     values:
       - FAILSAFE_RXLINK_DOWN = 0
       - FAILSAFE_RXLINK_UP = 1
+
   failureMode_e:
     description: From inav/src/main/drivers/system.h
     storage: uint8
@@ -1571,6 +1654,7 @@ enums:
       - FAILURE_FLASH_WRITE_FAILED = 5
       - FAILURE_GYRO_INIT_FAILED = 6
       - FAILURE_FLASH_READ_FAILED = 7
+
   fatFilesystemType_e:
     description: From inav/src/main/io/asyncfatfs/fat_standard.h
     storage: uint8
@@ -1579,6 +1663,7 @@ enums:
       - FAT_FILESYSTEM_TYPE_FAT12 = 1
       - FAT_FILESYSTEM_TYPE_FAT16 = 2
       - FAT_FILESYSTEM_TYPE_FAT32 = 3
+
   fchoice_b:
     description: From inav/src/main/drivers/accgyro/accgyro_mpu.h
     storage: uint8
@@ -1586,6 +1671,7 @@ enums:
       - FCB_DISABLED = 0
       - FCB_8800_32 = 1
       - FCB_3600_32 = 2
+
   features_e:
     description: From inav/src/main/fc/config.h
     storage: uint32
@@ -1622,6 +1708,7 @@ enums:
       - FEATURE_OSD = 536870912
       - FEATURE_FW_LAUNCH = 1073741824
       - FEATURE_FW_AUTOTRIM = 2147483648
+
   fenceAction_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -1630,6 +1717,7 @@ enums:
       - GEOFENCE_ACTION_AVOID = 1
       - GEOFENCE_ACTION_POS_HOLD = 2
       - GEOFENCE_ACTION_RTH = 3
+
   filterType_e:
     description: From inav/src/main/common/filter.h
     storage: uint8
@@ -1639,6 +1727,7 @@ enums:
       - FILTER_PT2 = 2
       - FILTER_PT3 = 3
       - FILTER_LULU = 4
+
   fixedWingLaunchEvent_t:
     description: From inav/src/main/navigation/navigation_fw_launch.c
     storage: uint8
@@ -1649,6 +1738,7 @@ enums:
       - FW_LAUNCH_EVENT_ABORT = 3
       - FW_LAUNCH_EVENT_THROTTLE_LOW = 4
       - FW_LAUNCH_EVENT_COUNT = 5
+
   fixedWingLaunchMessage_t:
     description: From inav/src/main/navigation/navigation_fw_launch.c
     storage: uint8
@@ -1659,6 +1749,7 @@ enums:
       - FW_LAUNCH_MESSAGE_TYPE_WAIT_DETECTION = 3
       - FW_LAUNCH_MESSAGE_TYPE_IN_PROGRESS = 4
       - FW_LAUNCH_MESSAGE_TYPE_FINISHING = 5
+
   fixedWingLaunchState_t:
     description: From inav/src/main/navigation/navigation_fw_launch.c
     storage: uint8
@@ -1676,6 +1767,7 @@ enums:
       - FW_LAUNCH_STATE_ABORTED = 10
       - FW_LAUNCH_STATE_FLYING = 11
       - FW_LAUNCH_STATE_COUNT = 12
+
   flashPartitionType_e:
     description: From inav/src/main/drivers/flash.h
     storage: uint8
@@ -1690,12 +1782,14 @@ enums:
       - FLASH_PARTITION_TYPE_FIRMWARE_UPDATE_META = 7
       - FLASH_PARTITION_TYPE_UPDATE_FIRMWARE = 8
       - FLASH_MAX_PARTITIONS = 9
+
   flashType_e:
     description: From inav/src/main/drivers/flash.h
     storage: uint8
     values:
       - FLASH_TYPE_NOR = 0
       - FLASH_TYPE_NAND = 1
+
   flightModeFlags_e:
     description: From inav/src/main/fc/runtime_config.h
     storage: uint32
@@ -1720,6 +1814,7 @@ enums:
       - ANGLEHOLD_MODE = 131072
       - NAV_FW_AUTOLAND = 262144
       - NAV_SEND_TO = 524288
+
   flightModeForTelemetry_e:
     description: From inav/src/main/fc/runtime_config.h
     storage: uint8
@@ -1739,6 +1834,7 @@ enums:
       - FLM_FAILSAFE = 12
       - FLM_ANGLEHOLD = 13
       - FLM_COUNT = 14
+
   flight_dynamics_index_t:
     description: From inav/src/main/common/axis.h
     storage: uint8
@@ -1746,6 +1842,7 @@ enums:
       - FD_ROLL = 0
       - FD_PITCH = 1
       - FD_YAW = 2
+
   flyingPlatformType_e:
     description: From inav/src/main/flight/mixer.h
     storage: uint8
@@ -1756,6 +1853,7 @@ enums:
       - PLATFORM_TRICOPTER = 3
       - PLATFORM_ROVER = 4
       - PLATFORM_BOAT = 5
+
   fport2_control_frame_type_e:
     description: From inav/src/main/rx/fport2.c
     storage: uint8
@@ -1764,6 +1862,7 @@ enums:
       - CFT_OTA_START = 240
       - CFT_OTA_DATA = 241
       - CFT_OTA_STOP = 242
+
   frame_state_e:
     description: From inav/src/main/rx/fport2.c
     storage: uint8
@@ -1773,12 +1872,14 @@ enums:
       - FS_CONTROL_FRAME_DATA = 2
       - FS_DOWNLINK_FRAME_START = 3
       - FS_DOWNLINK_FRAME_DATA = 4
+
   frame_type_e:
     description: From inav/src/main/rx/fport2.c
     storage: uint8
     values:
       - FT_CONTROL = 0
       - FT_DOWNLINK = 1
+
   frskyOSDColor_e:
     description: From inav/src/main/io/frsky_osd.h
     storage: uint8
@@ -1787,6 +1888,7 @@ enums:
       - FRSKY_OSD_COLOR_TRANSPARENT = 1
       - FRSKY_OSD_COLOR_WHITE = 2
       - FRSKY_OSD_COLOR_GRAY = 3
+
   frskyOSDLineOutlineType_e:
     description: From inav/src/main/io/frsky_osd.h
     storage: uint8
@@ -1796,6 +1898,7 @@ enums:
       - FRSKY_OSD_OUTLINE_TYPE_RIGHT = 2
       - FRSKY_OSD_OUTLINE_TYPE_BOTTOM = 4
       - FRSKY_OSD_OUTLINE_TYPE_LEFT = 8
+
   frskyOSDRecvState_e:
     description: From inav/src/main/io/frsky_osd.c
     storage: uint8
@@ -1806,12 +1909,14 @@ enums:
       - RECV_STATE_DATA = 3
       - RECV_STATE_CHECKSUM = 4
       - RECV_STATE_DONE = 5
+
   frskyOSDTransactionOptions_e:
     description: From inav/src/main/io/frsky_osd.h
     storage: uint8
     values:
       - FRSKY_OSD_TRANSACTION_OPT_PROFILED = 1
       - FRSKY_OSD_TRANSACTION_OPT_RESET_DRAWING = 2
+
   frskyOSDWidgetID_e:
     description: From inav/src/main/io/frsky_osd.h
     storage: uint8
@@ -1833,6 +1938,7 @@ enums:
       - FRSKY_OSD_WIDGET_ID_GRAPH_LAST = 6
       - FRSKY_OSD_WIDGET_ID_CHARGAUGE_FIRST = 7
       - FRSKY_OSD_WIDGET_ID_CHARGAUGE_LAST = 10
+
   fwAutoSpeedSpdSource_e:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -1840,12 +1946,14 @@ enums:
       - FW_AUTO_SPD_GROUND = 0
       - FW_AUTO_SPD_AIR = 1
       - FW_AUTO_SPD_GROUND_OVERRIDE = 2
+
   fwAutolandApproachDirection_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - FW_AUTOLAND_APPROACH_DIRECTION_LEFT = 0
       - FW_AUTOLAND_APPROACH_DIRECTION_RIGHT = 1
+
   fwAutolandState_t:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -1857,6 +1965,7 @@ enums:
       - FW_AUTOLAND_STATE_FINAL_APPROACH = 4
       - FW_AUTOLAND_STATE_GLIDE = 5
       - FW_AUTOLAND_STATE_FLARE = 6
+
   fwAutolandWaypoint_t:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -1865,6 +1974,7 @@ enums:
       - FW_AUTOLAND_WP_FINAL_APPROACH = 1
       - FW_AUTOLAND_WP_LAND = 2
       - FW_AUTOLAND_WP_COUNT = 3
+
   fw_autotune_rate_adjustment_e:
     description: From inav/src/main/flight/pid.h
     storage: uint8
@@ -1872,12 +1982,14 @@ enums:
       - FIXED = 0
       - LIMIT = 1
       - AUTO = 2
+
   geoAltitudeConversionMode_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - GEO_ALT_ABSOLUTE = 0
       - GEO_ALT_RELATIVE = 1
+
   geoAltitudeDatumFlag_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -1886,12 +1998,14 @@ enums:
       - NAV_WP_MSL_DATUM = 1
       - NAV_WP_TERRAIN_DATUM = 2
       - NAV_WP_RELATIVE_DATUM = 3
+
   geoOriginResetMode_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - GEO_ORIGIN_SET = 0
       - GEO_ORIGIN_RESET_ALTITUDE = 1
+
   geozoneActionState_e:
     description: From inav/src/main/navigation/navigation_geozone.c
     storage: uint8
@@ -1904,6 +2018,7 @@ enums:
       - GEOZONE_ACTION_STATE_FLYOUT_NFZ = 5
       - GEOZONE_ACTION_STATE_POSHOLD = 6
       - GEOZONE_ACTION_STATE_RTH = 7
+
   geozoneMessageState_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -1918,6 +2033,7 @@ enums:
       - GEOZONE_MESSAGE_STATE_FLYOUT_NFZ = 7
       - GEOZONE_MESSAGE_STATE_AVOIDING_ALTITUDE_BREACH = 8
       - GEOZONE_MESSAGE_STATE_POS_HOLD = 9
+
   ghstAddr_e:
     description: From inav/src/main/rx/ghst_protocol.h
     storage: uint8
@@ -1932,6 +2048,7 @@ enums:
       - GHST_ADDR_QUANTUM_GW1 = 134
       - GHST_ADDR_5G_CLK = 135
       - GHST_ADDR_RX = 137
+
   ghstDl_e:
     description: From inav/src/main/rx/ghst_protocol.h
     storage: uint8
@@ -1942,6 +2059,7 @@ enums:
       - GHST_DL_PACK_STAT = 35
       - GHST_DL_GPS_PRIMARY = 37
       - GHST_DL_GPS_SECONDARY = 38
+
   ghstFrameTypeIndex_e:
     description: From inav/src/main/telemetry/ghst.c
     storage: uint8
@@ -1951,6 +2069,7 @@ enums:
       - GHST_FRAME_GPS_PRIMARY_INDEX = 1
       - GHST_FRAME_GPS_SECONDARY_INDEX = 2
       - GHST_SCHEDULE_COUNT_MAX = 3
+
   ghstUl_e:
     description: From inav/src/main/rx/ghst_protocol.h
     storage: uint8
@@ -1961,6 +2080,7 @@ enums:
       - GHST_UL_RC_CHANS_HS4_13TO16 = 18
       - GHST_UL_RC_CHANS_HS4_RSSI = 19
       - GHST_UL_RC_CHANS_HS4_LAST = 31
+
   gimbalDevType_e:
     description: From inav/src/main/drivers/gimbal_common.h
     storage: uint8
@@ -1968,6 +2088,7 @@ enums:
       - GIMBAL_DEV_UNSUPPORTED = 0
       - GIMBAL_DEV_SERIAL = 1
       - GIMBAL_DEV_UNKNOWN = 255
+
   gimbalHeadtrackerState_e:
     description: From inav/src/main/io/gimbal_serial.h
     storage: uint8
@@ -1977,6 +2098,7 @@ enums:
       - WAITING_PAYLOAD = 2
       - WAITING_CRCH = 3
       - WAITING_CRCL = 4
+
   gimbal_htk_mode_e:
     description: From inav/src/main/drivers/gimbal_common.h
     storage: uint8
@@ -1985,18 +2107,21 @@ enums:
       - GIMBAL_MODE_TILT_LOCK = 1
       - GIMBAL_MODE_ROLL_LOCK = 2
       - GIMBAL_MODE_PAN_LOCK = 4
+
   gpsAutoBaud_e:
     description: From inav/src/main/io/gps.h
     storage: uint8
     values:
       - GPS_AUTOBAUD_OFF = 0
       - GPS_AUTOBAUD_ON = 1
+
   gpsAutoConfig_e:
     description: From inav/src/main/io/gps.h
     storage: uint8
     values:
       - GPS_AUTOCONFIG_OFF = 0
       - GPS_AUTOCONFIG_ON = 1
+
   gpsBaudRate_e:
     description: From inav/src/main/io/gps.h
     storage: uint8
@@ -2010,6 +2135,7 @@ enums:
       - GPS_BAUDRATE_460800 = 6
       - GPS_BAUDRATE_921600 = 7
       - GPS_BAUDRATE_COUNT = 8
+
   gpsDynModel_e:
     description: From inav/src/main/io/gps.h
     storage: uint8
@@ -2021,6 +2147,7 @@ enums:
       - GPS_DYNMODEL_AIR_4G = 4
       - GPS_DYNMODEL_SEA = 5
       - GPS_DYNMODEL_MOWER = 6
+
   gpsFixChar_e:
     description: From inav/src/main/telemetry/hott.c
     storage: uint8
@@ -2029,6 +2156,7 @@ enums:
       - GPS_FIX_CHAR_2D = 50
       - GPS_FIX_CHAR_3D = 51
       - GPS_FIX_CHAR_DGPS = 68
+
   gpsFixType_e:
     description: From inav/src/main/io/gps.h
     storage: uint8
@@ -2036,6 +2164,7 @@ enums:
       - GPS_NO_FIX = 0
       - GPS_FIX_2D = 1
       - GPS_FIX_3D = 2
+
   gpsProvider_e:
     description: From inav/src/main/io/gps.h
     storage: uint8
@@ -2046,6 +2175,7 @@ enums:
       - GPS_FAKE = 3
       - GPS_DRONECAN = 4
       - GPS_PROVIDER_COUNT = 5
+
   gpsState_e:
     description: From inav/src/main/io/gps_private.h
     storage: uint8
@@ -2054,6 +2184,7 @@ enums:
       - GPS_INITIALIZING = 1
       - GPS_RUNNING = 2
       - GPS_LOST_COMMUNICATION = 3
+
   gyroFilterMode_e:
     description: From inav/src/main/sensors/gyro.h
     storage: uint8
@@ -2062,6 +2193,7 @@ enums:
       - GYRO_FILTER_MODE_STATIC = 1
       - GYRO_FILTER_MODE_DYNAMIC = 2
       - GYRO_FILTER_MODE_ADAPTIVE = 3
+
   gyroHardwareLpf_e:
     description: From inav/src/main/drivers/accgyro/accgyro_lsm6dxx.h
     storage: uint8
@@ -2071,6 +2203,7 @@ enums:
       - GYRO_HARDWARE_LPF_OPTION_2 = 2
       - GYRO_HARDWARE_LPF_EXPERIMENTAL = 3
       - GYRO_HARDWARE_LPF_COUNT = 4
+
   gyroSensor_e:
     description: From inav/src/main/sensors/gyro.h
     storage: uint8
@@ -2089,6 +2222,7 @@ enums:
       - GYRO_ICM45686 = 11
       - GYRO_ICM40609D = 12
       - GYRO_FAKE = 13
+
   gyro_fsr_e:
     description: From inav/src/main/drivers/accgyro/accgyro_mpu.h
     storage: uint8
@@ -2098,6 +2232,7 @@ enums:
       - INV_FSR_1000DPS = 2
       - INV_FSR_2000DPS = 3
       - NUM_GYRO_FSR = 4
+
   hardwareSensorStatus_e:
     description: From inav/src/main/sensors/diagnostics.h
     storage: uint8
@@ -2106,6 +2241,7 @@ enums:
       - HW_SENSOR_OK = 1
       - HW_SENSOR_UNAVAILABLE = 2
       - HW_SENSOR_UNHEALTHY = 3
+
   headTrackerDevType_e:
     description: From inav/src/main/drivers/headtracker_common.h
     storage: uint8
@@ -2114,6 +2250,7 @@ enums:
       - HEADTRACKER_SERIAL = 1
       - HEADTRACKER_MSP = 2
       - HEADTRACKER_UNKNOWN = 255
+
   hottEamAlarm1Flag_e:
     description: From inav/src/main/telemetry/hott.h
     storage: uint8
@@ -2127,6 +2264,7 @@ enums:
       - HOTT_EAM_ALARM1_FLAG_ALTITUDE = 32
       - HOTT_EAM_ALARM1_FLAG_CURRENT = 64
       - HOTT_EAM_ALARM1_FLAG_MAIN_VOLTAGE = 128
+
   hottEamAlarm2Flag_e:
     description: From inav/src/main/telemetry/hott.h
     storage: uint8
@@ -2140,6 +2278,7 @@ enums:
       - HOTT_EAM_ALARM2_FLAG_UNKNOWN_1 = 32
       - HOTT_EAM_ALARM2_FLAG_UNKNOWN_2 = 64
       - HOTT_EAM_ALARM2_FLAG_ON_SIGN_OR_TEXT_ACTIVE = 128
+
   hottState_e:
     description: From inav/src/main/telemetry/hott.c
     storage: uint8
@@ -2149,6 +2288,7 @@ enums:
       - HOTT_WAITING_FOR_TX_WINDOW = 2
       - HOTT_TRANSMITTING = 3
       - HOTT_ENDING_TRANSMISSION = 4
+
   hsvColorComponent_e:
     description: From inav/src/main/common/color.h
     storage: uint8
@@ -2156,6 +2296,7 @@ enums:
       - HSV_HUE = 0
       - HSV_SATURATION = 1
       - HSV_VALUE = 2
+
   i2cState_t:
     description: From inav/src/main/drivers/bus_i2c_stm32f40x.c
     storage: uint8
@@ -2182,18 +2323,21 @@ enums:
       - I2C_STATE_W_TRANSFER = 19
       - I2C_STATE_NACK = 20
       - I2C_STATE_BUS_ERROR = 21
+
   i2cTransferDirection_t:
     description: From inav/src/main/drivers/bus_i2c_stm32f40x.c
     storage: uint8
     values:
       - I2C_TXN_READ = 0
       - I2C_TXN_WRITE = 1
+
   i2c_mem_address_width_type:
     description: From inav/src/main/drivers/i2c_application.h
     storage: uint8
     values:
       - I2C_MEM_ADDR_WIDIH_8 = 1
       - I2C_MEM_ADDR_WIDIH_16 = 2
+
   i2c_mode_type:
     description: From inav/src/main/drivers/i2c_application.h
     storage: uint8
@@ -2206,6 +2350,7 @@ enums:
       - I2C_DMA_MA_RX = 5
       - I2C_DMA_SLA_TX = 6
       - I2C_DMA_SLA_RX = 7
+
   i2c_status_type:
     description: From inav/src/main/drivers/i2c_application.h
     storage: uint8
@@ -2230,6 +2375,7 @@ enums:
       - I2C_ERR_ACKFAIL = 17
       - I2C_ERR_TIMEOUT = 18
       - I2C_ERR_INTERRUPT = 19
+
   ibusCommand_e:
     description: From inav/src/main/telemetry/ibus_shared.c
     storage: uint8
@@ -2237,6 +2383,7 @@ enums:
       - IBUS_COMMAND_DISCOVER_SENSOR = 128
       - IBUS_COMMAND_SENSOR_TYPE = 144
       - IBUS_COMMAND_MEASUREMENT = 160
+
   ibusSensorType1_e:
     description: From inav/src/main/telemetry/ibus_shared.h
     storage: uint8
@@ -2277,6 +2424,7 @@ enums:
       - IBUS_MEAS_TYPE1_S88 = 136
       - IBUS_MEAS_TYPE1_S89 = 137
       - IBUS_MEAS_TYPE1_S8a = 138
+
   ibusSensorType_e:
     description: From inav/src/main/telemetry/ibus_shared.h
     storage: uint8
@@ -2311,6 +2459,7 @@ enums:
       - IBUS_MEAS_TYPE_S8A = 138
       - IBUS_MEAS_TYPE_GALT = 249
       - IBUS_MEAS_TYPE_GPS = 253
+
   ibusSensorValue_e:
     description: From inav/src/main/telemetry/ibus_shared.h
     storage: uint8
@@ -2352,6 +2501,7 @@ enums:
       - IBUS_MEAS_VALUE_GPS_LAT2 = 144
       - IBUS_MEAS_VALUE_GPS_LON2 = 145
       - IBUS_MEAS_VALUE_GPS = 253
+
   icm42605Variant_e:
     description: From inav/src/main/drivers/accgyro/accgyro_icm42605.c
     storage: uint8
@@ -2359,6 +2509,7 @@ enums:
       - ICM42605_VARIANT_42605 = 0
       - ICM42605_VARIANT_42686P = 1
       - ICM42605_VARIANT_42688P = 2
+
   imu_inertia_comp_method_e:
     description: From inav/src/main/flight/imu.h
     storage: uint8
@@ -2366,6 +2517,7 @@ enums:
       - COMPMETHOD_VELNED = 0
       - COMPMETHOD_TURNRATE = 1
       - COMPMETHOD_ADAPTIVE = 2
+
   inputSource_e:
     description: From inav/src/main/flight/servos.h
     storage: uint8
@@ -2431,34 +2583,17 @@ enums:
       - INPUT_RC_CH33 = 58
       - INPUT_RC_CH34 = 59
       - INPUT_MIXER_SWITCH_HELPER = 60
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL
-        value: 61
-        condition: "USE_AUTO_TRANSITION"
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH
-        value: 62
-        condition: "USE_AUTO_TRANSITION"
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW
-        value: 63
-        condition: "USE_AUTO_TRANSITION"
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_PLUS
-        value: 64
-        condition: "USE_AUTO_TRANSITION"
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_MINUS
-        value: 65
-        condition: "USE_AUTO_TRANSITION"
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_PLUS
-        value: 66
-        condition: "USE_AUTO_TRANSITION"
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_MINUS
-        value: 67
-        condition: "USE_AUTO_TRANSITION"
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_PLUS
-        value: 68
-        condition: "USE_AUTO_TRANSITION"
-      - name: INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS
-        value: 69
-        condition: "USE_AUTO_TRANSITION"
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL = 61
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH = 62
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW = 63
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_PLUS = 64
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_ROLL_MINUS = 65
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_PLUS = 66
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_PITCH_MINUS = 67
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_PLUS = 68
+      - if "USE_AUTO_TRANSITION": INPUT_AUTOTRANSITION_TARGET_STABILIZED_YAW_MINUS = 69
       - INPUT_SOURCE_COUNT = 70
+
   itermRelax_e:
     description: From inav/src/main/flight/pid.h
     storage: uint8
@@ -2466,6 +2601,7 @@ enums:
       - ITERM_RELAX_OFF = 0
       - ITERM_RELAX_RP = 1
       - ITERM_RELAX_RPY = 2
+
   ledBaseFunctionId_e:
     description: From inav/src/main/io/ledstrip.h
     storage: uint8
@@ -2478,6 +2614,7 @@ enums:
       - LED_FUNCTION_GPS = 5
       - LED_FUNCTION_THRUST_RING = 6
       - LED_FUNCTION_CHANNEL = 7
+
   ledDirectionId_e:
     description: From inav/src/main/io/ledstrip.h
     storage: uint8
@@ -2488,6 +2625,7 @@ enums:
       - LED_DIRECTION_WEST = 3
       - LED_DIRECTION_UP = 4
       - LED_DIRECTION_DOWN = 5
+
   ledModeIndex_e:
     description: From inav/src/main/io/ledstrip.h
     storage: uint8
@@ -2500,6 +2638,7 @@ enums:
       - LED_MODE_BARO = 5
       - LED_MODE_LOITER = 6
       - LED_SPECIAL = 7
+
   ledOverlayId_e:
     description: From inav/src/main/io/ledstrip.h
     storage: uint8
@@ -2512,6 +2651,7 @@ enums:
       - LED_OVERLAY_WARNING = 5
       - LED_OVERLAY_STROBE = 6
       - LED_OVERLAY_RAINBOW = 7
+
   ledSpecialColorIds_e:
     description: From inav/src/main/io/ledstrip.h
     storage: uint8
@@ -2525,6 +2665,7 @@ enums:
       - LED_SCOLOR_GPSNOLOCK = 6
       - LED_SCOLOR_GPSLOCKED = 7
       - LED_SCOLOR_STROBE = 8
+
   logTopic_e:
     description: From inav/src/main/common/log.h
     storage: uint8
@@ -2543,12 +2684,14 @@ enums:
       - LOG_TOPIC_CAN = 11
       - LOG_TOPIC_TERRAIN = 12
       - LOG_TOPIC_COUNT = 13
+
   logicConditionFlags_e:
     description: From inav/src/main/programming/logic_condition.h
     storage: uint8
     values:
       - LOGIC_CONDITION_FLAG_LATCH = 1
       - LOGIC_CONDITION_FLAG_TIMEOUT_SATISFIED = 2
+
   logicConditionsGlobalFlags_t:
     description: From inav/src/main/programming/logic_condition.h
     storage: uint16
@@ -2564,11 +2707,10 @@ enums:
       - LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_RC_CHANNEL = 256
       - LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_LOITER_RADIUS = 512
       - LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_FLIGHT_AXIS = 1024
-      - name: LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX
-        value: 2048
-        condition: "USE_GPS_FIX_ESTIMATION"
+      - if "USE_GPS_FIX_ESTIMATION": LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_GPS_FIX = 2048
       - LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_MIN_GROUND_SPEED = 4096
       - LOGIC_CONDITION_GLOBAL_FLAG_DISABLE_AUTOSPEED_AIRSPEED = 8192
+
   logicFlightModeOperands_e:
     description: From inav/src/main/programming/logic_condition.h
     storage: uint8
@@ -2590,6 +2732,7 @@ enums:
       - LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ACRO = 14
       - LOGIC_CONDITION_OPERAND_FLIGHT_MODE_WAYPOINT_MISSION = 15
       - LOGIC_CONDITION_OPERAND_FLIGHT_MODE_ANGLEHOLD = 16
+
   logicFlightOperands_e:
     description: From inav/src/main/programming/logic_condition.h
     storage: uint8
@@ -2644,15 +2787,10 @@ enums:
       - LOGIC_CONDITION_OPERAND_FLIGHT_HORIZONTAL_WIND_SPEED = 47
       - LOGIC_CONDITION_OPERAND_FLIGHT_WIND_DIRECTION = 48
       - LOGIC_CONDITION_OPERAND_FLIGHT_RELATIVE_WIND_OFFSET = 49
-      - name: LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_ROLL
-        value: 50
-        condition: "USE_AUTO_TRANSITION"
-      - name: LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_PITCH
-        value: 51
-        condition: "USE_AUTO_TRANSITION"
-      - name: LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_YAW
-        value: 52
-        condition: "USE_AUTO_TRANSITION"
+      - if "USE_AUTO_TRANSITION": LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_ROLL = 50
+      - if "USE_AUTO_TRANSITION": LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_PITCH = 51
+      - if "USE_AUTO_TRANSITION": LOGIC_CONDITION_OPERAND_FLIGHT_AUTOTRANSITION_TARGET_STABILIZED_YAW = 52
+
   logicOperandType_e:
     description: From inav/src/main/programming/logic_condition.h
     storage: uint8
@@ -2666,6 +2804,7 @@ enums:
       - LOGIC_CONDITION_OPERAND_TYPE_PID = 6
       - LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS = 7
       - LOGIC_CONDITION_OPERAND_TYPE_LAST = 8
+
   logicOperation_e:
     description: From inav/src/main/programming/logic_condition.h
     storage: uint8
@@ -2735,6 +2874,7 @@ enums:
       - LOGIC_CONDITION_ACTIVATE_RTH = 62
       - LOGIC_CONDITION_ACTIVATE_LANDING = 63
       - LOGIC_CONDITION_LAST = 64
+
   logicWaypointOperands_e:
     description: From inav/src/main/programming/logic_condition.h
     storage: uint8
@@ -2753,6 +2893,7 @@ enums:
       - LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION_NEXT_WP = 11
       - LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION_NEXT_WP = 12
       - LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION_NEXT_WP = 13
+
   lsm6dxxRegister_e:
     description: From inav/src/main/drivers/accgyro/accgyro_lsm6dxx.h
     storage: uint8
@@ -2787,6 +2928,7 @@ enums:
       - LSM6DXX_REG_OUTZ_L_A = 44
       - LSM6DXX_REG_OUTZ_H_A = 45
       - LSM6DXX_REG_HAODR_CFG = 98
+
   ltmUpdateRate_e:
     description: From inav/src/main/telemetry/telemetry.h
     storage: uint8
@@ -2794,6 +2936,7 @@ enums:
       - LTM_RATE_NORMAL = 0
       - LTM_RATE_MEDIUM = 1
       - LTM_RATE_SLOW = 2
+
   ltm_frame_e:
     description: From inav/src/main/telemetry/ltm.h
     storage: uint8
@@ -2801,17 +2944,12 @@ enums:
       - LTM_FRAME_START = 0
       - LTM_AFRAME = 0
       - LTM_SFRAME = 1
-      - name: LTM_GFRAME
-        value: 2
-        condition: "USE_GPS"
-      - name: LTM_OFRAME
-        value: 3
-        condition: "USE_GPS"
-      - name: LTM_XFRAME
-        value: 4
-        condition: "USE_GPS"
+      - if "USE_GPS": LTM_GFRAME = 2
+      - if "USE_GPS": LTM_OFRAME = 3
+      - if "USE_GPS": LTM_XFRAME = 4
       - LTM_NFRAME = 5
       - LTM_FRAME_COUNT = 6
+
   ltm_modes_e:
     description: From inav/src/main/telemetry/ltm.h
     storage: uint8
@@ -2838,6 +2976,7 @@ enums:
       - LTM_MODE_UNKNOWN = 19
       - LTM_MODE_LAUNCH = 20
       - LTM_MODE_AUTOTUNE = 21
+
   magSensor_e:
     description: From inav/src/main/sensors/compass.h
     storage: uint8
@@ -2861,6 +3000,7 @@ enums:
       - MAG_LIS2MDL = 16
       - MAG_FAKE = 17
       - MAG_MAX = 17
+
   mavlinkAutopilotType_e:
     description: From inav/src/main/telemetry/telemetry.h
     storage: uint8
@@ -2868,6 +3008,7 @@ enums:
       - MAVLINK_AUTOPILOT_GENERIC = 0
       - MAVLINK_AUTOPILOT_ARDUPILOT = 1
       - MAVLINK_AUTOPILOT_INAV = 2
+
   mavlinkFcDispatchResult_e:
     description: From inav/src/main/fc/fc_mavlink.h
     storage: uint8
@@ -2875,6 +3016,7 @@ enums:
       - MAVLINK_FC_DISPATCH_NOT_HANDLED = 0
       - MAVLINK_FC_DISPATCH_HANDLED_NO_ACTIVITY = 1
       - MAVLINK_FC_DISPATCH_HANDLED_ACTIVITY = 2
+
   mavlinkRadio_e:
     description: From inav/src/main/telemetry/telemetry.h
     storage: uint8
@@ -2884,6 +3026,7 @@ enums:
       - MAVLINK_RADIO_SIK = 2
       - MAVLINK_RADIO_MLRS = 3
       - MAVLINK_RADIO_NONE = 4
+
   measurementSteps_e:
     description: From inav/src/main/drivers/rangefinder/rangefinder_vl53l0x.c
     storage: uint8
@@ -2891,6 +3034,7 @@ enums:
       - MEASUREMENT_START = 0
       - MEASUREMENT_WAIT = 1
       - MEASUREMENT_READ = 2
+
   mixerProfileATDirection_e:
     description: From inav/src/main/flight/mixer_profile.h
     storage: uint8
@@ -2898,6 +3042,7 @@ enums:
       - MIXERAT_DIRECTION_NONE = 0
       - MIXERAT_DIRECTION_TO_FW = 1
       - MIXERAT_DIRECTION_TO_MC = 2
+
   mixerProfileATOsdEvent_e:
     description: From inav/src/main/flight/mixer_profile.h
     storage: uint8
@@ -2908,6 +3053,7 @@ enums:
       - MIXERAT_OSD_EVENT_ABORTED_IN_FW = 3
       - MIXERAT_OSD_EVENT_ABORTED_IN_MC = 4
       - MIXERAT_OSD_EVENT_AIRSPEED_TIMEOUT = 5
+
   mixerProfileATRequest_e:
     description: From inav/src/main/flight/mixer_profile.h
     storage: uint8
@@ -2915,22 +3061,13 @@ enums:
       - MIXERAT_REQUEST_NONE = 0
       - MIXERAT_REQUEST_RTH = 1
       - MIXERAT_REQUEST_LAND = 2
-      - name: MIXERAT_REQUEST_MISSION_TO_FW
-        value: 3
-        condition: "USE_AUTO_TRANSITION"
-      - name: MIXERAT_REQUEST_MISSION_TO_MC
-        value: 4
-        condition: "USE_AUTO_TRANSITION"
-      - name: MIXERAT_REQUEST_MANUAL_TO_FW
-        value: 5
-        condition: "USE_AUTO_TRANSITION"
-      - name: MIXERAT_REQUEST_MANUAL_TO_MC
-        value: 6
-        condition: "USE_AUTO_TRANSITION"
-      - name: MIXERAT_REQUEST_FW_TO_MC_PROTECTION
-        value: 7
-        condition: "USE_AUTO_TRANSITION"
+      - if "USE_AUTO_TRANSITION": MIXERAT_REQUEST_MISSION_TO_FW = 3
+      - if "USE_AUTO_TRANSITION": MIXERAT_REQUEST_MISSION_TO_MC = 4
+      - if "USE_AUTO_TRANSITION": MIXERAT_REQUEST_MANUAL_TO_FW = 5
+      - if "USE_AUTO_TRANSITION": MIXERAT_REQUEST_MANUAL_TO_MC = 6
+      - if "USE_AUTO_TRANSITION": MIXERAT_REQUEST_FW_TO_MC_PROTECTION = 7
       - MIXERAT_REQUEST_ABORT = 8
+
   mixerProfileATState_e:
     description: From inav/src/main/flight/mixer_profile.h
     storage: uint8
@@ -2938,15 +3075,10 @@ enums:
       - MIXERAT_PHASE_IDLE = 0
       - MIXERAT_PHASE_TRANSITION_INITIALIZE = 1
       - MIXERAT_PHASE_TRANSITIONING = 2
-      - name: MIXERAT_PHASE_POST_SWITCH_FADE
-        value: 3
-        condition: "USE_AUTO_TRANSITION"
-      - name: MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE
-        value: 4
-        condition: "USE_AUTO_TRANSITION"
-      - name: MIXERAT_PHASE_DONE
-        value: 3
-        condition: "!USE_AUTO_TRANSITION"
+      - if "USE_AUTO_TRANSITION": MIXERAT_PHASE_POST_SWITCH_FADE = 3
+      - if "USE_AUTO_TRANSITION": MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE = 4
+      - if "!USE_AUTO_TRANSITION": MIXERAT_PHASE_DONE = 3
+
   mixerProfileATWaitReason_e:
     description: From inav/src/main/flight/mixer_profile.h
     storage: uint8
@@ -2955,6 +3087,7 @@ enums:
       - MIXERAT_WAIT_REASON_MC_SPEED = 1
       - MIXERAT_WAIT_REASON_NO_SPEED = 2
       - MIXERAT_WAIT_REASON_MC_SPEED_HIGH = 3
+
   mixerTransitionManualSessionMode_e:
     description: From inav/src/main/flight/mixer_transition_logic.h
     storage: uint8
@@ -2962,12 +3095,14 @@ enums:
       - MIXER_TRANSITION_MANUAL_SESSION_NONE = 0
       - MIXER_TRANSITION_MANUAL_SESSION_LEGACY = 1
       - MIXER_TRANSITION_MANUAL_SESSION_AUTO = 2
+
   modeActivationOperator_e:
     description: From inav/src/main/fc/rc_modes.h
     storage: uint8
     values:
       - MODE_OPERATOR_OR = 0
       - MODE_OPERATOR_AND = 1
+
   motorPwmProtocolTypes_e:
     description: From inav/src/main/drivers/pwm_mapping.h
     storage: uint8
@@ -2980,6 +3115,7 @@ enums:
       - PWM_TYPE_DSHOT300 = 5
       - PWM_TYPE_DSHOT600 = 6
       - PWM_TYPE_SRXL2 = 7
+
   motorStatus_e:
     description: From inav/src/main/flight/mixer.h
     storage: uint8
@@ -2987,6 +3123,7 @@ enums:
       - MOTOR_STOPPED_USER = 0
       - MOTOR_STOPPED_AUTO = 1
       - MOTOR_RUNNING = 2
+
   mpu9250CompassReadState_e:
     description: From inav/src/main/drivers/compass/compass_mpu9250.c
     storage: uint8
@@ -2994,12 +3131,14 @@ enums:
       - CHECK_STATUS = 0
       - WAITING_FOR_STATUS = 1
       - WAITING_FOR_DATA = 2
+
   mspFlashfsFlags_e:
     description: From inav/src/main/fc/fc_msp.c
     storage: uint8
     values:
       - MSP_FLASHFS_BIT_READY = 1
       - MSP_FLASHFS_BIT_SUPPORTED = 2
+
   mspPassthroughType_e:
     description: From inav/src/main/fc/fc_msp.c
     storage: uint8
@@ -3007,11 +3146,13 @@ enums:
       - MSP_PASSTHROUGH_SERIAL_ID = 253
       - MSP_PASSTHROUGH_SERIAL_FUNCTION_ID = 254
       - MSP_PASSTHROUGH_ESC_4WAY = 255
+
   mspSDCardFlags_e:
     description: From inav/src/main/fc/fc_msp.c
     storage: uint8
     values:
       - MSP_SDCARD_FLAG_SUPPORTTED = 1
+
   mspSDCardState_e:
     description: From inav/src/main/fc/fc_msp.c
     storage: uint8
@@ -3021,6 +3162,7 @@ enums:
       - MSP_SDCARD_STATE_CARD_INIT = 2
       - MSP_SDCARD_STATE_FS_INIT = 3
       - MSP_SDCARD_STATE_READY = 4
+
   multiFunctionFlags_e:
     description: From inav/src/main/fc/multifunction.h
     storage: uint8
@@ -3028,6 +3170,7 @@ enums:
       - MF_SUSPEND_SAFEHOMES = 1
       - MF_SUSPEND_TRACKBACK = 2
       - MF_TURTLE_MODE = 4
+
   multi_function_e:
     description: From inav/src/main/fc/multifunction.h
     storage: uint8
@@ -3040,6 +3183,7 @@ enums:
       - MULTI_FUNC_5 = 5
       - MULTI_FUNC_6 = 6
       - MULTI_FUNC_END = 7
+
   navAGLEstimateQuality_e:
     description: From inav/src/main/navigation/navigation_pos_estimator_private.h
     storage: uint8
@@ -3047,6 +3191,7 @@ enums:
       - SURFACE_QUAL_LOW = 0
       - SURFACE_QUAL_MID = 1
       - SURFACE_QUAL_HIGH = 2
+
   navArmingBlocker_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3056,6 +3201,7 @@ enums:
       - NAV_ARMING_BLOCKER_NAV_IS_ALREADY_ACTIVE = 2
       - NAV_ARMING_BLOCKER_FIRST_WAYPOINT_TOO_FAR = 3
       - NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR = 4
+
   navDefaultAltitudeSensor_e:
     description: From inav/src/main/navigation/navigation_pos_estimator_private.h
     storage: uint8
@@ -3064,12 +3210,14 @@ enums:
       - ALTITUDE_SOURCE_BARO = 1
       - ALTITUDE_SOURCE_GPS_ONLY = 2
       - ALTITUDE_SOURCE_BARO_ONLY = 3
+
   navExtraArmingSafety_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - NAV_EXTRA_ARMING_SAFETY_ON = 0
       - NAV_EXTRA_ARMING_SAFETY_ALLOW_BYPASS = 1
+
   navFwLaunchStatus_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3077,6 +3225,7 @@ enums:
       - FW_LAUNCH_DETECTED = 5
       - FW_LAUNCH_ABORTED = 10
       - FW_LAUNCH_FLYING = 11
+
   navFwWpTurnMode_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3085,6 +3234,7 @@ enums:
       - NAV_FW_WP_TURN_COORD_FLY_BY = 1
       - NAV_FW_WP_TURN_COORD_FLY_OVER = 2
       - NAV_FW_WP_TURN_COORD_FLY_INTO = 3
+
   navMcAltHoldThrottle_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3092,6 +3242,7 @@ enums:
       - MC_ALT_HOLD_STICK = 0
       - MC_ALT_HOLD_MID = 1
       - MC_ALT_HOLD_HOVER = 2
+
   navMissionRestart_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3099,6 +3250,7 @@ enums:
       - WP_MISSION_START = 0
       - WP_MISSION_RESUME = 1
       - WP_MISSION_SWITCH = 2
+
   navMissionUserAction_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3108,6 +3260,7 @@ enums:
       - NAV_MISSION_USER_ACTION_2 = 2
       - NAV_MISSION_USER_ACTION_3 = 3
       - NAV_MISSION_USER_ACTION_4 = 4
+
   navMissionVtolTransitionDisposition_e:
     description: From inav/src/main/navigation/navigation.c
     storage: uint8
@@ -3118,6 +3271,7 @@ enums:
       - NAV_MISSION_VTOL_TRANSITION_START = 3
       - NAV_MISSION_VTOL_TRANSITION_FAIL_ACTION = 4
       - NAV_MISSION_VTOL_TRANSITION_REJECT = 5
+
   navMissionVtolTransitionPrecondition_e:
     description: From inav/src/main/navigation/navigation_vtol_mission_logic.h
     storage: uint8
@@ -3125,6 +3279,7 @@ enums:
       - NAV_MISSION_VTOL_PRECONDITION_READY = 0
       - NAV_MISSION_VTOL_PRECONDITION_WAIT = 1
       - NAV_MISSION_VTOL_PRECONDITION_REJECT = 2
+
   navMissionVtolTransitionStartValidation_e:
     description: From inav/src/main/navigation/navigation_vtol_mission_logic.h
     storage: uint8
@@ -3132,6 +3287,7 @@ enums:
       - NAV_MISSION_VTOL_START_VALIDATION_READY = 0
       - NAV_MISSION_VTOL_START_VALIDATION_FAIL_ACTION = 1
       - NAV_MISSION_VTOL_START_VALIDATION_REJECT = 2
+
   navMixerATRetryScanResult_e:
     description: From inav/src/main/navigation/navigation.c
     storage: uint8
@@ -3139,6 +3295,7 @@ enums:
       - NAV_MIXERAT_RETRY_SCAN_IN_PROGRESS = 0
       - NAV_MIXERAT_RETRY_SCAN_READY_TO_RETRY = 1
       - NAV_MIXERAT_RETRY_SCAN_FAILED = 2
+
   navMixerATRetryStage_e:
     description: From inav/src/main/navigation/navigation.c
     storage: uint8
@@ -3146,6 +3303,7 @@ enums:
       - NAV_MIXERAT_RETRY_STAGE_IDLE = 0
       - NAV_MIXERAT_RETRY_STAGE_SCAN = 1
       - NAV_MIXERAT_RETRY_STAGE_ALIGN = 2
+
   navOverridesMotorStop_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3154,6 +3312,7 @@ enums:
       - NOMS_OFF = 1
       - NOMS_AUTO_ONLY = 2
       - NOMS_ALL_NAV = 3
+
   navPositionEstimationFlags_e:
     description: From inav/src/main/navigation/navigation_pos_estimator_private.h
     storage: uint8
@@ -3165,6 +3324,7 @@ enums:
       - EST_FLOW_VALID = 16
       - EST_XY_VALID = 32
       - EST_Z_VALID = 64
+
   navRTHAllowLanding_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3172,6 +3332,7 @@ enums:
       - NAV_RTH_ALLOW_LANDING_NEVER = 0
       - NAV_RTH_ALLOW_LANDING_ALWAYS = 1
       - NAV_RTH_ALLOW_LANDING_FS_ONLY = 2
+
   navRTHClimbFirst_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3179,6 +3340,7 @@ enums:
       - RTH_CLIMB_OFF = 0
       - RTH_CLIMB_ON = 1
       - RTH_CLIMB_ON_FW_SPIRAL = 2
+
   navSetWaypointFlags_t:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -3189,6 +3351,7 @@ enums:
       - NAV_POS_UPDATE_HEADING = 4
       - NAV_POS_UPDATE_BEARING = 8
       - NAV_POS_UPDATE_BEARING_TAIL_FIRST = 16
+
   navSystemStatus_Error_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3205,12 +3368,14 @@ enums:
       - MW_NAV_ERROR_GPS_FIX_LOST = 9
       - MW_NAV_ERROR_DISARMED = 10
       - MW_NAV_ERROR_LANDING = 11
+
   navSystemStatus_Flags_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - MW_NAV_FLAG_ADJUSTING_POSITION = 1
       - MW_NAV_FLAG_ADJUSTING_ALTITUDE = 2
+
   navSystemStatus_Mode_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3220,6 +3385,7 @@ enums:
       - MW_GPS_MODE_RTH = 2
       - MW_GPS_MODE_NAV = 3
       - MW_GPS_MODE_EMERG = 15
+
   navSystemStatus_State_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3240,6 +3406,7 @@ enums:
       - MW_NAV_STATE_HOVER_ABOVE_HOME = 13
       - MW_NAV_STATE_EMERGENCY_LANDING = 14
       - MW_NAV_STATE_RTH_CLIMB = 15
+
   navVtolMixerATMode_e:
     description: From inav/src/main/navigation/navigation_vtol_mission_logic.h
     storage: uint8
@@ -3250,6 +3417,7 @@ enums:
       - NAV_VTOL_MIXERAT_MODE_LAND = 3
       - NAV_VTOL_MIXERAT_MODE_POSHOLD = 4
       - NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING = 5
+
   navVtolTransitionFailActionFwToMc_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3259,6 +3427,7 @@ enums:
       - NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_RTH = 2
       - NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_EMERGENCY_LANDING = 3
       - NAV_VTOL_TRANSITION_FAIL_ACTION_FW_TO_MC_FORCE_SWITCH = 4
+
   navVtolTransitionFailActionMcToFw_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3267,6 +3436,7 @@ enums:
       - NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_POSH = 1
       - NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_RTH = 2
       - NAV_VTOL_TRANSITION_FAIL_ACTION_MC_TO_FW_EMERGENCY_LANDING = 3
+
   navVtolTransitionOsdState_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3274,6 +3444,7 @@ enums:
       - NAV_VTOL_TRANSITION_OSD_NONE = 0
       - NAV_VTOL_TRANSITION_OSD_RETRY_SCAN = 1
       - NAV_VTOL_TRANSITION_OSD_RETRY_ALIGN = 2
+
   navWaypointActions_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3285,12 +3456,14 @@ enums:
       - NAV_WP_ACTION_JUMP = 6
       - NAV_WP_ACTION_SET_HEAD = 7
       - NAV_WP_ACTION_LAND = 8
+
   navWaypointFlags_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - NAV_WP_FLAG_HOME = 72
       - NAV_WP_FLAG_LAST = 165
+
   navWaypointHeadings_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3298,6 +3471,7 @@ enums:
       - NAV_WP_HEAD_MODE_NONE = 0
       - NAV_WP_HEAD_MODE_POI = 1
       - NAV_WP_HEAD_MODE_FIXED = 2
+
   navWaypointP3Flags_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3307,12 +3481,14 @@ enums:
       - NAV_WP_USER2 = 4
       - NAV_WP_USER3 = 8
       - NAV_WP_USER4 = 16
+
   nav_control_type_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - NAV_GPS_ATTI = 0
       - NAV_GPS_CRUISE = 1
+
   nav_heading_control_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3320,6 +3496,7 @@ enums:
       - NAV_HEADING_CONTROL_NONE = 0
       - NAV_HEADING_CONTROL_AUTO = 1
       - NAV_HEADING_CONTROL_MANUAL = 2
+
   nav_loiter_type_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3327,6 +3504,7 @@ enums:
       - NAV_LOITER_RIGHT = 0
       - NAV_LOITER_LEFT = 1
       - NAV_LOITER_YAW = 2
+
   nav_reset_type_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3334,6 +3512,7 @@ enums:
       - NAV_RESET_NEVER = 0
       - NAV_RESET_ON_FIRST_ARM = 1
       - NAV_RESET_ON_EACH_ARM = 2
+
   nav_rth_alt_profile_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -3344,12 +3523,14 @@ enums:
       - NAV_RTH_MAX_ALT = 3
       - NAV_RTH_AT_LEAST_ALT = 4
       - NAV_RTH_AT_LEAST_ALT_LINEAR_DESCENT = 5
+
   nav_rth_climb_profile_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - NAV_RTH_CLIMB_STAGE_AT_LEAST = 0
       - NAV_RTH_CLIMB_STAGE_EXTRA = 1
+
   navigationEstimateStatus_e:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -3357,6 +3538,7 @@ enums:
       - EST_NONE = 0
       - EST_USABLE = 1
       - EST_TRUSTED = 2
+
   navigationFSMEvent_t:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -3394,17 +3576,12 @@ enums:
       - NAV_FSM_EVENT_SWITCH_TO_NAV_STATE_RTH_TRACKBACK = 19
       - NAV_FSM_EVENT_SWITCH_TO_RTH_HEAD_HOME = 20
       - NAV_FSM_EVENT_SWITCH_TO_RTH_LOITER_ABOVE_HOME = 21
-      - name: NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE
-        value: 18
-        condition: "USE_AUTO_TRANSITION"
-      - name: NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE
-        value: 19
-        condition: "USE_AUTO_TRANSITION"
+      - if "USE_AUTO_TRANSITION": NAV_FSM_EVENT_MIXERAT_MISSION_ADVANCE = 18
+      - if "USE_AUTO_TRANSITION": NAV_FSM_EVENT_MIXERAT_MISSION_CAPTURE = 19
       - NAV_FSM_EVENT_SWITCH_TO_RTH_LANDING = 22
-      - name: NAV_FSM_EVENT_MIXERAT_MISSION_RESUME
-        value: 23
-        condition: "USE_AUTO_TRANSITION"
+      - if "USE_AUTO_TRANSITION": NAV_FSM_EVENT_MIXERAT_MISSION_RESUME = 23
       - NAV_FSM_EVENT_COUNT = 24
+
   navigationFSMStateFlags_t:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint32
@@ -3428,6 +3605,7 @@ enums:
       - NAV_MIXERAT = 65536
       - NAV_CTL_HOLD = 131072
       - NAV_CTL_SPEED = 262144
+
   navigationFSMState_t:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -3482,6 +3660,7 @@ enums:
       - NAV_STATE_SEND_TO_IN_PROGESS = 47
       - NAV_STATE_SEND_TO_FINISHED = 48
       - NAV_STATE_COUNT = 49
+
   navigationHomeFlags_t:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -3491,6 +3670,7 @@ enums:
       - NAV_HOME_VALID_Z = 2
       - NAV_HOME_VALID_HEADING = 4
       - NAV_HOME_VALID_ALL = 7
+
   navigationPersistentId_e:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -3548,12 +3728,14 @@ enums:
       - NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES = 50
       - NAV_PERSISTENT_ID_SEND_TO_FINISHED = 51
       - NAV_PERSISTENT_ID_MIXERAT_MISSION_CAPTURE = 52
+
   noWayHomeAction:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
     values:
       - NO_WAY_HOME_ACTION_RTH = 0
       - NO_WAY_HOME_ACTION_EMRG_LAND = 1
+
   oledControllerType_e:
     description: From inav/src/main/drivers/display_ug2864hsweg01.c
     storage: uint8
@@ -3563,12 +3745,14 @@ enums:
       - OLED_CONTROLLER_SH1106 = 2
       - OLED_CONTROLLER_SH1107 = 3
       - OLED_CONTROLLER_SSD1309 = 4
+
   opflowQuality_e:
     description: From inav/src/main/sensors/opflow.h
     storage: uint8
     values:
       - OPFLOW_QUALITY_INVALID = 0
       - OPFLOW_QUALITY_VALID = 1
+
   opticalFlowSensor_e:
     description: From inav/src/main/sensors/opflow.h
     storage: uint8
@@ -3577,6 +3761,7 @@ enums:
       - OPFLOW_CXOF = 1
       - OPFLOW_MSP = 2
       - OPFLOW_FAKE = 3
+
   osdCommand_e:
     description: From inav/src/main/io/frsky_osd.c
     storage: uint8
@@ -3644,6 +3829,7 @@ enums:
       - OSD_CMD_WIDGET_DRAW = 116
       - OSD_CMD_WIDGET_ERASE = 117
       - OSD_CMD_SET_DATA_RATE = 122
+
   osdCustomElementTypeVisibility_e:
     description: From inav/src/main/io/osd/custom_elements.h
     storage: uint8
@@ -3651,6 +3837,7 @@ enums:
       - CUSTOM_ELEMENT_VISIBILITY_ALWAYS = 0
       - CUSTOM_ELEMENT_VISIBILITY_GV = 1
       - CUSTOM_ELEMENT_VISIBILITY_LOGIC_CON = 2
+
   osdCustomElementType_e:
     description: From inav/src/main/io/osd/custom_elements.h
     storage: uint8
@@ -3685,18 +3872,21 @@ enums:
       - CUSTOM_ELEMENT_TYPE_LC_FLOAT_3_2 = 27
       - CUSTOM_ELEMENT_TYPE_LC_FLOAT_4_1 = 28
       - CUSTOM_ELEMENT_TYPE_END = 29
+
   osdDrawPointType_e:
     description: From inav/src/main/io/osd_common.h
     storage: uint8
     values:
       - OSD_DRAW_POINT_TYPE_GRID = 0
       - OSD_DRAW_POINT_TYPE_PIXEL = 1
+
   osdDriver_e:
     description: From inav/src/main/drivers/osd.h
     storage: uint8
     values:
       - OSD_DRIVER_NONE = 0
       - OSD_DRIVER_MAX7456 = 1
+
   osdSpeedSource_e:
     description: From inav/src/main/io/osd_common.h
     storage: uint8
@@ -3704,6 +3894,7 @@ enums:
       - OSD_SPEED_SOURCE_GROUND = 0
       - OSD_SPEED_SOURCE_3D = 1
       - OSD_SPEED_SOURCE_AIR = 2
+
   osd_SpeedTypes_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
@@ -3712,24 +3903,28 @@ enums:
       - OSD_SPEED_TYPE_AIR = 1
       - OSD_SPEED_TYPE_3D = 2
       - OSD_SPEED_TYPE_MIN_GROUND = 3
+
   osd_adsb_warning_style_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
     values:
       - OSD_ADSB_WARNING_STYLE_COMPACT = 0
       - OSD_ADSB_WARNING_STYLE_EXTENDED = 1
+
   osd_ahi_style_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
     values:
       - OSD_AHI_STYLE_DEFAULT = 0
       - OSD_AHI_STYLE_LINE = 1
+
   osd_alignment_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
     values:
       - OSD_ALIGN_LEFT = 0
       - OSD_ALIGN_RIGHT = 1
+
   osd_crosshairs_style_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
@@ -3741,6 +3936,7 @@ enums:
       - OSD_CROSSHAIRS_STYLE_TYPE5 = 4
       - OSD_CROSSHAIRS_STYLE_TYPE6 = 5
       - OSD_CROSSHAIRS_STYLE_TYPE7 = 6
+
   osd_crsf_lq_format_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
@@ -3748,6 +3944,7 @@ enums:
       - OSD_CRSF_LQ_TYPE1 = 0
       - OSD_CRSF_LQ_TYPE2 = 1
       - OSD_CRSF_LQ_TYPE3 = 2
+
   osd_items_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
@@ -3925,6 +4122,7 @@ enums:
       - OSD_AUTO_SPEED = 170
       - OSD_TERRAIN_AGL = 171
       - OSD_ITEM_COUNT = 172
+
   osd_sidebar_arrow_e:
     description: From inav/src/main/io/osd_grid.c
     storage: uint8
@@ -3932,6 +4130,7 @@ enums:
       - OSD_SIDEBAR_ARROW_NONE = 0
       - OSD_SIDEBAR_ARROW_UP = 1
       - OSD_SIDEBAR_ARROW_DOWN = 2
+
   osd_sidebar_scroll_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
@@ -3941,12 +4140,14 @@ enums:
       - OSD_SIDEBAR_SCROLL_SPEED = 2
       - OSD_SIDEBAR_SCROLL_HOME_DISTANCE = 3
       - OSD_SIDEBAR_SCROLL_MAX = 3
+
   osd_stats_energy_unit_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
     values:
       - OSD_STATS_ENERGY_UNIT_MAH = 0
       - OSD_STATS_ENERGY_UNIT_WH = 1
+
   osd_unit_e:
     description: From inav/src/main/io/osd.h
     storage: uint8
@@ -3957,6 +4158,7 @@ enums:
       - OSD_UNIT_UK = 3
       - OSD_UNIT_GA = 4
       - OSD_UNIT_MAX = 4
+
   outputMode_e:
     description: From inav/src/main/flight/mixer.h
     storage: uint8
@@ -3967,6 +4169,7 @@ enums:
       - OUTPUT_MODE_LED = 3
       - OUTPUT_MODE_PINIO = 4
       - OUTPUT_MODE_BEEPER = 5
+
   pageId_e:
     description: From inav/src/main/io/dashboard.h
     storage: uint8
@@ -3974,6 +4177,7 @@ enums:
       - PAGE_WELCOME = 0
       - PAGE_ARMED = 1
       - PAGE_STATUS = 2
+
   parseState_e:
     description: From inav/src/main/io/ledstrip.c
     storage: uint8
@@ -3984,6 +4188,7 @@ enums:
       - FUNCTIONS = 3
       - RING_COLORS = 4
       - PARSE_STATE_COUNT = 5
+
   persistentObjectId_e:
     description: From inav/src/main/drivers/persistent.h
     storage: uint8
@@ -3991,6 +4196,7 @@ enums:
       - PERSISTENT_OBJECT_MAGIC = 0
       - PERSISTENT_OBJECT_RESET_REASON = 1
       - PERSISTENT_OBJECT_COUNT = 2
+
   pidAutotuneState_e:
     description: From inav/src/main/flight/pid_autotune.c
     storage: uint8
@@ -3999,6 +4205,7 @@ enums:
       - DEMAND_UNDERSHOOT = 1
       - DEMAND_OVERSHOOT = 2
       - TUNE_UPDATED = 3
+
   pidControllerFlags_e:
     description: From inav/src/main/common/fp_pid.h
     storage: uint8
@@ -4009,6 +4216,7 @@ enums:
       - PID_LIMIT_INTEGRATOR = 8
       - PID_FREEZE_INTEGRATOR = 16
       - PID_USING_HEADING = 32
+
   pidIndex_e:
     description: From inav/src/main/flight/pid.h
     storage: uint8
@@ -4026,6 +4234,7 @@ enums:
       - PID_POS_HEADING = 10
       - PID_AUTO_SPEED = 11
       - PID_ITEM_COUNT = 12
+
   pidType_e:
     description: From inav/src/main/flight/pid.h
     storage: uint8
@@ -4034,6 +4243,7 @@ enums:
       - PID_TYPE_PID = 1
       - PID_TYPE_PIFF = 2
       - PID_TYPE_AUTO = 3
+
   pinLabel_e:
     description: From inav/src/main/drivers/pwm_mapping.h
     storage: uint8
@@ -4041,6 +4251,7 @@ enums:
       - PIN_LABEL_NONE = 0
       - PIN_LABEL_LED = 1
       - PIN_LABEL_PINIO_BASE = 2
+
   pitotSensor_e:
     description: From inav/src/main/sensors/pitotmeter.h
     storage: uint8
@@ -4054,12 +4265,14 @@ enums:
       - PITOT_MSP = 6
       - PITOT_DLVR = 7
       - PITOT_MS5525 = 8
+
   pollType_e:
     description: From inav/src/main/io/smartport_master.c
     storage: uint8
     values:
       - PT_ACTIVE_ID = 0
       - PT_INACTIVE_ID = 1
+
   portMode_t:
     description: From inav/src/main/drivers/serial.h
     storage: uint8
@@ -4067,6 +4280,7 @@ enums:
       - MODE_RX = 1
       - MODE_TX = 2
       - MODE_RXTX = 3
+
   portOptions_t:
     description: From inav/src/main/drivers/serial.h
     storage: uint8
@@ -4085,6 +4299,7 @@ enums:
       - SERIAL_BIDIR_UP = 0
       - SERIAL_LONGSTOP = 0
       - SERIAL_SHORTSTOP = 64
+
   portSharing_e:
     description: From inav/src/main/io/serial.h
     storage: uint8
@@ -4092,6 +4307,7 @@ enums:
       - PORTSHARING_UNUSED = 0
       - PORTSHARING_NOT_SHARED = 1
       - PORTSHARING_SHARED = 2
+
   pwmInitError_e:
     description: From inav/src/main/drivers/pwm_mapping.h
     storage: uint8
@@ -4102,6 +4318,7 @@ enums:
       - PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS = 3
       - PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS = 4
       - PWM_INIT_ERROR_TIMER_INIT_FAILED = 5
+
   quadSpiMode_e:
     description: From inav/src/main/drivers/bus_quadspi.h
     storage: uint8
@@ -4109,6 +4326,7 @@ enums:
       - QUADSPI_MODE_BK1_ONLY = 0
       - QUADSPI_MODE_BK2_ONLY = 1
       - QUADSPI_MODE_DUAL_FLASH = 2
+
   quadrant_e:
     description: From inav/src/main/io/ledstrip.c
     storage: uint16
@@ -4124,6 +4342,7 @@ enums:
       - QUADRANT_NONE = 256
       - QUADRANT_NOTDIAG = 512
       - QUADRANT_ANY = 271
+
   rangefinderType_e:
     description: From inav/src/main/sensors/rangefinder.h
     storage: uint8
@@ -4140,6 +4359,7 @@ enums:
       - RANGEFINDER_TERARANGER_EVO = 9
       - RANGEFINDER_USD1_V0 = 10
       - RANGEFINDER_NANORADAR = 11
+
   rc_alias_e:
     description: From inav/src/main/fc/rc_controls.h
     storage: uint8
@@ -4162,54 +4382,23 @@ enums:
       - AUX12 = 15
       - AUX13 = 16
       - AUX14 = 17
-      - name: AUX15
-        value: 18
-        condition: "USE_34CHANNELS"
-      - name: AUX16
-        value: 19
-        condition: "USE_34CHANNELS"
-      - name: AUX17
-        value: 20
-        condition: "USE_34CHANNELS"
-      - name: AUX18
-        value: 21
-        condition: "USE_34CHANNELS"
-      - name: AUX19
-        value: 22
-        condition: "USE_34CHANNELS"
-      - name: AUX20
-        value: 23
-        condition: "USE_34CHANNELS"
-      - name: AUX21
-        value: 24
-        condition: "USE_34CHANNELS"
-      - name: AUX22
-        value: 25
-        condition: "USE_34CHANNELS"
-      - name: AUX23
-        value: 26
-        condition: "USE_34CHANNELS"
-      - name: AUX24
-        value: 27
-        condition: "USE_34CHANNELS"
-      - name: AUX25
-        value: 28
-        condition: "USE_34CHANNELS"
-      - name: AUX26
-        value: 29
-        condition: "USE_34CHANNELS"
-      - name: AUX27
-        value: 30
-        condition: "USE_34CHANNELS"
-      - name: AUX28
-        value: 31
-        condition: "USE_34CHANNELS"
-      - name: AUX29
-        value: 32
-        condition: "USE_34CHANNELS"
-      - name: AUX30
-        value: 33
-        condition: "USE_34CHANNELS"
+      - if "USE_34CHANNELS": AUX15 = 18
+      - if "USE_34CHANNELS": AUX16 = 19
+      - if "USE_34CHANNELS": AUX17 = 20
+      - if "USE_34CHANNELS": AUX18 = 21
+      - if "USE_34CHANNELS": AUX19 = 22
+      - if "USE_34CHANNELS": AUX20 = 23
+      - if "USE_34CHANNELS": AUX21 = 24
+      - if "USE_34CHANNELS": AUX22 = 25
+      - if "USE_34CHANNELS": AUX23 = 26
+      - if "USE_34CHANNELS": AUX24 = 27
+      - if "USE_34CHANNELS": AUX25 = 28
+      - if "USE_34CHANNELS": AUX26 = 29
+      - if "USE_34CHANNELS": AUX27 = 30
+      - if "USE_34CHANNELS": AUX28 = 31
+      - if "USE_34CHANNELS": AUX29 = 32
+      - if "USE_34CHANNELS": AUX30 = 33
+
   rcc_reg:
     description: From inav/src/main/drivers/rcc.h
     storage: uint8
@@ -4226,6 +4415,7 @@ enums:
       - RCC_APB3 = 9
       - RCC_AHB4 = 10
       - RCC_APB4 = 11
+
   rcdeviceCamSimulationKeyEvent_e:
     description: From inav/src/main/io/rcdevice.h
     storage: uint8
@@ -4239,6 +4429,7 @@ enums:
       - RCDEVICE_CAM_KEY_CONNECTION_CLOSE = 6
       - RCDEVICE_CAM_KEY_CONNECTION_OPEN = 7
       - RCDEVICE_CAM_KEY_RELEASE = 8
+
   rcdeviceResponseStatus_e:
     description: From inav/src/main/io/rcdevice.h
     storage: uint8
@@ -4246,6 +4437,7 @@ enums:
       - RCDEVICE_RESP_SUCCESS = 0
       - RCDEVICE_RESP_INCORRECT_CRC = 1
       - RCDEVICE_RESP_TIMEOUT = 2
+
   rcdevice_5key_simulation_operation_e:
     description: From inav/src/main/io/rcdevice.h
     storage: uint8
@@ -4256,6 +4448,7 @@ enums:
       - RCDEVICE_PROTOCOL_5KEY_SIMULATION_RIGHT = 3
       - RCDEVICE_PROTOCOL_5KEY_SIMULATION_UP = 4
       - RCDEVICE_PROTOCOL_5KEY_SIMULATION_DOWN = 5
+
   rcdevice_camera_control_opeation_e:
     description: From inav/src/main/io/rcdevice.h
     storage: uint8
@@ -4266,6 +4459,7 @@ enums:
       - RCDEVICE_PROTOCOL_CAM_CTRL_START_RECORDING = 3
       - RCDEVICE_PROTOCOL_CAM_CTRL_STOP_RECORDING = 4
       - RCDEVICE_PROTOCOL_CAM_CTRL_UNKNOWN_CAMERA_OPERATION = 255
+
   rcdevice_features_e:
     description: From inav/src/main/io/rcdevice.h
     storage: uint16
@@ -4277,6 +4471,7 @@ enums:
       - RCDEVICE_PROTOCOL_FEATURE_START_RECORDING = 64
       - RCDEVICE_PROTOCOL_FEATURE_STOP_RECORDING = 128
       - RCDEVICE_PROTOCOL_FEATURE_CMS_MENU = 256
+
   rcdevice_protocol_version_e:
     description: From inav/src/main/io/rcdevice.h
     storage: uint8
@@ -4284,6 +4479,7 @@ enums:
       - RCDEVICE_PROTOCOL_RCSPLIT_VERSION = 0
       - RCDEVICE_PROTOCOL_VERSION_1_0 = 1
       - RCDEVICE_PROTOCOL_UNKNOWN = 2
+
   resolutionType_e:
     description: From inav/src/main/io/displayport_msp_osd.c
     storage: uint8
@@ -4293,6 +4489,7 @@ enums:
       - HD_3016 = 2
       - HD_6022 = 3
       - HD_5320 = 4
+
   resourceOwner_e:
     description: From inav/src/main/drivers/resource.h
     storage: uint8
@@ -4334,6 +4531,7 @@ enums:
       - OWNER_DRONECAN = 34
       - OWNER_CURRENT_METER = 35
       - OWNER_TOTAL_COUNT = 36
+
   resourceType_e:
     description: From inav/src/main/drivers/resource.h
     storage: uint8
@@ -4353,6 +4551,7 @@ enums:
       - RESOURCE_RX_CE = 12
       - RESOURCE_CAN_TX = 13
       - RESOURCE_TOTAL_COUNT = 14
+
   reversibleMotorsThrottleState_e:
     description: From inav/src/main/flight/mixer.h
     storage: uint8
@@ -4360,12 +4559,14 @@ enums:
       - MOTOR_DIRECTION_FORWARD = 0
       - MOTOR_DIRECTION_BACKWARD = 1
       - MOTOR_DIRECTION_DEADBAND = 2
+
   rollPitchStatus_e:
     description: From inav/src/main/fc/rc_controls.h
     storage: uint8
     values:
       - NOT_CENTERED = 0
       - CENTERED = 1
+
   rssiSource_e:
     description: From inav/src/main/rx/rx.h
     storage: uint8
@@ -4376,6 +4577,7 @@ enums:
       - RSSI_SOURCE_RX_CHANNEL = 3
       - RSSI_SOURCE_RX_PROTOCOL = 4
       - RSSI_SOURCE_MSP = 5
+
   rthState_e:
     description: From inav/src/main/flight/failsafe.h
     storage: uint8
@@ -4383,6 +4585,7 @@ enums:
       - RTH_IDLE = 0
       - RTH_IN_PROGRESS = 1
       - RTH_HAS_LANDED = 2
+
   rthTargetMode_e:
     description: From inav/src/main/navigation/navigation_private.h
     storage: uint8
@@ -4392,6 +4595,7 @@ enums:
       - RTH_HOME_ENROUTE_FINAL = 2
       - RTH_HOME_FINAL_LOITER = 3
       - RTH_HOME_FINAL_LAND = 4
+
   rthTrackbackMode_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -4399,6 +4603,7 @@ enums:
       - RTH_TRACKBACK_OFF = 0
       - RTH_TRACKBACK_ON = 1
       - RTH_TRACKBACK_FS = 2
+
   rxFrameState_e:
     description: From inav/src/main/rx/rx.h
     storage: uint8
@@ -4408,6 +4613,7 @@ enums:
       - RX_FRAME_FAILSAFE = 2
       - RX_FRAME_PROCESSING_REQUIRED = 4
       - RX_FRAME_DROPPED = 8
+
   rxReceiverType_e:
     description: From inav/src/main/rx/rx.h
     storage: uint8
@@ -4416,6 +4622,7 @@ enums:
       - RX_TYPE_SERIAL = 1
       - RX_TYPE_MSP = 2
       - RX_TYPE_SIM = 3
+
   rxSerialReceiverType_e:
     description: From inav/src/main/rx/rx.h
     storage: uint8
@@ -4435,6 +4642,7 @@ enums:
       - SERIALRX_MAVLINK = 12
       - SERIALRX_FBUS = 13
       - SERIALRX_SBUS2 = 14
+
   saFramerState_e:
     description: From inav/src/main/io/vtx_smartaudio.c
     storage: uint8
@@ -4445,6 +4653,7 @@ enums:
       - S_WAITLEN = 3
       - S_DATA = 4
       - S_WAITCRC = 5
+
   safehomeUsageMode_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -4452,6 +4661,7 @@ enums:
       - SAFEHOME_USAGE_OFF = 0
       - SAFEHOME_USAGE_RTH = 1
       - SAFEHOME_USAGE_RTH_FS = 2
+
   sbasMode_e:
     description: From inav/src/main/io/gps.h
     storage: uint8
@@ -4463,6 +4673,7 @@ enums:
       - SBAS_GAGAN = 4
       - SBAS_SPAN = 5
       - SBAS_NONE = 6
+
   sbusDecoderState_e:
     description: From inav/src/main/rx/sbus.c
     storage: uint8
@@ -4471,6 +4682,7 @@ enums:
       - STATE_SBUS_PAYLOAD = 1
       - STATE_SBUS26_PAYLOAD = 2
       - STATE_SBUS_WAIT_SYNC = 3
+
   sdcardBlockOperation_e:
     description: From inav/src/main/drivers/sdcard/sdcard.h
     storage: uint8
@@ -4478,6 +4690,7 @@ enums:
       - SDCARD_BLOCK_OPERATION_READ = 0
       - SDCARD_BLOCK_OPERATION_WRITE = 1
       - SDCARD_BLOCK_OPERATION_ERASE = 2
+
   sdcardOperationStatus_e:
     description: From inav/src/main/drivers/sdcard/sdcard.h
     storage: uint8
@@ -4486,6 +4699,7 @@ enums:
       - SDCARD_OPERATION_BUSY = 1
       - SDCARD_OPERATION_SUCCESS = 2
       - SDCARD_OPERATION_FAILURE = 3
+
   sdcardReceiveBlockStatus_e:
     description: From inav/src/main/drivers/sdcard/sdcard_spi.c
     storage: uint8
@@ -4493,6 +4707,7 @@ enums:
       - SDCARD_RECEIVE_SUCCESS = 0
       - SDCARD_RECEIVE_BLOCK_IN_PROGRESS = 1
       - SDCARD_RECEIVE_ERROR = 2
+
   sdcardState_e:
     description: From inav/src/main/drivers/sdcard/sdcard_impl.h
     storage: uint8
@@ -4507,6 +4722,7 @@ enums:
       - SDCARD_STATE_WAITING_FOR_WRITE = 7
       - SDCARD_STATE_WRITING_MULTIPLE_BLOCKS = 8
       - SDCARD_STATE_STOPPING_MULTIPLE_BLOCK_WRITE = 9
+
   sensorIndex_e:
     description: From inav/src/main/sensors/sensors.h
     storage: uint8
@@ -4519,6 +4735,7 @@ enums:
       - SENSOR_INDEX_PITOT = 5
       - SENSOR_INDEX_OPFLOW = 6
       - SENSOR_INDEX_COUNT = 7
+
   sensorTempCalState_e:
     description: From inav/src/main/sensors/sensors.h
     storage: uint8
@@ -4526,6 +4743,7 @@ enums:
       - SENSOR_TEMP_CAL_INITIALISE = 0
       - SENSOR_TEMP_CAL_IN_PROGRESS = 1
       - SENSOR_TEMP_CAL_COMPLETE = 2
+
   sensor_align_e:
     description: From inav/src/main/drivers/sensor.h
     storage: uint8
@@ -4539,6 +4757,7 @@ enums:
       - CW90_DEG_FLIP = 6
       - CW180_DEG_FLIP = 7
       - CW270_DEG_FLIP = 8
+
   sensors_e:
     description: From inav/src/main/sensors/sensors.h
     storage: uint16
@@ -4553,6 +4772,7 @@ enums:
       - SENSOR_GPS = 128
       - SENSOR_GPSMAG = 256
       - SENSOR_TEMP = 512
+
   serialPortFunction_e:
     description: From inav/src/main/io/serial.h
     storage: uint32
@@ -4587,6 +4807,7 @@ enums:
       - FUNCTION_GIMBAL = 67108864
       - FUNCTION_GIMBAL_HEADTRACKER = 134217728
       - FUNCTION_ESC_SRXL2 = 536870912
+
   serialPortIdentifier_e:
     description: From inav/src/main/io/serial.h
     storage: int8
@@ -4604,6 +4825,7 @@ enums:
       - SERIAL_PORT_SOFTSERIAL1 = 30
       - SERIAL_PORT_SOFTSERIAL2 = 31
       - SERIAL_PORT_IDENTIFIER_MAX = 31
+
   servoAutotrimState_e:
     description: From inav/src/main/flight/servos.c
     storage: uint8
@@ -4612,6 +4834,7 @@ enums:
       - AUTOTRIM_COLLECTING = 1
       - AUTOTRIM_SAVE_PENDING = 2
       - AUTOTRIM_DONE = 3
+
   servoIndex_e:
     description: From inav/src/main/flight/servos.h
     storage: uint8
@@ -4630,6 +4853,7 @@ enums:
       - SERVO_SINGLECOPTER_2 = 4
       - SERVO_SINGLECOPTER_3 = 5
       - SERVO_SINGLECOPTER_4 = 6
+
   servoProtocolType_e:
     description: From inav/src/main/drivers/pwm_mapping.h
     storage: uint8
@@ -4637,6 +4861,7 @@ enums:
       - SERVO_TYPE_PWM = 0
       - SERVO_TYPE_SBUS = 1
       - SERVO_TYPE_SBUS_PWM = 2
+
   simATCommandState_e:
     description: From inav/src/main/telemetry/sim.c
     storage: uint8
@@ -4644,6 +4869,7 @@ enums:
       - SIM_AT_OK = 0
       - SIM_AT_ERROR = 1
       - SIM_AT_WAITING_FOR_RESPONSE = 2
+
   simModuleState_e:
     description: From inav/src/main/telemetry/sim.c
     storage: uint8
@@ -4651,6 +4877,7 @@ enums:
       - SIM_MODULE_NOT_DETECTED = 0
       - SIM_MODULE_NOT_REGISTERED = 1
       - SIM_MODULE_REGISTERED = 2
+
   simReadState_e:
     description: From inav/src/main/telemetry/sim.c
     storage: uint8
@@ -4658,6 +4885,7 @@ enums:
       - SIM_READSTATE_RESPONSE = 0
       - SIM_READSTATE_SMS = 1
       - SIM_READSTATE_SKIP = 2
+
   simTelemetryState_e:
     description: From inav/src/main/telemetry/sim.c
     storage: uint8
@@ -4668,6 +4896,7 @@ enums:
       - SIM_STATE_SET_MODES = 3
       - SIM_STATE_SEND_SMS = 4
       - SIM_STATE_SEND_SMS_ENTER_MESSAGE = 5
+
   simTransmissionState_e:
     description: From inav/src/main/telemetry/sim.c
     storage: uint8
@@ -4675,6 +4904,7 @@ enums:
       - SIM_TX_NO = 0
       - SIM_TX_FS = 1
       - SIM_TX = 2
+
   simTxFlags_e:
     description: From inav/src/main/telemetry/sim.h
     storage: uint8
@@ -4685,6 +4915,7 @@ enums:
       - SIM_TX_FLAG_ACC = 8
       - SIM_TX_FLAG_LOW_ALT = 16
       - SIM_TX_FLAG_RESPONSE = 32
+
   simulatorFlags_t:
     description: From inav/src/main/fc/runtime_config.h
     storage: uint16
@@ -4705,12 +4936,14 @@ enums:
       - HITL_RANGEFINDER = 4096
       - HITL_FAILSAFE_TRIGGERED = 8192
       - HITL_SITL_MODE = 16384
+
   sitlCANMode_e:
     description: From inav/src/main/drivers/dronecan/libcanard/canard_sitl_driver.c
     storage: uint8
     values:
       - SITL_CAN_MODE_STUB = 0
       - SITL_CAN_MODE_SOCKETCAN = 1
+
   sliceAssign_e:
     description: From inav/src/main/drivers/pwm_output_rp2350.c
     storage: uint8
@@ -4718,6 +4951,7 @@ enums:
       - SLICE_UNASSIGNED = 0
       - SLICE_AS_MOTOR = 1
       - SLICE_AS_SERVO = 2
+
   smartAudioVersion_e:
     description: From inav/src/main/io/vtx_smartaudio.h
     storage: uint8
@@ -4726,6 +4960,7 @@ enums:
       - SA_1_0 = 1
       - SA_2_0 = 2
       - SA_2_1 = 3
+
   smartportFuelUnit_e:
     description: From inav/src/main/telemetry/telemetry.h
     storage: uint8
@@ -4733,12 +4968,14 @@ enums:
       - SMARTPORT_FUEL_UNIT_PERCENT = 0
       - SMARTPORT_FUEL_UNIT_MAH = 1
       - SMARTPORT_FUEL_UNIT_MWH = 2
+
   softSerialPortIndex_e:
     description: From inav/src/main/drivers/serial_softserial.h
     storage: uint8
     values:
       - SOFTSERIAL1 = 0
       - SOFTSERIAL2 = 1
+
   srxl2CalPhase_e:
     description: From inav/src/main/io/motor_srxl2.h
     storage: uint8
@@ -4749,6 +4986,7 @@ enums:
       - SRXL2_CAL_LOW = 3
       - SRXL2_CAL_HIGH_MANUAL = 4
       - SRXL2_CAL_LOW_MANUAL = 5
+
   srxl2CalResult_e:
     description: From inav/src/main/io/motor_srxl2.h
     storage: uint8
@@ -4758,6 +4996,7 @@ enums:
       - SRXL2_CAL_REJECT_NO_PORT = 2
       - SRXL2_CAL_REJECT_BATTERY_PRESENT = 3
       - SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR = 4
+
   srxl2State_e:
     description: From inav/src/main/io/motor_srxl2.c
     storage: uint8
@@ -4767,6 +5006,7 @@ enums:
       - SRXL2_POLLING = 2
       - SRXL2_FINALISING = 3
       - SRXL2_RUNNING = 4
+
   srxl2TelemetryField_e:
     description: From inav/src/main/io/motor_srxl2.h
     storage: uint8
@@ -4776,6 +5016,7 @@ enums:
       - SRXL2_TELEM_FIELD_CURRENT = 4
       - SRXL2_TELEM_FIELD_TEMP_FET = 8
       - SRXL2_TELEM_FIELD_TEMP_BEC = 16
+
   srxl2TelemetryRate_e:
     description: From inav/src/main/io/motor_srxl2.h
     storage: uint8
@@ -4783,6 +5024,7 @@ enums:
       - SRXL2_TELEM_1HZ = 0
       - SRXL2_TELEM_3HZ = 1
       - SRXL2_TELEM_2HZ = 2
+
   stateFlags_t:
     description: From inav/src/main/fc/runtime_config.h
     storage: uint32
@@ -4797,9 +5039,7 @@ enums:
       - NAV_MOTOR_STOP_OR_IDLE = 128
       - COMPASS_CALIBRATED = 256
       - ACCELEROMETER_CALIBRATED = 512
-      - name: GPS_ESTIMATED_FIX
-        value: 1024
-        condition: "USE_GPS_FIX_ESTIMATION"
+      - if "USE_GPS_FIX_ESTIMATION": GPS_ESTIMATED_FIX = 1024
       - NAV_CRUISE_BRAKING = 2048
       - NAV_CRUISE_BRAKING_BOOST = 4096
       - NAV_CRUISE_BRAKING_LOCKED = 8192
@@ -4818,6 +5058,7 @@ enums:
       - LANDING_DETECTED = 67108864
       - IN_FLIGHT_EMERG_REARM = 134217728
       - TAILSITTER = 268435456
+
   stickPositions_e:
     description: From inav/src/main/fc/rc_controls.h
     storage: uint8
@@ -4834,6 +5075,7 @@ enums:
       - THR_LO = 64
       - THR_CE = 192
       - THR_HI = 128
+
   systemState_e:
     description: From inav/src/main/fc/fc_init.h
     storage: uint8
@@ -4844,6 +5086,7 @@ enums:
       - SYSTEM_STATE_MOTORS_READY = 4
       - SYSTEM_STATE_TRANSPONDER_ENABLED = 8
       - SYSTEM_STATE_READY = 128
+
   tchDmaState_e:
     description: From inav/src/main/drivers/timer.h
     storage: uint8
@@ -4852,6 +5095,7 @@ enums:
       - TCH_DMA_READY = 1
       - TCH_DMA_ACTIVE = 2
       - TCH_DMA_CIRCULAR = 3
+
   tempSensorType_e:
     description: From inav/src/main/sensors/temperature.h
     storage: uint8
@@ -4859,18 +5103,21 @@ enums:
       - TEMP_SENSOR_NONE = 0
       - TEMP_SENSOR_LM75 = 1
       - TEMP_SENSOR_DS18B20 = 2
+
   throttleStatusType_e:
     description: From inav/src/main/fc/rc_controls.h
     storage: uint8
     values:
       - THROTTLE_STATUS_TYPE_RC = 0
       - THROTTLE_STATUS_TYPE_COMMAND = 1
+
   throttleStatus_e:
     description: From inav/src/main/fc/rc_controls.h
     storage: uint8
     values:
       - THROTTLE_LOW = 0
       - THROTTLE_HIGH = 1
+
   timId_e:
     description: From inav/src/main/io/ledstrip.c
     storage: uint8
@@ -4880,22 +5127,20 @@ enums:
       - timLarson = 2
       - timBattery = 3
       - timRssi = 4
-      - name: timGps
-        value: 5
-        condition: "USE_GPS"
+      - if "USE_GPS": timGps = 5
       - timWarning = 6
       - timIndicator = 7
-      - name: timAnimation
-        value: 8
-        condition: "USE_LED_ANIMATION"
+      - if "USE_LED_ANIMATION": timAnimation = 8
       - timRing = 9
       - timTimerCount = 10
+
   timerMode_e:
     description: From inav/src/main/drivers/serial_softserial.c
     storage: uint8
     values:
       - TIMER_MODE_SINGLE = 0
       - TIMER_MODE_DUAL = 1
+
   timerUsageFlag_e:
     description: From inav/src/main/drivers/timer.h
     storage: uint32
@@ -4909,6 +5154,7 @@ enums:
       - TIM_USE_LED = 16777216
       - TIM_USE_BEEPER = 33554432
       - TIM_USE_PINIO = 67108864
+
   tristate_e:
     description: From inav/src/main/common/tristate.h
     storage: uint8
@@ -4916,6 +5162,7 @@ enums:
       - TRISTATE_AUTO = 0
       - TRISTATE_ON = 1
       - TRISTATE_OFF = 2
+
   tz_automatic_dst_e:
     description: From inav/src/main/common/time.h
     storage: uint8
@@ -4923,6 +5170,7 @@ enums:
       - TZ_AUTO_DST_OFF = 0
       - TZ_AUTO_DST_EU = 1
       - TZ_AUTO_DST_USA = 2
+
   uartInverterLine_e:
     description: From inav/src/main/drivers/uart_inverter.h
     storage: uint8
@@ -4930,6 +5178,7 @@ enums:
       - UART_INVERTER_LINE_NONE = 0
       - UART_INVERTER_LINE_RX = 1
       - UART_INVERTER_LINE_TX = 2
+
   ublox_nav_sig_health_e:
     description: From inav/src/main/io/gps_ublox.h
     storage: uint8
@@ -4937,6 +5186,7 @@ enums:
       - UBLOX_SIG_HEALTH_UNKNOWN = 0
       - UBLOX_SIG_HEALTH_HEALTHY = 1
       - UBLOX_SIG_HEALTH_UNHEALTHY = 2
+
   ublox_nav_sig_quality:
     description: From inav/src/main/io/gps_ublox.h
     storage: uint8
@@ -4949,6 +5199,7 @@ enums:
       - UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC = 5
       - UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC2 = 6
       - UBLOX_SIG_QUALITY_CODE_CARRIER_LOCK_TIME_SYNC3 = 7
+
   ubs_nav_fix_type_t:
     description: From inav/src/main/io/gps_ublox.h
     storage: uint8
@@ -4959,6 +5210,7 @@ enums:
       - FIX_3D = 3
       - FIX_GPS_DEAD_RECKONING = 4
       - FIX_TIME = 5
+
   ubx_ack_state_t:
     description: From inav/src/main/io/gps_ublox.h
     storage: uint8
@@ -4966,11 +5218,13 @@ enums:
       - UBX_ACK_WAITING = 0
       - UBX_ACK_GOT_ACK = 1
       - UBX_ACK_GOT_NAK = 2
+
   ubx_nav_status_bits_t:
     description: From inav/src/main/io/gps_ublox.h
     storage: uint8
     values:
       - NAV_STATUS_FIX_VALID = 1
+
   ubx_protocol_bytes_t:
     description: From inav/src/main/io/gps_ublox.h
     storage: uint8
@@ -5009,12 +5263,14 @@ enums:
       - MSG_MON_GNSS = 40
       - MSG_NAV_SIG = 67
       - MSG_MON_RF = 56
+
   vcselPeriodType_e:
     description: From inav/src/main/drivers/rangefinder/rangefinder_vl53l0x.c
     storage: uint8
     values:
       - VcselPeriodPreRange = 0
       - VcselPeriodFinalRange = 1
+
   videoSystem_e:
     description: From inav/src/main/drivers/osd.h
     storage: uint8
@@ -5028,6 +5284,7 @@ enums:
       - VIDEO_SYSTEM_DJICOMPAT = 6
       - VIDEO_SYSTEM_DJICOMPAT_HD = 7
       - VIDEO_SYSTEM_DJI_NATIVE = 8
+
   voltageSensor_e:
     description: From inav/src/main/sensors/battery_config_structs.h
     storage: uint8
@@ -5041,6 +5298,7 @@ enums:
       - VOLTAGE_SENSOR_CAN = 6
       - VOLTAGE_SENSOR_INA226 = 7
       - VOLTAGE_SENSOR_MAX = 7
+
   vs600Band_e:
     description: From inav/src/main/io/smartport_master.h
     storage: uint8
@@ -5051,6 +5309,7 @@ enums:
       - VS600_BAND_D = 3
       - VS600_BAND_E = 4
       - VS600_BAND_F = 5
+
   vs600Power_e:
     description: From inav/src/main/io/smartport_master.h
     storage: uint8
@@ -5059,6 +5318,7 @@ enums:
       - VS600_POWER_25MW = 1
       - VS600_POWER_200MW = 2
       - VS600_POWER_600MW = 3
+
   vtolMcProtectionDebugFlags_e:
     description: From inav/src/main/navigation/navigation_vtol_mc_protection.c
     storage: uint16
@@ -5074,6 +5334,7 @@ enums:
       - VTOL_MC_PROTECT_FLAG_SOFT_ALTITUDE = 256
       - VTOL_MC_PROTECT_FLAG_COMMAND_SHAPED = 512
       - VTOL_MC_PROTECT_FLAG_VELOCITY_FALLBACK = 1024
+
   vtolMcProtectionMode_e:
     description: From inav/src/main/fc/config.h
     storage: uint8
@@ -5081,6 +5342,7 @@ enums:
       - VTOL_MC_PROTECTION_OFF = 0
       - VTOL_MC_PROTECTION_NAV = 1
       - VTOL_MC_PROTECTION_NAV_AND_STABILIZED = 2
+
   vtxDevType_e:
     description: From inav/src/main/drivers/vtx_common.h
     storage: uint8
@@ -5092,6 +5354,7 @@ enums:
       - VTXDEV_FFPV = 5
       - VTXDEV_MSP = 6
       - VTXDEV_UNKNOWN = 255
+
   vtxFrequencyGroups_e:
     description: From inav/src/main/drivers/vtx_common.h
     storage: uint8
@@ -5099,6 +5362,7 @@ enums:
       - FREQUENCYGROUP_5G8 = 0
       - FREQUENCYGROUP_2G4 = 1
       - FREQUENCYGROUP_1G3 = 2
+
   vtxLowerPowerDisarm_e:
     description: From inav/src/main/io/vtx.h
     storage: uint8
@@ -5106,6 +5370,7 @@ enums:
       - VTX_LOW_POWER_DISARM_OFF = 0
       - VTX_LOW_POWER_DISARM_ALWAYS = 1
       - VTX_LOW_POWER_DISARM_UNTIL_FIRST_ARM = 2
+
   vtxProtoResponseType_e:
     description: From inav/src/main/io/vtx_tramp.c
     storage: uint8
@@ -5113,6 +5378,7 @@ enums:
       - VTX_RESPONSE_TYPE_NONE = 0
       - VTX_RESPONSE_TYPE_CAPABILITIES = 1
       - VTX_RESPONSE_TYPE_STATUS = 2
+
   vtxProtoState_e:
     description: From inav/src/main/io/vtx_tramp.c
     storage: uint8
@@ -5124,6 +5390,7 @@ enums:
       - VTX_STATE_QUERY_DELAY = 4
       - VTX_STATE_QUERY_STATUS = 5
       - VTX_STATE_WAIT_STATUS = 6
+
   vtxScheduleParams_e:
     description: From inav/src/main/io/vtx.c
     storage: uint8
@@ -5132,6 +5399,7 @@ enums:
       - VTX_PARAM_BANDCHAN = 1
       - VTX_PARAM_PITMODE = 2
       - VTX_PARAM_COUNT = 3
+
   warningFlags_e:
     description: From inav/src/main/io/ledstrip.c
     storage: uint8
@@ -5140,6 +5408,7 @@ enums:
       - WARNING_LOW_BATTERY = 1
       - WARNING_FAILSAFE = 2
       - WARNING_HW_ERROR = 3
+
   warningLedState_e:
     description: From inav/src/main/io/statusindicator.c
     storage: uint8
@@ -5147,17 +5416,20 @@ enums:
       - WARNING_LED_OFF = 0
       - WARNING_LED_ON = 1
       - WARNING_LED_FLASH = 2
+
   widgetAHIOptions_t:
     description: From inav/src/main/drivers/display_widgets.h
     storage: uint8
     values:
       - DISPLAY_WIDGET_AHI_OPTION_SHOW_CORNERS = 1
+
   widgetAHIStyle_e:
     description: From inav/src/main/drivers/display_widgets.h
     storage: uint8
     values:
       - DISPLAY_WIDGET_AHI_STYLE_STAIRCASE = 0
       - DISPLAY_WIDGET_AHI_STYLE_LINE = 1
+
   widgetSidebarOptions_t:
     description: From inav/src/main/drivers/display_widgets.h
     storage: uint8
@@ -5166,6 +5438,7 @@ enums:
       - DISPLAY_WIDGET_SIDEBAR_OPTION_REVERSE = 2
       - DISPLAY_WIDGET_SIDEBAR_OPTION_UNLABELED = 4
       - DISPLAY_WIDGET_SIDEBAR_OPTION_STATIC = 8
+
   wpMissionPlannerStatus_e:
     description: From inav/src/main/navigation/navigation.h
     storage: uint8
@@ -5174,6 +5447,7 @@ enums:
       - WP_PLAN_SAVE = 1
       - WP_PLAN_OK = 2
       - WP_PLAN_FULL = 3
+
   zeroCalibrationState_e:
     description: From inav/src/main/common/calibration.h
     storage: uint8

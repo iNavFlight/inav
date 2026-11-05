@@ -25,6 +25,8 @@ from yaml.tokens import (
     TagToken,
 )
 
+from enum_syntax import EnumSyntaxError, split_member
+
 YAML_FORBIDDEN_TOKENS = (
     AliasToken,
     AnchorToken,
@@ -71,7 +73,6 @@ TOP_LEVEL_KEYS = {
     "messages",
 }
 ENUM_KEYS = {"prefix", "storage", "description", "values", "zero"}
-ENUM_MEMBER_KEYS = {"name", "value", "condition"}
 STRUCT_KEYS = {"description", "fields", "unresolved"}
 MESSAGE_KEYS = {"id", "request", "reply", "description", "mspv", "group", "notes",
                 "variable_len", "not_implemented", "replaced_by", "variants",
@@ -348,25 +349,15 @@ def _member_from_value(where: str, name: str, raw, condition: str | None) -> Enu
 
 
 def parse_enum_member(where: str, entry) -> EnumMember:
-    if isinstance(entry, dict):
-        check_keys(where, entry, ENUM_MEMBER_KEYS)
-        if "name" not in entry:
-            raise SchemaError(f"{where}: expanded enum member requires 'name'")
-        return _member_from_value(where, entry["name"], entry.get("value"),
-                                  entry.get("condition"))
-    if not isinstance(entry, str):
-        raise SchemaError(f"{where}: enum member must be a string or mapping, got {entry!r}")
-    if "=" not in entry:
-        return EnumMember(check_ident(where, entry.strip()))
-    name, raw = [part.strip() for part in entry.split("=", 1)]
-    check_ident(where, name)
-    if re.fullmatch(r"-?\d+", raw):
-        return EnumMember(name, value=int(raw))
-    if re.fullmatch(r"0[xX][0-9a-fA-F]+", raw):
-        return EnumMember(name, value=int(raw, 16))
-    if IDENT_RE.match(raw):
-        return EnumMember(name, alias_of=raw)
-    raise SchemaError(f"{where}: enum value must be an integer or a member name, got {raw!r}")
+    try:
+        name, raw, condition = split_member(entry)
+    except EnumSyntaxError as exc:
+        raise SchemaError(f"{where}: {exc}") from exc
+    if raw is None:
+        if condition is not None:
+            raise SchemaError(f"{where}: conditional member {name!r} needs a value")
+        return EnumMember(check_ident(where, name))
+    return _member_from_value(where, name, raw, condition)
 
 
 def parse_enum(name: str, spec: dict, is_bitmask: bool) -> EnumDef:

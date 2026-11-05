@@ -14,9 +14,11 @@ external_types:
   escSensorData_t:
     size: 16
     description: ESC telemetry record; sensors/esc_sensor.h, written to the wire unpacked.
+
   ledConfig_t:
     size: 5
     description: One LED's configuration; io/ledstrip.h, a packed bitfield struct.
+
   boxBitmask_t:
     size: 8
     description: Active-mode bitarray; fc/rc_modes.h, sized by CHECKBOX_ITEM_COUNT.
@@ -1758,7 +1760,6 @@ messages:
           description: (Optional) Number of bytes to read. Defaults to 128 if not provided
     reply:
       fields:
-
         address:
           type: uint32
           description: The starting address from which data was actually read
@@ -2186,11 +2187,11 @@ messages:
               unit: meters
               description: Negative altitude alarm threshold (`osdConfig()->neg_alt_alarm`). Optional trailing field.
         reply: null
+
       dataSize == 3:
         description: Single item position update
         request:
           fields:
-
             itemIndex:
               type: uint8
               unit: Index
@@ -2234,11 +2235,11 @@ messages:
               type: uint8[OSD_CHAR_BYTES]
               description: All 64 bytes, including driver metadata.
         reply: null
+
       payloadSize == OSD_CHAR_BYTES + 1 (65 bytes):
         description: 8-bit character index with full 64-byte payload.
         request:
           fields:
-
             address:
               type: uint8
               description: Character slot index (0-255).
@@ -2247,11 +2248,11 @@ messages:
               type: uint8[OSD_CHAR_BYTES]
               description: All 64 bytes, including driver metadata.
         reply: null
+
       payloadSize == OSD_CHAR_VISIBLE_BYTES + 2 (56 bytes):
         description: 16-bit character index with only the 54 visible bytes.
         request:
           fields:
-
             address:
               type: uint16
               description: Character slot index (0-1023).
@@ -2260,11 +2261,11 @@ messages:
               type: uint8[OSD_CHAR_VISIBLE_BYTES]
               description: Visible pixel data only (no metadata).
         reply: null
+
       payloadSize == OSD_CHAR_VISIBLE_BYTES + 1 (55 bytes):
         description: 8-bit character index with only the 54 visible bytes.
         request:
           fields:
-
             address:
               type: uint8
               description: Character slot index (0-255).
@@ -2331,6 +2332,7 @@ messages:
         powerCount:
           type: optional uint8
           description: Number of power levels supported by the VTX device
+
         minPowerIndex:
           type: optional uint8
           description: Lowest selectable power index; 0 for `VTXDEV_MSP`, otherwise 1.
@@ -2354,14 +2356,21 @@ messages:
               description: Encoded band/channel if <= `VTXCOMMON_MSP_BANDCHAN_CHKVAL`; otherwise frequency placeholder.
 
             power: uint8
+
             pitMode: uint8
+
             lowPowerDisarm:
               type: uint8
               enum: vtxLowerPowerDisarm_e
+
             pitModeFreq: uint16
+
             band: uint8
+
             channel: uint8
+
             frequency: uint16
+
             bandCount:
               type: uint8
               description: Read and ignored.
@@ -2374,36 +2383,48 @@ messages:
               type: uint8
               description: If 0 < value < current capability, caps `vtxDevice->capability.powerCount`.
         reply: null
+
       payloadSize >= 11:
         description: Extends payload with explicit frequency.
         request:
           fields:
-
             bandChanOrFreq: uint16
+
             power: uint8
+
             pitMode: uint8
+
             lowPowerDisarm:
               type: uint8
               enum: vtxLowerPowerDisarm_e
+
             pitModeFreq: uint16
+
             band: uint8
+
             channel: uint8
+
             frequency:
               type: uint16
               description: Read and ignored by INAV.
         reply: null
+
       payloadSize >= 9:
         description: Adds explicit band/channel overrides (API 1.42 extension).
         request:
           fields:
-
             bandChanOrFreq: uint16
+
             power: uint8
+
             pitMode: uint8
+
             lowPowerDisarm:
               type: uint8
               enum: vtxLowerPowerDisarm_e
+
             pitModeFreq: uint16
+
             band:
               type: uint8
               description: 1..N; overrides band when present.
@@ -2412,48 +2433,57 @@ messages:
               type: uint8
               description: 1..8; overrides channel when present.
         reply: null
+
       payloadSize >= 7:
         description: Adds pit-mode frequency placeholder.
         request:
           fields:
-
             bandChanOrFreq: uint16
+
             power: uint8
+
             pitMode: uint8
+
             lowPowerDisarm:
               type: uint8
               enum: vtxLowerPowerDisarm_e
+
             pitModeFreq:
               type: uint16
               description: Read and skipped.
         reply: null
+
       payloadSize >= 5:
         description: Adds low-power disarm behaviour.
         request:
           fields:
-
             bandChanOrFreq: uint16
+
             power: uint8
+
             pitMode: uint8
+
             lowPowerDisarm:
               type: uint8
               enum: vtxLowerPowerDisarm_e
               description: 0=Off, 1=Always, 2=Until first arm.
         reply: null
+
       payloadSize >= 4:
         description: Adds power index and pit mode flag.
         request:
           fields:
-
             bandChanOrFreq: uint16
+
             power: uint8
+
             pitMode: uint8
         reply: null
+
       payloadSize == 2:
         description: Minimum payload (band/channel encoded in 0..63).
         request:
           fields:
-
             bandChanOrFreq:
               type: uint16
               description: If <= `VTXCOMMON_MSP_BANDCHAN_CHKVAL`, decoded as band/channel; otherwise treated as a frequency placeholder.
@@ -3423,7 +3453,6 @@ messages:
           description: Index of the waypoint to retrieve (0 to `NAV_MAX_WAYPOINTS - 1`)
     reply:
       fields:
-
         waypointIndex:
           type: uint8
           unit: Index
@@ -3775,7 +3804,6 @@ messages:
           description: 1-based index of the power level to query
     reply:
       fields:
-
         powerLevelIndex:
           type: uint8
           description: 1-based index of the returned power level
@@ -4888,11 +4916,11 @@ messages:
               unit: minutes
               description: Timezone offset from UTC.
         reply: null
+
       dataSize == 3:
         description: dataSize == 3
         request:
           fields:
-
             tz_offset:
               type: int16
               unit: minutes
@@ -4929,7 +4957,6 @@ messages:
                 settingName: cstring
     reply:
       fields:
-
         settingValue:
           type: uint8[]
           description: Raw byte value of the setting. Size depends on the setting's type (`settingGetValueSize()`)
@@ -5093,7 +5120,6 @@ messages:
     reply:
       repeat: until_end
       fields:
-
         pgn:
           type: uint16
           description: Parameter Group Number (PGN) ID
@@ -6477,17 +6503,16 @@ messages:
               type: uint8
               enum: outputMode_e
               description: OUTPUT_MODE_*
+
       dataSize == 1:
         description: Query one timer
         request:
           fields:
-
             timerIndex:
               type: uint8
               description: 0..HARDWARE_TIMER_DEFINITION_COUNT-1
         reply:
           fields:
-
             timerIndex:
               type: uint8
               description: Echoed timer index
@@ -6626,27 +6651,26 @@ messages:
             itemCount:
               type: uint8
               description: Number of OSD items per layout (`OSD_ITEM_COUNT`)
+
       dataSize == 1:
         description: Fetch all item positions for a layout
         request:
           fields:
-
             layoutIndex:
               type: uint8
               description: Layout index (0 to `OSD_LAYOUT_COUNT - 1`)
         reply:
           repeat: OSD_ITEM_COUNT
           fields:
-
             itemPosition:
               type: uint16
               unit: packed coords
               description: Packed X/Y position (`osdLayoutsConfig()->item_pos[layoutIndex][item]`)
+
       dataSize == 3:
         description: Fetch a single item position
         request:
           fields:
-
             layoutIndex:
               type: uint8
               description: Layout index (0 to `OSD_LAYOUT_COUNT - 1`)
@@ -6656,7 +6680,6 @@ messages:
               description: OSD item index (0 to `OSD_ITEM_COUNT - 1`)
         reply:
           fields:
-
             itemPosition:
               type: uint16
               unit: packed coords
@@ -7280,7 +7303,6 @@ messages:
           description: (If `HITL_EXTENDED_FLAGS`) Additional flags (upper 8 bits)
     reply:
       fields:
-
         stabilizedRoll:
           type: uint16
           description: Stabilized Roll command output (-500 to 500)
@@ -7794,7 +7816,6 @@ messages:
           description: Index of the safe home location (0 to `MAX_SAFE_HOMES - 1`)
     reply:
       fields:
-
         safehomeIndex:
           type: uint8
           description: Index requested
@@ -7883,7 +7904,6 @@ messages:
           description: Index of the condition to retrieve (0 to `MAX_LOGIC_CONDITIONS - 1`)
     reply:
       fields:
-
         enabled:
           type: uint8
           description: 'Boolean: 1 if enabled'
@@ -8000,7 +8020,6 @@ messages:
         items:
           repeat: nodeCount
           fields:
-
             nodeID:
               type: uint8
               description: DroneCAN node ID (1-127)
@@ -8047,7 +8066,6 @@ messages:
           description: Target DroneCAN node ID (1-127)
     reply:
       fields:
-
         accepted:
           type: uint8
           description: 0=request accepted; 1=busy (slot in use) or unrecognised service_id; 0xFF=bus not in STATE_DRONECAN_NORMAL (not ready)
@@ -8135,7 +8153,6 @@ messages:
           description: Index of the approach setting (0 to `MAX_FW_LAND_APPOACH_SETTINGS - 1`)
     reply:
       fields:
-
         approachIndex:
           type: uint8
           unit: Index
@@ -8463,7 +8480,6 @@ messages:
         items:
           repeat: maxVehicles
           fields:
-
             callsign:
               type: char[ADSB_CALL_SIGN_MAX_LENGTH]
               description: Fixed-length callsign from `adsbVehicle->vehicleValues.callsign` (padded with NULs if shorter).
@@ -8566,7 +8582,6 @@ messages:
           description: 'Slot index to read, `0 .. (MSP2_ADSB_VEHICLE_COUNT - 1)`. WARNING: this is an iteration cursor over fixed slots, NOT a stable identifier. The same index may return a different aircraft (or an empty slot) on a later poll. Always identify the aircraft by the `icao` field in the reply; never cache or correlate data by index. Returns an error result if the index is out of range.'
     reply:
       fields:
-
         icao:
           type: uint32
           description: ICAO 24-bit address (`vehicleValues.icao`). This is the stable per-aircraft identifier; use it to correlate replies, not the request index. An empty slot reports `icao == 0` and `ttl == 0`.
@@ -8667,11 +8682,9 @@ messages:
           description: Index of the custom element (0 to `MAX_CUSTOM_ELEMENTS - 1`)
     reply:
       fields:
-
         items:
           repeat: CUSTOM_ELEMENTS_PARTS
           fields:
-
             partType:
               type: uint8
               enum: osdCustomElementType_e
@@ -8711,7 +8724,6 @@ messages:
         items:
           repeat: CUSTOM_ELEMENTS_PARTS
           fields:
-
             partType:
               type: uint8
               enum: osdCustomElementType_e
@@ -8802,7 +8814,6 @@ messages:
         items:
           repeat: until_end
           fields:
-
             outputIndex:
               type: uint8
               unit: Index
@@ -8835,7 +8846,6 @@ messages:
             items:
               repeat: until_end
               fields:
-
                 outputIndex:
                   type: uint8
                   unit: Index
@@ -8849,11 +8859,11 @@ messages:
                   type: uint8
                   unit: Index
                   description: '1-based ordinal within the usage type: motor 1..n, servo 1..n. Always 1 for the beeper entry.'
+
       dataSize >= 1:
         description: Preview using proposed overrides layered over the stored ones
         request:
           fields:
-
             timerCount:
               type: uint8
               description: Number of override pairs that follow. Must be <= `HARDWARE_TIMER_DEFINITION_COUNT`.
@@ -8861,7 +8871,6 @@ messages:
             items:
               repeat: timerCount
               fields:
-
                 timerId:
                   type: uint8
                   unit: Index
@@ -8873,11 +8882,9 @@ messages:
                   description: Proposed output mode override (`outputMode_e`) for that timer
         reply:
           fields:
-
             items:
               repeat: until_end
               fields:
-
                 outputIndex:
                   type: uint8
                   unit: Index
@@ -8996,7 +9003,6 @@ messages:
           description: Index of the geozone (0 to `MAX_GEOZONES_IN_CONFIG - 1`)
     reply:
       fields:
-
         geozoneIndex:
           type: uint8
           description: Index requested
@@ -9098,7 +9104,6 @@ messages:
           description: Index of the vertex within the zone (0-based). For circles, 0 = center
     reply:
       fields:
-
         geozoneIndex:
           type: uint8
           unit: Index
@@ -9157,11 +9162,11 @@ messages:
               unit: deg * 1e7
               description: Vertex longitude
         reply: null
+
       circle:
         description: Circular Geozone
         request:
           fields:
-
             geozoneIndex:
               type: uint8
               unit: Index
@@ -9725,7 +9730,6 @@ messages:
           description: Reserved for custom use
     reply:
       fields:
-
         port_id:
           type: uint8
           description: Port ID

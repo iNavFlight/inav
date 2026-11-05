@@ -18,6 +18,8 @@ from pathlib import Path
 
 import yaml
 
+from enum_syntax import split_member
+
 HERE = Path(__file__).resolve().parent
 MSP_ROOT = HERE.parent          # inav/msp
 
@@ -237,22 +239,20 @@ def enum_tables(model: Model) -> tuple[dict, dict]:
             members: dict[str, int] = {}
             conditions: dict[str, str] = {}
             for member in body.get("values") or []:
-                if isinstance(member, dict):
-                    key, raw = qual(member["name"]), member.get("value")
-                    conditions[key] = member.get("condition", "")
-                else:
-                    key, _, raw = str(member).partition(" = ")
-                    key = qual(key)
-                if isinstance(raw, int):
-                    value = raw
-                elif isinstance(raw, str) and re.fullmatch(r"-?\d+", raw.strip()):
+                member_name, raw, condition = split_member(member)
+                key = qual(member_name)
+                if raw is None:
+                    continue
+                if re.fullmatch(r"-?\d+", raw):
                     value = int(raw)
                 else:
-                    alias = qual(str(raw).strip())
+                    alias = qual(raw)
                     if alias not in members:
                         continue
                     value = members[alias]
                 members.setdefault(key, value)
+                if condition:
+                    conditions[key] = condition
             if body.get("zero"):
                 members.setdefault(qual(body["zero"]), 0)
             if not members:

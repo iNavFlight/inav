@@ -444,10 +444,14 @@ def infer_storage(values: list) -> str:
 def emit_yaml(by_name: dict, failed: set, fc_version: str) -> str:
     out = [f"# Generated from INAV C source by msp/generator/harvest_enums.py (INAV {fc_version}). Do not edit by hand.",
            "version: 1", "package: inav.enums", "", "enums:"]
+    first = True
     for name in sorted(by_name):
         rec = by_name[name]
         if name in failed or not rec["members"]:
             continue
+        if not first:
+            out.append("")      # blank line between enum definitions
+        first = False
         out.append(f"  {name}:")
         if rec["_source"]:
             out.append(f"    description: From {rec['_source']}")
@@ -455,10 +459,8 @@ def emit_yaml(by_name: dict, failed: set, fc_version: str) -> str:
         out.append("    values:")
         for member, (val, cond) in rec["members"].items():
             if cond:
-                # block style — the generators' strict YAML subset forbids flow mappings
-                out.append(f"      - name: {member}")
-                out.append(f"        value: {val}")
-                out.append(f"        condition: \"{cond}\"")
+                # one line, C style; see generator/enum_syntax.py
+                out.append(f'      - if "{cond}": {member} = {val}')
             else:
                 out.append(f"      - {member} = {val}")
     return "\n".join(out) + "\n"

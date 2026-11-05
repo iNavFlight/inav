@@ -167,6 +167,26 @@ accepts(
     "enums:\n  E:\n    storage: uint8\n    values:\n      - A = 1\n      - B = A\n",
 )
 accepts(
+    "conditional enum member",
+    'enums:\n  E:\n    storage: uint8\n    values:\n      - A = 0\n      - if "STM32F4": B = 1\n',
+)
+_conditional = build(
+    'enums:\n  E:\n    storage: uint8\n    values:\n      - if "STM32F4 || STM32F7": B = 1\n')
+if _conditional[0].enums[0].members[0].condition == "STM32F4 || STM32F7":
+    passed += 1
+else:
+    failed.append("conditional enum member: condition was not carried through")
+rejects(
+    "conditional enum member without quotes",
+    "enums:\n  E:\n    storage: uint8\n    values:\n      - if STM32F4: A = 1\n",
+    'if "COND"',
+)
+rejects(
+    "conditional enum member without a value",
+    'enums:\n  E:\n    storage: uint8\n    values:\n      - if "STM32F4": A\n',
+    "needs a value",
+)
+accepts(
     "bitmask zero member",
     "bitmasks:\n  B:\n    storage: uint8\n    zero: NONE\n    values:\n      - A = 0\n",
 )

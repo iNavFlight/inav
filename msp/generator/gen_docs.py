@@ -16,6 +16,8 @@ import sys
 import yaml
 from pathlib import Path
 
+from enum_syntax import split_member
+
 HERE = Path(__file__).resolve().parent
 MSP_ROOT = HERE.parent
 REPO_ROOT = MSP_ROOT.parent
@@ -120,11 +122,9 @@ def gen_enums(enums_doc: dict) -> str:
         out.append("| Member | Value | Condition |")
         out.append("|---|---:|---|")
         for v in body.get("values") or []:
-            if isinstance(v, dict):
-                out.append(f"| `{v['name']}` | {v['value']} | {v.get('condition','')} |")
-            else:
-                head, _, tail = str(v).partition(" = ")
-                out.append(f"| `{head.strip()}` | {tail.strip()} | |")
+            member_name, value, condition = split_member(v)
+            condition_cell = f" {condition}" if condition else ""
+            out.append(f"| `{member_name}` | {value or ''} |{condition_cell} |")
         out.append("")
     return "\n".join(out) + "\n"
 
