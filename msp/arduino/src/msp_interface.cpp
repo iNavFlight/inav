@@ -396,9 +396,6 @@ bool MSPIntf::requestWaypointInfo(mspWpGetinfoReply_t *reply) {
 
 bool MSPIntf::requestWaypoint(uint8_t index, mspWpReply_t *reply) {
     uint8_t payload = index;
-    if (waitFor(MSP_WP, reply, sizeof(*reply))) {
-        return (reply->waypointIndex == index);
-    }
     send(MSP_WP, &payload, sizeof(payload));
     if (waitFor(MSP_WP, reply, sizeof(*reply))) {
          return (reply->waypointIndex == index);
