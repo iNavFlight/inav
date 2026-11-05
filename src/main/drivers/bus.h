@@ -101,6 +101,8 @@ typedef enum {
     DEVHW_DPS310_0,
     DEVHW_DPS310_1,
     DEVHW_B2SMPB,
+    DEVHW_BMP58X_0,
+    DEVHW_BMP58X_1,
 
     /* Compass chips */
     DEVHW_HMC5883,
