@@ -19,8 +19,11 @@
 #ifndef MAX_NAME_LENGTH
 #  define MAX_NAME_LENGTH 16
 #endif
-#ifndef BOARD_INFO_FIXED_SIZE
-#  define BOARD_INFO_FIXED_SIZE 6
+// MSP_BOARD_INFO carries the target name in a variable-length tail after a
+// fixed header. Its wire length field is one byte, so this is the largest tail
+// a reply can carry.
+#ifndef MAX_TARGET_NAME_LENGTH
+#  define MAX_TARGET_NAME_LENGTH 255
 #endif
 #ifndef NAV_MAX_WAYPOINTS
 #  define NAV_MAX_WAYPOINTS 120

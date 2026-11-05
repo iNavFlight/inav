@@ -282,44 +282,21 @@ bool MSPIntf::requestFcVersion(mspFcVersionReply_t *reply) {
     return requestFixed(MSP_FC_VERSION, reply, sizeof(*reply));
 }
 bool MSPIntf::requestBoardInfo(mspBoardInfoReply_t *reply, char *targetNameBuf, uint8_t targetNameBufLen) {
-     uint16_t recvSize;
-     // Request fixed part first
-     if (request(MSP_BOARD_INFO, reply, BOARD_INFO_FIXED_SIZE, &recvSize)) {
-         if (recvSize >= BOARD_INFO_FIXED_SIZE && reply->targetNameLength > 0 && targetNameBuf && targetNameBufLen > 0) {
-             uint16_t nameBytesToRead = reply->targetNameLength;
-             uint16_t bufferSpace = targetNameBufLen - 1; // Leave space for null terminator
-             uint16_t bytesRead = 0;
-             uint32_t t0 = millis();
+    // The fixed header and the target-name tail arrive in one frame, and recv()
+    // consumes the whole frame, so request both in one piece.
+    uint8_t payload[sizeof(mspBoardInfoReply_t) + MAX_TARGET_NAME_LENGTH];
+    uint16_t recvSize = 0;
+    if (!request(MSP_BOARD_INFO, payload, sizeof(payload), &recvSize)) return false;
+    if (recvSize < sizeof(*reply)) return false;
+    memcpy(reply, payload, sizeof(*reply));
+    if (!targetNameBuf || targetNameBufLen == 0) return true;
 
-             // Read variable part (target name) directly
-             while (bytesRead < nameBytesToRead && millis() - t0 < _timeout) {
-                 if (_stream->available()) {
-                     char c = _stream->read();
-                     if (bytesRead < bufferSpace) {
-                         targetNameBuf[bytesRead] = c;
-                     }
-                     bytesRead++;
-                 }
-             }
-             targetNameBuf[min(bytesRead, bufferSpace)] = '\0'; // Null terminate
-
-             // Now read the final CRC byte which followed the name
-             uint8_t dummy_crc;
-             uint32_t t1 = millis();
-              while (_stream->available() < 1 && millis() - t1 < _timeout) {}
-             if (_stream->available() >= 1) {
-                _stream->read(); // Consume the CRC byte (validation happened in recv via request->waitFor)
-                return true; // Assume success if we got here
-             } else {
-                return false; // Timeout reading name CRC
-             }
-         } else if (recvSize >= BOARD_INFO_FIXED_SIZE) {
-             // No target name sent or no buffer provided, but fixed part OK
-             if (targetNameBuf && targetNameBufLen > 0) targetNameBuf[0] = '\0';
-             return true;
-         }
-     }
-     return false; // Request failed
+    uint16_t nameLen = (uint16_t)(recvSize - sizeof(*reply));
+    if (nameLen > reply->targetNameLength) nameLen = reply->targetNameLength;
+    if (nameLen > (uint16_t)(targetNameBufLen - 1)) nameLen = (uint16_t)(targetNameBufLen - 1);
+    memcpy(targetNameBuf, payload + sizeof(*reply), nameLen);
+    targetNameBuf[nameLen] = '\0';
+    return true;
 }
 bool MSPIntf::requestBuildInfo(mspBuildInfoReply_t *reply) {
     return requestFixed(MSP_BUILD_INFO, reply, sizeof(*reply));
