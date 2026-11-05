@@ -4,11 +4,15 @@ on:
     paths:
       - 'msp/**'
       - 'src/main/**'
+      - 'CMakeLists.txt'
+      - 'docs/development/msp/**'
       - '.github/workflows/msp.yml'
   pull_request:
     paths:
       - 'msp/**'
       - 'src/main/**'
+      - 'CMakeLists.txt'
+      - 'docs/development/msp/**'
       - '.github/workflows/msp.yml'
 permissions:
   contents: read
