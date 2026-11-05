@@ -349,9 +349,9 @@ bool MSPIntf::requestInavStatus(msp2InavStatusReply_t *reply) {
     return success;
 }
 
-// Check ARMFLAG_ARMED bit (bit 2) from last cached status
+// Check the ARMED flag (bit 2) from last cached status
 bool MSPIntf::isArmed() {
-    return (_last_status_arming_flags & (1UL << (1 << 2))) != 0;
+    return (_last_status_arming_flags & ARMED) != 0;
 }
 
 // --- Sensor Data ---
