@@ -902,8 +902,7 @@ static void pidAutoTransitionTargetTurnAssistant(
     const controlConfig_t *controlProfile,
     const pidProfile_t *targetPidProfile,
     const bool targetIsFixedWing,
-    float bankAngleTarget,
-    float pitchAngleTarget)
+    float bankAngleTarget)
 {
     fpVector3_t targetRates;
     targetRates.x = 0.0f;
@@ -923,8 +922,7 @@ static void pidAutoTransitionTargetTurnAssistant(
         airspeedForCoordinatedTurn = constrainf(airspeedForCoordinatedTurn, 300.0f, 6000.0f);
         bankAngleTarget = constrainf(bankAngleTarget, -DEGREES_TO_RADIANS(60), DEGREES_TO_RADIANS(60));
 
-        const float turnRatePitchAdjustmentFactor = cos_approx(fabsf(pitchAngleTarget));
-        const float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngleTarget) / airspeedForCoordinatedTurn * turnRatePitchAdjustmentFactor;
+        const float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngleTarget) / airspeedForCoordinatedTurn;
 
         targetRates.z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
     } else {
@@ -999,8 +997,7 @@ static void updateAutoTransitionTargetRateTargets(const controlConfig_t *control
 
     if (FLIGHT_MODE(TURN_ASSISTANT) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
         const float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], targetPidProfile->max_angle_inclination[FD_ROLL]));
-        const float pitchAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_PITCH], targetPidProfile->max_angle_inclination[FD_PITCH]));
-        pidAutoTransitionTargetTurnAssistant(autoTransitionTargetPidState, controlProfile, targetPidProfile, targetIsFixedWing, bankAngleTarget, pitchAngleTarget);
+        pidAutoTransitionTargetTurnAssistant(autoTransitionTargetPidState, controlProfile, targetPidProfile, targetIsFixedWing, bankAngleTarget);
     }
 
     for (uint8_t axis = FD_ROLL; axis <= FD_YAW; axis++) {
@@ -1910,7 +1907,7 @@ float pidHeadingHold(float dT)
  * TURN ASSISTANT mode is an assisted mode to do a Yaw rotation on a ground plane, allowing one-stick turn in RATE more
  * and keeping ROLL and PITCH attitude though the turn.
  */
-static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarget, float pitchAngleTarget)
+static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarget)
 {
     fpVector3_t targetRates;
     targetRates.x = 0.0f;
@@ -1937,8 +1934,8 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
 
             // Calculate rate of turn in Earth frame according to FAA's Pilot's Handbook of Aeronautical Knowledge
             bankAngleTarget = constrainf(bankAngleTarget, -DEGREES_TO_RADIANS(60), DEGREES_TO_RADIANS(60));
-            float turnRatePitchAdjustmentFactor = cos_approx(fabsf(pitchAngleTarget));
-            float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngleTarget) / airspeedForCoordinatedTurn * turnRatePitchAdjustmentFactor;
+            // Earth-frame rate, valid in climbs and dives too; imuTransformVectorEarthToBody() applies the pitch projection
+            float coordinatedTurnRateEarthFrame = GRAVITY_CMSS * tan_approx(-bankAngleTarget) / airspeedForCoordinatedTurn;
 
             targetRates.z = RADIANS_TO_DEGREES(coordinatedTurnRateEarthFrame);
         }
@@ -2157,8 +2154,7 @@ void FAST_CODE pidController(float dT)
     // Apply Turn Assistance
     if (FLIGHT_MODE(TURN_ASSISTANT) && (FLIGHT_MODE(ANGLE_MODE) || FLIGHT_MODE(HORIZON_MODE))) {
         float bankAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_ROLL], pidProfile()->max_angle_inclination[FD_ROLL]));
-        float pitchAngleTarget = DECIDEGREES_TO_RADIANS(pidRcCommandToAngle(rcCommand[FD_PITCH], pidProfile()->max_angle_inclination[FD_PITCH]));
-        pidTurnAssistant(pidState, bankAngleTarget, pitchAngleTarget);
+        pidTurnAssistant(pidState, bankAngleTarget);
         canUseFpvCameraMix = false;     // FPVANGLEMIX is incompatible with TURN_ASSISTANT
     }
 
