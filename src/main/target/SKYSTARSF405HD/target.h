@@ -46,6 +46,9 @@
 #define USE_IMU_ICM42605
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PA4
+#if defined(SKYSTARSF405AIO)
+#define ICM42605_EXTI_PIN       PC4
+#endif
 
 // *************** M25P256 flash ********************
 #define USE_FLASHFS
