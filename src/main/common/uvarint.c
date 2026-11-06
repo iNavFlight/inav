@@ -29,7 +29,7 @@
 int uvarintEncode(uint32_t val, uint8_t *ptr, size_t size)
 {
     unsigned ii = 0;
-    while (val > 0x80)
+    while (val >= 0x80)
     {
         if (ii >= size) {
             return -1;
