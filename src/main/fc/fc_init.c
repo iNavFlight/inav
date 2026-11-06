@@ -91,6 +91,8 @@
 #include "fc/firmware_update.h"
 #include "fc/stats.h"
 
+#include "io/mztc_camera.h"
+
 #include "flight/failsafe.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
@@ -622,6 +624,13 @@ void init(void)
 
     // Sensors have now been detected, mspFcInit() can now be called
     // to set the boxes up
+    // The camera driver initializes first because initActiveBoxIds(), inside
+    // mspFcInit(), asks it whether the THERMAL CALIBRATE mode should be
+    // offered.
+#ifdef USE_MZTC
+    mztcInit();
+#endif
+
     mspFcInit();
 
     cliInit(serialConfig());

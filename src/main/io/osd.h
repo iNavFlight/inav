@@ -382,6 +382,9 @@ typedef enum {
     OSD_GPS_EXTRA_STATS,
     OSD_AUTO_SPEED,  // 170
     OSD_TERRAIN_AGL, // 171,
+#ifdef USE_MZTC
+    OSD_MZTC_STATUS,
+#endif
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
