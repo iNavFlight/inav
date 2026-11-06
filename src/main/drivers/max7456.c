@@ -165,6 +165,16 @@
 #define MAX7456ADD_STAT         0xA0
 #define MAX7456ADD_CMDO         0xC0
 
+// MS7456 (MAX7456-compatible OSD) device ID and extra registers
+#define MS7456_ID1              0x40
+#define MS7456_ID2              0x0A
+#define MS7456ADD_ID1           0x0E
+#define MS7456ADD_ID2           0x0F
+
+#define MAX7456_DEVICE_TYPE_MAX 0
+#define MAX7456_DEVICE_TYPE_AT  1
+#define MAX7456_DEVICE_TYPE_MS  2
+
 #define NVM_RAM_SIZE            54
 #define READ_NVR                0x50
 #define WRITE_NVR               0xA0
@@ -205,6 +215,7 @@ typedef struct max7456State_s {
     videoSystem_e videoSystem;
     bool isInitialized;
     bool mutex;
+    uint8_t deviceType;
     max7456Registers_t registers;
 } max7456State_t;
 
@@ -245,9 +256,9 @@ static void max7456WaitUntilNoBusy(void)
 // changes were successfully performed.
 static bool max7456OSDSetEnabled(bool enabled)
 {
-    if (enabled && !(state.registers.vm0 | OSD_ENABLE)) {
+    if (enabled && !(state.registers.vm0 & OSD_ENABLE)) {
         state.registers.vm0 |= OSD_ENABLE;
-    } else if (!enabled && (state.registers.vm0 | OSD_ENABLE)) {
+    } else if (!enabled && (state.registers.vm0 & OSD_ENABLE)) {
         state.registers.vm0 &= ~OSD_ENABLE;
     } else {
         // No changes needed
@@ -331,6 +342,68 @@ uint8_t max7456GetRowsCount(void)
     return MAX7456_LINES_NTSC;
 }
 
+// The MS7456 programs its internal clock/PLL from the detected video mode;
+// these registers are outside the MAX7456 register map. htotal is the video
+// line length (1728 PAL / 1716 NTSC) and pixclk is the pixel clock in 10 kHz.
+static bool ms7456ClockConfig(unsigned short htotal, unsigned short pixclk)
+{
+    // PLL VCO multiplier values and their encoded register dividers.
+    const uint8_t pllMultipliers[25] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 24, 28, 36, 40, 48, 56, 72, 80, 112, 144 };
+    const uint8_t pllDividers[25] = { 0x0, 0x1, 0x24, 0x81, 0x40, 0xA4, 0x48, 0x82, 0x74, 0x41, 0xA5, 0xC8, 0x83, 0xF4, 0xC1, 0xA6, 0xC9, 0xF5, 0xC2, 0xA7, 0xCA, 0xF6, 0xC3, 0xCB, 0xF7 };
+    uint32_t fVco;
+    uint8_t regData;
+    uint16_t regData16;
+    uint8_t regVal;
+    int i;
+
+    busWrite(state.dev, 0x6E, 0x00);
+    busWrite(state.dev, 0x6D, 0x10);
+    busWrite(state.dev, 0x6E, 0x80);
+
+    htotal -= 1;
+    busWrite(state.dev, 0x77, (uint8_t)htotal);
+    busWrite(state.dev, 0x78, (uint8_t)(htotal >> 8));
+
+    for (i = 24; i >= 0; i--) {
+        fVco = (uint32_t)pixclk * (uint32_t)pllMultipliers[i];
+        if (fVco >= 60000UL && fVco < 84000UL) {
+            busWrite(state.dev, 0x6D, 0x00);
+            busWrite(state.dev, 0x7C, 0x02);
+            break;
+        }
+    }
+
+    if (i < 0) {
+        return false;
+    }
+
+    busWrite(state.dev, 0x70, pllDividers[i]);
+    regData = (27000000UL / 10000) / 100 / 3 - 1;   // post divider = 8
+    busWrite(state.dev, 0x71, regData);
+    regData16 = fVco * (regData + 1) / (27000000UL / 10000) - 5;
+
+    busRead(state.dev, 0x78 | MAX7456ADD_READ, &regVal);
+    regVal &= ~0xF0;
+    busWrite(state.dev, 0x78, (uint8_t)(regData16 << 4) | regVal);
+    busWrite(state.dev, 0x79, (uint8_t)(regData16 >> 4));
+
+    if (pllMultipliers[i] <= 7) {
+        regData = 1;
+    } else if (pllMultipliers[i] <= 14) {
+        regData = 2;
+    } else {
+        regData = 3;
+    }
+    busWrite(state.dev, 0x74, regData);
+    busWrite(state.dev, 0x76, 0x2D);
+    busWrite(state.dev, 0x75, 0x0C);
+    busWrite(state.dev, 0x6D, 0x40);
+    busWrite(state.dev, 0x6E, 0x81);
+    delay(10);   // MS7456 PLL lock time
+
+    return true;
+}
+
 //because MAX7456 need some time to detect video system etc. we need to wait for a while to initialize it at startup
 //and in case of restart we need to reinitialize chip. Note that we can't touch osdCharacterGridBuffer here, since
 //it might already have some data by the first time this function is called.
@@ -372,9 +445,20 @@ static void max7456ReInit(void)
 
     state.registers.vm0 = vm0Mode | OSD_ENABLE;
 
+    // The MS7456 needs its clock/PLL programmed for the detected video mode.
+    if (state.deviceType == MAX7456_DEVICE_TYPE_MS) {
+        if (vm0Mode & VIDEO_MODE_PAL) {
+            ms7456ClockConfig(1728, 2700);
+        } else {
+            ms7456ClockConfig(1716, 2700);
+        }
+    }
+
     // Enable OSD drawing and clear the display
     bufPtr = max7456PrepareBuffer(buf, sizeof(buf), bufPtr, MAX7456ADD_VM0, state.registers.vm0);
-    bufPtr = max7456PrepareBuffer(buf, sizeof(buf), bufPtr, MAX7456ADD_DMM, DMM_CLEAR_DISPLAY);
+    if (state.deviceType != MAX7456_DEVICE_TYPE_MS) {
+        bufPtr = max7456PrepareBuffer(buf, sizeof(buf), bufPtr, MAX7456ADD_DMM, DMM_CLEAR_DISPLAY);
+    }
 
     // Transfer data to SPI
     busTransfer(state.dev, NULL, buf, bufPtr);
@@ -418,6 +502,28 @@ void max7456Init(const videoSystem_e videoSystem)
         (state.registers.vm0 | MAX7456_RESET) &&
         millis() < timeout);
 
+    // Detect the chip variant: MAX7456 (256 chars), AT7456E/AB7456 (512 chars),
+    // or MS7456 (MAX7456-compatible, 512 chars, identified by its device ID).
+    {
+        uint8_t cmal;
+        uint8_t id1, id2;
+
+        busWrite(state.dev, MAX7456ADD_CMAL, (1 << 6)); // CA[8] bit
+        busRead(state.dev, MAX7456ADD_CMAL | MAX7456ADD_READ, &cmal);
+
+        if (cmal & (1 << 6)) {
+            busRead(state.dev, MS7456ADD_ID1 | MAX7456ADD_READ, &id1);
+            busRead(state.dev, MS7456ADD_ID2 | MAX7456ADD_READ, &id2);
+            if (id1 == MS7456_ID1 && id2 == MS7456_ID2) {
+                state.deviceType = MAX7456_DEVICE_TYPE_MS;
+            } else {
+                state.deviceType = MAX7456_DEVICE_TYPE_AT;
+            }
+        } else {
+            state.deviceType = MAX7456_DEVICE_TYPE_MAX;
+        }
+    }
+
     // Set all rows to same charactor black/white level. We
     // can do this without finding wether the display is PAL
     // NTSC because all the brightness registers can be written
@@ -430,6 +536,13 @@ void max7456Init(const videoSystem_e videoSystem)
     // Set the blink duty cycle
     bufPtr = max7456PrepareBuffer(buf, sizeof(buf), bufPtr, MAX7456ADD_VM1, BLINK_DUTY_CYCLE_50_50 | BLINK_TIME_3 | BACKGROUND_BRIGHTNESS_28);
     busTransfer(state.dev, NULL, buf, bufPtr);
+
+    // MS7456-specific initialisation.
+    if (state.deviceType == MAX7456_DEVICE_TYPE_MS) {
+        busWrite(state.dev, MAX7456ADD_OSDM, 0x00);    // Rise and Fall Time
+        busWrite(state.dev, 0x58, 0x45);               // SW bypass en
+        busWrite(state.dev, 0x61, 0x13);               // OSD enable delay
+    }
 }
 
 void max7456ClearScreen(void)
@@ -495,10 +608,56 @@ void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode)
     }
 }
 
+// The MS7456 does not use the DMM attribute/clear path, so each dirty
+// character is written directly to display memory. Blink, invert, solid-bg
+// and characters beyond 255 are therefore ignored on the MS7456.
+static bool max7456DrawScreenPartialMS(void)
+{
+    int next;
+    size_t pos;
+    uint_fast16_t updatedCharCount = 0;
+
+    for (pos = 0; pos < ARRAYLEN(osdCharacterGridBuffer);) {
+        next = BITARRAY_FIND_FIRST_SET(screenIsDirty, pos);
+        if (next < 0) {
+            break;
+        }
+        pos = next;
+        if (pos >= ARRAYLEN(osdCharacterGridBuffer)) {
+            BOUNDS_CHECK_FAILED();
+        }
+
+        uint8_t chr = CHAR_BYTE(osdCharacterGridBuffer[pos]);
+        if (chr == 0xff) {
+            chr = ' ';
+        }
+
+        max7456OSDSetEnabled(false);
+
+        busWrite(state.dev, MAX7456ADD_DMAH, pos >> 8);
+        busWrite(state.dev, MAX7456ADD_DMAL, pos & 0xff);
+        busWrite(state.dev, MAX7456ADD_DMDI, chr);
+
+        max7456OSDSetEnabled(true);
+
+        bitArrayClr(screenIsDirty, pos);
+        if (++updatedCharCount == MAX_CHARS2UPDATE) {
+            break;
+        }
+        pos++;
+    }
+
+    return updatedCharCount > 0;
+}
+
 // Must be called with the lock held. Returns whether any new characters
 // were drawn.
 static bool max7456DrawScreenPartial(void)
 {
+    if (state.deviceType == MAX7456_DEVICE_TYPE_MS) {
+        return max7456DrawScreenPartialMS();
+    }
+
     uint8_t spiBuff[MAX_CHARS2UPDATE * BYTES_PER_CHAR2UPDATE];
     int bufPtr = 0;
     size_t pos;
@@ -645,34 +804,42 @@ void max7456RefreshAll(void)
 
     if (max7456TryLock()) {
 
-        // Issue an OSD clear command
-        busRead(state.dev, MAX7456ADD_DMM | MAX7456ADD_READ, &dmm);
-        busWrite(state.dev, MAX7456ADD_DMM, state.registers.dmm | DMM_CLEAR_DISPLAY);
+        // MS7456 does not support DMM_CLEAR_DISPLAY, so skip the clear command.
+        if (state.deviceType != MAX7456_DEVICE_TYPE_MS) {
+            // Issue an OSD clear command
+            busRead(state.dev, MAX7456ADD_DMM | MAX7456ADD_READ, &dmm);
+            busWrite(state.dev, MAX7456ADD_DMM, state.registers.dmm | DMM_CLEAR_DISPLAY);
 
-        // Wait for clear to complete (20us). Bounded: on the LionBee the OSD
-        // chip never reports the bit cleared (DMM reads back 0x06), and an
-        // unbounded wait here stalls the whole scheduler, USB/MSP included.
-        // Betaflight does not poll this bit at all.
-        const timeUs_t clearStart = micros();
-        while (1) {
-             busRead(state.dev, MAX7456ADD_DMM | MAX7456ADD_READ, &dmm);
-             if (!(dmm & DMM_CLEAR_DISPLAY)) {
-                 state.registers.dmm = dmm;
-                 break;
-             }
-             if (cmpTimeUs(micros(), clearStart) > MAX7456_CLEAR_TIMEOUT_US) {
-                 // Keep the shadow as written: the readback is not trustworthy here
-                 // (0x06 has bit 1 set, which would turn every later clear into a
-                 // deferred VSYNC clear that can erase freshly drawn characters).
-                 break;
-             }
+            // Wait for clear to complete (20us). Bounded: on the LionBee the OSD
+            // chip never reports the bit cleared (DMM reads back 0x06), and an
+            // unbounded wait here stalls the whole scheduler, USB/MSP included.
+            // Betaflight does not poll this bit at all.
+            const timeUs_t clearStart = micros();
+            while (1) {
+                 busRead(state.dev, MAX7456ADD_DMM | MAX7456ADD_READ, &dmm);
+                 if (!(dmm & DMM_CLEAR_DISPLAY)) {
+                     state.registers.dmm = dmm;
+                     break;
+                 }
+                 if (cmpTimeUs(micros(), clearStart) > MAX7456_CLEAR_TIMEOUT_US) {
+                     // Keep the shadow as written: the readback is not trustworthy here
+                     // (0x06 has bit 1 set, which would turn every later clear into a
+                     // deferred VSYNC clear that can erase freshly drawn characters).
+                     break;
+                 }
+            }
         }
 
-        // Mark non-blank characters as dirty
+        // Mark characters as dirty. The MS7456 has no DMM clear command, so
+        // every position (including blanks) is rewritten to erase stale chars.
         BITARRAY_CLR_ALL(screenIsDirty);
-        for (unsigned ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
-            if (!CHAR_IS_BLANK(osdCharacterGridBuffer[ii])) {
-                bitArraySet(screenIsDirty, ii);
+        if (state.deviceType == MAX7456_DEVICE_TYPE_MS) {
+            BITARRAY_SET_ALL(screenIsDirty);
+        } else {
+            for (unsigned ii = 0; ii < ARRAYLEN(osdCharacterGridBuffer); ii++) {
+                if (!CHAR_IS_BLANK(osdCharacterGridBuffer[ii])) {
+                    bitArraySet(screenIsDirty, ii);
+                }
             }
         }
 
