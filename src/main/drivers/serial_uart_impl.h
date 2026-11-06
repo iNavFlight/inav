@@ -19,9 +19,105 @@
 
 // device specific uart implementation is defined here
 
+#include "build/atomic.h"
+
+#include "drivers/nvic.h"
+
 extern const struct serialPortVTable uartVTable[];
 
 void uartStartTxDMA(uartPort_t *s);
+
+#ifdef USE_UART_RX_DMA
+#include "common/utils.h"
+#include "drivers/dma.h"
+#include "drivers/timer.h"
+
+#if defined(STM32F4) || defined(STM32F7)
+// Fixed streams and channel per UART receiver (reference manual request tables): a target
+// naming another gets a build error instead of a port that silently receives nothing
+#define UART_RX_DMA_IS(tag, dma, stream, channel) \
+    (DMATAG_GET_DMA(tag) == (dma) && DMATAG_GET_STREAM(tag) == (stream) && DMATAG_GET_CHANNEL(tag) == (channel))
+#ifdef UART1_RX_DMA
+STATIC_ASSERT(UART_RX_DMA_IS(UART1_RX_DMA, 2, 2, 4) || UART_RX_DMA_IS(UART1_RX_DMA, 2, 5, 4), UART1_RX_DMA_is_DMA2_stream_2_or_5_channel_4);
+#endif
+#ifdef UART2_RX_DMA
+STATIC_ASSERT(UART_RX_DMA_IS(UART2_RX_DMA, 1, 5, 4), UART2_RX_DMA_is_DMA1_stream_5_channel_4);
+#endif
+#ifdef UART3_RX_DMA
+STATIC_ASSERT(UART_RX_DMA_IS(UART3_RX_DMA, 1, 1, 4), UART3_RX_DMA_is_DMA1_stream_1_channel_4);
+#endif
+#ifdef UART4_RX_DMA
+STATIC_ASSERT(UART_RX_DMA_IS(UART4_RX_DMA, 1, 2, 4), UART4_RX_DMA_is_DMA1_stream_2_channel_4);
+#endif
+#ifdef UART5_RX_DMA
+STATIC_ASSERT(UART_RX_DMA_IS(UART5_RX_DMA, 1, 0, 4), UART5_RX_DMA_is_DMA1_stream_0_channel_4);
+#endif
+#ifdef UART6_RX_DMA
+STATIC_ASSERT(UART_RX_DMA_IS(UART6_RX_DMA, 2, 1, 5) || UART_RX_DMA_IS(UART6_RX_DMA, 2, 2, 5), UART6_RX_DMA_is_DMA2_stream_1_or_2_channel_5);
+#endif
+#ifdef UART7_RX_DMA
+STATIC_ASSERT(UART_RX_DMA_IS(UART7_RX_DMA, 1, 3, 5), UART7_RX_DMA_is_DMA1_stream_3_channel_5);
+#endif
+#ifdef UART8_RX_DMA
+STATIC_ASSERT(UART_RX_DMA_IS(UART8_RX_DMA, 1, 6, 5), UART8_RX_DMA_is_DMA1_stream_6_channel_5);
+#endif
+#endif
+
+// Free, or this UART's own from an earlier open. Streams mapped to timer outputs stay theirs
+// even before they claim them, since serial ports open first
+static inline bool uartRxDmaAvailable(DMA_t dma, UARTDevice_e device)
+{
+    for (int i = 0; i < timerHardwareCount; i++) {
+        if (dmaGetByTag(timerHardware[i].dmaTag) == dma) {
+            return false;
+        }
+    }
+    return dmaGetOwner(dma) == OWNER_FREE || (dmaGetOwner(dma) == OWNER_SERIAL && dma->resourceIndex == RESOURCE_INDEX(device));
+}
+
+// False leaves the port on the byte interrupt: no stream named or free, no RX, or an
+// rxCallback that wants each byte as it lands
+bool uartRxDmaStart(uartPort_t *s);
+
+static inline bool uartRxDmaRunning(const uartPort_t *s)
+{
+    return s->rxDma != NULL;
+}
+
+// NDTR counts down the rest of the lap round the ring
+static inline uint32_t uartRxBufferHead(const uartPort_t *s)
+{
+    if (s->rxDma) {
+#if defined(AT32F43x)
+        const uint32_t left = s->rxDma->ref->dtcnt;
+#else
+        const uint32_t left = s->rxDma->ref->NDTR;
+#endif
+        return (s->port.rxBufferSize - left) % s->port.rxBufferSize;
+    }
+    return s->port.rxBufferHead;
+}
+#else
+static inline bool uartRxDmaStart(uartPort_t *s) { (void)s; return false; }
+static inline bool uartRxDmaRunning(const uartPort_t *s) { (void)s; return false; }
+static inline uint32_t uartRxBufferHead(const uartPort_t *s) { return s->port.rxBufferHead; }
+#endif
+
+// A stream keeps writing where it was started, so it is started again on the new ring
+static inline void uartSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size)
+{
+    uartPort_t *s = (uartPort_t *)instance;
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        s->port.rxBuffer = buffer;
+        s->port.rxBufferSize = size;
+        s->port.rxBufferHead = 0;
+        s->port.rxBufferTail = 0;
+    }
+    if (uartRxDmaRunning(s)) {
+        uartRxDmaStart(s);
+    }
+}
 
 uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t options);
 uartPort_t *serialUART2(uint32_t baudRate, portMode_t mode, portOptions_t options);
