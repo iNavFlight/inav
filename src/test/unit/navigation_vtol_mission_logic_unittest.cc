@@ -4,6 +4,108 @@ extern "C" {
 #include "navigation/navigation_vtol_mission_logic.h"
 }
 
+TEST(NavigationVtolMissionLogicTest, RthLandingSelectionSurvivesInternalStatesAndTransition)
+{
+    EXPECT_TRUE(navVtolRthLandingMcSelectionRetained(true, true, true, NAV_VTOL_MIXERAT_MODE_NONE));
+    EXPECT_TRUE(navVtolRthLandingMcSelectionRetained(true, true, false, NAV_VTOL_MIXERAT_MODE_RTH));
+    EXPECT_FALSE(navVtolRthLandingMcSelectionRetained(false, true, true, NAV_VTOL_MIXERAT_MODE_NONE));
+}
+
+TEST(NavigationVtolMissionLogicTest, RthLandingSelectionClearsOnModeExitAndCannotLeakIntoNewRth)
+{
+    for (const auto nextOwner : {NAV_VTOL_MIXERAT_MODE_NONE, NAV_VTOL_MIXERAT_MODE_POSHOLD,
+            NAV_VTOL_MIXERAT_MODE_WAYPOINT, NAV_VTOL_MIXERAT_MODE_LAND,
+            NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING}) {
+        bool selected = navVtolRthLandingMcSelectionRetained(true, true, false, nextOwner);
+        EXPECT_FALSE(selected);
+        selected = navVtolRthLandingMcSelectionRetained(selected, true, false, NAV_VTOL_MIXERAT_MODE_WAYPOINT);
+        EXPECT_FALSE(selected);
+        EXPECT_FALSE(navVtolRthLandingMcSelectionRetained(selected, true, true, NAV_VTOL_MIXERAT_MODE_NONE));
+    }
+}
+
+TEST(NavigationVtolMissionLogicTest, DisarmClearsRthLandingSelectionEvenBeforeNavStateChanges)
+{
+    EXPECT_FALSE(navVtolRthLandingMcSelectionRetained(true, false, true, NAV_VTOL_MIXERAT_MODE_NONE));
+    EXPECT_FALSE(navVtolRthLandingMcSelectionRetained(true, false, false, NAV_VTOL_MIXERAT_MODE_RTH));
+}
+
+TEST(NavigationVtolMissionLogicTest, NormalRthLandingDoesNotBlockMissionFwButSafetyProtectionStillDoes)
+{
+    EXPECT_FALSE(navVtolAutomaticFwTransitionAllowed(false, true, NAV_VTOL_MIXERAT_MODE_RTH));
+    EXPECT_TRUE(navVtolAutomaticFwTransitionAllowed(false, true, NAV_VTOL_MIXERAT_MODE_WAYPOINT));
+
+    const bool selectedAfterPoshold = navVtolRthLandingMcSelectionRetained(
+        true, true, false, NAV_VTOL_MIXERAT_MODE_NONE);
+    for (const auto mode : {NAV_VTOL_MIXERAT_MODE_RTH, NAV_VTOL_MIXERAT_MODE_WAYPOINT}) {
+        EXPECT_TRUE(navVtolAutomaticFwTransitionAllowed(false, selectedAfterPoshold, mode));
+        // Neither a mode exit nor a simultaneous normal RTH landing selection
+        // may undo the independent low-speed safety decision.
+        EXPECT_FALSE(navVtolAutomaticFwTransitionAllowed(true, selectedAfterPoshold, mode));
+        EXPECT_FALSE(navVtolAutomaticFwTransitionAllowed(true, true, mode));
+    }
+}
+
+TEST(NavigationVtolMissionLogicTest, RthProcedureKeepsContextDuringTransitionAndRetry)
+{
+    EXPECT_TRUE(navVtolRthProcedureActive(true, NAV_VTOL_MIXERAT_MODE_NONE));
+    EXPECT_TRUE(navVtolRthProcedureActive(false, NAV_VTOL_MIXERAT_MODE_RTH));
+
+    // Retry may have no active mixer transition. RTH context (SafeHome,
+    // altitude plan and selector ownership) must nevertheless remain intact.
+    EXPECT_FALSE(navVtolMixerATModeRequestIsOwned(
+        false, NAV_VTOL_MIXERAT_MODE_RTH, NAV_VTOL_MIXERAT_MODE_RTH));
+    EXPECT_TRUE(navVtolRthProcedureActive(false, NAV_VTOL_MIXERAT_MODE_RTH));
+}
+
+TEST(NavigationVtolMissionLogicTest, NonRthTransitionDoesNotAcquireRthContext)
+{
+    for (const auto owner : {NAV_VTOL_MIXERAT_MODE_NONE, NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+            NAV_VTOL_MIXERAT_MODE_LAND, NAV_VTOL_MIXERAT_MODE_POSHOLD,
+            NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING}) {
+        EXPECT_FALSE(navVtolRthProcedureActive(false, owner));
+    }
+}
+
+TEST(NavigationVtolMissionLogicTest, HomeResetRemainsBlockedThroughoutNavigationOwnedTransitions)
+{
+    for (const auto owner : {NAV_VTOL_MIXERAT_MODE_RTH, NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+            NAV_VTOL_MIXERAT_MODE_LAND}) {
+        EXPECT_TRUE(navVtolTransitionBlocksHomeReset(owner));
+    }
+    // No stale pending state may block manual flight after NAV ownership ends.
+    EXPECT_FALSE(navVtolTransitionBlocksHomeReset(NAV_VTOL_MIXERAT_MODE_NONE));
+    EXPECT_FALSE(navVtolTransitionBlocksHomeReset(NAV_VTOL_MIXERAT_MODE_POSHOLD));
+    EXPECT_FALSE(navVtolTransitionBlocksHomeReset(NAV_VTOL_MIXERAT_MODE_EMERGENCY_LANDING));
+}
+
+TEST(NavigationVtolMissionLogicTest, RthTransitionWaitsThroughBriefPositionLossButNotSensorFailure)
+{
+    EXPECT_FALSE(navVtolRthTransitionHasSensorFailure(NAV_VTOL_MIXERAT_MODE_RTH, true, false));
+    EXPECT_TRUE(navVtolRthTransitionHasSensorFailure(NAV_VTOL_MIXERAT_MODE_RTH, true, true));
+    EXPECT_TRUE(navVtolRthTransitionHasSensorFailure(NAV_VTOL_MIXERAT_MODE_RTH, false, false));
+    EXPECT_TRUE(navVtolRthTransitionHasSensorFailure(NAV_VTOL_MIXERAT_MODE_RTH, false, true));
+    // Do not impose RTH's failure policy on a different transition owner.
+    for (const auto owner : {NAV_VTOL_MIXERAT_MODE_NONE, NAV_VTOL_MIXERAT_MODE_WAYPOINT,
+            NAV_VTOL_MIXERAT_MODE_LAND}) {
+        EXPECT_FALSE(navVtolRthTransitionHasSensorFailure(owner, false, true));
+    }
+}
+
+TEST(NavigationVtolMissionLogicTest, RthTransitionContextIsReleasedOnExitAndRestoredOnlyByNewRth)
+{
+    const navVtolMixerATMode_e owners[] = {
+        NAV_VTOL_MIXERAT_MODE_RTH, NAV_VTOL_MIXERAT_MODE_NONE,
+        NAV_VTOL_MIXERAT_MODE_WAYPOINT, NAV_VTOL_MIXERAT_MODE_RTH,
+    };
+    const bool expectedRth[] = {true, false, false, true};
+    const bool expectedHomeResetBlock[] = {true, false, true, true};
+    for (unsigned i = 0; i < 4; i++) {
+        EXPECT_EQ(expectedRth[i], navVtolRthProcedureActive(false, owners[i]));
+        EXPECT_EQ(expectedHomeResetBlock[i], navVtolTransitionBlocksHomeReset(owners[i]));
+    }
+}
+
 TEST(NavigationVtolMissionLogicTest, ReadyWhenAllPreconditionsAreMet)
 {
     EXPECT_EQ(NAV_MISSION_VTOL_PRECONDITION_READY,
