@@ -21,10 +21,14 @@
 
 #include "drivers/sensor.h"
 
+// Non-blocking read step, see busReadStepResult_e in drivers/bus.h
+typedef busReadStepResult_e (*sensorMagReadStartFuncPtr)(struct magDev_s *mag, bool firstStep);
+
 typedef struct magDev_s {
     busDevice_t * busDev;
     sensorMagInitFuncPtr init;  // initialize function
-    sensorMagReadFuncPtr read;  // read 3 axis data function
+    sensorMagReadStartFuncPtr readStart;    // optional: start the next non-blocking transfer of a sample, read() then only parses
+    sensorMagReadFuncPtr read;  // read 3 axis data function (blocking when readStart is NULL)
     struct {
         bool useExternal;
         union {
