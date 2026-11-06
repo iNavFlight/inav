@@ -64,6 +64,9 @@
 #define IMU_ICM42605_ALIGN      CW0_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         PC15
+#ifdef IFLIGHT_BLITZ_H7_PRO
+#define ICM42605_EXTI_PIN       PB2
+#endif
 
 // OSD
 #define USE_MAX7456

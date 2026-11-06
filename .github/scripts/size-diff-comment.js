@@ -112,7 +112,12 @@ function diffSizeReports(prReport, baselineReport) {
 //   against, or null/undefined to fall back to the generic "base branch"
 //   wording. baselineIsNearest: true when the exact base commit had no
 //   stored baseline and a nearest-ancestor baseline was used instead.
-function renderComment({ prReport, baselineReport, shortSha, baselineCommit, baselineIsNearest, docLink, marker }) {
+// builtCommit: short SHA of the base commit the build contains, when the
+//   build recorded it; with a nearest baseline the note then says the delta
+//   also covers what was merged between the two.
+function renderComment({
+    prReport, baselineReport, shortSha, baselineCommit, baselineIsNearest, builtCommit, docLink, marker
+}) {
     const rows = diffSizeReports(prReport, baselineReport);
     // Only name the baseline commit when there is actually a baseline to
     // compare against (the workflow only sets baselineCommit in that case,
@@ -125,8 +130,15 @@ function renderComment({ prReport, baselineReport, shortSha, baselineCommit, bas
         lines.push(
             '> No size baseline is available yet for this PR\'s base commit ' +
             '(no per-commit baseline has been published for it). This comment ' +
-            'will show deltas once one exists — rebasing the PR refreshes its ' +
-            'base commit.',
+            'will show deltas once one exists: re-run CI Size Report after the ' +
+            'base branch\'s own build has published it.',
+            ''
+        );
+    } else if (baselineIsNearest && builtCommit) {
+        lines.push(
+            `> Using the nearest available size baseline: this build contains base commit \`${builtCommit}\`, ` +
+            'which has no stored baseline yet, so the deltas also include what was merged to the base since ' +
+            `\`${baselineCommit}\`.`,
             ''
         );
     } else if (baselineIsNearest) {
