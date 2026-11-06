@@ -44,12 +44,14 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN               CW180_DEG
 #define MPU6000_CS_PIN                  SPI1_NSS_PIN
+#define MPU6000_EXTI_PIN       PC4
 #define MPU6000_SPI_BUS                 BUS_SPI1
 
 //MPU6500
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN               CW180_DEG
 #define MPU6500_CS_PIN                  SPI1_NSS_PIN
+#define MPU6500_EXTI_PIN       PC4
 #define MPU6500_SPI_BUS                 BUS_SPI1
 
 //BMI270
@@ -57,6 +59,7 @@
 #define IMU_BMI270_ALIGN                CW180_DEG
 #define BMI270_SPI_BUS                  BUS_SPI1
 #define BMI270_CS_PIN                   SPI1_NSS_PIN
+#define BMI270_EXTI_PIN         PC4
 
 #ifdef MAMBAF722_2022B
 
@@ -64,6 +67,7 @@
 #define IMU_ICM42605_ALIGN      CW270_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         SPI1_NSS_PIN
+#define ICM42605_EXTI_PIN       PC4
 
 #endif
 

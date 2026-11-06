@@ -26,6 +26,7 @@
 #define BEEPER_INVERTED
 
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
+#define MPU6500_EXTI_PIN       PA8
 #define MPU6500_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_MPU6500
