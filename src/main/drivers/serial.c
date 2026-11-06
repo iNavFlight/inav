@@ -80,6 +80,31 @@ uint32_t serialReadBuf(serialPort_t *instance, uint8_t *data, uint32_t maxLen)
     return count;
 }
 
+// Feed data into the port's receive path as if it had arrived on the wire.
+// Meant for a port with nothing connected: the RX interrupt updates the same ring buffer,
+// so bytes from a live sender would interleave with the injected ones or be lost.
+// All or nothing - refused when the port does not receive, has no software RX buffer
+// (USB VCP), or the RX buffer cannot take the whole block. Ports read through an RX
+// callback are refused too: serial RC receivers, the CRSF sensor port and the head
+// tracker parse in interrupt context, and feeding them from a task could inject RC frames.
+bool serialInjectRxBuf(serialPort_t *instance, const uint8_t *data, int count)
+{
+    if (!(instance->mode & MODE_RX) || instance->rxCallback || !instance->rxBufferSize) {
+        return false;
+    }
+
+    if ((uint32_t)count >= instance->rxBufferSize - serialRxBytesWaiting(instance)) {
+        return false;
+    }
+
+    while (count-- > 0) {
+        instance->rxBuffer[instance->rxBufferHead] = *data++;
+        instance->rxBufferHead = (instance->rxBufferHead + 1) % instance->rxBufferSize;
+    }
+
+    return true;
+}
+
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     instance->vTable->serialSetBaudRate(instance, baudRate);

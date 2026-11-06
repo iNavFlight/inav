@@ -38,5 +38,7 @@
 
 #define MSP2_COMMON_GET_RADAR_GPS           0x100F //get radar position for other planes
 
+#define MSP2_COMMON_SERIAL_INJECT           0x1010 //in message        Feeds raw bytes into an open serial port's receive path (args: identifier(u8), data(u8[]))
+
 #define MSP2_BETAFLIGHT_BIND                0x3000
 #define MSP2_RX_BIND                        0x3001

@@ -3609,6 +3609,18 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 
+    case MSP2_COMMON_SERIAL_INJECT:
+        // A raw courier: everything after the port identifier is payload, so this message
+        // can never gain fields at the end; a future variant needs a new message ID
+        if (dataSize >= 1) {
+            const serialPortUsage_t *portUsage = findSerialPortUsageByIdentifier(sbufReadU8(src));
+            if (!portUsage || !portUsage->serialPort || !serialInjectRxBuf(portUsage->serialPort, sbufPtr(src), sbufBytesRemaining(src))) {
+                return MSP_RESULT_ERROR;
+            }
+        } else
+            return MSP_RESULT_ERROR;
+        break;
+
 #ifdef USE_LED_STRIP
     case MSP_SET_LED_COLORS:
         if (dataSize >= LED_CONFIGURABLE_COLOR_COUNT * 4) {
