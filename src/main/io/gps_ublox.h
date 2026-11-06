@@ -36,10 +36,12 @@ extern "C" {
 #endif
 #define MAX_UBLOX_PAYLOAD_SIZE              ((UBLOX_MAX_SIGNALS * 16) + 8) // UBX-NAV-SIG info would be UBLOX_MAX_SIGNALS * 16 + 8
 #define UBLOX_BUFFER_SIZE                   MAX_UBLOX_PAYLOAD_SIZE
+#define UBLOX_MAX_ACCEPTED_PAYLOAD_SIZE     ((255 * 16) + 8) // numSigs is U1, no valid NAV-SIG/NAV-SAT is longer
 #define UBLOX_SBAS_MESSAGE_LENGTH           16
 #define GPS_CAPA_INTERVAL                   5000
 
 STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
+STATIC_ASSERT(UBLOX_MAX_ACCEPTED_PAYLOAD_SIZE >= MAX_UBLOX_PAYLOAD_SIZE, ubx_accepted_size_too_small);
 
 #define UBX_DYNMODEL_PORTABLE   0
 #define UBX_DYNMODEL_STATIONARY 2
