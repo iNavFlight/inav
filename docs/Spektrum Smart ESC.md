@@ -60,8 +60,7 @@ means the motor is never driven. The Outputs tab warns when that is the case.
 
 If your firmware was not built with this support the protocol does not appear in the
 list at all, and neither does the port function. It is enabled by default on F405, H7
-and AT32 targets, which is where the flash to spare is: the driver costs about 3.5 KB,
-and an F405 board typically uses three quarters of its flash. The F7 family is left out
+and AT32 targets, which is where the flash to spare is. The F7 family is left out
 because some of its targets are close to full, so an F7 board with room can turn it on
 with a `#define USE_MOTOR_SRXL2` in its `target.h`, as can any other target.
 
@@ -207,6 +206,49 @@ of magnitude separate the two, so:
 * INAV's own advice for this setting applies unchanged: turn it on only once ESC
   telemetry is working and the reported rpm looks right.
 
+## Smart Battery telemetry
+
+A Smart Battery connected to a compatible Avian ESC can report individual cell
+voltages and pack temperature over the existing throttle wire. Leave
+`esc_srxl2_telemetry` enabled; the battery pages arrive with the normal ESC
+telemetry, without another request or setting.
+
+The ESC needs the third battery-data wire between it and the battery. Avian Lite
+ESCs, including the 70 A and 85 A, do not have it. They still report their own
+voltage, current and temperature, but cannot read the battery's cells or temperature.
+
+The master address is `0x21`, a receiver identity, so battery replies from the
+Avian pass the normal destination check. Control frames and telemetry scheduling
+are unchanged. Power-cycle the ESC after updating from firmware using `0x31`.
+
+`smartbattery` in the CLI shows cell voltages in mV and pack temperature in tenths
+of a degree Celsius. `smartbattery raw` also shows the received pages and their
+ages. The decoder holds up to eighteen cells and two battery sources per ESC;
+INAV's main battery-source selection is unchanged.
+
+The Lite 85 A sends battery pages even without battery data: equal cell values
+and a zero temperature. Those are placeholders. INAV requires fresh capacity
+metadata before publishing battery readings, and drops readings after ten seconds
+or a link interruption. Capacity is used for that check, not published as a new
+capacity or state-of-charge reading.
+
+Cells and temperature go to the radio through native CRSF Voltage Group and
+Temperature frames. Cell frames require a complete, fresh pack of up to eight
+cells; larger packs remain available through the CLI. Use **EdgeTX 2.11.2 or
+newer** and **ExpressLRS 3.5.5 or newer**, as described in the
+[EdgeTX release notes](https://github.com/EdgeTX/edgetx/releases/tag/v2.11.2).
+No Lua application or additional Configurator setting is needed.
+
+Checked with a 6S Avian Smart 100 A and a Spektrum Smart 4000 mAh 6S 30C Gen 1
+pack: the cells and temperature matched the received payloads. Normal ESC
+telemetry and FC-only restart recovery also worked on the 100 A and Lite 85 A;
+the Lite's battery placeholders remained unavailable. The bench setup used local
+NEXUS support separate from this feature.
+
+The sensor `0x42` page layout follows the behavioral references in
+[EdgeTX](https://github.com/EdgeTX/edgetx/blob/73652d0a99e51e37a0a8dc9159a3ec1ea4219ae9/radio/src/telemetry/spektrum.cpp)
+and [MSRC](https://github.com/dgatf/msrc/blob/master/board/project/sensor/smart_esc.c).
+
 ## Reverse
 
 Reverse on a Smart ESC is a switch, not a throttle value below neutral. The ESC's
@@ -306,24 +348,39 @@ them can call for reverse thrust. An automatic landing will not use it.
 
 ## If the motor does not come back after a reboot
 
-An Avian announces itself for about a third of a second after it powers up - six
-handshakes in 300 milliseconds, measured on a 70 A - and then never speaks again
-unless it is asked something it recognises. A flight controller that starts while
-the ESC is already running has missed that window, and the ESC will not answer it
-afterwards: polled by name, broadcast to, addressed on every ID from 0x40 to
-0x4F, or spoken to as though the link already existed, it stayed silent through
-every one.
+An Avian announces itself only as it powers up - five or six handshakes 50 to 60 ms apart,
+43 to about 345 ms after the board's reset when both share the battery, measured on a 70 A
+with a Lucid H7 - and one left unanswered never speaks again. Polled by name,
+broadcast to, addressed on every ID from 0x40 to 0x4F, from other source IDs, at
+400000 baud, or spoken to as though the link already existed, it stayed silent
+through every one. It also takes an answer only once those handshakes are over, and
+only if control frames are still coming then: answered and left without frames, it
+goes silent the same way.
 
-So the link is made at power-up or not at all. Connecting the battery powers both
-together and the announcement lands while the flight controller is listening,
-which is the normal case and needs nothing. The cases that bite are the other
-ones:
+So the link is made at power-up or not at all, and the flight controller makes it
+before anything else that takes time: a board set to SRXL2 opens its ports ahead of
+the USB start-up, answers the handshake and sends control frames until the ESC
+replies, which the Avian did 349 ms after reset. A board whose ESC has not spoken 200 ms
+after reset, or 100 ms after its ports opened if that is later, stops waiting, and this
+first wait ends by 700 ms. The fixed waits later in the start-up keep answering too: on
+a Lucid H7 an ESC powered up to about 1.3 s after a restart still linked. One powered
+while the USB starts up, 0.2 to 0.3 s after reset on that board, or from about 1.5 s
+until the board is up, can still be missed.
 
-* the flight controller reboots - a firmware update, a brownout, the Configurator
-  asking for a restart - while the battery stays connected. **Unplug the battery
-  and plug it in again**, or the motor will not respond.
-* bench work on USB with the ESC powered from a separate supply. Power the ESC
-  after the board has booted, not before.
+The rest of the start-up then leaves the ESC without frames for about four seconds. It
+announces itself again through them and the board links it once running, but an Avian
+still starting when that happens starts over: it obeyed the throttle about 7 seconds
+after the frames returned, and not at all if the throttle had risen right away.
+The arming block counts its 10 seconds again from when the frames return, so with one
+battery powering both, arming is allowed 10 seconds after the board has started, about
+16 seconds after the battery is connected on a Lucid H7.
+
+A linked ESC that loses its frames announces itself again, so a board that restarts
+with the battery connected gets it back; measured over a restart of about six seconds
+and over a firmware update. What still bites is an ESC powered while the board is
+starting up rather than together with it, as on the bench with the board on USB and
+the ESC on its own supply: power the ESC after the board has booted. If the motor ever
+does not respond, **unplug the battery and plug it in again**.
 
 Nothing in the firmware can work around this, so it refuses to hide it instead:
 arming is blocked while an SRXL2 link is missing, and the OSD says the hardware
@@ -342,6 +399,23 @@ powers up, when its startup tones are over. An ESC that announces itself again w
 board was feeding it, as one powered again does, is counted from there; after a pause in the
 board's own frames, only one still starting is. Where the block does not clear, the throttle
 would have done nothing anyway.
+
+## Exactly 20 % throttle
+
+An Avian brought up to exactly 20.0 % from below, or from a stop, and held there for about two
+seconds treats the next increase as a failed start, even an increase of one microsecond: the
+motor stops and stays stopped, whatever the throttle, until the throttle returns to zero. It
+behaves like the ESC's start-up protection, *"If the throttle is more than 20%, the throttle
+stick must be moved back to the bottom position before the ESC will allow a restart"*, but on a
+motor that was already running. Measured on a 70 A with the propeller off, it happens with soft
+and normal start-up, with the brake disabled or on reverse, and in reverse; it does not happen at
+19.9 % or 20.1 %, nor when 20 % is reached from above.
+
+With the endpoints INAV's own calibration stores (see above), 1200 us is the only motor value
+that lands on that step, and it is also the default `nav_fw_min_thr`, so INAV sends it as
+1199 us (19.9 %). An ESC calibrated to other endpoints, from a transmitter for instance, has its
+20 % elsewhere: that case was not measured and is not covered, so calibrate it from INAV. Over PWM,
+in 5 % and 10 us steps, the same ESC never stopped.
 
 ## Settings
 

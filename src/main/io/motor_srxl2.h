@@ -35,6 +35,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "io/srxl2_smart_battery.h"
+
 /*
  * One ESC per bus, several buses.
  *
@@ -146,10 +148,24 @@ srxl2CalResult_e srxl2MotorCalibrationLastResult(void);
 bool srxl2MotorInitialize(void);
 
 /*
+ * Open the ports and link the ESCs powered with the board, which only listen in their
+ * first moments. Returns once each has replied or has stayed silent long enough to be
+ * absent, and 700 ms after reset at the latest. For init, ahead of its long waits.
+ */
+void srxl2MotorAwaitLink(void);
+
+/*
+ * Keep the ESCs answered for ms milliseconds, in place of one of init's fixed waits: an ESC
+ * powered during it would otherwise stay deaf. A link under way is let finish, up to 700 ms more.
+ */
+void srxl2MotorServiceFor(uint32_t ms);
+
+/*
  * Stage one motor value. Takes microseconds on INAV's usual 1000..2000 scale
  * (or the reversible-motor scale, where the neutral sits in the middle), so it
  * is interchangeable with pwmWriteMotor() as a motorWritePtr target.
  * Staging only: nothing reaches the wire until srxl2MotorSendUpdate().
+ * 1200 us goes out as 1199: an Avian's 20.0 % step, see motor_srxl2.c.
  */
 void srxl2MotorUpdate(uint8_t index, uint16_t value);
 
@@ -224,6 +240,9 @@ void srxl2MotorProcess(void);
  * some motor has nowhere to send its command, which the caller must treat as a
  * configuration error rather than carrying on. */
 uint8_t srxl2MotorCount(void);
+
+bool srxl2MotorGetSmartBattery(uint8_t motor, uint8_t slot, srxl2SmartBatteryTelemetry_t *out);
+const srxl2SmartBatteryState_t *srxl2MotorGetSmartBatteryRaw(uint8_t motor);
 
 /* True once every opened ESC has answered the handshake and is still
  * responding. One silent ESC on a twin is asymmetric thrust, so this is

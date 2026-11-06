@@ -32,6 +32,7 @@
 #include "config/parameter_group.h"
 
 #include "drivers/system.h"
+#include "drivers/accgyro/accgyro_data_ready.h"
 #include "drivers/flash.h"
 #include "drivers/pwm_output.h"
 
@@ -322,6 +323,10 @@ static bool writeSettingsToEEPROM(void)
 
 void writeConfigToEEPROM(void)
 {
+#if defined(USE_SPI_DATA_READY)
+    gyroDataReadySuspend();
+#endif
+
 #if !defined(SITL_BUILD) && defined(USE_DSHOT)
     // Enable circular DMA so hardware keeps repeating zero-throttle DShot
     // packets during flash writes (which block the CPU for 20-200ms).

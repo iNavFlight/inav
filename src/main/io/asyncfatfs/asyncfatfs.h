@@ -61,6 +61,47 @@ typedef void (*afatfsFileCallback_t)(afatfsFilePtr_t file);
 typedef void (*afatfsCallback_t)(void);
 
 bool afatfs_fopen(const char *filename, const char *mode, afatfsFileCallback_t complete);
+/*
+ * Mark the directory entry at `entryPos` deleted without touching its FAT chain. Use instead of
+ * afatfs_funlink()/afatfs_ftruncate() for any file other than the most recently allocated one: those assume the
+ * freed clusters are contiguous with the freefile.
+ *
+ * Returns AFATFS_OPERATION_IN_PROGRESS if the cache is busy; call again to retry.
+ */
+afatfsOperationStatus_e afatfs_deleteDirectoryEntryAt(afatfsDirEntryPointer_t *entryPos);
+/*
+ * Like afatfs_deleteDirectoryEntryAt(), but also clears the entry's first cluster and size so it no longer marks a
+ * region boundary. For an entry that must not be picked again; its clusters are left unowned.
+ *
+ * Returns AFATFS_OPERATION_IN_PROGRESS if the cache is busy; call again to retry.
+ */
+afatfsOperationStatus_e afatfs_discardDirectoryEntryAt(afatfsDirEntryPointer_t *entryPos);
+/*
+ * True while any cache sector is dirty or a flush is in progress. Wait for this to go false before
+ * afatfs_deleteDirectoryEntryAt() when reclaiming space, so the delete is flushed before the freefile relocation
+ * (flushing is oldest-write-first); otherwise a power loss between the two writes would leave the freefile
+ * overlapping a file that still looks live.
+ */
+bool afatfs_hasPendingWrites(void);
+// First cluster of the freefile (the next cluster to be handed out)
+uint32_t afatfs_freeFileFirstCluster(void);
+/*
+ * Size in bytes of one supercluster. A freefile smaller than this cannot be allocated from, so don't relocate it
+ * to a smaller range.
+ *
+ * Not guarded by AFATFS_USE_FREEFILE, which is only defined inside asyncfatfs.c.
+ */
+uint32_t afatfs_freeFileSuperClusterSize(void);
+// Size in bytes of one FAT cluster, to convert cluster-number differences to the byte sizes used by this API.
+uint32_t afatfs_freeFileClusterSize(void);
+/*
+ * Move the freefile to a cluster range already known to be free (call afatfs_deleteDirectoryEntryAt() first and
+ * wait for it to succeed). Clears afatfs_isFull() on success. `newSizeBytes` need not be a whole number of
+ * superclusters; any remainder goes unused.
+ *
+ * Returns AFATFS_OPERATION_IN_PROGRESS if the cache is busy; call again to retry.
+ */
+afatfsOperationStatus_e afatfs_freeFileRelocate(uint32_t newFirstCluster, uint32_t newSizeBytes);
 bool afatfs_ftruncate(afatfsFilePtr_t file, afatfsFileCallback_t callback);
 bool afatfs_fclose(afatfsFilePtr_t file, afatfsCallback_t callback);
 void afatfs_fcloseSync(afatfsFilePtr_t file);

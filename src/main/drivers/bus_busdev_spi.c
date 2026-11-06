@@ -47,8 +47,10 @@ bool spiBusInitHost(const busDevice_t * dev)
     return spiInitDevice(dev->busdev.spi.spiBus, spiLeadingEdge);
 }
 
+// Select takes the bus, deselect gives it back: data-ready reads take turns with these
 void spiBusSelectDevice(const busDevice_t * dev)
 {
+    spiBusAcquire(dev->busdev.spi.spiBus);
     IOLo(dev->busdev.spi.csnPin);
     spiChipSelectSetupDelay();
 }
@@ -57,6 +59,7 @@ void spiBusDeselectDevice(const busDevice_t * dev)
 {
     spiChipSelectHoldTime();
     IOHi(dev->busdev.spi.csnPin);
+    spiBusRelease(dev->busdev.spi.spiBus);
 }
 
 void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
@@ -74,7 +77,9 @@ void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
         speed = BUS_SPI_SPEED_MAX;
 #endif
 
+    spiBusAcquire(dev->busdev.spi.spiBus);
     spiSetSpeed(instance, spiClock[speed]);
+    spiBusRelease(dev->busdev.spi.spiBus);
 }
 
 
@@ -122,6 +127,21 @@ bool spiBusTransferMultiple(const busDevice_t * dev, busTransferDescriptor_t * d
     return true;
 }
 
+// Address and data in one transfer: on H7 starting and ending one costs about as much as the bytes
+#if defined(AT32F43x)
+static bool spiBusTransferRegister(spi_type * instance, uint8_t reg, uint8_t * rxData, const uint8_t * txData, int len)
+#else
+static bool spiBusTransferRegister(SPI_TypeDef * instance, uint8_t reg, uint8_t * rxData, const uint8_t * txData, int len)
+#endif
+{
+#if defined(STM32H7) || defined(STM32F7)
+    return spiTransferRegister(instance, reg, rxData, txData, len);
+#else
+    spiTransferByte(instance, reg);
+    return spiTransfer(instance, rxData, txData, len);
+#endif
+}
+
 bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data)
 {
 #if defined(AT32F43x)
@@ -134,14 +154,13 @@ bool spiBusWriteRegister(const busDevice_t * dev, uint8_t reg, uint8_t data)
         spiBusSelectDevice(dev);
     }
 
-    spiTransferByte(instance, reg);
-    spiTransferByte(instance, data);
+    const bool ok = spiBusTransferRegister(instance, reg, NULL, &data, 1);
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusDeselectDevice(dev);
     }
 
-    return true;
+    return ok;
 }
 
 bool spiBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * data, uint8_t length)
@@ -156,14 +175,13 @@ bool spiBusWriteBuffer(const busDevice_t * dev, uint8_t reg, const uint8_t * dat
         spiBusSelectDevice(dev);
     }
 
-    spiTransferByte(instance, reg);
-    spiTransfer(instance, NULL, data, length);
+    const bool ok = spiBusTransferRegister(instance, reg, NULL, data, length);
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusDeselectDevice(dev);
     }
 
-    return true;
+    return ok;
 }
 
 bool spiBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
@@ -178,14 +196,13 @@ bool spiBusReadBuffer(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint
         spiBusSelectDevice(dev);
     }
 
-    spiTransferByte(instance, reg);
-    spiTransfer(instance, data, NULL, length);
+    const bool ok = spiBusTransferRegister(instance, reg, data, NULL, length);
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusDeselectDevice(dev);
     }
 
-    return true;
+    return ok;
 }
 
 bool spiBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data)
@@ -200,14 +217,13 @@ bool spiBusReadRegister(const busDevice_t * dev, uint8_t reg, uint8_t * data)
         spiBusSelectDevice(dev);
     }
 
-    spiTransferByte(instance, reg);
-    spiTransfer(instance, data, NULL, 1);
+    const bool ok = spiBusTransferRegister(instance, reg, data, NULL, 1);
 
     if (!(dev->flags & DEVFLAGS_USE_MANUAL_DEVICE_SELECT)) {
         spiBusDeselectDevice(dev);
     }
 
-    return true;
+    return ok;
 }
 
 bool spiBusIsBusy(const busDevice_t * dev)

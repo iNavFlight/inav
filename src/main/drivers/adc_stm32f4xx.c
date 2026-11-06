@@ -25,6 +25,7 @@
 #include "drivers/io.h"
 #include "io_impl.h"
 #include "rcc.h"
+#include "dma.h"
 
 #include "drivers/sensor.h"
 #include "drivers/accgyro/accgyro.h"
@@ -90,6 +91,12 @@ static void adcInstanceInit(ADCDevice adcDevice)
     adcDevice_t * adc = &adcHardware[adcDevice];
 
     RCC_ClockCmd(adc->rccDMA, ENABLE);
+
+    // The stream is the ADC's: whatever takes a free stream at run time must not take it
+    DMA_t adcDma = dmaGetByRef(adc->DMAy_Streamx);
+    if (adcDma) {
+        dmaInit(adcDma, OWNER_ADC, adcDevice);
+    }
     RCC_ClockCmd(adc->rccADC, ENABLE);
 
     DMA_DeInit(adc->DMAy_Streamx);
