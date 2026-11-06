@@ -87,6 +87,15 @@ static const char * baudInitDataNMEA[GPS_BAUDRATE_COUNT] = {
 
 static ubx_nav_sig_info satelites[UBLOX_MAX_SIGNALS] = {};
 
+// From MON-VER, where a dual band receiver names itself (FWVER=SPGL1L5)
+static bool ubxDualBand = false;
+
+// Which GNSS keys the firmware has, read before the configuration is built from them
+static uint16_t ubxGnss10Keys;
+static bool ubxGnss10KeysRead = false;
+// MON-GNSS has answered since the constellations were configured
+static bool ubxGnssAnswered = false;
+
 // MON-RF noise value (noisePerMS) reported by UBX-MON-RF as U2 at payload offset 0x10
 static uint16_t monRfNoisePerMs = 0;
 static uint16_t monAgcCount = 0;
@@ -274,6 +283,19 @@ static void pollGnssCapabilities(void)
     sendConfigMessageUBLOX();
 }
 
+static void pollGnss10Keys(void)
+{
+    const uint32_t key = UBLOX_CFG_SIGNAL_ALL;
+
+    send_buffer.message.header.msg_class = CLASS_CFG;
+    send_buffer.message.header.msg_id = MSG_CFG_VALGET;
+    send_buffer.message.header.length = 8;
+    // Version 0, the RAM layer, from the first item
+    memset(send_buffer.message.payload.bytes, 0, 4);
+    memcpy(send_buffer.message.payload.bytes + 4, &key, sizeof(key));
+    sendConfigMessageUBLOX();
+}
+
 // Poll UBX-MON-RF (no ACK expected) - used periodically for RF status on newer modules
 static void pollMonRf(void)
 {
@@ -355,6 +377,57 @@ static int configureGNSS_SBAS(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
+static uint8_t ubloxGnssSelected(void)
+{
+    uint8_t gnss = UBX_MON_GNSS_GPS_MASK;
+    if (gpsState.gpsConfig->ubloxUseGalileo) {
+        gnss |= UBX_MON_GNSS_GALILEO_MASK;
+    }
+    if (gpsState.gpsConfig->ubloxUseBeidou) {
+        gnss |= UBX_MON_GNSS_BEIDOU_MASK;
+    }
+    if (gpsState.gpsConfig->ubloxUseGlonass) {
+        gnss |= UBX_MON_GNSS_GLONASS_MASK;
+    }
+    return gnss;
+}
+
+// The constellations the receiver runs otherwise than the settings say, by its own last MON-GNSS answer
+uint8_t gpsUbloxGnssNotAsSet(void)
+{
+    if (!ubxGnssAnswered) {
+        return 0;
+    }
+    return (ubloxGnssSelected() ^ ubx_capabilities.enabledGnss) & ubx_capabilities.supported;
+}
+
+// The selected constellations the receiver has, cut to what it can track at once: it
+// rejects a configuration it cannot run. The ones INAV has off by default go first
+static uint8_t ubloxGnssToEnable(void)
+{
+    static const uint8_t leaveOutFirst[] = {
+        UBX_MON_GNSS_GLONASS_MASK, UBX_MON_GNSS_BEIDOU_MASK, UBX_MON_GNSS_GALILEO_MASK
+    };
+
+    uint8_t gnss = ubloxGnssSelected();
+
+    // Until MON-GNSS answers, the selection goes out as it is
+    if (!ubx_capabilities.supported) {
+        return gnss;
+    }
+
+    gnss &= ubx_capabilities.supported;
+
+    for (unsigned i = 0; i < ARRAYLEN(leaveOutFirst); i++) {
+        if (ubx_capabilities.capMaxGnss <= 0 || __builtin_popcount(gnss) <= ubx_capabilities.capMaxGnss) {
+            break;
+        }
+        gnss &= ~leaveOutFirst[i];
+    }
+
+    return gnss;
+}
+
 static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
 {
     if (!gpsUbloxHasGalileo()) {
@@ -368,7 +441,7 @@ static int configureGNSS_GALILEO(ubx_gnss_element_t * gnss_block)
     // 0x10 = Galileo E5a // off by default
     // 0x20 = Galileo E5b // off by default
     gnss_block->sigCfgMask = 0x01;
-    if (gpsState.gpsConfig->ubloxUseGalileo) {
+    if (ubloxGnssToEnable() & UBX_MON_GNSS_GALILEO_MASK) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
     } else {
@@ -392,7 +465,7 @@ static int configureGNSS_BEIDOU(ubx_gnss_element_t * gnss_block)
     // 0x10 = BeiDou B2I // off by default
     // 0x80 = BeiDou B2A // off by default
     gnss_block->sigCfgMask = 0x01;
-    if (gpsState.gpsConfig->ubloxUseBeidou) {
+    if (ubloxGnssToEnable() & UBX_MON_GNSS_BEIDOU_MASK) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
     } else {
@@ -434,7 +507,7 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
     // 0x01 = GLONASS L1
     // 0x10 = GLONASS L2 // off by default
     gnss_block->sigCfgMask = 0x01;
-    if (gpsState.gpsConfig->ubloxUseGlonass) {
+    if (ubloxGnssToEnable() & UBX_MON_GNSS_GLONASS_MASK) {
         gnss_block->enabled = 1;
         gnss_block->resTrkCh = 4;
     } else {
@@ -445,34 +518,22 @@ static int configureGNSS_GLONASS(ubx_gnss_element_t * gnss_block)
     return 1;
 }
 
-static void configureGNSS10(void)
+static void configureGNSS10(bool enablesOnly)
 {
-        ubx_config_data8_payload_t gnssConfigValues[] = {
-            // SBAS
-            {UBLOX_CFG_SIGNAL_SBAS_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
-            {UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, gpsState.gpsConfig->sbasMode == SBAS_NONE ? 0 : 1},
+    ubx_config_data8_payload_t pairs[UBLOX_GNSS10_KEY_COUNT];
+    uint16_t known = ubxGnss10KeysRead ? ubxGnss10Keys : UBLOX_GNSS10_ALL_KEYS;
 
-            // Galileo
-            {UBLOX_CFG_SIGNAL_GAL_ENA, gpsState.gpsConfig->ubloxUseGalileo},
-            {UBLOX_CFG_SIGNAL_GAL_E1_ENA, gpsState.gpsConfig->ubloxUseGalileo},
+    // Without the list, MON-GNSS says whether Glonass exists; an empty mask means it never answered
+    if (!ubxGnss10KeysRead && ubx_capabilities.supported && !gpsUbloxHasGlonass()) {
+        known &= ~((1 << UBLOX_GNSS10_GLO) | (1 << UBLOX_GNSS10_GLO_L1));
+    }
+    if (!ubxGnss10KeysRead && !ubxDualBand) {
+        known &= ~UBLOX_GNSS10_L5_KEYS;
+    }
 
-            // Beidou
-            // M10 can't use BDS_B1I and Glonass together. Instead, use BDS_B1C
-            {UBLOX_CFG_SIGNAL_BDS_ENA, gpsState.gpsConfig->ubloxUseBeidou},
-            {UBLOX_CFG_SIGNAL_BDS_B1_ENA, gpsState.gpsConfig->ubloxUseBeidou && ! gpsState.gpsConfig->ubloxUseGlonass},
-            {UBLOX_CFG_SIGNAL_BDS_B1C_ENA, gpsState.gpsConfig->ubloxUseBeidou && gpsState.gpsConfig->ubloxUseGlonass},
-
-            // Should be enabled with GPS
-            {UBLOX_CFG_QZSS_ENA, 1},
-            {UBLOX_CFG_QZSS_L1CA_ENA, 1},
-            {UBLOX_CFG_QZSS_L1S_ENA, 1},
-
-            // Glonass
-            {UBLOX_CFG_GLO_ENA, gpsState.gpsConfig->ubloxUseGlonass},
-            {UBLOX_CFG_GLO_L1_ENA, gpsState.gpsConfig->ubloxUseGlonass}
-        };
-
-        ubloxSendSetCfgBytes(gnssConfigValues, 12);
+    const int count = ubloxGnss10Pairs(pairs, ubloxGnssToEnable(), gpsState.gpsConfig->sbasMode != SBAS_NONE,
+        known, enablesOnly);
+    ubloxSendSetCfgBytes(pairs, count);
 }
 
 static void configureGNSS(void)
@@ -765,6 +826,13 @@ static bool gpsParseFrameUBLOX(void)
                         break;
                     }
                 }
+
+                for (int j = 40; j < _payload_length; j += 30) {
+                    if (strnstr((const char *)(_buffer.bytes + j), "L1L5", 30)) {
+                        ubxDualBand = true;
+                        break;
+                    }
+                }
             }
         }
         break;
@@ -776,7 +844,14 @@ static bool gpsParseFrameUBLOX(void)
                 ubx_capabilities.enabledGnss = _buffer.gnss.enabled;
                 ubx_capabilities.capMaxGnss = _buffer.gnss.maxConcurrent;
                 gpsState.lastCapaUpdMs = millis();
+                ubxGnssAnswered = true;
             }
+        }
+        break;
+    case MSG_CFG_VALGET:
+        if (_class == CLASS_CFG) {
+            ubxGnss10Keys = ubloxGnss10KeysFromValget(_buffer.bytes, _payload_length);
+            ubxGnss10KeysRead = true;
         }
         break;
     case MSG_MON_RF:
@@ -1159,18 +1234,26 @@ STATIC_PROTOTHREAD(gpsConfigure)
         }
 
         if ( use_VALSET && (gpsState.hwVersion >= UBX_HW_VERSION_UBLOX10) ) {
-            configureGNSS10();
+            pollGnss10Keys();
+            ptWaitTimeout((ubxGnss10KeysRead || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+
+            gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+            configureGNSS10(false);
+            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+
+            // A combination it doesn't take, such as B1I next to Glonass: the constellations alone
+            if (_ack_state == UBX_ACK_GOT_NAK) {
+                gpsSetProtocolTimeout(GPS_SHORT_TIMEOUT);
+                configureGNSS10(true);
+                ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
+            }
         } else {
             configureGNSS();
+            ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
         }
 
-        ptWaitTimeout((_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK), GPS_CFG_CMD_TIMEOUT_MS);
-
-        if(_ack_state == UBX_ACK_GOT_NAK) {
-            gpsConfigMutable()->ubloxUseGalileo = SETTING_GPS_UBLOX_USE_GALILEO_DEFAULT;
-            gpsConfigMutable()->ubloxUseBeidou = SETTING_GPS_UBLOX_USE_BEIDOU_DEFAULT;
-            gpsConfigMutable()->ubloxUseGlonass = SETTING_GPS_UBLOX_USE_GLONASS_DEFAULT;
-        }
+        // The user's settings stay as saved; `status` compares them with the next MON-GNSS answer
+        ubxGnssAnswered = false;
     }
 
 	for(int i = 0; i < UBLOX_MAX_SIGNALS; ++i)
@@ -1250,6 +1333,9 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
     // Attempt to detect GPS hw version
     gpsState.hwVersion = UBX_HW_VERSION_UNKNOWN;
+    ubxDualBand = false;
+    ubxGnss10KeysRead = false;
+    ubxGnssAnswered = false;
     gpsState.autoConfigStep = 0;
 
     // Configure GPS module if enabled
@@ -1262,6 +1348,8 @@ STATIC_PROTOTHREAD(gpsProtocolStateThread)
 
         gpsState.autoConfigStep = 0;
         ubx_capabilities.supported = ubx_capabilities.enabledGnss = ubx_capabilities.defaultGnss = 0;
+        // Or the wait below ends at once on the count from before a restart, with an empty mask
+        ubx_capabilities.capMaxGnss = 0;
         // M7 and earlier will never get pass this step, so skip it (#9440).
         // UBLOX documents that this is M8N and later
         if (gpsState.hwVersion > UBX_HW_VERSION_UBLOX7) {
