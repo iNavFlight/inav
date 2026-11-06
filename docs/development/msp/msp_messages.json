@@ -4834,41 +4834,46 @@
             "reply": {
                 "payload": [
                     {
-                        "name": "protocolVersion",
+                        "name": "numSatellites",
                         "ctype": "uint8_t",
-                        "desc": "Always 1 (Stub version)",
-                        "units": "",
-                        "value": 1
-                    },
-                    {
-                        "name": "numChannels",
-                        "ctype": "uint8_t",
-                        "desc": "Always 0 (Number of SV info channels reported)",
-                        "units": "",
-                        "value": 0
-                    },
-                    {
-                        "name": "hdopHundredsDigit",
-                        "ctype": "uint8_t",
-                        "desc": "Hundreds digit of HDOP (stub always writes 0)",
+                        "desc": "Number of entries that follow: 0 without a u-blox receiver, otherwise at least 17. Betaflight tells this layout from its older per-channel one by a count above 16, so entries past the satellites are padding with GNSS id 255 and satellite id 0",
                         "units": ""
                     },
                     {
-                        "name": "hdopTensDigit",
-                        "ctype": "uint8_t",
-                        "desc": "Tens digit of HDOP (`gpsSol.hdop / 100`, truncated)",
-                        "units": ""
-                    },
-                    {
-                        "name": "hdopUnitsDigit",
-                        "ctype": "uint8_t",
-                        "desc": "Units digit of HDOP (`gpsSol.hdop / 100`, duplicated by stub)",
-                        "units": ""
+                        "repeating": "numSatellites",
+                        "payload": [
+                            {
+                                "name": "gnssId",
+                                "ctype": "uint8_t",
+                                "desc": "u-blox GNSS id: 0 GPS, 1 SBAS, 2 Galileo, 3 BeiDou, 4 IMES, 5 QZSS, 6 GLONASS, 7 NavIC",
+                                "units": ""
+                            },
+                            {
+                                "name": "svId",
+                                "ctype": "uint8_t",
+                                "desc": "Satellite id within its GNSS",
+                                "units": ""
+                            },
+                            {
+                                "name": "quality",
+                                "ctype": "uint8_t",
+                                "desc": "Bits 0-2: u-blox quality indicator (0 no signal, 1 searching, 2 acquired, 3 unusable, 4 code locked, 5-7 code and carrier locked). Bit 3: used in the navigation solution",
+                                "units": "",
+                                "bitmask": true
+                            },
+                            {
+                                "name": "cno",
+                                "ctype": "uint8_t",
+                                "desc": "Carrier to noise ratio",
+                                "units": "dB-Hz"
+                            }
+                        ]
                     }
                 ]
             },
-            "notes": "Requires `USE_GPS`. This is just a stub in INAV and does not provide actual per-satellite signal info. HDOP digits are not formatted correctly: tens and units both contain `gpsSol.hdop / 100`.",
-            "description": "Provides satellite signal strength information (legacy U-Blox compatibility stub)."
+            "variable_len": "numSatellites",
+            "notes": "Requires `USE_GPS`. Same layout as Betaflight's MSP_GPSSVINFO. Entries come from the u-blox NAV-SIG (M9 and later) or NAV-SAT (M8) messages, so a dual-band receiver can list a satellite once per signal. Older firmware replied with a stub: one channel holding the HDOP.",
+            "description": "Provides per-satellite signal information from a u-blox receiver."
         },
         "MSP_GPSSTATISTICS": {
             "code": 166,

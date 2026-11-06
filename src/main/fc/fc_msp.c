@@ -1069,14 +1069,29 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 
 
     case MSP_GPSSVINFO:
-        /* Compatibility stub - return zero SVs */
-        sbufWriteU8(dst, 1);
-
-        // HDOP
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, 0);
-        sbufWriteU8(dst, gpsSol.hdop / 100);
-        sbufWriteU8(dst, gpsSol.hdop / 100);
+        {
+            // Betaflight's layout, so ground tools read both: GNSS id, satellite id, quality with "used" in bit 3, C/N0
+            uint8_t *satCount = sbufPtr(dst);
+            sbufWriteU8(dst, 0);
+            for (int i = 0; i < UBLOX_MAX_SIGNALS && isGpsUblox() && sbufBytesRemaining(dst) >= 4; i++) {
+                const ubx_nav_sig_info *sat = gpsGetUbloxSatelite(i);
+                // The table starts zeroed, and no satellite has id 0
+                if (sat == NULL || sat->svId == 0) {
+                    continue;
+                }
+                sbufWriteU8(dst, sat->gnssId);
+                sbufWriteU8(dst, sat->svId);
+                sbufWriteU8(dst, (sat->quality & 0x07) | (sat->sigFlags & UBLOX_SIG_PRUSED));
+                sbufWriteU8(dst, sat->cno);
+                (*satCount)++;
+            }
+            // Betaflight tells this layout from its older per-channel one by a count above 16, and pads the same way
+            while (isGpsUblox() && *satCount <= 16 && sbufBytesRemaining(dst) >= 4) {
+                sbufWriteU8(dst, 0xFF);
+                sbufFill(dst, 0, 3);
+                (*satCount)++;
+            }
+        }
         break;
 
     case MSP_GPSSTATISTICS:

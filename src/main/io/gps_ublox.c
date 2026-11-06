@@ -818,17 +818,15 @@ static bool gpsParseFrameUBLOX(void)
             DEBUG_SET(DEBUG_GPS, 4, _buffer.navsig.numSigs);
             gpsState.flags.sig = 1;
 
-            if(_buffer.navsig.numSigs > 0) 
+            for(int i=0; i < MIN(UBLOX_MAX_SIGNALS, _buffer.navsig.numSigs); ++i)
             {
-                for(int i=0; i < MIN(UBLOX_MAX_SIGNALS, _buffer.navsig.numSigs); ++i)
-                {
-                    memcpy(&satelites[i], &_buffer.navsig.sig[i], sizeof(ubx_nav_sig_info));
-                }
-                for(int i = _buffer.navsig.numSigs; i < UBLOX_MAX_SIGNALS; ++i)
-                {
-                    satelites[i].svId = 0xFF; // no used
-                    satelites[i].gnssId = 0xFF;
-                }
+                memcpy(&satelites[i], &_buffer.navsig.sig[i], sizeof(ubx_nav_sig_info));
+            }
+            // A receiver that lost every signal sends none: the last list would stay
+            for(int i = _buffer.navsig.numSigs; i < UBLOX_MAX_SIGNALS; ++i)
+            {
+                satelites[i].svId = 0xFF; // no used
+                satelites[i].gnssId = 0xFF;
             }
         }
         break;
