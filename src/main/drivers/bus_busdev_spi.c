@@ -47,8 +47,10 @@ bool spiBusInitHost(const busDevice_t * dev)
     return spiInitDevice(dev->busdev.spi.spiBus, spiLeadingEdge);
 }
 
+// Select takes the bus, deselect gives it back: data-ready reads take turns with these
 void spiBusSelectDevice(const busDevice_t * dev)
 {
+    spiBusAcquire(dev->busdev.spi.spiBus);
     IOLo(dev->busdev.spi.csnPin);
     spiChipSelectSetupDelay();
 }
@@ -57,6 +59,7 @@ void spiBusDeselectDevice(const busDevice_t * dev)
 {
     spiChipSelectHoldTime();
     IOHi(dev->busdev.spi.csnPin);
+    spiBusRelease(dev->busdev.spi.spiBus);
 }
 
 void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
@@ -74,7 +77,9 @@ void spiBusSetSpeed(const busDevice_t * dev, busSpeed_e speed)
         speed = BUS_SPI_SPEED_MAX;
 #endif
 
+    spiBusAcquire(dev->busdev.spi.spiBus);
     spiSetSpeed(instance, spiClock[speed]);
+    spiBusRelease(dev->busdev.spi.spiBus);
 }
 
 

@@ -82,3 +82,36 @@ bool gyroCheckDataReady(gyroDev_t* gyro)
     }
     return ret;
 }
+
+#if defined(USE_SPI_DATA_READY)
+// A full queue keeps what it has: the oldest are the ones the gyro task expects next
+bool gyroSampleQueuePush(gyroDev_t *gyro, int16_t x, int16_t y, int16_t z)
+{
+    const uint8_t head = gyro->sampleQueueHead;
+    const uint8_t next = (head + 1) % GYRO_SAMPLE_QUEUE_LENGTH;
+    if (next == gyro->sampleQueueTail) {
+        return false;
+    }
+
+    gyro->sampleQueue[head][X] = x;
+    gyro->sampleQueue[head][Y] = y;
+    gyro->sampleQueue[head][Z] = z;
+    gyro->sampleQueueHead = next;
+    return true;
+}
+
+// Moves the oldest queued sample into gyroADCRaw
+bool gyroSampleQueuePop(gyroDev_t *gyro)
+{
+    const uint8_t tail = gyro->sampleQueueTail;
+    if (tail == gyro->sampleQueueHead) {
+        return false;
+    }
+
+    gyro->gyroADCRaw[X] = gyro->sampleQueue[tail][X];
+    gyro->gyroADCRaw[Y] = gyro->sampleQueue[tail][Y];
+    gyro->gyroADCRaw[Z] = gyro->sampleQueue[tail][Z];
+    gyro->sampleQueueTail = (tail + 1) % GYRO_SAMPLE_QUEUE_LENGTH;
+    return true;
+}
+#endif
