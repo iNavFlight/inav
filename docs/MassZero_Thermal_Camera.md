@@ -13,6 +13,36 @@ Website: [https://masszerofpv.com](https://masszerofpv.com)
 Model: MassZero Thermal Camera Core Component
 Contact MassZero for current pricing and availability.
 
+## Compatible hardware
+
+The camera is an OEM thermal module that several companies sell under their own names. The module family's control protocol is published as the HM-TM5X-XRG/C serial communication guide. Any module that speaks that protocol works with this integration. The driver frames every command with a `0xF0` begin marker, device address `0x36` and a `0xFF` end marker at 115200 baud 8N1, matching that guide.
+
+These names have been matched to the family:
+
+- MassZero Thermal Camera Core Component
+- Axisflying thermal cameras, sold as the OEM mini series CVBS modules
+- IVCAN analog CVBS thermal modules, whose published protocol page shows the same framing bytes
+- JS-MINI256, JS-MINI384 and JS-MINI640 modules
+
+The family ships in 256x192, 384x288 and 640 class resolutions. The resolution changes the video output only. The control protocol is the same across all of them. The driver works with any of the three.
+
+### Identifying a module
+
+![Back of a 640 class module. The silkscreen reads HM-04107 REV1.0 and PCB 101253750.](assets/images/mztc_board_identification.jpg)
+
+The back of the board carries the marks that identify it:
+
+- A model number in the HM-041xx series, `HM-04107 REV1.0` on the board pictured
+- A bare board number, `PCB 101253750` on the board pictured
+- A five pin JST connector labelled `JP2` carrying power, video and the control UART
+- A UL file `E207844` with an `STM` type code. Those marks belong to the board fabricator
+
+A module can also identify itself electrically. It answers the model read command (class `0x74`, subclass `0x02`) with its model string. Once INAV connects to the camera, the `mztc` CLI command prints those identity bytes on its `Device ID` line.
+
+### Community programmer
+
+The [HM-TM5X Thermal Camera Programmer](https://github.com/knack-tactical/thermal_camera_programmer) is a community tool for configuring these modules on the bench, with the protocol guide PDF bundled in the repository. It talks to the camera through a USB to TTL serial adapter wired to the camera's UART pins. Its Get Model Name button doubles as a compatibility check for an unknown module. Set the adapter to 3.3 V before wiring anything. A 5 V adapter can destroy the camera's UART.
+
 ## Build support
 
 `USE_MZTC` is enabled on targets with more than 512 KB of flash and on SITL. Targets with 512 KB or less do not include the feature. None of the settings or commands below exist on those boards.
@@ -56,7 +86,7 @@ GND (video)             ->  VTX GND
 
 Assign the `MassZero Thermal Camera` function to the UART the camera is wired to. That is the only assignment the driver needs. The `mztc_enabled`, `mztc_port` and `mztc_baudrate` settings were removed. Nothing has to be kept in step with the Ports tab any more.
 
-Set the **Peripherals** baud column on that same row to 115200. MassZero cameras ship at that rate. The driver reads the peripheral baud rate, so a rate set in the Data or the Telemetry column leaves the camera silent.
+Set the **Peripherals** baud column on that same row to 115200. MassZero cameras ship at that rate. The driver reads the peripheral baud rate. A rate set in the Data or the Telemetry column leaves the camera silent.
 
 From the CLI the same thing looks like this for UART2:
 
