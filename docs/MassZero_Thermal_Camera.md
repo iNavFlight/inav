@@ -6,13 +6,6 @@ The MassZero Thermal Camera (MZTC) integration lets INAV configure and control a
 
 The camera produces its own analog video. That video goes to the video transmitter in the usual way. The camera exposes a UART for control and a composite video output for the picture. It has no digital data interface. Its serial protocol has no frame-read command. INAV therefore has no access to thermal pixels or per-pixel temperatures. The OSD elements described here report camera state.
 
-## Purchase information
-
-**MassZero Thermal Camera**
-Website: [https://masszerofpv.com](https://masszerofpv.com)
-Model: MassZero Thermal Camera Core Component
-Contact MassZero for current pricing and availability.
-
 ## Compatible hardware
 
 The camera is an OEM thermal module that several companies sell under their own names. The module family's control protocol is published as the HM-TM5X-XRG/C serial communication guide. Any module that speaks that protocol works with this integration. The driver frames every command with a `0xF0` begin marker, device address `0x36` and a `0xFF` end marker at 115200 baud 8N1, matching that guide.
