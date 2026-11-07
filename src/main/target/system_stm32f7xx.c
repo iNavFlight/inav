@@ -66,6 +66,7 @@
 #include <string.h>
 #include "stm32f7xx.h"
 #include "drivers/system.h"
+#include "drivers/memprot.h"
 
 #if !defined  (HSE_VALUE)
   #define HSE_VALUE    ((uint32_t)8000000) /*!< Default value of the External oscillator in Hz */
@@ -296,11 +297,18 @@ void SystemInit(void)
   SCB->VTOR = (uint32_t) &isr_vector_table_base;
 #endif
 
+#ifndef BOOTLOADER
+  // DMA buffers sit in a region the MPU keeps out of the D-cache
+  memProtConfigure(mpuRegions, mpuRegionCount);
+#endif
+
   /* Enable I-Cache */
   SCB_EnableICache();
 
+#ifndef BOOTLOADER
   /* Enable D-Cache */
-  //SCB_EnableDCache();
+  SCB_EnableDCache();
+#endif
 
   /* Configure the system clock to 216 MHz */
   SystemClock_Config();

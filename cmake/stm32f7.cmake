@@ -75,6 +75,9 @@ main_sources(STM32F7_SRC
     drivers/timer_impl_hal.c
     drivers/timer_stm32f7xx.c
     drivers/system_stm32f7xx.c
+    drivers/memprot.h
+    drivers/memprot_hal.c
+    drivers/memprot_stm32f7xx.c
     drivers/serial_uart_stm32f7xx.c
     drivers/serial_uart_hal.c
     drivers/sdcard/sdmmc_sdio_hal.c
@@ -91,6 +94,7 @@ set(STM32F7_DEFINITIONS
     ${CORTEX_M7_DEFINITIONS}
     USE_HAL_DRIVER
     USE_FULL_LL_DRIVER
+    MAX_MPU_REGIONS=8
 )
 
 function(target_stm32f7xx)
