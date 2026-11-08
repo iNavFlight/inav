@@ -4188,10 +4188,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
 | `escRpm` | `uint32_t` | 4 | RPM | RPM reported by the ESC |
-| `frameSuccess` | `uint8_t` | 1 | % | Share of telemetry replies decoded in the last closed window. 255 when no reply was expected in that window |
-| `frameTotal` | `uint16_t` | 2 | frames | Telemetry replies expected in the last closed window, missing ones included |
+| `frameSuccess` | `uint8_t` | 1 | % | Share of the counted telemetry replies that decoded in the last closed window. 255 when nothing was counted in that window |
+| `frameTotal` | `uint16_t` | 2 | frames | Telemetry replies counted in the last closed window. Serial ESC telemetry: one per request, a missing reply included. Bidirectional DSHOT: only replies that reached the capture, a missing reply is not counted |
 
-**Notes:** Requires `USE_ESC_SENSOR` or `USE_DSHOT_BIDIR`. 7 bytes per motor, `getMotorCount()` entries. Source follows the RPM filter: bidirectional DSHOT when `isDshotTelemetryActive()`, serial ESC telemetry otherwise. The frame statistics come from fixed back-to-back windows of `ESC_FRAME_WINDOW_MS` (1 s), so they change once per window. A reply counts as missing when the ESC stays silent, fails CRC/GCR decoding or (serial) times out. Sources without frame counting (SRXL2) always report 255 / 0.
+**Notes:** Requires `USE_ESC_SENSOR` or `USE_DSHOT_BIDIR`. 7 bytes per motor, `getMotorCount()` entries. Source follows the RPM filter: bidirectional DSHOT when `isDshotTelemetryActive()`, serial ESC telemetry otherwise. The frame statistics come from fixed back-to-back windows of `ESC_FRAME_WINDOW_MS` (1 s), so they change once per window. A counted reply fails when it does not pass CRC/GCR decoding or (serial) times out. Bidirectional DSHOT counts only replies that were at least partly captured, as Betaflight does, since an ESC may skip replies when busy; an ESC that never replies therefore reports 255 / 0, the same as a source without frame counting (SRXL2).
 
 ## <a id="msp2_inav_esc_telem"></a>`MSP2_INAV_ESC_TELEM (8257 / 0x2041)`
 **Description:** Retrieves the full telemetry data structure reported by each ESC.  

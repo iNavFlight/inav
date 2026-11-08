@@ -306,7 +306,7 @@ static dshotChannelRegs_t dshotChannelRegs(const dshotMotor_t *motor)
 // CCER channel nibble for capture: both edges, channel on
 #define DSHOT_CCER_INPUT    (TIM_CCER_CC1E | TIM_CCER_CC1P | TIM_CCER_CC1NP)
 
-// GCR decode algorithm ported from Betaflight (GPLv3)
+// Edge timestamps to GCR bits, ported from Betaflight (GPLv3); the symbols are decoded in bidir_dshot.c
 static uint16_t dshotDecodeTelemetryPacket(const uint32_t buffer[], uint32_t count)
 {
     uint32_t value = 0;
@@ -345,25 +345,7 @@ static uint16_t dshotDecodeTelemetryPacket(const uint32_t buffer[], uint32_t cou
         return DSHOT_TELEMETRY_INVALID;
     }
 
-    static const uint32_t decode[32] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 10, 11, 0, 13, 14, 15,
-        0, 0, 2, 3, 0, 5, 6, 7, 0, 0, 8, 1, 0, 4, 12, 0
-    };
-
-    uint32_t decodedValue = decode[value & 0x1f];
-    decodedValue |= decode[(value >> 5) & 0x1f] << 4;
-    decodedValue |= decode[(value >> 10) & 0x1f] << 8;
-    decodedValue |= decode[(value >> 15) & 0x1f] << 12;
-
-    uint32_t csum = decodedValue;
-    csum ^= csum >> 8;
-    csum ^= csum >> 4;
-
-    if ((csum & 0xf) != 0xf) {
-        return DSHOT_TELEMETRY_INVALID;
-    }
-
-    return decodedValue >> 4;
+    return dshotDecodeGcr(value);
 }
 
 static void dshotSetDirectionOutput(dshotMotor_t *motor)

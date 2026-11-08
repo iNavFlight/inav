@@ -57,6 +57,10 @@ extern bool useDshotTelemetry;
 
 void initDshotTelemetry(void);
 bool isDshotTelemetryActive(void);
+// The 21 GCR bits of a reply (start bit on top, each run of the line packed as 1000...) to the
+// 16-bit telemetry value without its checksum; DSHOT_TELEMETRY_INVALID for a quintet that is
+// no GCR symbol or a failed checksum
+uint16_t dshotDecodeGcr(uint32_t value);
 uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex);
 float getDshotRpm(uint8_t motorIndex);
 // True while the motor's last eRPM frame is within the timeout; EDT frames do not count

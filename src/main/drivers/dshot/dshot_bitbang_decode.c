@@ -51,33 +51,6 @@ static uint32_t minMargin = UINT32_MAX;
 static timeUs_t nextMarginCheckUs = 0;
 static uint32_t preambleSkip = 0;
 
-// The GCR run lengths were packed MSB first into value as 1000... groups; strip the start
-// bit, map the four GCR quintets to nibbles and verify the checksum
-static uint32_t decodeGcrValue(uint32_t value)
-{
-#define iv 0xffffffff
-    value &= 0xfffff;
-    static const uint32_t decode[32] = {
-        iv, iv, iv, iv, iv, iv, iv, iv, iv, 9, 10, 11, iv, 13, 14, 15,
-        iv, iv, 2, 3, iv, 5, 6, 7, iv, 0, 8, 1, iv, 4, 12, iv };
-#undef iv
-
-    uint32_t decodedValue = decode[value & 0x1f];
-    decodedValue |= decode[(value >> 5) & 0x1f] << 4;
-    decodedValue |= decode[(value >> 10) & 0x1f] << 8;
-    decodedValue |= decode[(value >> 15) & 0x1f] << 12;
-
-    uint32_t csum = decodedValue;
-    csum = csum ^ (csum >> 8); // xor bytes
-    csum = csum ^ (csum >> 4); // xor nibbles
-
-    if ((csum & 0xf) != 0xf || decodedValue > 0xffff) {
-        return DSHOT_TELEMETRY_INVALID;
-    }
-
-    return decodedValue >> 4;
-}
-
 uint32_t dshotBitbangDecode(const uint16_t *buffer, uint32_t count, uint32_t bit, bool idleHigh)
 {
     const timeUs_t now = micros();
@@ -180,7 +153,7 @@ uint32_t dshotBitbangDecode(const uint16_t *buffer, uint32_t count, uint32_t bit
         value |= 1 << (nlen - 1);
     }
 
-    return decodeGcrValue(value);
+    return dshotDecodeGcr(value);
 }
 
 #endif // USE_DSHOT_BITBANG

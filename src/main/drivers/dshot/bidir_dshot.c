@@ -24,9 +24,10 @@
 #include "platform.h"
 #include "drivers/dshot/bidir_dshot.h"
 
-// Bidirectional DSHOT telemetry only: eRPM / EDT decoding, RPM state for the RPM filter and
-// the ESC sensor. Frame generation, DMA and DSHOT commands for plain DSHOT live in
-// dshot.c under USE_DSHOT. Every user of this API is guarded by USE_DSHOT_BIDIR.
+// Bidirectional DSHOT telemetry only: GCR symbol decoding shared by the timer and bitbang
+// capture paths, eRPM / EDT decoding, RPM state for the RPM filter and the ESC sensor. Frame
+// generation, DMA and DSHOT commands for plain DSHOT live in dshot.c under USE_DSHOT. Every
+// user of this API is guarded by USE_DSHOT_BIDIR.
 //
 // Values are published as decoded, unfiltered: frames arrive at the DSHOT frame rate, which
 // follows the scheduler's idle time rather than any fixed period, so smoothing belongs to the
@@ -54,6 +55,34 @@ bool useDshotTelemetry = false;
 
 static dshotTelemetryMotorState_t motorTelemetry[MAX_SUPPORTED_MOTORS];
 static float erpmToHz;
+
+uint16_t dshotDecodeGcr(uint32_t value)
+{
+    // An invalid quintet must fail the frame by itself (as in Betaflight's bitbang decoder,
+    // its timer decoder maps them to 0): with 0 a frame with two damaged quintets passes
+    // whenever the nibbles happen to XOR to 0xf, and the checksum alone misses one in sixteen
+#define iv 0xffffffff
+    value &= 0xfffff;
+    static const uint32_t decode[32] = {
+        iv, iv, iv, iv, iv, iv, iv, iv, iv, 9, 10, 11, iv, 13, 14, 15,
+        iv, iv, 2, 3, iv, 5, 6, 7, iv, 0, 8, 1, iv, 4, 12, iv };
+#undef iv
+
+    uint32_t decodedValue = decode[value & 0x1f];
+    decodedValue |= decode[(value >> 5) & 0x1f] << 4;
+    decodedValue |= decode[(value >> 10) & 0x1f] << 8;
+    decodedValue |= decode[(value >> 15) & 0x1f] << 12;
+
+    uint32_t csum = decodedValue;
+    csum = csum ^ (csum >> 8); // xor bytes
+    csum = csum ^ (csum >> 4); // xor nibbles
+
+    if ((csum & 0xf) != 0xf || decodedValue > 0xffff) {
+        return DSHOT_TELEMETRY_INVALID;
+    }
+
+    return decodedValue >> 4;
+}
 
 static uint32_t dshotDecodeErpmTelemetryValue(uint16_t value)
 {

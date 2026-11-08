@@ -1980,8 +1980,9 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
 #endif
                 }
                 sbufWriteU32(dst, rpm);
-                // Link quality of the last closed window; 255 when no reply was expected in it
-                // (boot, no telemetry source, a source without frame counting such as SRXL2)
+                // Link quality of the last closed window; 255 when nothing was counted in it
+                // (boot, no telemetry source, a source without frame counting such as SRXL2,
+                // a bidir DSHOT ESC that never replies: those windows are not counted)
                 const escFrameCounter_t *frames = escSensorFrameCounter(i);
                 const bool framesKnown = frames->lastWindowTotal > 0;
                 sbufWriteU8(dst, framesKnown ? frames->lastWindowSuccess : 255);
