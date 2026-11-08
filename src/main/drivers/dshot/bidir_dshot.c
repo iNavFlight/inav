@@ -140,14 +140,20 @@ uint16_t dshotProcessPacket(uint16_t rawValue, uint8_t motorIndex)
     return rawValue;
 }
 
+// lastErpmMs starts at 0, so this is also false before the first eRPM frame (an EDT frame may
+// come first); the first DSHOT frame goes out long after the first DSHOT_ERPM_TIMEOUT_MS of boot
+bool isDshotMotorTelemetryFresh(uint8_t motorIndex)
+{
+    return millis() - motorTelemetry[motorIndex].lastErpmMs <= DSHOT_ERPM_TIMEOUT_MS;
+}
+
 float getMotorFrequencyHz(uint8_t motorIndex)
 {
-    const dshotTelemetryMotorState_t *state = &motorTelemetry[motorIndex];
-    if (millis() - state->lastErpmMs > DSHOT_ERPM_TIMEOUT_MS) {
+    if (!isDshotMotorTelemetryFresh(motorIndex)) {
         return 0.0f;
     }
 
-    return state->telemetryData[DSHOT_TELEMETRY_TYPE_ERPM] * erpmToHz;
+    return motorTelemetry[motorIndex].telemetryData[DSHOT_TELEMETRY_TYPE_ERPM] * erpmToHz;
 }
 
 float getDshotRpm(uint8_t motorIndex)
@@ -161,10 +167,13 @@ bool getDshotEscSensorData(escSensorData_t *data, uint8_t motorIndex)
         return false;
     }
 
-    const dshotTelemetryMotorState_t *state = &motorTelemetry[motorIndex];
-    if ((state->telemetryTypes & (1 << DSHOT_TELEMETRY_TYPE_ERPM)) == 0) {
+    // Not the sticky ERPM bit of telemetryTypes: once eRPM has timed out, an EDT frame must not
+    // hand the ESC sensor a timed-out RPM and the old values as fresh data
+    if (!isDshotMotorTelemetryFresh(motorIndex)) {
         return false;
     }
+
+    const dshotTelemetryMotorState_t *state = &motorTelemetry[motorIndex];
 
     // escSensorData_t units: rpm (mechanical), degrees C, 0.01 V, 0.01 A. EDT reports
     // the temperature in degrees C, the voltage in 0.25 V and the current in 1 A steps.

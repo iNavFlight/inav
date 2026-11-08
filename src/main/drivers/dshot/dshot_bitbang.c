@@ -810,7 +810,7 @@ bool dshotBitbangDecodeTelemetry(void)
         const uint16_t processed = dshotProcessPacket(rawValue, motorIndex);
         if (processed != DSHOT_TELEMETRY_INVALID && processed != DSHOT_TELEMETRY_NOEDGE) {
 #ifdef USE_ESC_SENSOR
-            // Nothing to publish before the first eRPM value (an EDT frame may come first)
+            // Nothing to publish without a fresh eRPM value (an EDT frame may come first, or outlive it)
             escSensorData_t data;
             if (getDshotEscSensorData(&data, motorIndex)) {
                 escSensorSetDshotData(motorIndex, data.rpm, data.temperature, data.voltage, data.current);

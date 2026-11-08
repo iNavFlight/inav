@@ -332,15 +332,16 @@ void escSensorUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_DSHOT_BIDIR
     if (isDshotTelemetryActive()) {
-        // The motor driver refreshes the data with every decoded frame. Age it at the serial
-        // poll rate, so a silent ESC drops out of the combined values the same way (the serial
-        // poll timer doubles as the aging clock, nothing polls here)
+        // The motor driver refreshes the data with every decoded frame and knows when an ESC
+        // went silent, so there is no poll to age by: an ESC whose eRPM timed out leaves the
+        // combined values until it replies again. Checked at the serial poll rate (the poll
+        // timer doubles as the clock), since this runs from the busy loop
         const timeMs_t currentTimeMs = currentTimeUs / 1000;
         if (currentTimeMs - escTriggerTimeMs >= ESC_REQUEST_TIMEOUT_MS) {
             escTriggerTimeMs = currentTimeMs;
             for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
-                if (escSensorData[i].dataAge < ESC_DATA_INVALID) {
-                    escSensorData[i].dataAge++;
+                if (escSensorData[i].dataAge < ESC_DATA_INVALID && !isDshotMotorTelemetryFresh(i)) {
+                    escSensorData[i].dataAge = ESC_DATA_INVALID;
                     escSensorDataNeedsUpdate = true;
                 }
             }
