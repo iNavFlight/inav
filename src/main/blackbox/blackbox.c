@@ -632,7 +632,7 @@ static struct blackboxSDCardAccessStatus_s {
 // The log file is either closed (DISABLED, STOPPED) or already open and written only from
 // blackboxUpdate() (PAUSED, RUNNING), which stays off the card while the grant is held.
 // The prepare, header and shutdown states drive the SD state machine (mkdir, chdir, directory
-// scan, delete, fopen, fclose) across several iterations; afatfs_isIdle() cannot see that
+// scan, delete, fopen, fclose ) across several iterations; afatfs_isIdle() cannot see that
 // sequence, so they are never interrupted.
 static bool blackboxSdCardHandoverIsSafe(void)
 {
