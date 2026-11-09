@@ -2368,18 +2368,17 @@ static bool missionVTOLTransitionPointReady(const bool transitionToFixedWing, co
 bool hasUsableTransitionAirspeed(float *airspeedCmS)
 {
 #ifdef USE_PITOT
-    if (!pitotIsValidForAirspeed(false)) {
-        return false;
+    if (pitotIsValidForAirspeed(false)) {
+        const float measuredAirspeedCmS = getAirspeedEstimate();
+
+        if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {  // why ??
+            return false;
+        }
+
+        *airspeedCmS = MAX(measuredAirspeedCmS, 0.0f);
+        return true;
     }
-
-    const float measuredAirspeedCmS = getAirspeedEstimate();
-
-    if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {  // why ??
-        return false;
-    }
-
-    *airspeedCmS = MAX(measuredAirspeedCmS, 0.0f);
-    return true;
+    return false;
 #else
     UNUSED(airspeedCmS);
     return false;

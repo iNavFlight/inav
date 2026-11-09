@@ -1811,7 +1811,7 @@ bool isFixedWingFlying(void)
 {
     float airspeed = 0.0f;
 #ifdef USE_PITOT
-    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+    if (pitotIsValidForAirspeed(false)) {
         airspeed = getAirspeedEstimate();
     }
 #endif

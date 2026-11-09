@@ -238,10 +238,10 @@ bool canEstimateGPSFix(void)
     //we do not check neither sensors(SENSOR_GPS) nor FEATURE(FEATURE_GPS) because:
     //1) checking STATE(GPS_FIX_HOME) is enough to ensure that GPS sensor was initialized once
     //2) sensors(SENSOR_GPS) is false on GPS timeout. We also want to support GPS timeouts, not just lost fix
-    return positionEstimationConfig()->allow_gps_fix_estimation && STATE(AIRPLANE) && 
+    return positionEstimationConfig()->allow_gps_fix_estimation && STATE(AIRPLANE) &&
         sensors(SENSOR_BARO) && baroIsHealthy() &&
         ARMING_FLAG(WAS_EVER_ARMED) && STATE(GPS_FIX_HOME);
-        
+
 #else
     return false;
 #endif
@@ -261,7 +261,7 @@ void processDisableGPSFix(void)
         gpsSol.numSat = 0;
 
         gpsSol.flags.validVelNE = false;
-        gpsSol.flags.validVelD = false;  
+        gpsSol.flags.validVelD = false;
         gpsSol.flags.validEPE = false;
         gpsSol.flags.validTime = false;
         gpsSol.flags.validEllipsoidAltitude = false;
@@ -282,7 +282,7 @@ void processDisableGPSFix(void)
 
 #if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
 //called after gpsSolDRV is copied to gpsSol and processed by "Disable GPS Fix logical condition"
-void updateEstimatedGPSFix(void) 
+void updateEstimatedGPSFix(void)
 {
     static uint32_t lastUpdateMs = 0;
     static int32_t estimated_lat = 0;
@@ -317,7 +317,7 @@ void updateEstimatedGPSFix(void)
     float speed = pidProfile()->fixedWingReferenceAirspeed;
 
 #ifdef USE_PITOT
-    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+    if (pitotIsValidForAirspeed(false)) {
         speed = getAirspeedEstimate();
     }
 #endif
@@ -373,7 +373,7 @@ void gpsProcessNewDriverData(void)
 #endif
 }
 
-//called after: 
+//called after:
 //1)driver copies gpsSolDRV to gpsSol
 //2)gpsSol is processed by "Disable GPS logical switch"
 //3)gpsSol is processed by GPS Fix estimator - updateEstimatedGPSFix()
@@ -675,10 +675,10 @@ bool isGPSHealthy(void)
 
 bool isGPSHeadingValid(void)
 {
-    return ((STATE(GPS_FIX) && gpsSol.numSat >= 6) 
+    return ((STATE(GPS_FIX) && gpsSol.numSat >= 6)
 #ifdef USE_GPS_FIX_ESTIMATION
         || STATE(GPS_ESTIMATED_FIX)
-#endif        
+#endif
         ) && gpsSol.groundSpeed >= 300;
 }
 

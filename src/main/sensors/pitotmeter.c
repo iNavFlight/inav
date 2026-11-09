@@ -76,7 +76,7 @@ static bool pitotAirspeedValidCached = false;
 #define PITOT_FAILURE_THRESHOLD 10   // 0.2 seconds at 50Hz - fast detection per LOG00002 analysis
 #define PITOT_RECOVERY_THRESHOLD 100 // 2 seconds of consecutive good readings to recover
 
-static bool isPitotAirspeedValid(void);
+static bool checkPitotAirspeedValidity(void);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
 
@@ -354,13 +354,10 @@ static float getVirtualAirspeedEstimate(void)
 #if defined(USE_GPS)
     if (STATE(GPS_FIX)) {
 #if defined(USE_WIND_ESTIMATOR)
-        if (isEstimatedWindSpeedValid()) {
-            return getWindEstimatedVirtualAirspeed();
-        } else
+        return getWindEstimatedVirtualAirspeed();
+#else
+        return posControl.actualState.vel3D;
 #endif
-        {
-            return posControl.actualState.vel3D;
-        }
     }
 #endif
     return pidProfile()->fixedWingReferenceAirspeed; //float cm/s
@@ -387,7 +384,7 @@ void pitotUpdate(void)
     }
 
     // Check pitot airspeed validity and cache result for external use
-    pitotAirspeedValidCached = isPitotAirspeedValid();
+    pitotAirspeedValidCached = checkPitotAirspeedValidity();
 }
 
 /*
@@ -463,7 +460,7 @@ static bool isGpsVelocityUsable(void)
     return STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
 }
 
-static bool isPitotAirspeedValid(void)
+static bool checkPitotAirspeedValidity(void)
 {
     bool ret = false;
     ret = pitotIsHealthy() && pitotIsCalibrationComplete();

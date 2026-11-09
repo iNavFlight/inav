@@ -914,7 +914,7 @@ static void pidAutoTransitionTargetTurnAssistant(
         }
 
 #if defined(USE_PITOT)
-        float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) && pitotIsHealthy() ? getAirspeedEstimate() : targetPidProfile->fixedWingReferenceAirspeed;
+        float airspeedForCoordinatedTurn = pitotIsValidForAirspeed(false) ? getAirspeedEstimate() : targetPidProfile->fixedWingReferenceAirspeed;
 #else
         float airspeedForCoordinatedTurn = targetPidProfile->fixedWingReferenceAirspeed;
 #endif
@@ -1926,7 +1926,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
             //      yaw_rate = tan(roll_angle) * Gravity / forward_vel
 
 #if defined(USE_PITOT)
-            float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) && pitotIsHealthy()? getAirspeedEstimate() : pidProfile()->fixedWingReferenceAirspeed;
+            float airspeedForCoordinatedTurn = pitotIsValidForAirspeed(false) ? getAirspeedEstimate() : pidProfile()->fixedWingReferenceAirspeed;
 #else
             float airspeedForCoordinatedTurn = pidProfile()->fixedWingReferenceAirspeed;
 #endif
