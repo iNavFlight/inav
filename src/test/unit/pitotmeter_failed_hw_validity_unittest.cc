@@ -128,7 +128,7 @@ protected:
         ENABLE_STATE(GPS_FIX);
         gpsSol.flags.validVelNE = true;
         gpsSol.flags.validVelD = true;
-        posControl.actualState.vel3D = 2000.0f;   // 72 km/h ground speed (wind estimate invalid)
+        posControl.actualState.abs.vel.x = 2000.0f;     // 72 km/h ground speed (wind estimate invalid)
     }
 
     // Arm and feed a pitot reading far below 30% of virtual airspeed until declared failed.
@@ -164,9 +164,10 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenVerticalVelocityInval
 
 TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenVirtualAirspeedZero) {
     armAndFailPitot();
-    posControl.actualState.vel3D = 0.0f;   // wind estimate invalid -> virtual airspeed 0
-    tick();
+    posControl.actualState.abs.vel.x = 0.0f;    // sets virtual airspeed 0
+    for (int i = 0; i < 10; i++) tick();
     ASSERT_TRUE(pitotHasFailed());
+    tick();
     EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
 
