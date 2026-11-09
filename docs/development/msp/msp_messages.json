@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 2
+        "patch": 3
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -12023,6 +12023,94 @@
             "reply": null,
             "notes": "Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.",
             "description": "Controls SRXL2 ESC throttle-range calibration."
+        },
+        "MSP2_INAV_SERIAL_PADS": {
+            "code": 8758,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "entryCount",
+                        "ctype": "uint8_t",
+                        "desc": "Number of entries that follow.",
+                        "units": ""
+                    },
+                    {
+                        "repeating": "entryCount",
+                        "payload": [
+                            {
+                                "name": "identifier",
+                                "ctype": "uint8_t",
+                                "desc": "Serial port identifier (`serialPortIdentifier_e`) of the UART.",
+                                "units": ""
+                            },
+                            {
+                                "name": "direction",
+                                "ctype": "uint8_t",
+                                "desc": "0 TX, 1 RX.",
+                                "units": ""
+                            },
+                            {
+                                "name": "pad",
+                                "ctype": "uint8_t",
+                                "desc": "Output pad the pin can move to, numbered from 1 in the order of `MSP2_INAV_OUTPUT_MAPPING_EXT2` (S1, S2, ...).",
+                                "units": ""
+                            },
+                            {
+                                "name": "chosen",
+                                "ctype": "uint8_t",
+                                "desc": "1 when this is the pad configured for this pin, else 0.",
+                                "units": ""
+                            },
+                            {
+                                "name": "usage",
+                                "ctype": "uint8_t",
+                                "desc": "What the pad drives now: 0 nothing, 1 motor, 2 servo, 3 LED strip.",
+                                "units": ""
+                            },
+                            {
+                                "name": "usageNumber",
+                                "ctype": "uint8_t",
+                                "desc": "The motor or servo number from 1, as in `MSP2_INAV_OUTPUT_ASSIGNMENT`; 0 otherwise.",
+                                "units": ""
+                            }
+                        ]
+                    }
+                ]
+            },
+            "variable_len": true,
+            "notes": "Requires USE_SERIAL_PADS. Lists, for every UART of the board, each output pad its TX or RX can move to; a UART with no entry stays on its own pins. A pad listed for several pins carries one at a time. Changes made with `MSP2_INAV_SET_SERIAL_PAD` are reported at once but take effect after a save and reboot.",
+            "description": "Lists the output pads each UART's TX and RX can move to."
+        },
+        "MSP2_INAV_SET_SERIAL_PAD": {
+            "code": 8759,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "identifier",
+                        "ctype": "uint8_t",
+                        "desc": "Serial port identifier (`serialPortIdentifier_e`) of the UART.",
+                        "units": ""
+                    },
+                    {
+                        "name": "direction",
+                        "ctype": "uint8_t",
+                        "desc": "0 TX, 1 RX.",
+                        "units": ""
+                    },
+                    {
+                        "name": "pad",
+                        "ctype": "uint8_t",
+                        "desc": "Output pad as numbered by `MSP2_INAV_SERIAL_PADS`, or 0 for the UART's own pin.",
+                        "units": ""
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Requires USE_SERIAL_PADS. Returns an error for a pad `MSP2_INAV_SERIAL_PADS` does not list for that pin. A pad already chosen for another pin is taken from it. Takes effect after a save and reboot; a motor or servo the mixer drives on the chosen pad blocks arming with a PWM output error.",
+            "description": "Moves a UART's TX or RX to an output pad, or back to its own pin."
         }
     }
 }
