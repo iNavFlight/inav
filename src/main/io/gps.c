@@ -325,13 +325,13 @@ void updateEstimatedGPSFix(void)
     float velX = rMat[0][0] * speed;
     float velY = -rMat[1][0] * speed;
     // here (velX, velY) is estimated horizontal speed without wind influence = airspeed, cm/sec in NEU frame
-
+#ifdef USE_WIND_ESTIMATOR
     if (isEstimatedWindSpeedValid()) {
         velX += getEstimatedWindSpeed(X);
         velY += getEstimatedWindSpeed(Y);
     }
     // here (velX, velY) is estimated horizontal speed with wind influence = ground speed
-
+#endif
     if (STATE(LANDING_DETECTED) || ((posControl.navState == NAV_STATE_RTH_LANDING) && (getThrottlePercent(false) == 0))) {
         velX = 0;
         velY = 0;

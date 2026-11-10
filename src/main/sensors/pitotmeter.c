@@ -55,10 +55,8 @@
 
 #ifdef USE_WIND_ESTIMATOR
 #include "flight/wind_estimator.h"
-#include "navigation/navigation.h"
-#include "navigation/navigation_private.h"
 #endif
-
+#include "navigation/navigation_private.h"
 //#include "build/debug.h"
 
 
@@ -387,6 +385,11 @@ void pitotUpdate(void)
     pitotAirspeedValidCached = checkPitotAirspeedValidity();
 }
 
+static bool isGpsVelocityUsable(void)
+{
+    return STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
+}
+
 /*
  * Airspeed estimate in cm/s
  * Returns hardware pitot if valid, GPS-based virtual airspeed if pitot failed,
@@ -395,7 +398,7 @@ void pitotUpdate(void)
 float getAirspeedEstimate(void)
 {
     // If hardware pitot has failed validation, use GPS-based virtual airspeed
-    if (pitotHardwareFailed) {
+    if (pitotHardwareFailed && isGpsVelocityUsable()) {
         float virtualAirspeed = getVirtualAirspeedEstimate();
         if (virtualAirspeed > 0.0f) {
             return virtualAirspeed;
@@ -450,14 +453,9 @@ static bool isPitotReadingPlausible(void)
  *
  * @return true if pitot has failed sanity checks and should not be trusted
  */
-bool pitotHasFailed(void)
+bool pitotHardwareHasFailed(void)
 {
     return pitotHardwareFailed;
-}
-
-static bool isGpsVelocityUsable(void)
-{
-    return STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
 }
 
 static bool checkPitotAirspeedValidity(void)
@@ -518,10 +516,21 @@ static bool checkPitotAirspeedValidity(void)
     return ret;
 }
 
-bool pitotIsValidForAirspeed(bool requireAccurateVirtualPitot)
+bool pitotIsValidForAirspeed(bool requireAccuratePitot)
 {
-    if (pitotAirspeedValidCached && detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL && requireAccurateVirtualPitot) {
-        return isEstimatedWindSpeedValid();
+    /* If an accurate pitot output is required:
+     * - Wind estimation must be valid for virtual pitot and failed hardware pitot
+     * - If no valid wind estimation -> hardware pitot must be working correctly (not degraded to using virtual GPS 3D speed).*/
+
+    if (pitotAirspeedValidCached && requireAccuratePitot) {
+#if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
+        if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL || pitotHardwareHasFailed()) {
+            return isEstimatedWindSpeedValid();
+        } else
+#endif
+        {
+        return !pitotHardwareHasFailed();
+        }
     }
 
     return pitotAirspeedValidCached;

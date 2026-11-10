@@ -417,9 +417,11 @@ bool abortLaunchAllowed(void);
 
 #ifdef USE_FW_AUTOLAND
 static float getLandAltitude(void);
+static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
+ #ifdef USE_WIND_ESTIMATOR
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
-static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
+#endif
 #endif
 
 /*************************************************************************************************/
@@ -3810,8 +3812,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
     }
 
     if (micros() - posControl.fwLandState.loiterStartTime > FW_LAND_LOITER_MIN_TIME) {
-       if (isEstimatedWindSpeedValid()) {
-
+ #ifdef USE_WIND_ESTIMATOR
+        if (isEstimatedWindSpeedValid()) {
             uint16_t windAngle = 0;
             int32_t approachHeading = -1;
             float windSpeed = getEstimatedHorizontalWindSpeed(&windAngle);
@@ -3880,7 +3882,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
             } else {
                 posControl.fwLandState.loiterStartTime = micros();
             }
-        } else {
+        } else
+#endif  // USE_WIND_ESTIMATOR
+        {
             posControl.fwLandState.loiterStartTime = micros();
         }
     }
@@ -7152,6 +7156,23 @@ static void resetFwAutoland(void)
     posControl.fwLandState.landWp = false;
 }
 
+static float getLandAltitude(void)
+{
+    float altitude = -1;
+#ifdef USE_RANGEFINDER
+    if (rangefinderIsHealthy() && rangefinderGetLatestAltitude() > RANGEFINDER_OUT_OF_RANGE) {
+        altitude = rangefinderGetLatestAltitude();
+    }
+    else
+#endif
+    if (posControl.flags.estAglStatus >= EST_USABLE) {
+        altitude = posControl.actualState.agl.pos.z;
+    } else {
+        altitude = posControl.actualState.abs.pos.z;
+    }
+    return altitude;
+}
+ #ifdef USE_WIND_ESTIMATOR
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle)
 {
     if (approachHeading == 0) {
@@ -7171,28 +7192,11 @@ static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAng
     return -1;
 }
 
-static float getLandAltitude(void)
-{
-    float altitude = -1;
-#ifdef USE_RANGEFINDER
-    if (rangefinderIsHealthy() && rangefinderGetLatestAltitude() > RANGEFINDER_OUT_OF_RANGE) {
-        altitude = rangefinderGetLatestAltitude();
-    }
-    else
-#endif
-    if (posControl.flags.estAglStatus >= EST_USABLE) {
-        altitude = posControl.actualState.agl.pos.z;
-    } else {
-        altitude = posControl.actualState.abs.pos.z;
-    }
-    return altitude;
-}
-
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading)
 {
     return ABS(wrap_18000(windHeading - heading));
 }
-
+#endif
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos)
 {
     calculateAndSetActiveWaypointToLocalPosition(pos);

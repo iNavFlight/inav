@@ -123,7 +123,7 @@ protected:
         for (int i = 0; i < 400 && !pitotIsCalibrationComplete(); i++) tick();
         ASSERT_TRUE(pitotIsCalibrationComplete());
         tick();
-        ASSERT_FALSE(pitotHasFailed());
+        ASSERT_FALSE(pitotHardwareHasFailed());
 
         ENABLE_STATE(GPS_FIX);
         gpsSol.flags.validVelNE = true;
@@ -135,8 +135,8 @@ protected:
     void armAndFailPitot() {
         ENABLE_ARMING_FLAG(ARMED);
         fakePressure = pressureForCmS(300.0f);
-        for (int i = 0; i < 20 && !pitotHasFailed(); i++) tick();
-        ASSERT_TRUE(pitotHasFailed());
+        for (int i = 0; i < 20 && !pitotHardwareHasFailed(); i++) tick();
+        ASSERT_TRUE(pitotHardwareHasFailed());
     }
 };
 
@@ -150,7 +150,7 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenHorizontalVelocityInv
     armAndFailPitot();
     gpsSol.flags.validVelNE = false;
     tick();
-    ASSERT_TRUE(pitotHasFailed());
+    ASSERT_TRUE(pitotHardwareHasFailed());
     EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
 
@@ -158,7 +158,7 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenVerticalVelocityInval
     armAndFailPitot();
     gpsSol.flags.validVelD = false;
     tick();
-    ASSERT_TRUE(pitotHasFailed());
+    ASSERT_TRUE(pitotHardwareHasFailed());
     EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
 
@@ -166,7 +166,7 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWhenVirtualAirspeedZero) 
     armAndFailPitot();
     posControl.actualState.abs.vel.x = 0.0f;    // sets virtual airspeed 0
     for (int i = 0; i < 10; i++) tick();
-    ASSERT_TRUE(pitotHasFailed());
+    ASSERT_TRUE(pitotHardwareHasFailed());
     tick();
     EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
@@ -175,7 +175,7 @@ TEST_F(FailedHardwarePitotValidity, FailedPitotNotValidWithoutGpsFix) {
     armAndFailPitot();
     DISABLE_STATE(GPS_FIX);
     tick();
-    ASSERT_TRUE(pitotHasFailed());
+    ASSERT_TRUE(pitotHardwareHasFailed());
     EXPECT_FALSE(pitotIsValidForAirspeed(false));
 }
 
@@ -183,7 +183,7 @@ TEST_F(FailedHardwarePitotValidity, HealthyPitotValidRegardlessOfGpsVelocityFlag
     ENABLE_ARMING_FLAG(ARMED);
     fakePressure = pressureForCmS(2000.0f);   // plausible vs 2000 cm/s virtual
     for (int i = 0; i < 20; i++) tick();
-    ASSERT_FALSE(pitotHasFailed());
+    ASSERT_FALSE(pitotHardwareHasFailed());
     gpsSol.flags.validVelNE = false;
     gpsSol.flags.validVelD = false;
     tick();
