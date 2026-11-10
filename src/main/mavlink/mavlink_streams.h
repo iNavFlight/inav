@@ -20,6 +20,7 @@ int mavlinkStreamTrigger(enum MAV_DATA_STREAM streamNum, timeUs_t currentTimeUs)
 void mavlinkSetStreamRate(uint8_t streamNum, uint8_t rate);
 int mavlinkMessageTrigger(mavlinkPeriodicMessage_e periodicMessage, timeUs_t currentTimeUs);
 void configureMAVLinkStreamRates(uint8_t portIndex);
+void mavlinkSendHeartbeatIfDue(timeUs_t currentTimeUs);
 void processMAVLinkTelemetry(timeUs_t currentTimeUs);
 bool mavlinkHandleIncomingHeartbeat(void);
 bool mavlinkHandleIncomingPing(void);
