@@ -19,8 +19,8 @@
 
 #define USE_TARGET_CONFIG
 
-#define TARGET_BOARD_IDENTIFIER "G-FF4"
-#define USBD_PRODUCT_STRING     "ACCT"
+#define TARGET_BOARD_IDENTIFIER "GFF4"
+#define USBD_PRODUCT_STRING     "ACCTON_GFF4"
 
 // ******** Board LEDs **********************
 #define LED0                    PB3
