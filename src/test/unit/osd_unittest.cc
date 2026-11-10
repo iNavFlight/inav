@@ -8,6 +8,10 @@ extern "C" {
 #include "io/osd.h"
 };
 
+extern "C" {
+uint16_t osdGlideTimeFromValues(int32_t altitude, float verticalSpeed);
+}
+
 
 TEST(OSDTest, TestCentiNumber)
 {
@@ -68,4 +72,16 @@ TEST(OSDTest, TestCentiNumber)
 
    EXPECT_EQ(1, 1);
 
+}
+
+TEST(OSDTest, TestGlideTimeDivisorGuard)
+{
+    // Regression: a vertical speed between -1 and 0 cm/s used to produce a
+    // zero integer divisor and crash SITL with SIGFPE.
+    EXPECT_EQ(0, osdGlideTimeFromValues(10000, -0.5f));
+    EXPECT_EQ(0, osdGlideTimeFromValues(10000, 0.0f));
+    EXPECT_EQ(0, osdGlideTimeFromValues(10000, 0.5f));
+    EXPECT_EQ(10000, osdGlideTimeFromValues(10000, -1.0f));
+    EXPECT_EQ(2000, osdGlideTimeFromValues(10000, -5.0f));
+    EXPECT_EQ(3333, osdGlideTimeFromValues(10000, -3.0f));
 }
