@@ -50,6 +50,8 @@
 #include "drivers/compass/compass.h"
 #include "drivers/bus.h"
 #include "drivers/dma.h"
+#include "drivers/dshot/bidir_dshot.h"
+#include "drivers/dshot/dshot_bitbang.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/flash.h"
@@ -787,6 +789,24 @@ void init(void)
 #ifdef USE_DSHOT
     initDShotCommands();
 #endif
+#ifdef USE_DSHOT_BIDIR
+    initDshotTelemetry();
+#endif
+#ifdef USE_DSHOT_BITBANG
+    // After every other timer and DMA user: the bitbang pacers take what is left. Without
+    // a spare timer the motors fall back to plain DSHOT, and the ESC sensor, which signed
+    // up for the motor-line telemetry above, is set up again for its serial source, if any
+    const bool dshotTelemetryWasActive = isDshotTelemetryActive();
+    if (!pwmMotorPostInit()) {
+        ENABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+    }
+    if (dshotTelemetryWasActive && !isDshotTelemetryActive()) {
+        DISABLE_STATE(ESC_SENSOR_ENABLED);
+#ifdef USE_ESC_SENSOR
+        escSensorInitialize();
+#endif
+    }
+#endif
 
 #ifdef USE_SERIAL_GIMBAL
     gimbalCommonInit();
@@ -819,7 +839,11 @@ void init(void)
 
 #ifdef USE_RPM_FILTER
     disableRpmFilters();
-    if (STATE(ESC_SENSOR_ENABLED) && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
+    bool rpmSourceActive = STATE(ESC_SENSOR_ENABLED);
+#ifdef USE_DSHOT_BIDIR
+    rpmSourceActive = rpmSourceActive || isDshotTelemetryActive();
+#endif
+    if (rpmSourceActive && (rpmFilterConfig()->gyro_filter_enabled || rpmFilterConfig()->dterm_filter_enabled)) {
         rpmFiltersInit();
         setTaskEnabled(TASK_RPM_FILTER, true);
     }

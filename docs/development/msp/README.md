@@ -4154,7 +4154,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Notes:** Requires `USE_PROGRAMMING_FRAMEWORK`. Fixed 8-byte reply carrying one 64-bit mask as two `uint32_t` halves, low half first. Only the first `MIN(MAX_LOGIC_CONDITIONS, 64)` bits are evaluated. A condition counts as configured when any of `enabled`, `activatorId` (default -1), `operation`, `operandA.type`, `operandA.value`, `operandB.type`, `operandB.value` or `flags` differs from its default.
 
 ## <a id="msp2_inav_esc_rpm"></a>`MSP2_INAV_ESC_RPM (8256 / 0x2040)`
-**Description:** Retrieves the RPM reported by each ESC via telemetry.  
+**Description:** Retrieves the RPM and telemetry link quality reported by each ESC.  
 
 **Request Payload:** **None**  
   
@@ -4162,8 +4162,10 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 |Field|C Type|Size (Bytes)|Units|Description|
 |---|---|---|---|---|
 | `escRpm` | `uint32_t` | 4 | RPM | RPM reported by the ESC |
+| `frameSuccess` | `uint8_t` | 1 | % | Share of the counted telemetry replies that decoded in the last closed window. 255 when nothing was counted in that window |
+| `frameTotal` | `uint16_t` | 2 | frames | Telemetry replies counted in the last closed window. Serial ESC telemetry: one per request, a missing reply included. Bidirectional DSHOT: only replies that reached the capture, a missing reply is not counted |
 
-**Notes:** Requires `USE_ESC_SENSOR`. Payload size depends on the number of detected motors with telemetry.
+**Notes:** Requires `USE_ESC_SENSOR` or `USE_DSHOT_BIDIR`. 7 bytes per motor, `getMotorCount()` entries. Source follows the RPM filter: bidirectional DSHOT when `isDshotTelemetryActive()`, serial ESC telemetry otherwise. The frame statistics come from fixed back-to-back windows of `ESC_FRAME_WINDOW_MS` (1 s), so they change once per window. A counted reply fails when it does not pass CRC/GCR decoding or (serial) times out. Bidirectional DSHOT counts only replies that were at least partly captured, as Betaflight does, since an ESC may skip replies when busy; an ESC that never replies therefore reports 255 / 0, the same as a source without frame counting (SRXL2).
 
 ## <a id="msp2_inav_esc_telem"></a>`MSP2_INAV_ESC_TELEM (8257 / 0x2041)`
 **Description:** Retrieves the full telemetry data structure reported by each ESC.  
