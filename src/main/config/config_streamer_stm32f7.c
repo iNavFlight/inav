@@ -106,6 +106,8 @@ void config_streamer_impl_unlock(void)
 void config_streamer_impl_lock(void)
 {
     HAL_FLASH_Lock();
+    // The D-cache keeps lines from before the erase, and erratum 1259864 can serve stale write-through data
+    SCB_InvalidateDCache_by_Addr((uint32_t *)&__config_start, &__config_end - &__config_start);
 }
 
 int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer_align_type_t *buffer)
