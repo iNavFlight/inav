@@ -122,6 +122,11 @@ extern uint8_t __config_end;
 
 #endif // USE_MAG_ALL
 
+// The IMU FIFO on data-ready: only the ICM426xx driver has one, and only a gyro with its interrupt pin can use it
+#if defined(USE_SPI_DATA_READY) && defined(USE_IMU_ICM42605) && (defined(ICM42605_EXTI_PIN) || defined(GYRO1_EXTI_PIN) || defined(GYRO2_EXTI_PIN))
+#define USE_GYRO_FIFO
+#endif
+
 #if defined(DEFAULT_I2C_BUS) && !defined(MAG_I2C_BUS)
 #define MAG_I2C_BUS DEFAULT_I2C_BUS
 #endif

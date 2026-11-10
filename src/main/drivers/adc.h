@@ -45,6 +45,12 @@ typedef struct drv_adc_config_s {
 
 void adcInit(drv_adc_config_t *init);
 uint16_t adcGetChannel(uint8_t channel);
+#if defined(STM32F4) || defined(STM32F7)
+struct dmaChannelDescriptor_s;
+// ADC1 can use DMA2 stream 0 or stream 4. If it has `stream` and the other one is free, it moves
+// there, for a user that can have only `stream`. For users that take their streams after everyone else
+bool adcDmaMoveOff(struct dmaChannelDescriptor_s *stream);
+#endif
 bool adcIsFunctionAssigned(uint8_t function);
 int adcGetFunctionChannelAllocation(uint8_t function);
 
