@@ -29,6 +29,7 @@
 
 #include "common/utils.h"
 
+#include "drivers/time.h"
 #include "drivers/uart_inverter.h"
 
 #include "serial.h"
@@ -168,6 +169,14 @@ serialPort_t *uartOpen(usart_type *USARTx, serialReceiveCallbackPtr rxCallback, 
 void uartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     uartPort_t *uartPort = (uartPort_t *)instance;
+
+    // The ring buffer empties two frames before the line does, and the reconfigure would cut them
+    if ((uartPort->port.mode & MODE_TX) && uartPort->port.baudRate) {
+        const timeUs_t limit = micros() + 2 * 10 * 1000000 / uartPort->port.baudRate + 1;
+        while (usart_flag_get(uartPort->USARTx, USART_TDC_FLAG) == RESET && cmpTimeUs(limit, micros()) > 0) {
+        }
+    }
+
     uartPort->port.baudRate = baudRate;
     uartReconfigure(uartPort);
 }
