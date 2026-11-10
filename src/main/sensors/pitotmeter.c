@@ -246,9 +246,9 @@ STATIC_PROTOTHREAD(pitotThread)
     // Init filter
     pitot.lastMeasurementUs = micros();
 
-    const uint16_t pitot_lpf_milli_hz = pitotmeterConfig()->pitot_lpf_milli_hz;
-    if (pitot_lpf_milli_hz > 0) {
-        pt1FilterSetCutoff(&pitot.lpfState, pitot_lpf_milli_hz);
+    const float pitot_lpf_hz = 0.001f * pitotmeterConfig()->pitot_lpf_milli_hz;
+    if (pitot_lpf_hz > 0) {
+        pt1FilterSetCutoff(&pitot.lpfState, pitot_lpf_hz);
     }
 
     while(1) {
