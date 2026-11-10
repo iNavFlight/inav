@@ -76,6 +76,71 @@ float computeTransitionServoBlendForStep(
 
 } // namespace
 
+TEST(MixerTransitionScenarioTest, NavigationHandbackRequiresEndpointMatchBeforeAnotherManualRequest)
+{
+    for (const bool mission : {false, true}) {
+        for (const bool always : {false, true}) {
+            for (const int currentProfile : {0, 1}) {
+                SCOPED_TRACE(::testing::Message() << "mission=" << mission << " always=" << always
+                    << " currentProfile=" << currentProfile);
+                bool wasOwned = true;
+                bool pending = false;
+                auto update = [&](bool owns, bool middle, int requested) {
+                    const bool hold = pending || mixerTransitionNavigationHandbackShouldHoldProfile(
+                        wasOwned, owns, true, middle, currentProfile, requested);
+                    const bool allowed = mixerTransitionManualInputAllowed(owns, hold);
+                    if (mixerTransitionNavigationHandbackShouldClear(owns, middle, currentProfile, requested)) {
+                        pending = false;
+                    } else if (hold) {
+                        pending = true;
+                    }
+                    wasOwned = owns;
+                    return allowed;
+                };
+
+                const bool owns = mixerTransitionNavigationOwnsProfileSwitch(
+                    true, true, mission, !mission, false, false);
+                EXPECT_FALSE(update(owns, true, 1 - currentProfile));
+                EXPECT_FALSE(pending);
+
+                // NAV ends before or after hot-switch. Either actual profile must
+                // be retained, even while transition/output cleanup is still active.
+                EXPECT_FALSE(update(false, false, 1 - currentProfile));
+                EXPECT_TRUE(pending);
+                for (const bool transitionActive : {true, false}) {
+                    EXPECT_FALSE(update(false, true, 1 - currentProfile));
+                    EXPECT_TRUE(pending);
+                    EXPECT_FALSE(mixerTransitionManualMixingRequestMayUpdate(
+                        false, transitionActive, false, pending));
+                    EXPECT_FALSE(mixerTransitionProfileSwitchShouldStartAutoTransition(
+                        always, true, true, true, true, transitionActive,
+                        false, pending, false, false, currentProfile, 1 - currentProfile));
+                }
+
+                // Middle is not a confirmation even if its profile bit matches.
+                EXPECT_FALSE(update(false, true, currentProfile));
+                EXPECT_TRUE(pending);
+                EXPECT_FALSE(update(false, false, currentProfile));
+                EXPECT_FALSE(pending);
+                EXPECT_TRUE(update(false, false, currentProfile));
+
+                // Only a subsequent deliberate selection may start a transition
+                // (always=ON) or use the existing direct-switch policy (OFF).
+                EXPECT_TRUE(update(false, false, 1 - currentProfile));
+                EXPECT_EQ(always, mixerTransitionProfileSwitchShouldStartAutoTransition(
+                    always, true, true, true, true, false,
+                    false, pending, false, false, currentProfile, 1 - currentProfile));
+                EXPECT_EQ(!always, mixerTransitionProfileSwitchDirectSwitchAllowed(always, true, true));
+
+                EXPECT_FALSE(update(true, false, 1 - currentProfile));
+                EXPECT_FALSE(pending);
+                EXPECT_FALSE(update(false, false, 1 - currentProfile));
+                EXPECT_TRUE(pending);
+            }
+        }
+    }
+}
+
 TEST(MixerTransitionScenarioTest, LegacyManualMcToFwSessionStaysLegacyAcrossProfileHotSwitch)
 {
     ManualTransitionScenario scenario(true);
