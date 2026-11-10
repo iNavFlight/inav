@@ -153,6 +153,32 @@ static void adcInstanceInit(ADCDevice adcDevice)
     ADC_SoftwareStartConv(adc->ADCx);
 }
 
+bool adcDmaMoveOff(DMA_t stream)
+{
+    adcDevice_t *adc = &adcHardware[ADCDEV_1];
+    if (!adc->enabled || dmaGetByRef(adc->DMAy_Streamx) != stream) {
+        return false;
+    }
+    DMA_Stream_TypeDef *other = adc->DMAy_Streamx == DMA2_Stream0 ? DMA2_Stream4 : DMA2_Stream0;
+    DMA_t otherDma = dmaGetByRef(other);
+    if (!otherDma || dmaGetOwner(otherDma) != OWNER_FREE) {
+        return false;
+    }
+
+    // Stopped first: a conversion the DMA misses would be an overrun, which stops its requests
+    ADC_Cmd(adc->ADCx, DISABLE);
+    ADC_DMACmd(adc->ADCx, DISABLE);
+    DMA_Cmd(adc->DMAy_Streamx, DISABLE);
+    while (DMA_GetCmdStatus(adc->DMAy_Streamx) != DISABLE) {
+    }
+    ADC_ClearFlag(adc->ADCx, ADC_FLAG_OVR);
+    dmaInit(stream, OWNER_FREE, 0);
+
+    adc->DMAy_Streamx = other;
+    adcInstanceInit(ADCDEV_1);
+    return true;
+}
+
 void adcHardwareInit(drv_adc_config_t *init)
 {
     UNUSED(init);
