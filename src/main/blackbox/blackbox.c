@@ -209,49 +209,6 @@ static bool canUseBlackboxWithCurrentConfiguration(void)
     return feature(FEATURE_BLACKBOX);
 }
 
-#ifdef USE_TERRAIN
-//state machine to get access to other device, it's designed only for one other device, in this case for terrain
-//if you would like to have more devices, some queue must be implemented
-static struct blackboxSDCardAccessStatus_s {
-    bool blackboxAccessToSDGrantedToOtherDevice;
-    bool requestToSdCardAccessState;
-
-} blackboxSDCardAccessStatus = {
-        .blackboxAccessToSDGrantedToOtherDevice = false,
-        .requestToSdCardAccessState = false
-};
-
-
-/**
- * request access from terrain subsystem
- * @return
- */
-bool requestToSdCardAccess(void)
-{
-    if(blackboxConfig()->device != BLACKBOX_DEVICE_SDCARD || !canUseBlackboxWithCurrentConfiguration()){
-        return true;
-    }
-
-    if(blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice){
-        return true;
-    }
-
-    blackboxSDCardAccessStatus.requestToSdCardAccessState = true;
-    return false;
-}
-
-/**
- * release access from terrain subsystem
- * @return
- */
-void releaseSdCardAccess(void)
-{
-    blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = false;
-    blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
-}
-#endif
-
-
 /**
  * Description of the blackbox fields we are writing in our main intra (I) and inter (P) frames. This description is
  * written into the flight log header so the log can be properly interpreted (but these definitions don't actually cause
@@ -663,6 +620,70 @@ typedef struct blackboxSlowState_s {
 extern boxBitmask_t rcModeActivationMask;
 
 static BlackboxState blackboxState = BLACKBOX_STATE_DISABLED;
+
+#ifdef USE_TERRAIN
+// Arbitration of the SD card between blackbox and one other consumer (terrain).
+// Designed for a single other consumer, more would need a queue.
+static struct blackboxSDCardAccessStatus_s {
+    bool blackboxAccessToSDGrantedToOtherDevice;
+    bool requestToSdCardAccessState;
+} blackboxSDCardAccessStatus;
+
+// The log file is either closed (DISABLED, STOPPED) or already open and written only from
+// blackboxUpdate() (PAUSED, RUNNING), which stays off the card while the grant is held.
+// The prepare, header and shutdown states drive the SD state machine (mkdir, chdir, directory
+// scan, delete, fopen, fclose ) across several iterations; afatfs_isIdle() cannot see that
+// sequence, so they are never interrupted.
+static bool blackboxSdCardHandoverIsSafe(void)
+{
+    switch (blackboxState) {
+    case BLACKBOX_STATE_DISABLED:
+    case BLACKBOX_STATE_STOPPED:
+    case BLACKBOX_STATE_PAUSED:
+    case BLACKBOX_STATE_RUNNING:
+        return afatfs_isIdle();
+    default:
+        return false;
+    }
+}
+
+// The only place where the grant is given. Reached from blackboxUpdate() every loop and from
+// requestToSdCardAccess() itself, so it does not depend on blackboxUpdate() being called:
+// with the device full or the state DISABLED, processBlackbox() never calls it.
+static void blackboxServiceSdCardAccessRequest(void)
+{
+    if (blackboxSDCardAccessStatus.requestToSdCardAccessState && blackboxSdCardHandoverIsSafe()) {
+        blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
+        blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = true;
+    }
+}
+
+/**
+ * Request exclusive SD card access for the other consumer. Returns true once the access is granted,
+ * false while the request is pending; keep calling until it returns true.
+ */
+bool requestToSdCardAccess(void)
+{
+    if (blackboxConfig()->device != BLACKBOX_DEVICE_SDCARD) {
+        return true;
+    }
+
+    if (!blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice) {
+        blackboxSDCardAccessStatus.requestToSdCardAccessState = true;
+        blackboxServiceSdCardAccessRequest();
+    }
+    return blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice;
+}
+
+/**
+ * Give the SD card back to blackbox, also cancels a pending request.
+ */
+void releaseSdCardAccess(void)
+{
+    blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = false;
+    blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
+}
+#endif
 
 static uint32_t blackboxLastArmingBeep = 0;
 static uint32_t blackboxLastRcModeFlags = 0;
@@ -2353,20 +2374,10 @@ static void blackboxLogIteration(timeUs_t currentTimeUs)
 void blackboxUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_TERRAIN
-    if(blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD){
-        //access to SD card is given to other device
-        if(blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice){
+    if (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD) {
+        blackboxServiceSdCardAccessRequest();
+        if (blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice) {
             return;
-        }
-
-        //incooming request to get access to SD card
-        if(blackboxSDCardAccessStatus.requestToSdCardAccessState && (blackboxState == BLACKBOX_STATE_RUNNING || blackboxState == BLACKBOX_STATE_STOPPED)){
-            //we have to be sure that all writes are already processed and SD card is in idle
-            if(afatfs_isIdle()){
-                blackboxSDCardAccessStatus.requestToSdCardAccessState = false;
-                blackboxSDCardAccessStatus.blackboxAccessToSDGrantedToOtherDevice = true;
-                return;
-            }
         }
     }
 #endif
