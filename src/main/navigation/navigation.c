@@ -4181,6 +4181,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_CLIMB_TO_LOI
         posControl.fwLandState.climbAltTimeUs = now;
         posControl.fwLandState.circleRadius = 0;
         posControl.fwLandState.circleRadius = fwLandCircleRadius();
+        posControl.fwLandState.approachHeading = 0;
         fwLandResetCircleMeasure();
     }
     fwLandMeasureCircle();
@@ -4225,15 +4226,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
     fwLandMeasureCircle();
 
     if (micros() - posControl.fwLandState.loiterStartTime > FW_LAND_LOITER_MIN_TIME) {
-       if (isEstimatedWindSpeedValid()) {
+       if (posControl.fwLandState.approachHeading || isEstimatedWindSpeedValid()) {
 
             uint16_t windAngle = 0;
             int32_t approachHeading = -1;
             float windSpeed = getEstimatedHorizontalWindSpeed(&windAngle);
             windAngle = wrap_36000(windAngle + 18000);
 
-            // Ignore low wind speed, could be the error of the wind estimator
-            if (windSpeed < navFwAutolandConfig()->maxTailwind) {
+            // the first choice holds while the circle waits for its exit heading: retaken there, an estimate over the limit dropped it
+            if (posControl.fwLandState.approachHeading) {
+                approachHeading = posControl.fwLandState.approachHeading;
+            } else if (windSpeed < navFwAutolandConfig()->maxTailwind) {
+                // Ignore low wind speed, could be the error of the wind estimator
                 if (fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landApproachHeading1 != 0) {
                     approachHeading = posControl.fwLandState.landingDirection = ABS(DEGREES_TO_CENTIDEGREES(fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landApproachHeading1));
                 } else if ((fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx)->landApproachHeading2 != 0) ) {
@@ -4271,6 +4275,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
             // The circle goes on until the heading comes round, checked every pass (restarting the loiter timer here
             // would wait another 30 s each time)
             if (posControl.fwLandState.landingDirection >= 0 && navFwAutolandConfig()->downwindOffset) {
+                posControl.fwLandState.approachHeading = approachHeading;
                 const int32_t side = fwLandCircuitSide(posControl.fwLandState.approachSettingIdx, approachHeading);
                 const int32_t exitHeading = fwLandCircleTurnsInward(side) ? side : wrap_36000(posControl.fwLandState.landingDirection + 18000);
                 if (ABS(wrap_18000(posControl.actualState.yaw - exitHeading)) > FW_LAND_DOWNWIND_HEADING_TOLERANCE) {
@@ -7710,6 +7715,7 @@ static void resetFwAutoland(void)
     posControl.fwLandState.landAproachAltAgl = 0;
     posControl.fwLandState.loiterStartTime = 0;
     posControl.fwLandState.circleRadius = 0;
+    posControl.fwLandState.approachHeading = 0;
     posControl.fwLandState.rthToCircuit = false;
     fwLandResetCircleMeasure();
     posControl.fwLandState.approachSettingIdx = 0;

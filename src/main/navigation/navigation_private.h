@@ -432,6 +432,7 @@ typedef struct {
     fpVector3_t landPos;
     int32_t landPosHeading;
     int32_t landingDirection;
+    int32_t approachHeading;        // [centideg] the wind's choice on this circle, 0 until it is made
     int32_t landAproachAltAgl;
     int32_t landAltAgl;
     float climbAltTarget;
