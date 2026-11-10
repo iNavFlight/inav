@@ -114,3 +114,66 @@ void ubloxNavSat2NavSig(const ubx_nav_svinfo_channel *navSat, ubx_nav_sig_info *
                         // bit8: doper corrections used
     //uint8_t reserved[4];
 }
+// The CFG-SIGNAL keys INAV sets, the constellations first so that they can go out alone
+static const uint32_t ubloxGnss10Keys[UBLOX_GNSS10_KEY_COUNT] = {
+    UBLOX_CFG_SIGNAL_SBAS_ENA, UBLOX_CFG_SIGNAL_GAL_ENA, UBLOX_CFG_SIGNAL_BDS_ENA, UBLOX_CFG_QZSS_ENA, UBLOX_CFG_GLO_ENA,
+    UBLOX_CFG_SIGNAL_SBAS_L1CA_ENA, UBLOX_CFG_SIGNAL_GAL_E1_ENA, UBLOX_CFG_SIGNAL_BDS_B1_ENA, UBLOX_CFG_SIGNAL_BDS_B1C_ENA,
+    UBLOX_CFG_QZSS_L1CA_ENA, UBLOX_CFG_QZSS_L1S_ENA, UBLOX_CFG_GLO_L1_ENA,
+    // A dual band receiver refuses a constellation turned on with one of its bands off
+    UBLOX_CFG_SIGNAL_GAL_E5A_ENA, UBLOX_CFG_SIGNAL_BDS_B2A_ENA, UBLOX_CFG_QZSS_L5_ENA
+};
+
+uint16_t ubloxGnss10KeysFromValget(const uint8_t *payload, uint16_t length)
+{
+    // Value sizes by the key's size field: 1 bit and 1 byte take a byte each
+    static const uint8_t valueBytes[8] = { 0, 1, 1, 2, 4, 8, 0, 0 };
+    uint16_t known = 0;
+
+    // version, layer and position, then the key-value pairs; the group fits one reply of 64
+    for (uint16_t i = 4; i + 4 <= length; ) {
+        uint32_t key;
+        memcpy(&key, payload + i, sizeof(key));
+        i += 4;
+
+        const uint8_t bytes = valueBytes[(key >> 28) & 0x7];
+        if (bytes == 0 || i + bytes > length) {
+            break;
+        }
+        i += bytes;
+
+        for (int k = 0; k < UBLOX_GNSS10_KEY_COUNT; k++) {
+            if (key == ubloxGnss10Keys[k]) {
+                known |= 1 << k;
+            }
+        }
+    }
+
+    return known;
+}
+
+int ubloxGnss10Pairs(ubx_config_data8_payload_t *pairs, uint8_t gnss, bool sbas, uint16_t known, bool enablesOnly)
+{
+    const bool galileo = gnss & UBX_MON_GNSS_GALILEO_MASK;
+    const bool beidou = gnss & UBX_MON_GNSS_BEIDOU_MASK;
+    const bool glonass = gnss & UBX_MON_GNSS_GLONASS_MASK;
+    // A receiver with B2a takes BeiDou only as B1C + B2a, and an M10 runs Glonass only next to B1C
+    const bool b2a = known & (1 << UBLOX_GNSS10_BDS_B2A);
+    const bool b1c = (b2a || glonass) && (known & (1 << UBLOX_GNSS10_BDS_B1C));
+    const uint8_t values[UBLOX_GNSS10_KEY_COUNT] = {
+        sbas, galileo, beidou, 1, glonass,
+        sbas, galileo, beidou && !b1c, beidou && b1c, 1, 1, glonass,
+        galileo, beidou, 1
+    };
+    int count = 0;
+
+    // A key the firmware doesn't know makes the receiver refuse the whole VALSET
+    for (int k = 0; k < (enablesOnly ? UBLOX_GNSS10_ENABLES : UBLOX_GNSS10_KEY_COUNT); k++) {
+        if (known & (1 << k)) {
+            pairs[count].key = ubloxGnss10Keys[k];
+            pairs[count].value = values[k];
+            count++;
+        }
+    }
+
+    return count;
+}
