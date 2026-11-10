@@ -39,16 +39,19 @@
 #define IMU_ICM42605_ALIGN      CW180_DEG
 #define ICM42605_SPI_BUS        BUS_SPI1
 #define ICM42605_CS_PIN         SPI1_NSS_PIN
+#define ICM42605_EXTI_PIN       PC4
 
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW90_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           SPI1_NSS_PIN
+#define BMI270_EXTI_PIN         PC4
 
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW90_DEG
 #define MPU6500_SPI_BUS         BUS_SPI1
 #define MPU6500_CS_PIN          SPI1_NSS_PIN
+#define MPU6500_EXTI_PIN       PC4
 
 // *************** SPI2 OSD  ****************
 #define USE_SPI_DEVICE_2

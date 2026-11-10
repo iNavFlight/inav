@@ -36,9 +36,15 @@
 #define SPI1_MOSI_PIN   	    PA7
 
 #define MPU6500_CS_PIN          PC2
+#if defined(MATEKF405MINI)
+#define MPU6500_EXTI_PIN       PC3
+#endif
 #define MPU6500_SPI_BUS         BUS_SPI1
 
 #define MPU6000_CS_PIN          PC2
+#if defined(MATEKF405MINI)
+#define MPU6000_EXTI_PIN       PC3
+#endif
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_MPU6500

@@ -37,6 +37,7 @@
 #define USE_IMU_MPU6500
 #define IMU_MPU6500_ALIGN       CW180_DEG_FLIP
 #define MPU6500_CS_PIN          PA4
+#define MPU6500_EXTI_PIN       PC3
 #define MPU6500_SPI_BUS         BUS_SPI1
 
 // *************** I2C /Baro/Mag *********************

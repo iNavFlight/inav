@@ -87,6 +87,7 @@
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          PB2
+#define MPU6000_EXTI_PIN       PA4
 
 // ICM42688
 #define USE_IMU_ICM42605

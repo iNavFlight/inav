@@ -62,6 +62,7 @@
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI1
 #define MPU6000_CS_PIN          SPI1_NSS_PIN
+#define MPU6000_EXTI_PIN       PC4
 
 
 // ICM42605/ICM42688P
@@ -69,12 +70,14 @@
 #define IMU_ICM42605_ALIGN       CW270_DEG
 #define ICM42605_SPI_BUS         BUS_SPI1
 #define ICM42605_CS_PIN          SPI1_NSS_PIN
+#define ICM42605_EXTI_PIN       PC4
 
 //BMI270
 #define USE_IMU_BMI270
 #define IMU_BMI270_ALIGN        CW270_DEG
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           SPI1_NSS_PIN
+#define BMI270_EXTI_PIN         PC4
 
 
 /*** OSD ***/

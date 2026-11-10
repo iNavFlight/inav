@@ -48,6 +48,9 @@
 #define UG2864_I2C_BUS I2C_EXT_BUS
 
 #define MPU6000_CS_PIN          PA4
+#if defined(DYSF4PRO)
+#define MPU6000_EXTI_PIN       PC4
+#endif
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 #define USE_IMU_MPU6000
