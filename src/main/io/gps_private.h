@@ -27,6 +27,10 @@
 #define GPS_TIMEOUT             (1000)
 #define GPS_SHORT_TIMEOUT       (500)
 #define GPS_BAUD_CHANGE_DELAY   (100)
+// A configured receiver sends UBX at 5 Hz or more, a factory one NMEA at 1 Hz, hence several
+// windows in the slow pass; each is shorter than the second after which the GPS counts as lost
+#define GPS_BAUD_LISTEN_MS          (250)
+#define GPS_BAUD_LISTEN_SLOW_WINDOWS (6)
 #define GPS_INIT_DELAY          (500)
 #define GPS_BOOT_DELAY          (3000)
 
@@ -49,6 +53,9 @@ typedef struct {
     gpsState_e      state;
     gpsBaudRate_e   baudrateIndex;
     gpsBaudRate_e   autoBaudrateIndex;      // Driver internal use (for autoBaud)
+    uint8_t         autoBaudPass;           // Which listening pass is looking for the receiver
+    uint8_t         autoBaudTry;            // Baud rate index being listened to
+    uint8_t         autoBaudWindow;         // Listening window within one baud rate
     uint8_t         autoConfigStep;         // Driver internal use (for autoConfig)
     struct
     {
