@@ -29,6 +29,7 @@
 bool cliMode = false;
 
 #include "blackbox/blackbox.h"
+#include "blackbox/blackbox_io.h"
 
 #include "build/assert.h"
 #include "build/build_config.h"
@@ -2961,6 +2962,11 @@ static void cliSdInfo(char *cmdline)
         break;
     }
     cliPrintLinefeed();
+
+#ifdef USE_BLACKBOX
+    cliPrintLinef("Blackbox: paused %u times for a full card buffer, %u loop iterations not logged, largest iteration %u bytes",
+        (unsigned)blackboxDevicePauses, (unsigned)blackboxDevicePausedIterations, (unsigned)blackboxLargestIteration);
+#endif
 }
 
 #endif
