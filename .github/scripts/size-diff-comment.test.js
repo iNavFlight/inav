@@ -343,6 +343,39 @@ test('renderComment: baselineCommit + baselineIsNearest -> fallback note shown',
     assert.ok(body.includes('nearest available size baseline'), 'fallback note should explain the nearest-baseline choice');
 });
 
+test('renderComment: nearest baseline with builtCommit -> note names both commits', () => {
+    const body = renderComment({
+        prReport: fullReport({ MATEKF405: [500000, 60000] }),
+        baselineReport: fullReport({ MATEKF405: [499000, 60000] }),
+        shortSha: 'abc1234',
+        baselineCommit: 'f1cd5c6',
+        baselineIsNearest: true,
+        builtCommit: '3931fcd',
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(body.includes('vs. base commit `f1cd5c6`'), 'header should name the baseline actually used');
+    assert.ok(body.includes('nearest available size baseline'), 'fallback note should still be shown');
+    assert.ok(body.includes('contains base commit `3931fcd`'), 'note should name the base the build contains');
+    assert.ok(body.includes('merged to the base since `f1cd5c6`'), 'note should say what the delta also covers');
+});
+
+test('renderComment: exact baseline with builtCommit -> no fallback note', () => {
+    const body = renderComment({
+        prReport: fullReport({ MATEKF405: [500000, 60000] }),
+        baselineReport: fullReport({ MATEKF405: [499000, 60000] }),
+        shortSha: 'abc1234',
+        baselineCommit: '3931fcd',
+        baselineIsNearest: false,
+        builtCommit: '3931fcd',
+        docLink: null,
+        marker: '<!-- marker -->',
+    });
+
+    assert.ok(!body.includes('nearest available size baseline'), 'exact baseline should not show the fallback note');
+});
+
 test('renderComment: baselineCommit omitted -> generic "vs. base branch" wording kept', () => {
     const body = renderComment({
         prReport: fullReport({ MATEKF405: [500000, 60000] }),
