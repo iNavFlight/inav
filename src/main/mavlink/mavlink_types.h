@@ -103,6 +103,7 @@ typedef struct mavlinkMissionTransfer_s {
     bool useIntMessages;
     bool formatSelected;
     uint8_t retries;
+    uint16_t homeSlots; // fixed at transfer start, so a setting change cannot renumber a running transfer
     timeMs_t lastActivityMs;
 } mavlinkMissionTransfer_t;
 
