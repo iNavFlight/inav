@@ -908,14 +908,8 @@ static bool testBlackboxCondition(FlightLogFieldCondition condition)
 
 // Paused by blackboxDeviceBufferLow(), not by the BLACKBOX mode
 static bool blackboxPausedForDevice;
-static uint32_t blackboxDevicePauses;
-static uint32_t blackboxDevicePausedIterations;
-
-void blackboxGetDevicePauses(uint32_t *pauses, uint32_t *iterations)
-{
-    *pauses = blackboxDevicePauses;
-    *iterations = blackboxDevicePausedIterations;
-}
+uint32_t blackboxDevicePauses;
+uint32_t blackboxDevicePausedIterations;
 
 static void blackboxSetState(BlackboxState newState)
 {

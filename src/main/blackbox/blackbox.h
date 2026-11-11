@@ -78,4 +78,5 @@ BlackboxState getBlackboxState(void);
 
 bool requestToSdCardAccess(void);
 void releaseSdCardAccess(void);
-void blackboxGetDevicePauses(uint32_t *pauses, uint32_t *iterations);
+extern uint32_t blackboxDevicePauses;
+extern uint32_t blackboxDevicePausedIterations;

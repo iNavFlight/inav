@@ -67,7 +67,7 @@ bool blackboxDeviceFlushForce(void);
 bool blackboxDeviceBufferLow(void);
 void blackboxIterationBegin(void);
 void blackboxIterationEnd(void);
-uint16_t blackboxGetLargestIteration(void);
+extern uint16_t blackboxLargestIteration;
 bool blackboxDeviceBufferRecovered(void);
 bool blackboxDeviceOpen(void);
 void blackboxDeviceClose(void);
