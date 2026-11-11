@@ -259,7 +259,7 @@ static const char * const hardwareSensorStatusNames[] = {
     "NONE", "OK", "UNAVAILABLE", "FAILING"
 };
 
-// Not a hardwareSensorStatus_e value: MSP and blackbox pack that enum into two bits
+// Not a hardwareSensorStatus_e value: blackbox packs that enum into two bits, MSP/MAVLink/OSD use it as is
 static const char *hardwareSensorStatusName(hardwareSensorStatus_e status, bool isCalibrated)
 {
     if (status == HW_SENSOR_OK && !isCalibrated) {
