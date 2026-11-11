@@ -63,6 +63,11 @@ void blackboxWrite(uint8_t value);
 
 void blackboxDeviceFlush(void);
 bool blackboxDeviceFlushForce(void);
+bool blackboxDeviceBufferLow(void);
+void blackboxIterationBegin(void);
+void blackboxIterationEnd(void);
+extern uint16_t blackboxLargestIteration;
+bool blackboxDeviceBufferRecovered(void);
 bool blackboxDeviceOpen(void);
 void blackboxDeviceClose(void);
 
