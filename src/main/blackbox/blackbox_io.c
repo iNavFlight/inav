@@ -104,7 +104,7 @@ void blackboxOpen(void)
 
 // Bytes this iteration and the most any iteration wrote, for blackboxDeviceBufferLow()
 static uint16_t blackboxIterationBytes;
-static uint16_t blackboxLargestIteration;
+uint16_t blackboxLargestIteration;
 
 void blackboxIterationBegin(void)
 {
@@ -116,11 +116,6 @@ void blackboxIterationEnd(void)
     if (blackboxIterationBytes > blackboxLargestIteration) {
         blackboxLargestIteration = blackboxIterationBytes;
     }
-}
-
-uint16_t blackboxGetLargestIteration(void)
-{
-    return blackboxLargestIteration;
 }
 
 void blackboxWrite(uint8_t value)

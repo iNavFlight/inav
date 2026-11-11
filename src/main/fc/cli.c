@@ -2964,10 +2964,8 @@ static void cliSdInfo(char *cmdline)
     cliPrintLinefeed();
 
 #ifdef USE_BLACKBOX
-    uint32_t pauses, iterations;
-    blackboxGetDevicePauses(&pauses, &iterations);
     cliPrintLinef("Blackbox: paused %u times for a full card buffer, %u loop iterations not logged, largest iteration %u bytes",
-        (unsigned)pauses, (unsigned)iterations, (unsigned)blackboxGetLargestIteration());
+        (unsigned)blackboxDevicePauses, (unsigned)blackboxDevicePausedIterations, (unsigned)blackboxLargestIteration);
 #endif
 }
 
