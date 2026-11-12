@@ -3506,8 +3506,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_AIR_SPEED:
         {
         #ifdef USE_PITOT
-            if (pitotIsHealthy())
-            {
+            if (pitotIsHealthy()) {
                 const float airspeed_estimate = getAirspeedEstimate();
                 osdFormatVelocityStr(buff, airspeed_estimate, OSD_SPEED_TYPE_AIR, false);
                 if ((osdConfig()->airspeed_alarm_min != 0 && airspeed_estimate < osdConfig()->airspeed_alarm_min) ||

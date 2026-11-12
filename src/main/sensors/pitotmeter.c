@@ -55,10 +55,8 @@
 
 #ifdef USE_WIND_ESTIMATOR
 #include "flight/wind_estimator.h"
-#include "navigation/navigation.h"
-#include "navigation/navigation_private.h"
 #endif
-
+#include "navigation/navigation_private.h"
 //#include "build/debug.h"
 
 
@@ -76,7 +74,7 @@ static bool pitotAirspeedValidCached = false;
 #define PITOT_FAILURE_THRESHOLD 10   // 0.2 seconds at 50Hz - fast detection per LOG00002 analysis
 #define PITOT_RECOVERY_THRESHOLD 100 // 2 seconds of consecutive good readings to recover
 
-static bool isPitotAirspeedValid(void);
+static bool checkPitotAirspeedValidity(void);
 
 PG_REGISTER_WITH_RESET_TEMPLATE(pitotmeterConfig_t, pitotmeterConfig, PG_PITOTMETER_CONFIG, 2);
 
@@ -354,13 +352,10 @@ static float getVirtualAirspeedEstimate(void)
 #if defined(USE_GPS)
     if (STATE(GPS_FIX)) {
 #if defined(USE_WIND_ESTIMATOR)
-        if (isEstimatedWindSpeedValid()) {
-            return getWindEstimatedVirtualAirspeed();
-        } else
+        return getWindEstimatedVirtualAirspeed();
+#else
+        return posControl.actualState.vel3D;
 #endif
-        {
-            return posControl.actualState.vel3D;
-        }
     }
 #endif
     return pidProfile()->fixedWingReferenceAirspeed; //float cm/s
@@ -387,7 +382,12 @@ void pitotUpdate(void)
     }
 
     // Check pitot airspeed validity and cache result for external use
-    pitotAirspeedValidCached = isPitotAirspeedValid();
+    pitotAirspeedValidCached = checkPitotAirspeedValidity();
+}
+
+static bool isGpsVelocityUsable(void)
+{
+    return STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
 }
 
 /*
@@ -398,7 +398,7 @@ void pitotUpdate(void)
 float getAirspeedEstimate(void)
 {
     // If hardware pitot has failed validation, use GPS-based virtual airspeed
-    if (pitotHardwareFailed) {
+    if (pitotHardwareFailed && isGpsVelocityUsable()) {
         float virtualAirspeed = getVirtualAirspeedEstimate();
         if (virtualAirspeed > 0.0f) {
             return virtualAirspeed;
@@ -453,56 +453,50 @@ static bool isPitotReadingPlausible(void)
  *
  * @return true if pitot has failed sanity checks and should not be trusted
  */
-bool pitotHasFailed(void)
+bool pitotHardwareHasFailed(void)
 {
     return pitotHardwareFailed;
 }
 
-static bool isGpsVelocityUsable(void)
-{
-    return STATE(GPS_FIX) && gpsSol.flags.validVelNE && gpsSol.flags.validVelD;
-}
-
-static bool isPitotAirspeedValid(void)
+static bool checkPitotAirspeedValidity(void)
 {
     bool ret = false;
     ret = pitotIsHealthy() && pitotIsCalibrationComplete();
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
     // For virtual pitot, we need GPS fix, current GPS velocity and a valid wind estimate
     if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL) {
-        return ret && isGpsVelocityUsable() && isEstimatedWindSpeedValid();
+        return ret && isGpsVelocityUsable();
     }
 #endif
     // For hardware pitot sensors, validate readings against GPS when armed
     // This detects blocked or failed pitot tubes
     if (ret && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_NONE) {
         if (ARMING_FLAG(ARMED)) {
-            // Check if pitot reading is plausible
-            if (!isPitotReadingPlausible()) {
-                pitotFailureCounter++;
-            } else if (pitotFailureCounter > 0) {
-                // Decay counter if sensor appears healthy
-                pitotFailureCounter--;
-            }
-
-            // Declare failure after sustained implausible readings
-            if (pitotFailureCounter >= PITOT_FAILURE_THRESHOLD) {
-                pitotHardwareFailed = true;
-                pitotRecoveryCounter = 0;  // Start recovery tracking
-            }
-
-            // Recovery: require sustained consecutive good readings to clear failure
-            if (pitotHardwareFailed) {
-                if (isPitotReadingPlausible()) {
+            if (isPitotReadingPlausible()) {
+                if (pitotHardwareFailed) {
+                    // Recovery: require sustained consecutive good readings to clear failure
                     pitotRecoveryCounter++;
+
                     if (pitotRecoveryCounter >= PITOT_RECOVERY_THRESHOLD) {
                         pitotHardwareFailed = false;  // Sensor has recovered
                         pitotFailureCounter = 0;
                         pitotRecoveryCounter = 0;
                     }
-                } else {
-                    // Bad reading resets recovery progress
-                    pitotRecoveryCounter = 0;
+                }
+
+                if (pitotFailureCounter > 0) {
+                    pitotFailureCounter--;  // Decay failure counter if sensor appears healthy
+                }
+            } else {
+                pitotRecoveryCounter = 0;   // Bad reading resets recovery progress
+
+                if (pitotFailureCounter <= PITOT_FAILURE_THRESHOLD) {
+                    pitotFailureCounter++;
+
+                    // Declare failure after sustained implausible readings
+                    if (pitotFailureCounter >= PITOT_FAILURE_THRESHOLD) {
+                        pitotHardwareFailed = true;
+                    }
                 }
             }
         } else {
@@ -521,8 +515,23 @@ static bool isPitotAirspeedValid(void)
     return ret;
 }
 
-bool pitotGetValidForAirspeed(void)
+bool pitotIsValidForAirspeed(bool requireAccuratePitot)
 {
+    /* If an accurate pitot output is required:
+     * - Wind estimation must be valid for virtual pitot and failed hardware pitot
+     * - If no valid wind estimation -> hardware pitot must be working correctly (not degraded to using virtual GPS 3D speed).*/
+
+    if (pitotAirspeedValidCached && requireAccuratePitot) {
+#if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
+        if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL || pitotHardwareFailed) {
+            return isEstimatedWindSpeedValid();
+        } else
+#endif
+        {
+        return !pitotHardwareFailed;
+        }
+    }
+
     return pitotAirspeedValidCached;
 }
 #endif /* PITOT */

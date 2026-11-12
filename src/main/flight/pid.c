@@ -718,8 +718,7 @@ static void updateAutoTransitionTargetPIDCoefficients(const controlConfig_t *con
     const pidBank_t *targetPidBank = targetIsFixedWing ? &targetPidProfile->bank_fw : &targetPidProfile->bank_mc;
 
     if (targetIsFixedWing) {
-        if (controlProfile->throttle.apa_pow > 0 &&
-            pitotGetValidForAirspeed()) {
+        if (controlProfile->throttle.apa_pow > 0 && pitotIsValidForAirspeed(false)) {
             tpaFactor = calculateAutoTransitionTargetAirspeedTPAFactor(targetPidProfile, controlProfile);
             iTermFactor = calculateAutoTransitionTargetAirspeedITermFactor(targetPidProfile, controlProfile);
         } else {
@@ -920,7 +919,7 @@ static void pidAutoTransitionTargetTurnAssistant(
         }
 
 #if defined(USE_PITOT)
-        float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) && pitotIsHealthy() ? getAirspeedEstimate() : targetPidProfile->fixedWingReferenceAirspeed;
+        float airspeedForCoordinatedTurn = pitotIsValidForAirspeed(false) ? getAirspeedEstimate() : targetPidProfile->fixedWingReferenceAirspeed;
 #else
         float airspeedForCoordinatedTurn = targetPidProfile->fixedWingReferenceAirspeed;
 #endif
@@ -1312,10 +1311,10 @@ static int16_t tpaPitchThrottleAdjustment(void)
     /* Applies correction to throttle input for throttle based tpa to compensate for speed decrease in climb or increase during descent.
      * +ve correction during descent, -ve correction during climb.
      * e.g. +ve correction during descent increases tpa throttle input attenuating PIDS for increased speed during descent */
- 
+
     const uint8_t tpaPitchCompensationValue = currentControlProfile->throttle.tpa_pitch_compensation;
     int16_t tpaThrottleAdjustment = 0;
-    
+
     if (tpaPitchCompensationValue) {
         tpaThrottleAdjustment = constrain(tpaPitchCompensationValue * RADIANS_TO_DEGREES(-HeadVecEFFiltered.z), -PWM_RANGE_MIN, PWM_RANGE_MIN);
     }
@@ -1402,7 +1401,7 @@ void updatePIDCoefficients(void)
     float tpaFactor = 1.0f;
     float iTermFactor = 1.0f;  // Separate factor for I-term scaling
     if (usedPidControllerType == PID_TYPE_PIFF) { // Fixed wing TPA calculation
-        if (currentControlProfile->throttle.apa_pow > 0 && pitotGetValidForAirspeed()) {
+        if (currentControlProfile->throttle.apa_pow > 0 && pitotIsValidForAirspeed(false)) {
             tpaFactor = calculateFixedWingAirspeedTPAFactor();
             iTermFactor = calculateFixedWingAirspeedITermFactor();  // Less aggressive I-term scaling
             fixedWingApaActivePrev = true;
@@ -1946,7 +1945,7 @@ static void NOINLINE pidTurnAssistant(pidState_t *pidState, float bankAngleTarge
             //      yaw_rate = tan(roll_angle) * Gravity / forward_vel
 
 #if defined(USE_PITOT)
-            float airspeedForCoordinatedTurn = sensors(SENSOR_PITOT) && pitotIsHealthy()? getAirspeedEstimate() : pidProfile()->fixedWingReferenceAirspeed;
+            float airspeedForCoordinatedTurn = pitotIsValidForAirspeed(false) ? getAirspeedEstimate() : pidProfile()->fixedWingReferenceAirspeed;
 #else
             float airspeedForCoordinatedTurn = pidProfile()->fixedWingReferenceAirspeed;
 #endif

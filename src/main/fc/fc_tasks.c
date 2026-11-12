@@ -212,15 +212,17 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
 #ifdef USE_PITOT
 void taskUpdatePitot(timeUs_t currentTimeUs)
 {
+    UNUSED(currentTimeUs);
+
     if (!sensors(SENSOR_PITOT)) {
         return;
     }
 
     pitotUpdate();
 
-    if ( pitotIsHealthy()) {
-        updatePositionEstimator_PitotTopic(currentTimeUs);
-    }
+    // if (pitotIsHealthy()) {
+        // updatePositionEstimator_PitotTopic(currentTimeUs);
+    // }
 }
 #endif
 

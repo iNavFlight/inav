@@ -70,7 +70,7 @@ void pitotStartCalibration(void);
 void pitotUpdate(void);
 float getAirspeedEstimate(void);
 bool pitotIsHealthy(void);
-bool pitotGetValidForAirspeed(void);
-bool pitotHasFailed(void);
+bool pitotIsValidForAirspeed(bool requireAccuratePitot);
+bool pitotHardwareHasFailed(void);
 
 #endif

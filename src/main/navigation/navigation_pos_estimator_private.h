@@ -85,10 +85,10 @@ typedef struct {
     float       updateDt;
 } navPositionEstimatorBARO_t;
 
-typedef struct {
-    timeUs_t    lastUpdateTime; // Last update time (us)
-    float       airspeed;            // airspeed (cm/s)
-} navPositionEstimatorPITOT_t;
+// typedef struct {
+    // timeUs_t    lastUpdateTime; // Last update time (us)
+    // float       airspeed;            // airspeed (cm/s)
+// } navPositionEstimatorPITOT_t;
 
 typedef enum {
     SURFACE_QUAL_LOW,   // Surface sensor signal lost long ago - most likely surface distance is incorrect
@@ -167,7 +167,7 @@ typedef struct {
     navPositionEstimatorGPS_t   gps;
     navPositionEstimatorBARO_t  baro;
     navPositionEstimatorSURFACE_t surface;
-    navPositionEstimatorPITOT_t pitot;
+    // navPositionEstimatorPITOT_t pitot;
     navPositionEstimatorFLOW_t  flow;
 
     // IMU data
