@@ -418,7 +418,7 @@ bool abortLaunchAllowed(void);
 #ifdef USE_FW_AUTOLAND
 static float getLandAltitude(void);
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
- #ifdef USE_WIND_ESTIMATOR
+#ifdef USE_WIND_ESTIMATOR
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
 #endif

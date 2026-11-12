@@ -472,32 +472,31 @@ static bool checkPitotAirspeedValidity(void)
     // This detects blocked or failed pitot tubes
     if (ret && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_NONE) {
         if (ARMING_FLAG(ARMED)) {
-            // Check if pitot reading is plausible
-            if (!isPitotReadingPlausible()) {
-                pitotFailureCounter++;
-            } else if (pitotFailureCounter > 0) {
-                // Decay counter if sensor appears healthy
-                pitotFailureCounter--;
-            }
-
-            // Declare failure after sustained implausible readings
-            if (pitotFailureCounter >= PITOT_FAILURE_THRESHOLD) {
-                pitotHardwareFailed = true;
-                pitotRecoveryCounter = 0;  // Start recovery tracking
-            }
-
-            // Recovery: require sustained consecutive good readings to clear failure
-            if (pitotHardwareFailed) {
-                if (isPitotReadingPlausible()) {
+            if (isPitotReadingPlausible()) {
+                if (pitotHardwareFailed) {
+                    // Recovery: require sustained consecutive good readings to clear failure
                     pitotRecoveryCounter++;
+
                     if (pitotRecoveryCounter >= PITOT_RECOVERY_THRESHOLD) {
                         pitotHardwareFailed = false;  // Sensor has recovered
                         pitotFailureCounter = 0;
                         pitotRecoveryCounter = 0;
                     }
-                } else {
-                    // Bad reading resets recovery progress
-                    pitotRecoveryCounter = 0;
+                }
+
+                if (pitotFailureCounter > 0) {
+                    pitotFailureCounter--;  // Decay failure counter if sensor appears healthy
+                }
+            } else {
+                pitotRecoveryCounter = 0;   // Bad reading resets recovery progress
+
+                if (pitotFailureCounter <= PITOT_FAILURE_THRESHOLD) {
+                    pitotFailureCounter++;
+
+                    // Declare failure after sustained implausible readings
+                    if (pitotFailureCounter >= PITOT_FAILURE_THRESHOLD) {
+                        pitotHardwareFailed = true;
+                    }
                 }
             }
         } else {
@@ -524,12 +523,12 @@ bool pitotIsValidForAirspeed(bool requireAccuratePitot)
 
     if (pitotAirspeedValidCached && requireAccuratePitot) {
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
-        if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL || pitotHardwareHasFailed()) {
+        if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL || pitotHardwareFailed) {
             return isEstimatedWindSpeedValid();
         } else
 #endif
         {
-        return !pitotHardwareHasFailed();
+        return !pitotHardwareFailed;
         }
     }
 
