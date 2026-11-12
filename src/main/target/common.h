@@ -92,6 +92,9 @@
 #ifndef USE_BLACKBOX
 #define USE_BLACKBOX
 #endif
+#if defined(USE_BLACKBOX) && !defined(USE_CHIRP)
+#define USE_CHIRP
+#endif
 #ifndef USE_GPS
 #define USE_GPS
 #endif
