@@ -64,6 +64,14 @@
 #define ICM42605_CS_PIN          PE12
 #define ICM42605_EXTI_PIN        PE15
 
+// ICM42688P handled by USE_IMU_ICM42605 above (shares WHO_AM_I detection)
+// LSM6DSV16X / LSM6DSK320X handled by USE_IMU_LSM6DXX below (pin-to-pin compatible, same SPI3/CS/EXTI)
+#define USE_IMU_LSM6DXX
+#define IMU_LSM6DXX_ALIGN        CW90_DEG
+#define LSM6DXX_SPI_BUS          BUS_SPI3
+#define LSM6DXX_CS_PIN           PE12
+#define LSM6DXX_EXTI_PIN         PE15
+
 // *************** SPI2 OSD ***********************
 #define USE_SPI_DEVICE_2
 #define SPI2_SCK_PIN            PD3
