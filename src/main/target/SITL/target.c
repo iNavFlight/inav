@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <time.h>
 #include <pthread.h>
+#include <sched.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -55,6 +56,8 @@
 #include "drivers/sdcard/sdcard_sitl.h"
 #include "config/config_streamer.h"
 #include "build/version.h"
+#include "fc/fc_tasks.h"
+#include "target/SITL/stepped_clock.h"
 
 #include "target/SITL/sim/realFlight.h"
 #include "target/SITL/sim/xplane.h"
@@ -71,6 +74,22 @@ char _Min_Stack_Size = 0;
 static pthread_mutex_t mainLoopLock;
 static SitlSim_e sitlSim = SITL_SIM_NONE;
 static struct timespec start_time;
+
+/*
+ * Stepped clock (MSP_SIMULATOR with HITL_STEPPED_CLOCK). From the first step
+ * on, SITL time is the simulator's: it stands still between MSP_SIMULATOR
+ * frames and advances only inside sitlRunStep(), which runs the scheduler
+ * through the step without sleeping. Boot and configuration before the first
+ * step run on wall time.
+ */
+#define SITL_BETWEEN_STEPS_POLL_US 20   // wall-time poll for the next frame while sim time stands still
+
+static bool steppedClock;
+static bool steppedBusyWait;    // --faster: poll without sleeping (one core, for a single fast run)
+static bool stepInProgress;
+static uint32_t stepCount;
+static timeUs_t simTimeUs;
+static timeUs_t stepEndUs;
 static uint8_t pwmMapping[MAX_MOTORS + MAX_SERVOS];
 static uint8_t mappingCount = 0;
 static bool useImu = false;
@@ -239,6 +258,8 @@ void printCmdLineOptions(void)
     fprintf(stderr, "--fcproxy                      Use inav/betaflight FC as a proxy for serial receiver.\n");
     fprintf(stderr, "--tcpbaseport=[port]           Base TCP port for UART sockets (default: 5760)\n");
     fprintf(stderr, "--sdcard=[path]                Path to a FAT32 SD-card image file. If not specified, no SD card is simulated.\n");
+    fprintf(stderr, "--faster                       On the stepped clock, wait for the next MSP_SIMULATOR frame without sleeping:\n");
+    fprintf(stderr, "                               faster, but holds one CPU core. For a single run, not for several at once.\n");
     fprintf(stderr, "--chanmap=[mapstring]          Channel mapping. Maps INAVs motor and servo PWM outputs to the virtual receiver output in the simulator.\n");
     fprintf(stderr, "                               The mapstring has the following format: M(otor)|S(servo)<INAV-OUT>-<RECEIVER-OUT>,... All numbers must have two digits\n");
     fprintf(stderr, "                               For example: Map motor 1 to virtal receiver output 1, servo 1 to output 2 and servo 2 to output 3:\n");
@@ -271,6 +292,7 @@ void parseArguments(int argc, char *argv[])
             {"fcproxy", no_argument, 0, '5'},
             {"tcpbaseport", required_argument, 0, '6'},
             {"sdcard", required_argument, 0, '7'},
+            {"faster", no_argument, 0, '8'},
             {NULL, 0, NULL, 0}
         };
 
@@ -372,6 +394,10 @@ void parseArguments(int argc, char *argv[])
                 }
                 break;
 
+            case '8':
+                steppedBusyWait = true;
+                break;
+
             default:
                 printCmdLineOptions();
                 exit(0);
@@ -394,12 +420,90 @@ void unlockMainPID(void)
     pthread_mutex_unlock(&mainLoopLock);
 }
 
-// Replacements for system functions
-timeUs_t micros(void) {
+static timeUs_t wallMicros(void)
+{
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
 
     return (now.tv_sec - start_time.tv_sec) * 1000000 + (now.tv_nsec - start_time.tv_nsec) / 1000;
+}
+
+bool sitlSteppedClockActive(void)
+{
+    return steppedClock;
+}
+
+bool sitlRunStep(timeUs_t stepUs)
+{
+    // A step runs the scheduler, which could reach MSP again (e.g. a MAVLink
+    // MSP tunnel); a step cannot start inside another.
+    if (stepInProgress) {
+        return false;
+    }
+
+    if (!steppedClock) {
+        simTimeUs = wallMicros();
+        steppedClock = true;
+        fprintf(stderr, "[SYSTEM] Stepped clock from %lu us\n", (unsigned long)simTimeUs);
+    }
+
+    stepEndUs = simTimeUs + stepUs;
+    stepInProgress = true;
+    stepCount++;
+
+    // MSP is serviced between steps, never during one: the batch that carried
+    // this frame is still being processed and answers once the step is over.
+    setTaskEnabled(TASK_SERIAL, false);
+    while (stepInProgress) {
+        scheduler();
+    }
+    setTaskEnabled(TASK_SERIAL, true);
+
+    return true;
+}
+
+void sitlSchedulerIdle(timeUs_t nextTaskAtUs, bool taskRan)
+{
+    if (!stepInProgress) {
+        // Wall time: sleep until just before the next task is due instead of
+        // busy-waiting.
+        const timeUs_t nowUs = micros();
+        if (nextTaskAtUs > nowUs + 50) {
+            usleep((useconds_t)(nextTaskAtUs - nowUs - 50));
+        }
+        return;
+    }
+
+    if (taskRan) {
+        return;     // more tasks may be due at this same instant
+    }
+    if (simTimeUs >= stepEndUs) {
+        stepInProgress = false;
+        return;
+    }
+    // Nothing is due now: jump to the next due time. Move at least 1 us, since
+    // a realtime task runs only once it is past its period.
+    simTimeUs = MIN(MAX(nextTaskAtUs, simTimeUs + 1), stepEndUs);
+}
+
+void sitlServiceBetweenSteps(void)
+{
+    const uint32_t stepsBefore = stepCount;
+
+    taskHandleSerial(micros());
+
+    if (stepCount == stepsBefore) {
+        if (steppedBusyWait) {
+            sched_yield();
+        } else {
+            usleep(SITL_BETWEEN_STEPS_POLL_US);
+        }
+    }
+}
+
+// Replacements for system functions
+timeUs_t micros(void) {
+    return steppedClock ? simTimeUs : wallMicros();
 }
 
 uint64_t microsISR(void)
@@ -413,6 +517,11 @@ uint32_t millis(void) {
 
 void delayMicroseconds(timeUs_t us)
 {
+    // On the stepped clock a delay passes sim time, not wall time.
+    if (steppedClock) {
+        simTimeUs += us;
+        return;
+    }
     usleep(us);
 }
 

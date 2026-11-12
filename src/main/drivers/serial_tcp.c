@@ -121,16 +121,19 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 }
 
 void tcpReceiveBytes( tcpPort_t *port, const uint8_t* buffer, ssize_t recvSize ) {
-    for (ssize_t i = 0; i < recvSize; i++) {
-        if (port->serialPort.rxCallback) {
+    if (port->serialPort.rxCallback) {
+        for (ssize_t i = 0; i < recvSize; i++) {
             port->serialPort.rxCallback((uint16_t)buffer[i], port->serialPort.rxCallbackData);
-        } else {
-            pthread_mutex_lock(&port->receiveMutex);
-            port->serialPort.rxBuffer[port->serialPort.rxBufferHead] = buffer[i];
-            port->serialPort.rxBufferHead = (port->serialPort.rxBufferHead + 1) % port->serialPort.rxBufferSize;
-            pthread_mutex_unlock(&port->receiveMutex);
         }
+        return;
     }
+
+    pthread_mutex_lock(&port->receiveMutex);
+    for (ssize_t i = 0; i < recvSize; i++) {
+        port->serialPort.rxBuffer[port->serialPort.rxBufferHead] = buffer[i];
+        port->serialPort.rxBufferHead = (port->serialPort.rxBufferHead + 1) % port->serialPort.rxBufferSize;
+    }
+    pthread_mutex_unlock(&port->receiveMutex);
 }
 
 void tcpReceiveBytesEx( int portIndex, const uint8_t* buffer, ssize_t recvSize ) {
@@ -238,6 +241,14 @@ uint8_t tcpRead(serialPort_t *instance)
     return ch;
 }
 
+static void tcpSendStaged(tcpPort_t *port)
+{
+    if (port->txStaged > 0 && port->isClientConnected) {
+        send(port->clientSocketFd, port->txStage, port->txStaged, 0);
+    }
+    port->txStaged = 0;
+}
+
 void tcpWritBuf(serialPort_t *instance, const void *data, int count)
 {
     tcpPort_t *port = (tcpPort_t*)instance;
@@ -246,7 +257,31 @@ void tcpWritBuf(serialPort_t *instance, const void *data, int count)
         return;
     }
 
+    // Between beginWrite and endWrite a frame is collected and sent whole: with TCP_NODELAY every
+    // send() is a packet, and an MSP reply is written as header, payload and checksum.
+    if (port->txStaging && count <= TCP_TX_STAGE_SIZE) {
+        if (port->txStaged + count > TCP_TX_STAGE_SIZE) {
+            tcpSendStaged(port);
+        }
+        memcpy(port->txStage + port->txStaged, data, count);
+        port->txStaged += count;
+        return;
+    }
+
+    tcpSendStaged(port);
     send(port->clientSocketFd, data, count, 0);
+}
+
+static void tcpBeginWrite(serialPort_t *instance)
+{
+    ((tcpPort_t *)instance)->txStaging = true;
+}
+
+static void tcpEndWrite(serialPort_t *instance)
+{
+    tcpPort_t *port = (tcpPort_t *)instance;
+    port->txStaging = false;
+    tcpSendStaged(port);
 }
 
 int getTcpPortIndex(const serialPort_t *instance) {
@@ -336,8 +371,8 @@ static const struct serialPortVTable tcpVTable[] = {
         .setOptions = tcpSetOptions,
         .isConnected = tcpIsConnected,
         .writeBuf = tcpWritBuf,
-        .beginWrite = NULL,
-        .endWrite = NULL,
+        .beginWrite = tcpBeginWrite,
+        .endWrite = tcpEndWrite,
         .isIdle = NULL,
     }
 };

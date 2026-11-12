@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 2
+        "patch": 3
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -8888,6 +8888,12 @@
                         "ctype": "uint8_t",
                         "desc": "(If `HITL_EXTENDED_FLAGS`) Additional flags (upper 8 bits)",
                         "units": ""
+                    },
+                    {
+                        "name": "stepUs",
+                        "ctype": "uint32_t",
+                        "desc": "(SITL, format 3, if `HITL_STEPPED_CLOCK`) Simulated time SITL runs before replying",
+                        "units": "us"
                     }
                 ]
             },
@@ -8994,7 +9000,7 @@
                 ]
             },
             "variable_len": true,
-            "notes": "Requires `USE_SIMULATOR`. Complex message handling state changes for enabling/disabling HITL. Sensor data is injected directly. OSD data is sent using a custom RLE scheme. See `simulatorData` struct and associated code for details.",
+            "notes": "Requires `USE_SIMULATOR`. Complex message handling state changes for enabling/disabling HITL. Sensor data is injected directly. OSD data is sent using a custom RLE scheme. See `simulatorData` struct and associated code for details. SITL stepped clock: in format 3 with `HITL_STEPPED_CLOCK`, the request ends with a `uint32_t` step in microseconds; SITL runs that much simulated time on the frame's sensor values before replying, and sets bit 3 (8) of the reply's debug index byte while the stepped clock is active.",
             "description": "Handles Hardware-in-the-Loop (HITL) simulation data exchange. Receives simulated sensor data and options, sends back control outputs and debug info."
         },
         "MSP2_INAV_SERVO_MIXER": {

@@ -202,6 +202,7 @@ typedef enum {
     HITL_RANGEFINDER            = (1 << 12), // Simulate Rangefinder data
     HITL_FAILSAFE_TRIGGERED     = (1 << 13), // Simulate Failsafe triggered condition
     HITL_SITL_MODE              = (1 << 14), // For INAV XITL in Sitl mode (sends no emulated sensor data)
+    HITL_STEPPED_CLOCK          = (1 << 15), // SITL only, format 3: the frame ends with a uint32 step in us; SITL runs that much sim time before replying
 } simulatorFlags_t;
 
 typedef struct {

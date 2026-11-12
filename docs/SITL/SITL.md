@@ -182,6 +182,20 @@ Please also read the documentation of the individual simulators.
 
 For options that take an argument, either form `--flag=value` or `--flag value` may be used.
 
+## Stepped clock (faster than real time)
+
+A simulator that drives SITL over `MSP_SIMULATOR` (format 3) can run SITL on its own clock instead of the wall clock, so a flight runs as fast as the two processes can exchange frames.
+
+- Set `HITL_STEPPED_CLOCK` (bit 15) in the frame's flags and end the frame with a `uint32` step in microseconds.
+- SITL applies the frame's sensor values, runs every task due within the step (gyro and PID loop, mixer, navigation, GPS, failsafe and arming timers, blackbox) on simulated time, and only then replies. Every other request in the same batch is answered after the step, so all replies describe the state at its end.
+- Between frames simulated time stands still and only MSP is serviced.
+- The first stepped frame switches SITL to the stepped clock until it reboots. Startup, CLI and save/reboot before that run on wall time.
+- While the stepped clock is active, the reply's debug index byte has bit 3 (value 8) set.
+- Between frames SITL polls for the next one with a short sleep. `--faster` polls without sleeping: about twice the frame rate, but SITL holds one CPU core. Use it for a single run, not for several at once.
+- The sensor values are held for the whole step. A step must be short enough for the airframe: a multirotor needs about 2.5 ms (400 Hz), a fixed-wing flies the same with 10 ms steps.
+
+Frames without the flag behave exactly as before.
+
 ## Running SITL
 It is recommended to start the tools in the following order:
 1. Simulator, aircraft should be ready for take-off
