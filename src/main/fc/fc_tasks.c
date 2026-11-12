@@ -36,6 +36,7 @@
 #include "drivers/pwm_mapping.h"
 #include "drivers/gimbal_common.h"
 #include "drivers/headtracker_common.h"
+#include "drivers/dronecan/dronecan.h"
 
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -67,10 +68,12 @@
 #include "io/rcdevice_cam.h"
 #include "io/osd_joystick.h"
 #include "io/smartport_master.h"
+#include "io/crsf_sensor.h"
 #include "io/vtx.h"
 #include "io/vtx_msp.h"
 #include "io/osd_dji_hd.h"
 #include "io/displayport_msp_osd.h"
+#include "io/motor_srxl2.h"
 #include "io/servo_sbus.h"
 #include "io/adsb.h"
 
@@ -94,6 +97,9 @@
 
 #include "telemetry/telemetry.h"
 #include "telemetry/sbus2.h"
+
+#include "terrain/terrain.h"
+#include "terrain/terrain_io.h"
 
 #include "config/feature.h"
 
@@ -167,7 +173,7 @@ void taskProcessGPS(timeUs_t currentTimeUs)
     if (feature(FEATURE_GPS)) {
         if (gpsUpdate()) {
 #ifdef USE_WIND_ESTIMATOR
-            updateWindEstimator(currentTimeUs);
+            if (STATE(AIRPLANE)) updateWindEstimator(US2MS(currentTimeUs));
 #endif
         }
     }
@@ -184,14 +190,6 @@ void taskUpdateCompass(timeUs_t currentTimeUs)
     if (sensors(SENSOR_MAG)) {
         compassUpdate(currentTimeUs);
     }
-}
-#endif
-
-#ifdef USE_ADSB
-void taskAdsb(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-    adsbTtlClean(currentTimeUs);
 }
 #endif
 
@@ -295,6 +293,14 @@ void taskSmartportMaster(timeUs_t currentTimeUs)
 }
 #endif
 
+#if defined(USE_CRSF_SENSOR_INPUT)
+void taskCrsfSensor(timeUs_t currentTimeUs)
+{
+    UNUSED(currentTimeUs);
+    crsfSensorProcess();
+}
+#endif
+
 #ifdef USE_LED_STRIP
 void taskLedStrip(timeUs_t currentTimeUs)
 {
@@ -312,6 +318,27 @@ void taskSyncServoDriver(timeUs_t currentTimeUs)
     sbusServoSendUpdate();
 #endif
 
+#if defined(USE_MOTOR_SRXL2)
+    /* 200 Hz is the cadence this wants: Spektrum's reference application advances
+     * its state machine on a 5 ms tick, and the master has to run several times
+     * faster than its own Control Data interval to collect replies promptly on a
+     * half-duplex wire. */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        /*
+         * Reverse is a mode, because on this ESC it is a switch: Spektrum describe
+         * the reverse channel as flipping rotation while the throttle goes on
+         * meaning throttle. There is deliberately no second route through the
+         * mixer's reversible-motor state - that models a centre-zero stick, which
+         * is a different kind of ESC, and FEATURE_REVERSIBLE_MOTORS is cleared for
+         * this protocol at startup for the same reason.
+         *
+         * Gated on being armed so that an aircraft which landed under reverse does
+         * not sit on the ground with the ESC's reverse channel still held.
+         */
+        srxl2MotorSetReverse(ARMING_FLAG(ARMED) && IS_RC_MODE_ACTIVE(BOXTHRUSTREVERSE));
+        srxl2MotorProcess();
+    }
+#endif
 }
 
 #ifdef USE_OSD
@@ -345,6 +372,13 @@ void geozoneUpdateTask(timeUs_t currentTimeUs)
 }
 #endif
 
+#ifdef USE_DRONECAN
+void dronecanUpdateTask(timeUs_t currentTimeUs)
+{
+    dronecanUpdate(currentTimeUs);
+}
+#endif
+
 void fcTasksInit(void)
 {
     schedulerInit();
@@ -369,6 +403,10 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_RX, true);
 #ifdef USE_GPS
     setTaskEnabled(TASK_GPS, feature(FEATURE_GPS));
+#endif
+#ifdef USE_TERRAIN
+    setTaskEnabled(TASK_TERRAIN, terrainConfig()->terrainEnabled);
+    setTaskEnabled(TASK_TERRAIN_IO, terrainConfig()->terrainEnabled);
 #endif
 #ifdef USE_MAG
     setTaskEnabled(TASK_COMPASS, sensors(SENSOR_MAG));
@@ -402,7 +440,12 @@ void fcTasksInit(void)
     setTaskEnabled(TASK_STACK_CHECK, true);
 #endif
 #if defined(USE_SERVO_SBUS)
-    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SBUS) || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM));
+    setTaskEnabled(TASK_PWMDRIVER, (servoConfig()->servo_protocol == SERVO_TYPE_SBUS)
+                                || (servoConfig()->servo_protocol == SERVO_TYPE_SBUS_PWM)
+#ifdef USE_MOTOR_SRXL2
+                                || (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2)
+#endif
+                                  );
 #endif
 #ifdef USE_CMS
 #ifdef USE_MSP_DISPLAYPORT
@@ -420,7 +463,7 @@ void fcTasksInit(void)
 #endif
 #endif
 #ifdef USE_RCDEVICE
-#ifdef USE_LED_STRIP
+#ifdef USE_PINIO
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled() || osdJoystickEnabled());
 #else
     setTaskEnabled(TASK_RCDEVICE, rcdeviceIsEnabled());
@@ -434,6 +477,9 @@ void fcTasksInit(void)
 #endif
 #if defined(USE_SMARTPORT_MASTER)
     setTaskEnabled(TASK_SMARTPORT_MASTER, true);
+#endif
+#if defined(USE_CRSF_SENSOR_INPUT)
+    setTaskEnabled(TASK_CRSF_SENSOR, true);
 #endif
 
 #ifdef USE_SERIAL_GIMBAL
@@ -450,8 +496,8 @@ void fcTasksInit(void)
 
 #ifdef USE_ADAPTIVE_FILTER
     setTaskEnabled(TASK_ADAPTIVE_FILTER, (
-        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE && 
-        gyroConfig()->adaptiveFilterMinHz > 0 && 
+        gyroConfig()->gyroFilterMode == GYRO_FILTER_MODE_ADAPTIVE &&
+        gyroConfig()->adaptiveFilterMinHz > 0 &&
         gyroConfig()->adaptiveFilterMaxHz > 0
     ));
 #endif
@@ -462,6 +508,10 @@ void fcTasksInit(void)
 
 #ifdef USE_GEOZONE
     setTaskEnabled(TASK_GEOZONE, feature(FEATURE_GEOZONE));
+#endif
+
+#ifdef USE_DRONECAN
+    setTaskEnabled(TASK_DRONECAN, true);
 #endif
 
 }
@@ -554,7 +604,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
         [TASK_ADSB] = {
         .taskName = "ADSB",
         .taskFunc = taskAdsb,
-        .desiredPeriod = TASK_PERIOD_HZ(1),      // ADSB is updated at 1 Hz
+        .desiredPeriod = TASK_PERIOD_MS(500),      // ADSB is updated at 2 Hz, can be select 1 Hz as well
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
@@ -618,6 +668,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "SPORT MASTER",
         .taskFunc = taskSmartportMaster,
         .desiredPeriod = TASK_PERIOD_HZ(500),         // 500 Hz
+        .staticPriority = TASK_PRIORITY_IDLE,
+    },
+#endif
+
+#if defined(USE_CRSF_SENSOR_INPUT)
+    [TASK_CRSF_SENSOR] = {
+        .taskName = "CRSF SENSOR",
+        .taskFunc = taskCrsfSensor,
+        .desiredPeriod = TASK_PERIOD_HZ(100),         // 100 Hz
         .staticPriority = TASK_PRIORITY_IDLE,
     },
 #endif
@@ -756,6 +815,30 @@ cfTask_t cfTasks[TASK_COUNT] = {
         .taskName = "GEOZONE",
         .taskFunc = geozoneUpdateTask,
         .desiredPeriod = TASK_PERIOD_HZ(5),
+        .staticPriority = TASK_PRIORITY_MEDIUM,
+    },
+#endif
+
+#ifdef USE_TERRAIN
+    [TASK_TERRAIN] = {
+        .taskName = "TERRAIN",
+        .taskFunc = terrainUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(TERRAIN_TASK_RATE_HZ),
+        .staticPriority = TASK_PRIORITY_LOW,
+    },
+    [TASK_TERRAIN_IO] = {
+            .taskName = "TERRAIN_IO",
+            .taskFunc = loadGridToCacheTask,
+            .desiredPeriod = TASK_PERIOD_HZ(TERRAIN_IO_TASK_RATE_HZ),
+            .staticPriority = TASK_PRIORITY_LOW,
+    },
+#endif
+
+#ifdef USE_DRONECAN
+    [TASK_DRONECAN] = {
+        .taskName = "DRONECAN",
+        .taskFunc = dronecanUpdateTask,
+        .desiredPeriod = TASK_PERIOD_HZ(500),   // 500 Hz.  1MBps @ 130 bits per frame is 7700 frames per second. 15 frames per task at 100% busload
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

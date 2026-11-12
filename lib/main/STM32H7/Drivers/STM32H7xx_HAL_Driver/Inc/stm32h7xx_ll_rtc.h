@@ -252,7 +252,9 @@ typedef struct
 #define LL_RTC_ISR_ITSF                    RTC_ISR_ITSF
 #define LL_RTC_ISR_RECALPF                 RTC_ISR_RECALPF
 #define LL_RTC_ISR_TAMP3F                  RTC_ISR_TAMP3F
+#if defined(RTC_TAMPER2_SUPPORT)
 #define LL_RTC_ISR_TAMP2F                  RTC_ISR_TAMP2F
+#endif /* RTC_TAMPER2_SUPPORT */
 #define LL_RTC_ISR_TAMP1F                  RTC_ISR_TAMP1F
 #define LL_RTC_ISR_TSOVF                   RTC_ISR_TSOVF
 #define LL_RTC_ISR_TSF                     RTC_ISR_TSF
@@ -280,9 +282,11 @@ typedef struct
 #define LL_RTC_CR_ALRBIE                   RTC_CR_ALRBIE
 #define LL_RTC_CR_ALRAIE                   RTC_CR_ALRAIE
 #if !defined(TAMP)
+#if defined(RTC_TAMPxIE_SUPPORT)
 #define LL_RTC_TAMPCR_TAMP3IE              RTC_TAMPCR_TAMP3IE
 #define LL_RTC_TAMPCR_TAMP2IE              RTC_TAMPCR_TAMP2IE
 #define LL_RTC_TAMPCR_TAMP1IE              RTC_TAMPCR_TAMP1IE
+#endif /* RTC_TAMPxIE_SUPPORT */
 #define LL_RTC_TAMPCR_TAMPIE               RTC_TAMPCR_TAMPIE
 #endif /* !TAMP */
 /**
@@ -527,13 +531,17 @@ typedef struct
   * @{
   */
 #define LL_RTC_TAMPER_1                    RTC_TAMPCR_TAMP1E /*!< RTC_TAMP1 input detection */
+#if defined(RTC_TAMPER2_SUPPORT)
 #define LL_RTC_TAMPER_2                    RTC_TAMPCR_TAMP2E /*!< RTC_TAMP2 input detection */
+#endif /* RTC_TAMPER2_SUPPORT */
 #define LL_RTC_TAMPER_3                    RTC_TAMPCR_TAMP3E /*!< RTC_TAMP3 input detection */
 /**
   * @}
   */
 
 /** @defgroup RTC_LL_EC_TAMPER_MASK  TAMPER MASK
+  * @note     These values are not applicable to the STM32H723/33, STM32H725/35 and STM32H730 devices,
+  *           and have been kept for backward compatibility.
   * @{
   */
 #define LL_RTC_TAMPER_MASK_TAMPER1         RTC_TAMPCR_TAMP1MF /*!< Tamper 1 event generates a trigger event. TAMP1F is masked and internally cleared by hardware.The backup registers are not erased */
@@ -544,6 +552,8 @@ typedef struct
   */
 
 /** @defgroup RTC_LL_EC_TAMPER_NOERASE  TAMPER NO ERASE
+  * @note     These values are not applicable to the STM32H723/33, STM32H725/35 and STM32H730 devices,
+  *           and have been kept for backward compatibility.
   * @{
   */
 #define LL_RTC_TAMPER_NOERASE_TAMPER1      RTC_TAMPCR_TAMP1NOERASE /*!< Tamper 1 event does not erase the backup registers. */
@@ -2916,13 +2926,14 @@ __STATIC_INLINE void LL_RTC_TS_DisableOnTamper(RTC_TypeDef *RTCx)
 /**
   * @brief  Enable RTC_TAMPx input detection
   * @rmtoll TAMPCR       TAMP1E        LL_RTC_TAMPER_Enable
-  *         TAMPCR       TAMP2E        LL_RTC_TAMPER_Enable
+  *         TAMPCR       TAMP2E        LL_RTC_TAMPER_Enable (*)
   *         TAMPCR       TAMP3E        LL_RTC_TAMPER_Enable
   * @param  RTCx RTC Instance
   * @param  Tamper This parameter can be a combination of the following values:
   *         @arg @ref LL_RTC_TAMPER_1
-  *         @arg @ref LL_RTC_TAMPER_2
+  *         @arg @ref LL_RTC_TAMPER_2 (*)
   *         @arg @ref LL_RTC_TAMPER_3
+  *        (*) Not applicable to all devices.
   *
   * @retval None
   */
@@ -2934,13 +2945,14 @@ __STATIC_INLINE void LL_RTC_TAMPER_Enable(RTC_TypeDef *RTCx, uint32_t Tamper)
 /**
   * @brief  Clear RTC_TAMPx input detection
   * @rmtoll TAMPCR       TAMP1E        LL_RTC_TAMPER_Disable
-  *         TAMPCR       TAMP2E        LL_RTC_TAMPER_Disable
+  *         TAMPCR       TAMP2E        LL_RTC_TAMPER_Disable (*)
   *         TAMPCR       TAMP3E        LL_RTC_TAMPER_Disable
   * @param  RTCx RTC Instance
   * @param  Tamper This parameter can be a combination of the following values:
   *         @arg @ref LL_RTC_TAMPER_1
-  *         @arg @ref LL_RTC_TAMPER_2
+  *         @arg @ref LL_RTC_TAMPER_2 (*)
   *         @arg @ref LL_RTC_TAMPER_3
+  *        (*) Not applicable to all devices.
   *
   * @retval None
   */
@@ -2951,6 +2963,8 @@ __STATIC_INLINE void LL_RTC_TAMPER_Disable(RTC_TypeDef *RTCx, uint32_t Tamper)
 
 /**
   * @brief  Enable Tamper mask flag
+  * @note This API shall not be used with STM32H723/33, STM32H725/35 and STM32H730 devices,
+  *       and has been kept for backward compatibility.
   * @note Associated Tamper IT must not enabled when tamper mask is set.
   * @rmtoll TAMPCR       TAMP1MF       LL_RTC_TAMPER_EnableMask
   *         TAMPCR       TAMP2MF       LL_RTC_TAMPER_EnableMask
@@ -2970,6 +2984,8 @@ __STATIC_INLINE void LL_RTC_TAMPER_EnableMask(RTC_TypeDef *RTCx, uint32_t Mask)
 
 /**
   * @brief  Disable Tamper mask flag
+  * @note This API shall not be used with STM32H723/33, STM32H725/35 and STM32H730 devices,
+  *       and has been kept for backward compatibility.
   * @rmtoll TAMPCR       TAMP1MF       LL_RTC_TAMPER_DisableMask
   *         TAMPCR       TAMP2MF       LL_RTC_TAMPER_DisableMask
   *         TAMPCR       TAMP3MF       LL_RTC_TAMPER_DisableMask
@@ -2988,6 +3004,8 @@ __STATIC_INLINE void LL_RTC_TAMPER_DisableMask(RTC_TypeDef *RTCx, uint32_t Mask)
 
 /**
   * @brief  Enable backup register erase after Tamper event detection
+  * @note This API shall not be used with STM32H723/33, STM32H725/35 and STM32H730 devices,
+  *       and has been kept for backward compatibility.
   * @rmtoll TAMPCR       TAMP1NOERASE  LL_RTC_TAMPER_EnableEraseBKP
   *         TAMPCR       TAMP2NOERASE  LL_RTC_TAMPER_EnableEraseBKP
   *         TAMPCR       TAMP3NOERASE  LL_RTC_TAMPER_EnableEraseBKP
@@ -3006,6 +3024,8 @@ __STATIC_INLINE void LL_RTC_TAMPER_EnableEraseBKP(RTC_TypeDef *RTCx, uint32_t Ta
 
 /**
   * @brief  Disable backup register erase after Tamper event detection
+  * @note This API shall not be used with STM32H723/33, STM32H725/35 and STM32H730 devices,
+  *       and has been kept for backward compatibility.
   * @rmtoll TAMPCR       TAMP1NOERASE  LL_RTC_TAMPER_DisableEraseBKP
   *         TAMPCR       TAMP2NOERASE  LL_RTC_TAMPER_DisableEraseBKP
   *         TAMPCR       TAMP3NOERASE  LL_RTC_TAMPER_DisableEraseBKP
@@ -3148,13 +3168,14 @@ __STATIC_INLINE uint32_t LL_RTC_TAMPER_GetSamplingFreq(const RTC_TypeDef *RTCx)
 /**
   * @brief  Enable Active level for Tamper input
   * @rmtoll TAMPCR       TAMP1TRG      LL_RTC_TAMPER_EnableActiveLevel
-  *         TAMPCR       TAMP2TRG      LL_RTC_TAMPER_EnableActiveLevel
+  *         TAMPCR       TAMP2TRG      LL_RTC_TAMPER_EnableActiveLevel (*)
   *         TAMPCR       TAMP3TRG      LL_RTC_TAMPER_EnableActiveLevel
   * @param  RTCx RTC Instance
   * @param  Tamper This parameter can be a combination of the following values:
   *         @arg @ref LL_RTC_TAMPER_ACTIVELEVEL_TAMP1
-  *         @arg @ref LL_RTC_TAMPER_ACTIVELEVEL_TAMP2
+  *         @arg @ref LL_RTC_TAMPER_ACTIVELEVEL_TAMP2 (*)
   *         @arg @ref LL_RTC_TAMPER_ACTIVELEVEL_TAMP3
+  *        (*) Not applicable to all devices.
   *
   * @retval None
   */
@@ -3166,13 +3187,14 @@ __STATIC_INLINE void LL_RTC_TAMPER_EnableActiveLevel(RTC_TypeDef *RTCx, uint32_t
 /**
   * @brief  Disable Active level for Tamper input
   * @rmtoll TAMPCR       TAMP1TRG      LL_RTC_TAMPER_DisableActiveLevel
-  *         TAMPCR       TAMP2TRG      LL_RTC_TAMPER_DisableActiveLevel
+  *         TAMPCR       TAMP2TRG      LL_RTC_TAMPER_DisableActiveLevel (*)
   *         TAMPCR       TAMP3TRG      LL_RTC_TAMPER_DisableActiveLevel
   * @param  RTCx RTC Instance
   * @param  Tamper This parameter can be a combination of the following values:
   *         @arg @ref LL_RTC_TAMPER_ACTIVELEVEL_TAMP1
-  *         @arg @ref LL_RTC_TAMPER_ACTIVELEVEL_TAMP2
+  *         @arg @ref LL_RTC_TAMPER_ACTIVELEVEL_TAMP2 (*)
   *         @arg @ref LL_RTC_TAMPER_ACTIVELEVEL_TAMP3
+  *        (*) Not applicable to all devices.
   *
   * @retval None
   */
@@ -3938,6 +3960,7 @@ __STATIC_INLINE uint32_t LL_RTC_IsActiveFlag_TAMP3(const RTC_TypeDef *RTCx)
   return ((READ_BIT(RTCx->ISR, RTC_ISR_TAMP3F) == (RTC_ISR_TAMP3F)) ? 1UL : 0UL);
 }
 
+#if defined(RTC_TAMPER2_SUPPORT)
 /**
   * @brief  Get RTC_TAMP2 detection flag
   * @rmtoll ISR          TAMP2F        LL_RTC_IsActiveFlag_TAMP2
@@ -3948,6 +3971,7 @@ __STATIC_INLINE uint32_t LL_RTC_IsActiveFlag_TAMP2(const RTC_TypeDef *RTCx)
 {
   return ((READ_BIT(RTCx->ISR, RTC_ISR_TAMP2F) == (RTC_ISR_TAMP2F)) ? 1UL : 0UL);
 }
+#endif /* RTC_TAMPER2_SUPPORT */
 
 /**
   * @brief  Get RTC_TAMP1 detection flag
@@ -4037,6 +4061,7 @@ __STATIC_INLINE void LL_RTC_ClearFlag_TAMP3(RTC_TypeDef *RTCx)
   WRITE_REG(RTCx->ISR, (~((RTC_ISR_TAMP3F | RTC_ISR_INIT) & 0x0000FFFFU) | (RTCx->ISR & RTC_ISR_INIT)));
 }
 
+#if defined(RTC_TAMPER2_SUPPORT)
 /**
   * @brief  Clear RTC_TAMP2 detection flag
   * @rmtoll ISR          TAMP2F        LL_RTC_ClearFlag_TAMP2
@@ -4047,6 +4072,7 @@ __STATIC_INLINE void LL_RTC_ClearFlag_TAMP2(RTC_TypeDef *RTCx)
 {
   WRITE_REG(RTCx->ISR, (~((RTC_ISR_TAMP2F | RTC_ISR_INIT) & 0x0000FFFFU) | (RTCx->ISR & RTC_ISR_INIT)));
 }
+#endif /* RTC_TAMPER2_SUPPORT */
 
 /**
   * @brief  Clear RTC_TAMP1 detection flag
@@ -4706,6 +4732,7 @@ __STATIC_INLINE void LL_RTC_DisableIT_ALRA(RTC_TypeDef *RTCx)
 }
 
 #if !defined(TAMP)
+#if defined(RTC_TAMPxIE_SUPPORT)
 /**
   * @brief  Enable Tamper 3 interrupt
   * @rmtoll TAMPCR       TAMP3IE       LL_RTC_EnableIT_TAMP3
@@ -4728,6 +4755,7 @@ __STATIC_INLINE void LL_RTC_DisableIT_TAMP3(RTC_TypeDef *RTCx)
   CLEAR_BIT(RTCx->TAMPCR, RTC_TAMPCR_TAMP3IE);
 }
 
+#if defined(RTC_TAMPER2_SUPPORT)
 /**
   * @brief  Enable Tamper 2 interrupt
   * @rmtoll TAMPCR       TAMP2IE       LL_RTC_EnableIT_TAMP2
@@ -4749,6 +4777,7 @@ __STATIC_INLINE void LL_RTC_DisableIT_TAMP2(RTC_TypeDef *RTCx)
 {
   CLEAR_BIT(RTCx->TAMPCR, RTC_TAMPCR_TAMP2IE);
 }
+#endif /* RTC_TAMPER2_SUPPORT */
 
 /**
   * @brief  Enable Tamper 1 interrupt
@@ -4771,6 +4800,7 @@ __STATIC_INLINE void LL_RTC_DisableIT_TAMP1(RTC_TypeDef *RTCx)
 {
   CLEAR_BIT(RTCx->TAMPCR, RTC_TAMPCR_TAMP1IE);
 }
+#endif /* RTC_TAMPxIE_SUPPORT */
 
 /**
   * @brief  Enable all Tamper Interrupt
@@ -4840,6 +4870,7 @@ __STATIC_INLINE uint32_t LL_RTC_IsEnabledIT_ALRA(const RTC_TypeDef *RTCx)
 }
 
 #if !defined(TAMP)
+#if defined(RTC_TAMPxIE_SUPPORT)
 /**
   * @brief  Check if  Tamper 3 interrupt is enabled or not
   * @rmtoll TAMPCR       TAMP3IE       LL_RTC_IsEnabledIT_TAMP3
@@ -4873,6 +4904,7 @@ __STATIC_INLINE uint32_t LL_RTC_IsEnabledIT_TAMP1(const RTC_TypeDef *RTCx)
 {
   return ((READ_BIT(RTCx->TAMPCR, RTC_TAMPCR_TAMP1IE) == (RTC_TAMPCR_TAMP1IE)) ? 1UL : 0UL);
 }
+#endif /* RTC_TAMPxIE_SUPPORT */
 
 /**
   * @brief  Check if all the TAMPER interrupts are enabled or not

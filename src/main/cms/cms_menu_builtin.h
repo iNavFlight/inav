@@ -20,3 +20,4 @@
 #include "cms/cms_types.h"
 
 extern const CMS_Menu menuMain;
+extern const CMS_Menu menuMainInFlight;

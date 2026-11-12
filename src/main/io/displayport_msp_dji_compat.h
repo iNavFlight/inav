@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#if defined(USE_OSD) && defined(USE_MSP_DISPLAYPORT) && !defined(DISABLE_MSP_DJI_COMPAT)
+#if defined(USE_OSD) && defined(USE_MSP_DISPLAYPORT) && !defined(DISABLE_MSP_DJI_COMPAT) && !defined(OSD_UNIT_TEST)
 #include "osd.h"
 uint8_t getDJICharacter(uint8_t ch, uint8_t page);
 #define isDJICompatibleVideoSystem(osdConfigPtr) (osdConfigPtr->video_system == VIDEO_SYSTEM_DJICOMPAT || osdConfigPtr->video_system == VIDEO_SYSTEM_DJICOMPAT_HD)

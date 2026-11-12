@@ -205,13 +205,13 @@ void _logBufferHex(logTopic_e topic, unsigned level, const void *buffer, size_t 
 {
     // Print lines of up to maxBytes bytes. We need 5 characters per byte
     // 0xAB[space|\n]
-    // charsPerByte/maxBytes must be true compile-time constants (not `const`
-    // locals) so the buffer size below is a real constant expression, not a VLA.
+    // These must be true compile-time constants so the buffer size below is
+    // a real constant expression, not a VLA.
     enum {
-        charsPerByte = 5,
-        maxBytes = 8,
+        LOG_BUFFER_HEX_CHARS_PER_BYTE = 5,
+        LOG_BUFFER_HEX_MAX_BYTES = 8,
     };
-    char buf[LOG_PREFIX_FORMATTED_SIZE + charsPerByte * maxBytes + 1]; // +1 for the null terminator
+    char buf[LOG_PREFIX_FORMATTED_SIZE + LOG_BUFFER_HEX_CHARS_PER_BYTE * LOG_BUFFER_HEX_MAX_BYTES + 1]; // +1 for the null terminator
     size_t bufPos = LOG_PREFIX_FORMATTED_SIZE;
     const uint8_t *inputPtr = buffer;
 
@@ -223,7 +223,7 @@ void _logBufferHex(logTopic_e topic, unsigned level, const void *buffer, size_t 
 
     for (size_t ii = 0; ii < size; ii++) {
         tfp_sprintf(buf + bufPos, "0x%02x ", inputPtr[ii]);
-        bufPos += charsPerByte;
+        bufPos += LOG_BUFFER_HEX_CHARS_PER_BYTE;
         if (bufPos == sizeof(buf)-1) {
             buf[bufPos-1] = '\n';
             buf[bufPos] = '\0';

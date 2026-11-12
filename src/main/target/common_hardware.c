@@ -175,15 +175,18 @@
 
 #if defined(USE_BARO_DPS310)
     #if defined(DPS310_SPI_BUS)
-    BUSDEV_REGISTER_SPI(busdev_dps310,      DEVHW_DPS310,       DPS310_SPI_BUS,     DPS310_CS_PIN,      NONE,           DEVFLAGS_NONE, 0);
+    BUSDEV_REGISTER_SPI(busdev_dps310_0,    DEVHW_DPS310_0,     DPS310_SPI_BUS,     DPS310_CS_PIN,      NONE,           DEVFLAGS_NONE, 0);
     #elif defined(DPS310_I2C_BUS) || defined(BARO_I2C_BUS)
     #if !defined(DPS310_I2C_BUS)
         #define DPS310_I2C_BUS BARO_I2C_BUS
     #endif
-    #if !defined(DPS310_I2C_ADDR)
-        #define DPS310_I2C_ADDR (0x76)
+    #if defined(DPS310_I2C_ADDR)
+    BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310_0,     DPS310_I2C_BUS,     DPS310_I2C_ADDR,    NONE,           DEVFLAGS_NONE, 0);
+    #else
+    // SDO low selects 0x76, SDO high 0x77; boards ship with both, so the driver probes both
+    BUSDEV_REGISTER_I2C(busdev_dps310_0,    DEVHW_DPS310_0,     DPS310_I2C_BUS,     0x76,               NONE,           DEVFLAGS_NONE, 0);
+    BUSDEV_REGISTER_I2C(busdev_dps310_1,    DEVHW_DPS310_1,     DPS310_I2C_BUS,     0x77,               NONE,           DEVFLAGS_NONE, 0);
     #endif
-    BUSDEV_REGISTER_I2C(busdev_dps310,      DEVHW_DPS310,       DPS310_I2C_BUS,     DPS310_I2C_ADDR,    NONE,           DEVFLAGS_NONE, 0);
     #endif
 #endif
 
@@ -251,6 +254,13 @@
         #define MAG3110_I2C_BUS MAG_I2C_BUS
     #endif
     BUSDEV_REGISTER_I2C(busdev_mag3110,     DEVHW_MAG3110,      MAG3110_I2C_BUS,    0x0E,               NONE,           DEVFLAGS_NONE,  0);
+#endif
+
+#if defined(USE_MAG_LIS2MDL)
+    #if !defined(LIS2MDL_I2C_BUS)
+        #define LIS2MDL_I2C_BUS MAG_I2C_BUS
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_lis2mdl,     DEVHW_LIS2MDL,      LIS2MDL_I2C_BUS,    0x1E,               NONE,           DEVFLAGS_NONE,  0);
 #endif
 
 #if defined(USE_MAG_LIS3MDL)
@@ -456,7 +466,7 @@
        #endif
 
     #endif
-    BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_NONE,  0);
+    BUSDEV_REGISTER_I2C(busdev_ug2864,      DEVHW_UG2864,       UG2864_I2C_BUS,     0x3C,               NONE,           DEVFLAGS_USE_RAW_REGISTERS,  0);
 #endif
 
 #if defined(USE_IRLOCK) && defined(USE_I2C)
@@ -486,3 +496,7 @@
 #endif
 
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS
+
+#if defined(USE_INA226) && defined(BATTERY_I2C_BUS)
+BUSDEV_REGISTER_I2C(busdev_ina226, DEVHW_INA226, BATTERY_I2C_BUS, INA226_I2C_ADDRESS, NONE, DEVFLAGS_NONE, 0);
+#endif

@@ -104,7 +104,7 @@
     and a pointer to the user callback function.
 
     (+) Use function HAL_WWDG_UnRegisterCallback() to reset a callback to
-    the default weak (surcharged) function. HAL_WWDG_UnRegisterCallback()
+    the default weak function. HAL_WWDG_UnRegisterCallback()
     takes as parameters the HAL peripheral handle and the Callback ID.
     This function allows to reset following callbacks:
         (++) EwiCallback : callback for  Early WakeUp Interrupt.
@@ -112,14 +112,14 @@
 
     [..]
     When calling HAL_WWDG_Init function, callbacks are reset to the
-    corresponding legacy weak (surcharged) functions:
+    corresponding legacy weak functions:
     HAL_WWDG_EarlyWakeupCallback() and HAL_WWDG_MspInit() only if they have
     not been registered before.
 
     [..]
     When compilation define USE_HAL_WWDG_REGISTER_CALLBACKS is set to 0 or
     not defined, the callback registering feature is not available
-    and weak (surcharged) callbacks are used.
+    and weak (overridden) callbacks are used.
 
     *** WWDG HAL driver macros list ***
     ===================================
@@ -249,7 +249,7 @@ __weak void HAL_WWDG_MspInit(WWDG_HandleTypeDef *hwwdg)
 #if (USE_HAL_WWDG_REGISTER_CALLBACKS == 1)
 /**
   * @brief  Register a User WWDG Callback
-  *         To be used instead of the weak (surcharged) predefined callback
+  *         To be used instead of the weak (overridden) predefined callback
   * @param  hwwdg WWDG handle
   * @param  CallbackID ID of the callback to be registered
   *         This parameter can be one of the following values:
@@ -291,7 +291,7 @@ HAL_StatusTypeDef HAL_WWDG_RegisterCallback(WWDG_HandleTypeDef *hwwdg, HAL_WWDG_
 
 /**
   * @brief  Unregister a WWDG Callback
-  *         WWDG Callback is redirected to the weak (surcharged) predefined callback
+  *         WWDG Callback is redirected to the weak (overridden) predefined callback
   * @param  hwwdg WWDG handle
   * @param  CallbackID ID of the callback to be registered
   *         This parameter can be one of the following values:

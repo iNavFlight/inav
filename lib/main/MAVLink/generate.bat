@@ -1,12 +1,10 @@
 @echo off
 
 echo Removing old library...
-del /q common\
-del /q minimal\
-del /q standard\
-del /q checksum.h
-del /q mavlink_*
-del /q protocol.h
+for %%D in (ASLUAV AVSSUAS all ardupilotmega common csAirLink cubepilot development icarous loweheiser marsh minimal python_array_test standard stemstudios storm32 test ualberta uAvionix) do if exist %%D\ rmdir /s /q %%D
+del /q checksum.h 2>nul
+del /q mavlink_* 2>nul
+del /q protocol.h 2>nul
 
 echo Downloading or updating MAVLink sources...
 
@@ -22,4 +20,4 @@ if exist mavlink-src\.git\ (
 set PYTHONPATH=%CD%\mavlink-src
 
 echo Running MAVLink generator...
-python -m pymavlink.tools.mavgen --lang=C --wire-protocol=2.0 --output=. mavlink-src/message_definitions/v1.0/common.xml --no-validate
+python -m pymavlink.tools.mavgen --lang=C --wire-protocol=2.0 --output=. mavlink-src/message_definitions/v1.0/storm32.xml --no-validate

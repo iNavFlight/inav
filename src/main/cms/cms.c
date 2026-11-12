@@ -61,6 +61,7 @@
 #include "fc/rc_controls.h"
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
+#include "fc/rc_modes.h"
 
 #include "flight/mixer.h"
 #include "flight/servos.h"
@@ -100,6 +101,12 @@ static displayPort_t *cmsDisplayPorts[CMS_MAX_DEVICE];
 static int cmsDeviceCount;
 static int cmsCurrentDevice = -1;
 static timeMs_t cmsYieldUntil = 0;
+
+// True while CMS actually holds a grab on pCurrentDisplay. cmsYieldUntil alone
+// cannot tell us this: it only records that *some* display was released for a
+// yield, not whether pCurrentDisplay - which can change mid-yield if the menu
+// switches displays - is the one that grab applies to.
+static bool cmsDisplayGrabbed = false;
 
 bool cmsDisplayPortRegister(displayPort_t *pDisplay)
 {
@@ -183,6 +190,51 @@ static uint8_t linesPerMenuItem;
 static cms_key_e externKey = CMS_KEY_NONE;
 
 bool cmsInMenu = false;
+static bool cmsOpenedInFlight = false;  // true when menu was opened via BOXINFLIGHTMENU while armed
+static bool cmsMenuSwitchLatched = false;
+static uint32_t cmsOpenCountdownStartTime = 0;
+static timeMs_t cmsLastInputMs = 0;
+
+// Panic stick detection state - file scope so it can be reset on every menu
+// open, otherwise a partial detection carries over into the next session.
+static uint8_t cmsPanicDualAxisCount = 0;
+static timeMs_t cmsPanicLastCheckMs = 0;
+
+// Set when this module disabled the servo output on open, so that exit always
+// restores exactly what was changed.
+static bool cmsServoOutputDisabled = false;
+
+uint32_t cmsGetOpenCountdownRemaining(void)
+{
+    if (cmsOpenCountdownStartTime == 0) {
+        return 0;
+    }
+    uint32_t elapsed = millis() - cmsOpenCountdownStartTime;
+    if (elapsed >= 3000) {
+        return 0;
+    }
+    return 3000 - elapsed;
+}
+
+uint32_t cmsGetInactivityCloseCountdownRemaining(void)
+{
+    if (!cmsOpenedInFlight || cmsLastInputMs == 0) {
+        return 0;
+    }
+    uint32_t elapsed = millis() - cmsLastInputMs;
+    if (elapsed < 5000) {
+        return 0;
+    }
+    if (elapsed >= 15000) {
+        return 0;
+    }
+    return 15000 - elapsed;
+}
+
+bool cmsIsMenuSwitchLatched(void)
+{
+    return cmsMenuSwitchLatched;
+}
 
 typedef struct cmsCtx_s {
     const CMS_Menu *menu;         // menu for this context
@@ -597,7 +649,7 @@ static int cmsDrawMenuEntry(displayPort_t *pDisplay, const OSD_Entry *p, uint8_t
     return cnt;
 }
 
-static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
+static void cmsDrawMenu(displayPort_t *pDisplay, timeUs_t currentTimeUs)
 {
     if (!pageTop)
         return;
@@ -609,7 +661,7 @@ static void cmsDrawMenu(displayPort_t *pDisplay, uint32_t currentTimeUs)
     // Polled (dynamic) value display denominator.
 
     bool drawPolled = false;
-    static uint32_t lastPolledUs = 0;
+    static timeUs_t lastPolledUs = 0;
 
     if (currentTimeUs > lastPolledUs + CMS_POLL_INTERVAL_US) {
         drawPolled = true;
@@ -742,6 +794,11 @@ long cmsMenuChange(displayPort_t *pDisplay, const CMS_Menu *pMenu, const OSD_Ent
     if (pMenu != currentCtx.menu) {
         // Stack the current menu and move to a new menu.
 
+        if (menuStackIdx >= ARRAYLEN(menuStack)) {
+            // Stack is full - refuse to descend rather than write out of bounds
+            return 0;
+        }
+
         menuStack[menuStackIdx++] = currentCtx;
 
         currentCtx.menu = pMenu;
@@ -790,17 +847,39 @@ STATIC_UNIT_TESTED long cmsMenuBack(displayPort_t *pDisplay)
     return 0;
 }
 
+long cmsMenuConfirmDone(displayPort_t *pDisplay)
+{
+    // Leave the confirmation submenu and tell the caller to leave its parent as
+    // well. The in-flight edit menus have no BACK entry - they are left through
+    // the confirmation only - so both YES and NO must land on the parent menu.
+    cmsMenuBack(pDisplay);
+
+    return MENU_CHAIN_BACK;
+}
+
 void cmsMenuOpen(void)
 {
     if (!cmsInMenu) {
         // New open
-        setServoOutputEnabled(false);
         pCurrentDisplay = cmsDisplayPortSelectCurrent();
         if (!pCurrentDisplay)
             return;
         cmsInMenu = true;
-        currentCtx = (cmsCtx_t){ &menuMain, 0, 0 };
-        ENABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
+        cmsOpenedInFlight = ARMING_FLAG(ARMED);
+        cmsLastInputMs = millis();
+        cmsPanicDualAxisCount = 0;
+        cmsPanicLastCheckMs = 0;
+        if (cmsOpenedInFlight) {
+            currentCtx = (cmsCtx_t){ &menuMainInFlight, 0, 0 };
+        } else {
+            // Note the servo output is only touched after the display check
+            // above has succeeded: disabling it on a failed open would leave the
+            // servos frozen with no menu open and no way to restore them.
+            setServoOutputEnabled(false);
+            cmsServoOutputDisabled = true;
+            currentCtx = (cmsCtx_t){ &menuMain, 0, 0 };
+            ENABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
+        }
     } else {
         // Switch display
         displayPort_t *pNextDisplay = cmsDisplayPortSelectNext();
@@ -808,13 +887,20 @@ void cmsMenuOpen(void)
             // DisplayPort has been changed.
             // Convert cursorRow to absolute value
             currentCtx.cursorRow = cmsCursorAbsolute(pCurrentDisplay);
-            displayRelease(pCurrentDisplay);
+            if (cmsDisplayGrabbed) {
+                displayRelease(pCurrentDisplay);
+            }
             pCurrentDisplay = pNextDisplay;
         } else {
             return;
         }
     }
     displayGrab(pCurrentDisplay); // grab the display for use by the CMS
+    cmsDisplayGrabbed = true;
+    // Any yield in progress applied to whatever display was current before -
+    // we now hold a fresh grab on pCurrentDisplay (possibly a different
+    // display, if the menu switched while yielding), so it no longer applies.
+    cmsYieldUntil = 0;
 
     if (pCurrentDisplay->cols < NORMAL_SCREEN_MIN_COLS) {
         smallScreen = true;
@@ -839,6 +925,15 @@ void cmsMenuOpen(void)
         leftMenuColumn = 0;
         rightMenuColumn = pCurrentDisplay->cols;
         maxMenuItems = pCurrentDisplay->rows;
+    }
+
+    if (maxMenuItems > ARRAYLEN(entry_flags)) {
+        // entry_flags[] is indexed by row within the page and sized for the
+        // largest row count any of our display drivers can report. Every
+        // driver derives rows from a compile-time constant except FrSky OSD,
+        // whose grid size is a runtime value read back from the OSD hardware,
+        // so this stays a hard runtime clamp rather than a compile-time check.
+        maxMenuItems = ARRAYLEN(entry_flags);
     }
 
     cmsMenuChange(pCurrentDisplay, currentCtx.menu, NULL);
@@ -872,6 +967,10 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
     case CMS_EXIT_SAVEREBOOT:
     case CMS_POPUP_SAVE:
     case CMS_POPUP_SAVEREBOOT:
+        if (cmsOpenedInFlight) {
+            // Save and reboot are not allowed while armed - treat as simple exit
+            break;
+        }
 
         cmsTraverseGlobalExit(&menuMain);
 
@@ -881,7 +980,7 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
         if ((exitType == CMS_POPUP_SAVE) || (exitType == CMS_POPUP_SAVEREBOOT)) {
             // traverse through the menu stack and call their onExit functions
             for (int i = menuStackIdx - 1; i >= 0; i--) {
-                if (menuStack[i].menu->onExit) {
+                if (menuStack[i].menu && menuStack[i].menu->onExit) {
                     menuStack[i].menu->onExit((OSD_Entry *) NULL);
                 }
             }
@@ -891,27 +990,64 @@ long cmsMenuExit(displayPort_t *pDisplay, const void *ptr)
         break;
 
     case CMS_EXIT:
+        // Deliberately does not run any onExit handler. Closing the menu - and in
+        // particular the in-flight auto-close on switch off, timeout, panic sticks
+        // or nav mode loss - must never apply pending edits: settings only change
+        // when the pilot explicitly confirms them with BACK or SET/YES.
         break;
     }
 
     cmsInMenu = false;
 
-    displayRelease(pDisplay);
+    // Reset the menu stack. Without this it grows by one entry for every exit
+    // made from inside a submenu and is never emptied, so after a few
+    // open/close cycles menuStackIdx runs past the end of menuStack and both
+    // cmsMenuBack() and the onExit loops above read and dereference garbage.
+    menuStackIdx = 0;
+    pageTop = NULL;
+
+    // Only release the display if we are still holding it. cmsYieldDisplay()
+    // has already released it when a yield is in progress, and an exit can
+    // happen during that window (in-flight auto-close), which would otherwise
+    // leave the display grab count unbalanced. cmsDisplayGrabbed - not the
+    // yield timer - is the source of truth: the menu can switch displays
+    // mid-yield, in which case pDisplay is grabbed even though a yield is
+    // still nominally pending.
+    if (cmsDisplayGrabbed) {
+        displayRelease(pDisplay);
+        cmsDisplayGrabbed = false;
+    }
+    cmsYieldUntil = 0;
+
     currentCtx.menu = NULL;
 
-    setServoOutputEnabled(true);
-
-    if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT)) {
-        processDelayedSave();
-        displayClearScreen(pDisplay);
-        displayWrite(pDisplay, 5, 3, "REBOOTING...");
-
-        displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
-
-        fcReboot(false);
+    // Always restore what we actually disabled. Keying this off cmsOpenedInFlight
+    // instead left the servo output disabled whenever the armed state seen at open
+    // differed from the one at exit, freezing roll and pitch at centre while
+    // rcCommand and the motor outputs kept working normally.
+    if (cmsServoOutputDisabled) {
+        setServoOutputEnabled(true);
+        cmsServoOutputDisabled = false;
     }
 
-    DISABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
+    if (!cmsOpenedInFlight) {
+        if ((exitType == CMS_EXIT_SAVEREBOOT) || (exitType == CMS_POPUP_SAVEREBOOT)) {
+            processDelayedSave();
+            displayClearScreen(pDisplay);
+            displayWrite(pDisplay, 5, 3, "REBOOTING...");
+
+            displayResync(pDisplay); // Was max7456RefreshAll(); why at this timing?
+
+            fcReboot(false);
+        }
+
+        DISABLE_ARMING_FLAG(ARMING_DISABLED_CMS_MENU);
+    } else {
+        // Latch the switch so it doesn't reopen immediately if still ON
+        cmsMenuSwitchLatched = IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU);
+    }
+
+    cmsOpenedInFlight = false;
 
     return 0;
 }
@@ -921,8 +1057,9 @@ void cmsYieldDisplay(displayPort_t *pPort, timeMs_t duration)
     // Check if we're already yielding, in that case just extend
     // the yield time without releasing the display again, otherwise
     // the yield/grab become unbalanced.
-    if (cmsYieldUntil == 0) {
+    if (cmsDisplayGrabbed) {
         displayRelease(pPort);
+        cmsDisplayGrabbed = false;
     }
     cmsYieldUntil = millis() + duration;
 }
@@ -1262,9 +1399,9 @@ static uint16_t cmsScanKeys(timeMs_t currentTimeMs, timeMs_t lastCalledMs, int16
             key = CMS_KEY_LEFT;
         } else if (IS_HI(ROLL)) {
             key = CMS_KEY_RIGHT;
-        } else if (IS_LO(YAW)) {
+        } else if (IS_LO(YAW) && !cmsOpenedInFlight) {
             key = CMS_KEY_ESC;
-        } else if (IS_HI(YAW)) {
+        } else if (IS_HI(YAW) && !cmsOpenedInFlight) {
             key = CMS_KEY_SAVEMENU;
         }
 
@@ -1276,6 +1413,7 @@ static uint16_t cmsScanKeys(timeMs_t currentTimeMs, timeMs_t lastCalledMs, int16
         } else {
             // The 'key' is being pressed; keep counting
             ++holdCount;
+            cmsLastInputMs = currentTimeMs;
         }
 
         if (rcDelayMs > 0) {
@@ -1330,7 +1468,55 @@ static uint16_t cmsScanKeys(timeMs_t currentTimeMs, timeMs_t lastCalledMs, int16
     return rcDelayMs;
 }
 
-void cmsUpdate(uint32_t currentTimeUs)
+static bool cmsIsNavModeActive(void)
+{
+    return FLIGHT_MODE(NAV_POSHOLD_MODE) ||
+           FLIGHT_MODE(NAV_RTH_MODE) ||
+           FLIGHT_MODE(NAV_WP_MODE) ||
+           FLIGHT_MODE(NAV_ALTHOLD_MODE);
+}
+
+static bool cmsDetectPanicStickMovement(timeMs_t currentTimeMs)
+{
+    // Detect panicking pilot by checking for simultaneous multi-axis stick deflection.
+    //
+    // Normal CMS menu navigation is strictly single-axis:
+    //   - Pitch only for scrolling items (Roll stays near center, max ~65 PWM crosstalk)
+    //   - Roll only for changing values (Pitch stays near center)
+    //   - Spring bounce after release is single-axis only
+    //
+    // A panicking pilot grabs the stick and moves it erratically, which always
+    // deflects both Roll AND Pitch simultaneously with significant force.
+    //
+    // Trigger: both Roll and Pitch deflected >100 PWM from center for 3 consecutive
+    // samples at 50ms intervals (150ms sustained). This gives zero false positives
+    // on real navigation data while catching all panic patterns within ~200ms.
+
+    // Sample at ~20 Hz
+    if (currentTimeMs - cmsPanicLastCheckMs < 50) {
+        return false;
+    }
+    cmsPanicLastCheckMs = currentTimeMs;
+
+    const int16_t rollDev  = ABS((int16_t)rxGetChannelValue(ROLL)  - 1500);
+    const int16_t pitchDev = ABS((int16_t)rxGetChannelValue(PITCH) - 1500);
+
+    #define PANIC_DUAL_AXIS_THRESHOLD 100  // PWM deviation from center
+
+    if (rollDev > PANIC_DUAL_AXIS_THRESHOLD && pitchDev > PANIC_DUAL_AXIS_THRESHOLD) {
+        cmsPanicDualAxisCount++;
+        if (cmsPanicDualAxisCount >= 3) {
+            cmsPanicDualAxisCount = 0;
+            return true;
+        }
+    } else {
+        cmsPanicDualAxisCount = 0;
+    }
+
+    return false;
+}
+
+void cmsUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_RCDEVICE
     if(rcdeviceInMenu) {
@@ -1345,19 +1531,61 @@ void cmsUpdate(uint32_t currentTimeUs)
 
     const timeMs_t currentTimeMs = currentTimeUs / 1000;
 
+    if (!IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU)) {
+        cmsMenuSwitchLatched = false;
+        cmsOpenCountdownStartTime = 0;
+    }
+
     if (!cmsInMenu) {
         // Detect menu invocation
         if (IS_MID(THROTTLE) && IS_LO(YAW) && IS_HI(PITCH) && !ARMING_FLAG(ARMED)) {
             cmsMenuOpen();
             rcDelayMs = BUTTON_PAUSE;    // Tends to overshoot if BUTTON_TIME
         }
+        // In-flight menu via BOXINFLIGHTMENU mode - requires armed state, a NAV mode,
+        // and no active failsafe. Without a NAV mode the stick override would
+        // leave the aircraft with zeroed control inputs.
+        else if (IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU) && ARMING_FLAG(ARMED)
+                 && cmsIsNavModeActive() && !FLIGHT_MODE(FAILSAFE_MODE)) {
+            
+            if (!cmsMenuSwitchLatched) {
+                if (cmsOpenCountdownStartTime == 0) {
+                    cmsOpenCountdownStartTime = millis();
+                } else if (millis() - cmsOpenCountdownStartTime >= 3000) {
+                    cmsMenuOpen();
+                    cmsOpenCountdownStartTime = 0;
+                    rcDelayMs = BUTTON_PAUSE;
+                }
+            }
+        } else {
+            cmsOpenCountdownStartTime = 0;
+        }
     } else {
+        // Close menu immediately if opened in-flight and any safety condition is lost:
+        //  - BOXINFLIGHTMENU switch deactivated (user wants to exit)
+        //  - Aircraft disarmed
+        //  - Failsafe activated (pilot must regain situational awareness)
+        //  - NAV mode lost (stick override would leave aircraft without stabilization)
+        //  - Panic / rapid / multi-axis stick movement detected (immediate evasive override)
+        if (cmsOpenedInFlight && (!IS_RC_MODE_ACTIVE(BOXINFLIGHTMENU) || !ARMING_FLAG(ARMED)
+                                  || FLIGHT_MODE(FAILSAFE_MODE) || !cmsIsNavModeActive()
+                                  || cmsDetectPanicStickMovement(currentTimeMs))) {
+            cmsMenuExit(pCurrentDisplay, (void *)CMS_EXIT);
+            return;
+        }
+
+        if (cmsOpenedInFlight && (currentTimeMs - cmsLastInputMs >= 15000)) {
+            cmsMenuExit(pCurrentDisplay, (void *)CMS_EXIT);
+            return;
+        }
+
         displayBeginTransaction(pCurrentDisplay, DISPLAY_TRANSACTION_OPT_RESET_DRAWING);
 
         // Check if we're yielding and its's time to stop it
         if (cmsYieldUntil > 0 && currentTimeMs > cmsYieldUntil) {
             cmsYieldUntil = 0;
             displayGrab(pCurrentDisplay);
+            cmsDisplayGrabbed = true;
             displayClearScreen(pCurrentDisplay);
         }
 
@@ -1369,6 +1597,27 @@ void cmsUpdate(uint32_t currentTimeUs)
             // Check again, the keypress might have produced a yield
             if (cmsYieldUntil == 0) {
                 cmsDrawMenu(pCurrentDisplay, currentTimeUs);
+
+                static bool wasDrawingCountdown = false;
+                if (cmsOpenedInFlight) {
+                    uint32_t elapsed = currentTimeMs - cmsLastInputMs;
+                    if (elapsed >= 5000) {
+                        uint32_t remaining = 15000 - elapsed;
+                        unsigned sec = remaining / 1000;
+                        char buf[22];
+                        tfp_sprintf(buf, " CLOSING IN %u  ", sec);
+                        int col = (pCurrentDisplay->cols - strlen(buf)) / 2;
+                        if (col < 0) col = 0;
+                        displayWrite(pCurrentDisplay, col, pCurrentDisplay->rows - 1, buf);
+                        wasDrawingCountdown = true;
+                    } else if (wasDrawingCountdown) {
+                        // Clear the bottom row
+                        char buf[32] = "                               ";
+                        buf[pCurrentDisplay->cols > 0 && pCurrentDisplay->cols < 32 ? pCurrentDisplay->cols : 30] = '\0';
+                        displayWrite(pCurrentDisplay, 0, pCurrentDisplay->rows - 1, buf);
+                        wasDrawingCountdown = false;
+                    }
+                }
             }
         }
 

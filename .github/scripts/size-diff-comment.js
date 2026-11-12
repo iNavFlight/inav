@@ -11,9 +11,12 @@
 // memory region (e.g. RAM/CCM on F4/F7 parts, RAM/DTCM on H7) — "ram" alone
 // is the sum of those regions and stays purely additive/informational once
 // a regional breakdown exists. A region delta is only rendered when BOTH
-// the PR and baseline entries carry "regions" for that target; if either
-// side predates the field (e.g. an old stored baseline), the row falls
-// back to the combined "ram" figure instead of a partial breakdown.
+// the PR and baseline entries carry "regions" for that target AND both
+// sides name the exact same set of regions; if either side predates the
+// field (e.g. an old stored baseline) or the region set differs (schema
+// drift, or a target's regions being renamed/restructured), the row falls
+// back to the combined "ram" figure instead of a partial or misleading
+// per-region breakdown.
 
 'use strict';
 
@@ -55,18 +58,33 @@ function diffSizeReports(prReport, baselineReport) {
         const flashDelta = pr.flash - base.flash;
         const ramDelta = pr.ram - base.ram;
 
-        // Only trust a per-region breakdown when both sides have one - a
-        // region missing from just one side (schema drift, or a region a
-        // target gained/lost) would otherwise render a misleading partial
-        // delta for that region.
+        // Only trust a per-region breakdown when both sides have the exact
+        // same set of region names - a target whose regions were renamed or
+        // restructured between the two commits (e.g. a linker script split
+        // one region into two) would otherwise show the old name's entire
+        // usage as a "loss" and the new name's as a "gain", a purely
+        // cosmetic swap with zero actual growth reported as a large,
+        // notable delta in both directions.
         let regionDeltas;
+        let regionSetChanged = false;
         if (pr.regions && base.regions) {
-            const names = Array.from(new Set([...Object.keys(pr.regions), ...Object.keys(base.regions)])).sort();
-            regionDeltas = names.map((name) => {
-                const prBytes = pr.regions[name] || 0;
-                const baseBytes = base.regions[name] || 0;
-                return { name, delta: prBytes - baseBytes, baseBytes };
-            });
+            const prNames = Object.keys(pr.regions).sort();
+            const baseNames = Object.keys(base.regions).sort();
+            const sameRegions = prNames.length === baseNames.length
+                && prNames.every((name, i) => name === baseNames[i]);
+            if (sameRegions) {
+                regionDeltas = prNames.map((name) => {
+                    const prBytes = pr.regions[name];
+                    const baseBytes = base.regions[name];
+                    return { name, delta: prBytes - baseBytes, baseBytes };
+                });
+            } else {
+                // Falling back to the combined RAM delta is correct (no
+                // spurious per-region numbers), but silently doing so would
+                // hide that the target's linker layout itself changed shape
+                // - worth a reviewer's attention even at zero net growth.
+                regionSetChanged = true;
+            }
         }
 
         const notable = regionDeltas
@@ -83,6 +101,7 @@ function diffSizeReports(prReport, baselineReport) {
             flashDelta,
             ramDelta,
             regionDeltas,
+            regionSetChanged,
             notable,
         };
     });
@@ -93,7 +112,12 @@ function diffSizeReports(prReport, baselineReport) {
 //   against, or null/undefined to fall back to the generic "base branch"
 //   wording. baselineIsNearest: true when the exact base commit had no
 //   stored baseline and a nearest-ancestor baseline was used instead.
-function renderComment({ prReport, baselineReport, shortSha, baselineCommit, baselineIsNearest, docLink, marker }) {
+// builtCommit: short SHA of the base commit the build contains, when the
+//   build recorded it; with a nearest baseline the note then says the delta
+//   also covers what was merged between the two.
+function renderComment({
+    prReport, baselineReport, shortSha, baselineCommit, baselineIsNearest, builtCommit, docLink, marker
+}) {
     const rows = diffSizeReports(prReport, baselineReport);
     // Only name the baseline commit when there is actually a baseline to
     // compare against (the workflow only sets baselineCommit in that case,
@@ -106,8 +130,15 @@ function renderComment({ prReport, baselineReport, shortSha, baselineCommit, bas
         lines.push(
             '> No size baseline is available yet for this PR\'s base commit ' +
             '(no per-commit baseline has been published for it). This comment ' +
-            'will show deltas once one exists — rebasing the PR refreshes its ' +
-            'base commit.',
+            'will show deltas once one exists: re-run CI Size Report after the ' +
+            'base branch\'s own build has published it.',
+            ''
+        );
+    } else if (baselineIsNearest && builtCommit) {
+        lines.push(
+            `> Using the nearest available size baseline: this build contains base commit \`${builtCommit}\`, ` +
+            'which has no stored baseline yet, so the deltas also include what was merged to the base since ' +
+            `\`${baselineCommit}\`.`,
             ''
         );
     } else if (baselineIsNearest) {
@@ -126,7 +157,8 @@ function renderComment({ prReport, baselineReport, shortSha, baselineCommit, bas
                 const flashCell = formatDelta(row.flashDelta, row.baseFlash);
                 const ramCell = row.regionDeltas
                     ? row.regionDeltas.map((r) => `${r.name}: ${formatDelta(r.delta, r.baseBytes)}`).join('<br>')
-                    : formatDelta(row.ramDelta, row.baseRam);
+                    : formatDelta(row.ramDelta, row.baseRam)
+                        + (row.regionSetChanged ? '<br><sub>region layout changed since baseline</sub>' : '');
                 const notableMark = row.notable ? ' ⚠️' : '';
                 lines.push(`| ${row.target}${notableMark} | ${flashCell} | ${ramCell} |`);
             } else if (row.status === 'no-baseline') {

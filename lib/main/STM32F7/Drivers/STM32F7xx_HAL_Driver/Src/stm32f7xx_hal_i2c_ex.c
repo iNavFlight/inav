@@ -2,13 +2,23 @@
   ******************************************************************************
   * @file    stm32f7xx_hal_i2c_ex.c
   * @author  MCD Application Team
-  * @version V1.2.2
-  * @date    14-April-2017
   * @brief   I2C Extended HAL module driver.
-  *          This file provides firmware functions to manage the following 
+  *          This file provides firmware functions to manage the following
   *          functionalities of I2C Extended peripheral:
-  *           + Extended features functions
+  *           + Filter Mode Functions
+  *           + FastModePlus Functions
   *
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
   @verbatim
   ==============================================================================
                ##### I2C peripheral Extended features  #####
@@ -30,34 +40,6 @@
           (++) HAL_I2CEx_EnableFastModePlus()
           (++) HAL_I2CEx_DisableFastModePlus()
   @endverbatim
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
-  *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  *
-  ******************************************************************************
   */
 
 /* Includes ------------------------------------------------------------------*/
@@ -85,16 +67,15 @@
   * @{
   */
 
-/** @defgroup I2CEx_Exported_Functions_Group1 Extended features functions
-  * @brief    Extended features functions
- *
+/** @defgroup I2CEx_Exported_Functions_Group1 Filter Mode Functions
+  * @brief    Filter Mode Functions
+  *
 @verbatim
  ===============================================================================
-                      ##### Extended features functions #####
+                      ##### Filter Mode Functions #####
  ===============================================================================
     [..] This section provides functions allowing to:
-      (+) Configure Noise Filters 
-      (+) Configure Fast Mode Plus
+      (+) Configure Noise Filters
 
 @endverbatim
   * @{
@@ -113,7 +94,7 @@ HAL_StatusTypeDef HAL_I2CEx_ConfigAnalogFilter(I2C_HandleTypeDef *hi2c, uint32_t
   assert_param(IS_I2C_ALL_INSTANCE(hi2c->Instance));
   assert_param(IS_I2C_ANALOG_FILTER(AnalogFilter));
 
-  if(hi2c->State == HAL_I2C_STATE_READY)
+  if (hi2c->State == HAL_I2C_STATE_READY)
   {
     /* Process Locked */
     __HAL_LOCK(hi2c);
@@ -153,13 +134,13 @@ HAL_StatusTypeDef HAL_I2CEx_ConfigAnalogFilter(I2C_HandleTypeDef *hi2c, uint32_t
   */
 HAL_StatusTypeDef HAL_I2CEx_ConfigDigitalFilter(I2C_HandleTypeDef *hi2c, uint32_t DigitalFilter)
 {
-  uint32_t tmpreg = 0U;
+  uint32_t tmpreg;
 
   /* Check the parameters */
   assert_param(IS_I2C_ALL_INSTANCE(hi2c->Instance));
   assert_param(IS_I2C_DIGITAL_FILTER(DigitalFilter));
 
-  if(hi2c->State == HAL_I2C_STATE_READY)
+  if (hi2c->State == HAL_I2C_STATE_READY)
   {
     /* Process Locked */
     __HAL_LOCK(hi2c);
@@ -195,8 +176,25 @@ HAL_StatusTypeDef HAL_I2CEx_ConfigDigitalFilter(I2C_HandleTypeDef *hi2c, uint32_
     return HAL_BUSY;
   }
 }
+/**
+  * @}
+  */
+#if  (defined(SYSCFG_PMC_I2C_PB6_FMP) || defined(SYSCFG_PMC_I2C_PB7_FMP)) || (defined(SYSCFG_PMC_I2C_PB8_FMP) || defined(SYSCFG_PMC_I2C_PB9_FMP)) || (defined(SYSCFG_PMC_I2C1_FMP)) || (defined(SYSCFG_PMC_I2C2_FMP)) || defined(SYSCFG_PMC_I2C3_FMP) || defined(SYSCFG_PMC_I2C4_FMP)
 
-#if defined(SYSCFG_PMC_I2C1_FMP)
+/** @defgroup I2CEx_Exported_Functions_Group3 Fast Mode Plus Functions
+  * @brief    Fast Mode Plus Functions
+  *
+@verbatim
+ ===============================================================================
+                      ##### Fast Mode Plus Functions #####
+ ===============================================================================
+    [..] This section provides functions allowing to:
+      (+) Configure Fast Mode Plus
+
+@endverbatim
+  * @{
+  */
+
 /**
   * @brief Enable the I2C fast mode plus driving capability.
   * @param ConfigFastModePlus Selects the pin.
@@ -254,11 +252,10 @@ void HAL_I2CEx_DisableFastModePlus(uint32_t ConfigFastModePlus)
   /* Disable fast mode plus driving capability for selected pin */
   CLEAR_BIT(SYSCFG->PMC, (uint32_t)ConfigFastModePlus);
 }
-#endif /* SYSCFG_PMC_I2C1_FMP */
 /**
   * @}
   */
-
+#endif /* Fast Mode Plus Availability */
 /**
   * @}
   */
@@ -271,5 +268,3 @@ void HAL_I2CEx_DisableFastModePlus(uint32_t ConfigFastModePlus)
 /**
   * @}
   */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

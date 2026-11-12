@@ -27,7 +27,7 @@
 timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3, CH3,  PC8,  TIM_USE_MOTOR, 0, 0), // M1
     DEF_TIM(TIM3, CH4,  PC9,  TIM_USE_MOTOR, 0, 0), // M2
-    DEF_TIM(TIM1, CH2N, PB0,  TIM_USE_MOTOR, 0, 0), // M3
+    DEF_TIM(TIM1, CH2N, PB0,  TIM_USE_MOTOR, 0, 1), // M3
 
     DEF_TIM(TIM8, CH2,  PC7,  TIM_USE_SERVO, 0, 0), // Servo left
     DEF_TIM(TIM8, CH1,  PC6,  TIM_USE_SERVO, 0, 0), // Servo right

@@ -18,6 +18,8 @@
 #pragma once
 
 #include "drivers/io_types.h"
+#include "drivers/timer.h"
+#include "drivers/pwm_output.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
 #include "flight/servos.h"
@@ -45,6 +47,10 @@ typedef enum {
     PWM_TYPE_DSHOT150,
     PWM_TYPE_DSHOT300,
     PWM_TYPE_DSHOT600,
+    /* Appended, not inserted: the value is stored in configuration. Unlike
+     * everything above it this is a UART protocol rather than a timer waveform,
+     * so the ESC signal goes to a serial pin and not to a motor pad. */
+    PWM_TYPE_SRXL2,
 } motorPwmProtocolTypes_e;
 
 typedef enum {
@@ -55,7 +61,8 @@ typedef enum {
 
 typedef enum {
     PIN_LABEL_NONE = 0,
-    PIN_LABEL_LED
+    PIN_LABEL_LED,
+    PIN_LABEL_PINIO_BASE = 2    // values 2..5 = USER1..USER4 (add channel index 0-3)
 } pinLabel_e;
 
 typedef enum {
@@ -77,7 +84,24 @@ typedef struct {
     bool isDSHOT;
 } motorProtocolProperties_t;
 
+#ifndef SITL_BUILD
+typedef struct {
+    int maxTimMotorCount;
+    int maxTimServoCount;
+    const timerHardware_t * timMotors[MAX_PWM_OUTPUTS];
+    const timerHardware_t * timServos[MAX_PWM_OUTPUTS];
+} timMotorServoHardware_t;
+
+// MSP2_INAV_OUTPUT_ASSIGNMENT type byte: bit index of the TIM_USE_* flag.
+// Matches the JavaScript TIM_USE_* constants in outputMapping.js (which are bit indices).
+// Use __builtin_ctz(TIM_USE_x) to derive these from the bit-mask definitions in timer.h.
+#endif // SITL_BUILD
+
 bool pwmMotorAndServoInit(void);
 const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTypes_e proto);
 pwmInitError_e getPwmInitError(void);
 const char * getPwmInitErrorMessage(void);
+#ifndef SITL_BUILD
+const timMotorServoHardware_t *pwmGetOutputAssignment(void);
+void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes);
+#endif // SITL_BUILD

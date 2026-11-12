@@ -57,6 +57,10 @@
 navigationPosEstimator_t posEstimator;
 static float initialBaroAltitudeOffset = 0.0f;
 
+static pt1Filter_t estVelFilterState_X;
+static pt1Filter_t estVelFilterState_Y;
+static pt1Filter_t estVelFilterState_Z;
+
 PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 8);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
@@ -367,7 +371,7 @@ static bool gravityCalibrationComplete(void)
 
 #define ACC_VIB_FACTOR_S 1.0f
 #define ACC_VIB_FACTOR_E 3.0f
-static void updateIMUEstimationWeight(const float dt)
+static RP2350_FAST_CODE void updateIMUEstimationWeight(const float dt)
 {
     static float acc_clip_factor = 1.0f;
     // If accelerometer measurement is clipped - drop the acc weight to 0.5
@@ -386,7 +390,7 @@ static void updateIMUEstimationWeight(const float dt)
     DEBUG_SET(DEBUG_VIBE, 4, posEstimator.imu.accWeightFactor * 1000);
 }
 
-static void updateIMUTopic(timeUs_t currentTimeUs)
+static RP2350_FAST_CODE void updateIMUTopic(timeUs_t currentTimeUs)
 {
     const float dt = US2S(currentTimeUs - posEstimator.imu.lastUpdateTime);
     posEstimator.imu.lastUpdateTime = currentTimeUs;
@@ -735,24 +739,11 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
     return false;
 }
 
-static void estimationCalculateGroundCourse(timeUs_t currentTimeUs)
-{
-    UNUSED(currentTimeUs);
-    if ((STATE(GPS_FIX)
-#ifdef USE_GPS_FIX_ESTIMATION
-            || STATE(GPS_ESTIMATED_FIX)
-#endif
-    ) && navIsHeadingUsable()) {
-        uint32_t groundCourse = wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(posEstimator.est.vel.y, posEstimator.est.vel.x)));
-        posEstimator.est.cog = CENTIDEGREES_TO_DECIDEGREES(groundCourse);
-    }
-}
-
 /**
  * Calculate next estimate using IMU and apply corrections from reference sensors (GPS, BARO etc)
  *  Function is called at main loop rate
  */
-static void updateEstimatedTopic(timeUs_t currentTimeUs)
+static RP2350_FAST_CODE void updateEstimatedTopic(timeUs_t currentTimeUs)
 {
     estimationContext_t ctx;
     static timeMs_t lastXYSensorUpdateMs = 0;
@@ -858,9 +849,6 @@ static void updateEstimatedTopic(timeUs_t currentTimeUs)
         }
     }
 
-    /* Update ground course */
-    estimationCalculateGroundCourse(currentTimeUs);
-
     /* Update uncertainty */
     posEstimator.est.eph = constrainf(ctx.newEPH, 0.0f, 2.0f * max_eph_epv);
     posEstimator.est.epv = constrainf(ctx.newEPV, 0.0f, 2.0f * max_eph_epv);
@@ -879,20 +867,18 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
 
     /* Position and velocity are published with INAV_POSITION_PUBLISH_RATE_HZ */
     if (updateTimer(&posPublishTimer, HZ2US(INAV_POSITION_PUBLISH_RATE_HZ), currentTimeUs)) {
-        /* Publish heading update */
-        /* IMU operates in decidegrees while INAV operates in deg*100
-        * Use course over ground when GPS heading valid */
-        int16_t cogValue = isGPSHeadingValid() ? posEstimator.est.cog : attitude.values.yaw;
-        updateActualHeading(navIsHeadingUsable(), DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw), DECIDEGREES_TO_CENTIDEGREES(cogValue));
-
         /* Publish position update */
+        bool isCogValid = false;
         if (posEstimator.est.eph < positionEstimationConfig()->max_eph_epv) {
-            static pt1Filter_t estVelFilterState_X;
-            static pt1Filter_t estVelFilterState_Y;
-            float filteredVelX = pt1FilterApply4(&estVelFilterState_X, posEstimator.est.vel.x, INAV_EST_VEL_F_CUT_HZ, HZ2S(INAV_POSITION_PUBLISH_RATE_HZ));
-            float filteredVelY = pt1FilterApply4(&estVelFilterState_Y, posEstimator.est.vel.y, INAV_EST_VEL_F_CUT_HZ, HZ2S(INAV_POSITION_PUBLISH_RATE_HZ));
+            float filteredVelX = pt1FilterApply3(&estVelFilterState_X, posEstimator.est.vel.x, HZ2S(INAV_POSITION_PUBLISH_RATE_HZ));
+            float filteredVelY = pt1FilterApply3(&estVelFilterState_Y, posEstimator.est.vel.y, HZ2S(INAV_POSITION_PUBLISH_RATE_HZ));
 
-            // FIXME!!!!!
+            // /* Update ground course from x, y velocities */
+            if (isGPSHeadingValid()) {
+                posEstimator.est.cog = CENTIDEGREES_TO_DECIDEGREES(wrap_36000(RADIANS_TO_CENTIDEGREES(atan2_approx(filteredVelY, filteredVelX))));
+                isCogValid = true;
+            }
+
             updateActualHorizontalPositionAndVelocity(true, true, posEstimator.est.pos.x, posEstimator.est.pos.y, filteredVelX, filteredVelY);
         }
         else {
@@ -901,8 +887,7 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
 
         /* Publish altitude update and set altitude validity */
         if (posEstimator.est.epv < positionEstimationConfig()->max_eph_epv) {
-            static pt1Filter_t estVelFilterState_Z;
-            float filteredVelZ = pt1FilterApply4(&estVelFilterState_Z, posEstimator.est.vel.z, INAV_EST_VEL_F_CUT_HZ, HZ2S(INAV_POSITION_PUBLISH_RATE_HZ));
+            float filteredVelZ = pt1FilterApply3(&estVelFilterState_Z, posEstimator.est.vel.z, HZ2S(INAV_POSITION_PUBLISH_RATE_HZ));
 
             const float gpsCfEstimatedAltitudeError = STATE(GPS_FIX) ? posEstimator.gps.pos.z - posEstimator.est.pos.z : 0;
             navigationEstimateStatus_e aglStatus = (posEstimator.est.aglQual == SURFACE_QUAL_LOW) ? EST_USABLE : EST_TRUSTED;
@@ -911,6 +896,12 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
         else {
             updateActualAltitudeAndClimbRate(false, posEstimator.est.pos.z, 0, posEstimator.est.aglAlt, 0, EST_NONE, 0);
         }
+
+        /* Publish heading update */
+        /* IMU operates in decidegrees while INAV operates in deg*100
+         * Use course over ground when GPS heading valid */
+        int16_t cogValue = isCogValid ? posEstimator.est.cog : attitude.values.yaw;
+        updateActualHeading(navIsHeadingUsable(), DECIDEGREES_TO_CENTIDEGREES(attitude.values.yaw), DECIDEGREES_TO_CENTIDEGREES(cogValue));
 
         //Update Blackbox states
         navEPH = posEstimator.est.eph;
@@ -973,15 +964,20 @@ void initializePositionEstimator(void)
         posEstimator.est.vel.v[axis] = 0;
     }
 
-    pt1FilterInit(&posEstimator.baro.avgFilter, INAV_BARO_AVERAGE_HZ, 0.0f);
-    pt1FilterInit(&posEstimator.surface.avgFilter, INAV_SURFACE_AVERAGE_HZ, 0.0f);
+    // Filters
+    pt1FilterSetCutoff(&posEstimator.baro.avgFilter, INAV_BARO_AVERAGE_HZ);
+    pt1FilterSetCutoff(&posEstimator.surface.avgFilter, INAV_SURFACE_AVERAGE_HZ);
+
+    pt1FilterSetCutoff(&estVelFilterState_X, INAV_EST_VEL_F_CUT_HZ);
+    pt1FilterSetCutoff(&estVelFilterState_Y, INAV_EST_VEL_F_CUT_HZ);
+    pt1FilterSetCutoff(&estVelFilterState_Z, INAV_EST_VEL_F_CUT_HZ);
 }
 
 /**
  * Update estimator
  *  Update rate: loop rate (>100Hz)
  */
-void updatePositionEstimator(void)
+RP2350_FAST_CODE void updatePositionEstimator(void)
 {
     static bool isInitialized = false;
 

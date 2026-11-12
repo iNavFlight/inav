@@ -86,6 +86,7 @@ typedef enum {
     DEVHW_BMI270,
     DEVHW_LSM6D,
     DEVHW_ICM45686,
+    DEVHW_ICM40609D,
     /* Combined ACC/GYRO/MAG chips */
     DEVHW_MPU9250,
 
@@ -97,7 +98,8 @@ typedef enum {
     DEVHW_LPS25H,
     DEVHW_SPL06,
     DEVHW_BMP388,
-    DEVHW_DPS310,
+    DEVHW_DPS310_0,
+    DEVHW_DPS310_1,
     DEVHW_B2SMPB,
 
     /* Compass chips */
@@ -114,6 +116,7 @@ typedef enum {
     DEVHW_RM3100,
     DEVHW_VCM5883,
     DEVHW_MLX90393,
+    DEVHW_LIS2MDL,
 
     /* Temp sensor chips */
     DEVHW_LM75_0,
@@ -149,6 +152,7 @@ typedef enum {
     DEVHW_SDCARD,       // Generic SD-Card
     DEVHW_IRLOCK,       // IR-Lock visual positioning hardware
     DEVHW_PCF8574,      // 8-bit I/O expander
+    DEVHW_INA226,       // I2C current and voltage monitor
 } devHardwareType_e;
 
 typedef enum {

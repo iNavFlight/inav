@@ -24,6 +24,7 @@ sbuf_t *sbufInit(sbuf_t *sbuf, uint8_t *ptr, uint8_t *end)
 {
     sbuf->ptr = ptr;
     sbuf->end = end;
+    sbuf->overrun = false;
     return sbuf;
 }
 
@@ -93,17 +94,27 @@ void sbufWriteStringWithZeroTerminator(sbuf_t *dst, const char *string)
     sbufWriteData(dst, string, strlen(string) + 1);
 }
 
-uint8_t sbufReadU8(sbuf_t *src)
+// Use the raw attribute rather than NOINLINE because NOINLINE expands to
+// nothing on non-F7/H7 targets (common.h:29), but LTO is enabled for all
+// release targets and these read primitives are inlined into hundreds of
+// call sites (e.g. mspFcProcessInCommand), duplicating the overrun check
+// at each site and costing ~9 KB of flash on -O2 targets. Keeping them
+// out-of-line confines the check to one copy.
+__attribute__((noinline)) uint8_t sbufReadU8(sbuf_t *src)
 {
+    if (src->ptr >= src->end) {
+        src->overrun = true;
+        return 0;
+    }
     return *src->ptr++;
 }
 
 int8_t sbufReadI8(sbuf_t *src)
 {
-    return *src->ptr++;
+    return (int8_t)sbufReadU8(src);
 }
 
-uint16_t sbufReadU16(sbuf_t *src)
+__attribute__((noinline)) uint16_t sbufReadU16(sbuf_t *src)
 {
     uint16_t ret;
     ret = sbufReadU8(src);
@@ -111,7 +122,7 @@ uint16_t sbufReadU16(sbuf_t *src)
     return ret;
 }
 
-uint32_t sbufReadU32(sbuf_t *src)
+__attribute__((noinline)) uint32_t sbufReadU32(sbuf_t *src)
 {
     uint32_t ret;
     ret = sbufReadU8(src);
@@ -216,4 +227,5 @@ void sbufSwitchToReader(sbuf_t *buf, uint8_t *base)
 {
     buf->end = buf->ptr;
     buf->ptr = base;
+    buf->overrun = false;
 }

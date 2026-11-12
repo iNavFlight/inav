@@ -18,3 +18,4 @@
 #pragma once
 
 extern CMS_Menu cmsx_menuBattery;
+extern const CMS_Menu cmsx_menuBatteryInFlight;

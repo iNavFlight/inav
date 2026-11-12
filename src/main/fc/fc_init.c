@@ -117,9 +117,11 @@
 #include "io/osd.h"
 #include "io/osd_dji_hd.h"
 #include "io/rcdevice_cam.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
+#include "io/crsf_sensor.h"
 #include "io/vtx.h"
 #include "io/vtx_control.h"
 #include "io/vtx_smartaudio.h"
@@ -127,6 +129,8 @@
 #include "io/vtx_msp.h"
 #include "io/vtx_ffpv24g.h"
 #include "io/piniobox.h"
+
+#include "drivers/dronecan/dronecan.h"
 
 #include "msp/msp_serial.h"
 
@@ -150,6 +154,8 @@
 #include "scheduler/scheduler.h"
 
 #include "telemetry/telemetry.h"
+
+#include "terrain/terrain.h"
 
 #if defined(SITL_BUILD)
 #include "target/SITL/serial_proxy.h"
@@ -193,6 +199,20 @@ void flashLedsAndBeep(void)
     LED1_OFF;
 }
 
+#if defined(USE_GPS) || defined(USE_MAG)
+// A Smart ESC powered during these waits would otherwise stay deaf until its power is cycled
+static void initDelay(timeMs_t ms)
+{
+#if defined(USE_MOTOR_SRXL2) && !defined(SITL_BUILD) && !defined(BRUSHED_MOTORS)
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2MotorServiceFor(ms);
+        return;
+    }
+#endif
+    delay(ms);
+}
+#endif
+
 void init(void)
 {
 #if defined(USE_FLASHFS)
@@ -209,7 +229,7 @@ void init(void)
     // Initialize system and CPU clocks to their initial values
     systemInit();
 
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
     __enable_irq();
 #endif
 
@@ -257,7 +277,7 @@ void init(void)
     latchActiveFeatures();
 
     ledInit(false);
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
     EXTIInit();
 #endif
 
@@ -275,14 +295,36 @@ void init(void)
     }
 #endif
 
-#ifdef USE_VCP
-    // Early initialize USB hardware
-    usbVcpInitHardware();
-#endif
-
     timerInit();  // timer must be initialized before any channel is allocated
 
     serialInit(feature(FEATURE_SOFTSERIAL));
+
+#if defined(USE_MOTOR_SRXL2) && !defined(SITL_BUILD) && !defined(BRUSHED_MOTORS)
+    // Ahead of the USB wait, which outlasts the announcement of a Smart ESC powered with the board
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2MotorSetReverseChannel(motorConfig()->srxl2ReverseChannel);
+        srxl2MotorSetTelemetryRate(motorConfig()->srxl2TelemetryRate);
+        srxl2MotorAwaitLink();
+    }
+#endif
+
+#ifdef USE_VCP
+    // Early initialize USB hardware.
+#if defined(USE_USB_MSC)
+    // Skip when booting into MSC mode: mscStart() re-initializes the USB
+    // device library for mass storage, and re-initializing an already
+    // running PCD (as done since the STM32F7xx HAL v1.3.3 update, PR #11514)
+    // leaves the USB core in a broken state, breaking EP0 control transfers.
+    // Only the boot flag is checked here: mscCheckButton() cannot run until
+    // mscInit() configures the button pin (later in init), and no current
+    // target uses an MSC button.
+    if (!mscCheckBoot()) {
+        usbVcpInitHardware();
+    }
+#else
+    usbVcpInitHardware();
+#endif
+#endif
 
     // Initialize MSP serial ports here so LOG can share a port with MSP.
     // XXX: Don't call mspFcInit() yet, since it initializes the boxes and needs
@@ -298,11 +340,16 @@ void init(void)
     smartportMasterInit();
 #endif
 
+#if defined(USE_CRSF_SENSOR_INPUT)
+    crsfSensorInputInit();
+#endif
+
 #if defined(USE_LOG)
     // LOG might use serial output, so we only can init it after serial port is ready
     // From this point on we can use LOG_*() to produce real-time debugging information
     logInit();
 #endif
+
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     gvInit();
@@ -316,6 +363,19 @@ void init(void)
     if (motorConfig()->motorPwmProtocol == PWM_TYPE_BRUSHED) {
         featureClear(FEATURE_REVERSIBLE_MOTORS);
     }
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * A Spektrum Smart ESC reverses on a switch and goes on reading the throttle
+     * normally - Spektrum put it plainly: "flipping the designated switch reverses
+     * motor rotation, throttle will still control motor speed". Reversible motors
+     * means the other arrangement, where the stick centre is zero thrust, and
+     * enabling it here would hand the ESC roughly half throttle at the point the
+     * pilot expects the motor stopped. Reverse is the THRUST REVERSE mode instead.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        featureClear(FEATURE_REVERSIBLE_MOTORS);
+    }
+#endif
     if (!STATE(ALTITUDE_CONTROL)) {
         featureClear(FEATURE_AIRMODE);
     }
@@ -329,6 +389,21 @@ void init(void)
     }
 #else
     DISABLE_ARMING_FLAG(ARMING_DISABLED_PWM_OUTPUT_ERROR);
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * SITL has no motor output layer - the simulator reads the mixer's motor[]
+     * array directly, so pwmMotorPreconfigure() never runs and nothing would open
+     * the SRXL2 ports. Open them here instead: SITL maps every UART onto a TCP
+     * port, so this is what lets a simulated ESC be attached to the real driver
+     * and the handshake, telemetry and calibration paths be exercised - and the
+     * Configurator show its ESC block - without any hardware.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        srxl2MotorInitialize();
+        srxl2MotorSetReverseChannel(motorConfig()->srxl2ReverseChannel);
+        srxl2MotorSetTelemetryRate(motorConfig()->srxl2TelemetryRate);
+    }
+#endif
 #endif
     systemState |= SYSTEM_STATE_MOTORS_READY;
 
@@ -479,7 +554,7 @@ void init(void)
 #endif
 
 #if defined(USE_GPS) || defined(USE_MAG)
-    delay(500);
+    initDelay(500);
 
     /* Extra 500ms delay prior to initialising hardware if board is cold-booting */
     if (!isMPUSoftReset()) {
@@ -489,7 +564,7 @@ void init(void)
         for (int i = 0; i < 5; i++) {
             LED1_TOGGLE;
             LED0_TOGGLE;
-            delay(100);
+            initDelay(100);
         }
 
         LED0_OFF;
@@ -522,6 +597,10 @@ void init(void)
 
 #ifdef USE_EZ_TUNE
     ezTuneUpdate();
+#endif
+
+#ifdef USE_DRONECAN
+    dronecanInit();
 #endif
 
 #ifndef USE_GEOZONE
@@ -611,6 +690,23 @@ void init(void)
     }
 #endif
 
+#ifdef USE_SDCARD
+
+    bool sdcardNeeded = false;
+#ifdef USE_BLACKBOX
+    sdcardNeeded = (blackboxConfig()->device == BLACKBOX_DEVICE_SDCARD);
+#endif
+#ifdef USE_TERRAIN
+    sdcardNeeded = sdcardNeeded || terrainConfig()->terrainEnabled;
+#endif
+    if (sdcardNeeded) {
+        sdcardInsertionDetectInit();
+        sdcard_init();
+        afatfs_init();
+    }
+#endif // USE_SDCARD
+
+
 #ifdef USE_BLACKBOX
 
     //Do not allow blackbox to be run faster that 1kHz. It can cause UAV to drop dead when digital ESC protocol is used
@@ -635,19 +731,14 @@ void init(void)
             }
             break;
 #endif
-
-#ifdef USE_SDCARD
-        case BLACKBOX_DEVICE_SDCARD:
-            sdcardInsertionDetectInit();
-            sdcard_init();
-            afatfs_init();
-            break;
-#endif
         default:
             break;
     }
 
     blackboxInit();
+#endif
+#ifdef USE_TERRAIN
+    terrainInit();
 #endif
 
     gyroStartCalibration();
@@ -657,7 +748,7 @@ void init(void)
 #endif
 
 #ifdef USE_PITOT
-    pitotStartCalibration();
+    if (detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) pitotStartCalibration();
 #endif
 
 #if defined(USE_VTX_CONTROL)

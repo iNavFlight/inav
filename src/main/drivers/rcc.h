@@ -3,7 +3,7 @@
 #include "rcc_types.h"
 #include "rcc_at32f43x_periph.h"
 
-enum rcc_reg {
+typedef enum {
     RCC_EMPTY = 0,   // make sure that default value (0) does not enable anything
     RCC_AHB,        //0x20      
     RCC_APB2,       //0x40  CRM->apb2en
@@ -16,7 +16,7 @@ enum rcc_reg {
     RCC_APB3,
     RCC_AHB4,
     RCC_APB4
-};
+} rcc_reg;
  
 #define RCC_ENCODE(reg, mask) (((reg) << 5) | LOG2_32BIT(mask))
 

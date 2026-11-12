@@ -79,6 +79,8 @@ endfunction()
 
 set(at32f43x_xMT7_COMPILE_DEFINITIONS
     AT32F437VMT7
+    # chip has 384K, but at32_flash_f43xM.ld only maps 64K (RAM1) + 128K (RAM)
+    MCU_RAM_SIZE=192
     MCU_FLASH_SIZE=4032
 )
 
@@ -97,6 +99,8 @@ endfunction()
 
 set(at32f43x_xGT7_COMPILE_DEFINITIONS
     AT32F435RGT7
+    # chip has 384K, but at32_flash_f43xG.ld only maps 64K (RAM1) + 128K (RAM)
+    MCU_RAM_SIZE=192
     MCU_FLASH_SIZE=1024
 )
 

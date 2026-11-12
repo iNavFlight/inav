@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -58,6 +59,8 @@ bool cliMode = false;
 #include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
+#include "drivers/light_ws2811strip.h"
+#include "drivers/pinio.h"
 #include "drivers/osd_symbols.h"
 #include "drivers/persistent.h"
 #include "drivers/sdcard/sdcard.h"
@@ -68,8 +71,6 @@ bool cliMode = false;
 #include "drivers/time.h"
 #include "drivers/usb_msc.h"
 #include "drivers/vtx_common.h"
-#include "drivers/light_ws2811strip.h"
-
 #include "fc/fc_core.h"
 #include "fc/cli.h"
 #include "fc/config.h"
@@ -94,6 +95,7 @@ bool cliMode = false;
 #include "io/ledstrip.h"
 #include "io/osd.h"
 #include "io/osd/custom_elements.h"
+#include "io/motor_srxl2.h"
 #include "io/serial.h"
 
 #include "fc/fc_msp_box.h"
@@ -123,6 +125,10 @@ bool cliMode = false;
 #include "sensors/opflow.h"
 #include "sensors/sensors.h"
 #include "sensors/temperature.h"
+#ifdef USE_DRONECAN
+#include "drivers/dronecan/dronecan.h"
+#include "drivers/dronecan/libcanard/canard_stm32_driver.h"
+#endif
 #ifdef USE_ESC_SENSOR
 #include "sensors/esc_sensor.h"
 #endif
@@ -173,6 +179,8 @@ static const char * outputModeNames[] = {
     "MOTORS",
     "SERVOS",
     "LED",
+    "PINIO",
+    "BEEPER",
     NULL
 };
 
@@ -223,7 +231,14 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "GPS",
     "LULU",
     "SBUS2",
-    "ESC"
+    "OSD_REFRESH",
+    "MAG_CALIB",
+    "VTOL_TRANSITION",
+    "VTOL_MC_PROTECT",
+    "TERRAIN_NAV",
+    "ESC",
+    "FW_TURN",
+    "MAG"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
@@ -231,7 +246,7 @@ static const char *debugModeNames[DEBUG_COUNT] = {
 // sync with gyroSensor_e
 static const char *const gyroNames[] = {
     "NONE",     "AUTO",   "MPU6000",  "MPU6500", "MPU9250", "BMI160",
-    "ICM20689", "BMI088", "ICM42605", "BMI270",  "LSM6DXX", "ICM45686", "FAKE"};
+    "ICM20689", "BMI088", "ICM42605", "BMI270",  "LSM6DXX", "ICM45686", "ICM40609D", "FAKE"};
 
 // sync this with sensors_e
 static const char * const sensorTypeNames[] = {
@@ -243,6 +258,16 @@ static const char * const sensorTypeNames[] = {
 static const char * const hardwareSensorStatusNames[] = {
     "NONE", "OK", "UNAVAILABLE", "FAILING"
 };
+
+// Not a hardwareSensorStatus_e value: MSP and blackbox pack that enum into two bits
+static const char *hardwareSensorStatusName(hardwareSensorStatus_e status, bool isCalibrated)
+{
+    if (status == HW_SENSOR_OK && !isCalibrated) {
+        return "UNCALIBRATED";
+    }
+
+    return hardwareSensorStatusNames[status];
+}
 
 static const char * const *sensorHardwareNames[] = {
         gyroNames,
@@ -537,7 +562,7 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
 {
     char name[SETTING_MAX_NAME_LENGTH];
     const char *format = "set %s = ";
-    const char *defaultFormat = "#set %s = ";
+    const char *defaultFormat = "#default set %s = ";
     // During a dump, the PGs have been backed up to their "copy"
     // regions and the actual values have been reset to its
     // defaults. This means that settingGetValuePointer() will
@@ -551,10 +576,10 @@ static void dumpPgValue(const setting_t *value, uint8_t dumpMask)
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
             cliPrintf(defaultFormat, name);
             // if the craftname has a leading space, then enclose the name in quotes
-            if (strcmp(name, "name") == 0 && ((const char *)valuePointer)[0] == ' ') {
-                cliPrintf("\"%s\"", (const char *)valuePointer);
+            if (strcmp(name, "name") == 0 && ((const char *)defaultValuePointer)[0] == ' ') {
+                cliPrintf("\"%s\"", (const char *)defaultValuePointer);
             } else {
-                printValuePointer(value, valuePointer, 0);
+                printValuePointer(value, defaultValuePointer, 0);
             }
             cliPrintLinefeed();
         }
@@ -919,6 +944,12 @@ static void cliSerial(char *cmdline)
         return;
     }
 
+    const uint32_t duplicatedFunctions = serialGetDuplicatedSinglePortFunctions(&portConfig);
+    if (duplicatedFunctions) {
+        cliPrintErrorLinef("Function %d is already assigned to another port", (int)duplicatedFunctions);
+        return;
+    }
+
     memcpy(currentConfig, &portConfig, sizeof(portConfig));
 }
 
@@ -984,9 +1015,9 @@ static void cliSerialPassthrough(char *cmdline)
                 baud = fastA2I(tok);
                 break;
             case 2:
-                if (strstr(tok, "rx") || strstr(tok, "RX"))
+                if (sl_strstr(tok, "rx") || sl_strstr(tok, "RX"))
                     mode |= MODE_RX;
-                if (strstr(tok, "tx") || strstr(tok, "TX"))
+                if (sl_strstr(tok, "tx") || sl_strstr(tok, "TX"))
                     mode |= MODE_TX;
                 break;
             case 3:
@@ -2036,8 +2067,8 @@ static void cliWaypoints(char *cmdline)
 static void printLed(uint8_t dumpMask, const ledConfig_t *ledConfigs, const ledConfig_t *defaultLedConfigs)
 {
     const char *format = "led %u %s";
-    char ledConfigBuffer[20];
-    char ledConfigDefaultBuffer[20];
+    char ledConfigBuffer[LED_CONFIG_STRING_LENGTH];
+    char ledConfigDefaultBuffer[LED_CONFIG_STRING_LENGTH];
     for (uint32_t i = 0; i < LED_MAX_STRIP_LENGTH; i++) {
         ledConfig_t ledConfig = ledConfigs[i];
         generateLedConfig(&ledConfig, ledConfigBuffer, sizeof(ledConfigBuffer));
@@ -2169,20 +2200,45 @@ static void cliModeColor(char *cmdline)
     }
 }
 
-static void cliLedPinPWM(char *cmdline)
+
+#endif // USE_LED_STRIP
+
+#ifdef USE_PINIO
+// Channel numbering: 0 = LED strip idle level, 1-4 = PINIO channels (matches programming framework)
+static void cliPinioPwm(char *cmdline)
 {
-    int i;
+    int channel = 0;
+    int duty;
 
     if (isEmpty(cmdline)) {
-        ledPinStopPWM();
-        cliPrintLine("PWM stopped");
-    } else {
-        i = fastA2I(cmdline);
-        ledPinStartPWM(i);
-        cliPrintLinef("PWM started: %d%%",i);
+        pinioSetDuty(1, 0);
+        cliPrintLine("PWM stopped on PINIO 1");
+        return;
     }
+
+    const char *dutyStr = nextArg(cmdline);
+    if (dutyStr) {
+        channel = fastA2I(cmdline);
+        duty = fastA2I(dutyStr);
+    } else {
+        // One arg: duty on channel 0 (LED idle, backward compat with old LED_PIN_PWM)
+        duty = fastA2I(cmdline);
+    }
+
+    const int maxChannel = MAX(pinioGetRuntimeCount(), PINIO_COUNT);
+    if (channel < 0 || channel > maxChannel) {
+        cliShowArgumentRangeError("channel", 0, maxChannel);
+        return;
+    }
+    if (duty < 0 || duty > 100) {
+        cliShowArgumentRangeError("duty", 0, 100);
+        return;
+    }
+
+    pinioSetDuty(channel, (uint8_t)duty);
+    cliPrintLinef("PWM ch %d: %d%%", channel, duty);
 }
-#endif
+#endif // USE_PINIO
 
 static void cliDelay(char* cmdLine) {
     int ms = 0;
@@ -3194,6 +3250,10 @@ static void cliTimerOutputMode(char *cmdline)
                     mode = OUTPUT_MODE_SERVOS;
                 } else if(!sl_strcasecmp("LED", tok)) {
                     mode = OUTPUT_MODE_LED;
+                } else if(!sl_strcasecmp("PINIO", tok)) {
+                    mode = OUTPUT_MODE_PINIO;
+                } else if(!sl_strcasecmp("BEEPER", tok)) {
+                    mode = OUTPUT_MODE_BEEPER;
                 } else {
                     cliShowParseError();
                     return;
@@ -3970,7 +4030,7 @@ static void cliSet(char *cmdline)
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
             cliPrintLinefeed();
         }
-    } else if ((eqptr = strstr(cmdline, "=")) != NULL) {
+    } else if ((eqptr = strchr(cmdline, '=')) != NULL) {
         // has equals
 
         char *lastNonSpaceCharacter = eqptr;
@@ -4117,7 +4177,7 @@ static void cliStatus(char *cmdline)
         }
     }
     cliPrintLinefeed();
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
 #if defined(AT32F43x)
     cliPrintLine("AT32 system clocks:");
     crm_clocks_freq_type clocks;
@@ -4147,8 +4207,8 @@ static void cliStatus(char *cmdline)
 
     cliPrintLinef("Sensor status: GYRO=%s, ACC=%s, MAG=%s, BARO=%s, RANGEFINDER=%s, OPFLOW=%s, PITOT=%s, GPS=%s",
         hardwareSensorStatusNames[getHwGyroStatus()],
-        hardwareSensorStatusNames[getHwAccelerometerStatus()],
-        hardwareSensorStatusNames[getHwCompassStatus()],
+        hardwareSensorStatusName(getHwAccelerometerStatus(), STATE(ACCELEROMETER_CALIBRATED)),
+        hardwareSensorStatusName(getHwCompassStatus(), STATE(COMPASS_CALIBRATED)),
         hardwareSensorStatusNames[getHwBarometerStatus()],
         hardwareSensorStatusNames[getHwRangefinderStatus()],
         hardwareSensorStatusNames[getHwOpticalFlowStatus()],
@@ -4166,6 +4226,17 @@ static void cliStatus(char *cmdline)
         }
         cliPrintLinefeed();
     }
+#endif
+
+#ifdef USE_DRONECAN
+    static const char * const dronecanStateNames[] = {"INIT", "NORMAL", "BUS_OFF", "FAILED"};
+    STATIC_ASSERT(ARRAYLEN(dronecanStateNames) == STATE_DRONECAN_COUNT, dronecanStateNames_size_mismatch);
+    cliPrintLinef("DroneCAN: nodeID=%d, bitrate=%u kbps, status=%s, nodes=%d",                                                                                                                                                  
+        dronecanConfig()->nodeID,                                                                                                                                                                                                     
+        (unsigned)dronecanGetBitrateKbps(),                                                                                                                                                                                                     
+        dronecanStateNames[MIN((int)dronecanGetState(), (int)STATE_DRONECAN_COUNT - 1)],                                                                                                                                                                                       
+        dronecanGetNodeCount()                                                         
+    );
 #endif
 
 #ifdef USE_SDCARD
@@ -4255,6 +4326,11 @@ static void cliStatus(char *cmdline)
     }
 #endif
 
+#if defined(USE_GEOZONE)
+    if ((armingFlags & ARMING_DISABLED_GEOZONE) && geozoneIsConfigInvalid()) {
+        cliPrintErrorLinef("Geozone vertices do not match the zone definitions, no zone is active");
+    }
+#endif
 
 #else
     cliPrintLinef("Arming disabled flags: 0x%lx", armingFlags & ARMING_DISABLED_ALL_FLAGS);
@@ -4307,9 +4383,9 @@ static void cliStatus(char *cmdline)
         }
         cliPrintLinefeed();
         cliPrintLinef("  SATS: %i", gpsSol.numSat);
-        cliPrintLinef("  HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
-        cliPrintLinef("  EPH : %f m", (double)(gpsSol.eph / 100.0f));
-        cliPrintLinef("  EPV : %f m", (double)(gpsSol.epv / 100.0f));
+        cliPrintLinef("  HDOP: %d.%02d", gpsSol.hdop / HDOP_SCALE, gpsSol.hdop % HDOP_SCALE);
+        cliPrintLinef("  EPH : %d.%02d m", gpsSol.eph / 100, gpsSol.eph % 100);
+        cliPrintLinef("  EPV : %d.%02d m", gpsSol.epv / 100, gpsSol.epv % 100);
         //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
         cliPrintLinef("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");
@@ -4652,6 +4728,35 @@ static void printConfig(const char *cmdline, bool doDiff)
     restoreConfigs();
 }
 
+#ifdef USE_DRONECAN
+static void cliDronecan(char *cmdline)
+{
+    UNUSED(cmdline);
+    static const char * const lecNames[] = {
+        "None", "Stuff", "Form", "ACK", "BitR", "BitD", "CRC", "SW"
+    };
+    canardProtocolStatus_t stat;
+    canardSTM32GetProtocolStatus(&stat);
+    int32_t txFill = canardSTM32GetTxQueueFillLevel();
+    int32_t rxFill = canardSTM32GetRxFifoFillLevel();
+    uint32_t busOffCount = dronecanGetBusOffCount();
+    CanardPoolAllocatorStatistics poolStats = dronecanGetPoolStats();
+    cliPrintLine("DroneCAN CAN peripheral status:");
+    cliPrintLinef("  BusOff:       %s", stat.BusOff       ? "YES" : "no");
+    cliPrintLinef("  ErrorPassive: %s", stat.ErrorPassive ? "YES" : "no");
+    cliPrintLinef("  TEC:          %u", (unsigned)stat.tec);
+    cliPrintLinef("  REC:          %u", (unsigned)stat.rec);
+    cliPrintLinef("  LEC:          %s (%u)", lecNames[stat.lec], (unsigned)stat.lec);
+    cliPrintLinef("  TX queue:     %" PRId32, txFill);
+    cliPrintLinef("  RX buffer:    %" PRId32, rxFill);
+    cliPrintLinef("  BusOff count: %" PRIu32, busOffCount);
+    cliPrintLinef("  Pool blocks:  %u used, %u peak, %u capacity",
+                  poolStats.current_usage_blocks,
+                  poolStats.peak_usage_blocks,
+                  poolStats.capacity_blocks);
+}
+#endif
+
 static void cliDump(char *cmdline)
 {
     printConfig(cmdline, false);
@@ -4661,6 +4766,88 @@ static void cliDiff(char *cmdline)
 {
     printConfig(cmdline, true);
 }
+
+#ifdef USE_MOTOR_SRXL2
+static void cliEscCalibratePrintResult(srxl2CalResult_e r)
+{
+    switch (r) {
+    case SRXL2_CAL_ACCEPTED:
+        break;
+    case SRXL2_CAL_REJECT_ARMED:
+        cliPrintErrorLinef("Not while armed");
+        break;
+    case SRXL2_CAL_REJECT_NO_PORT:
+        cliPrintErrorLinef("No SRXL2 ESC port. Assign one and set motor_pwm_protocol = SRXL2");
+        break;
+    case SRXL2_CAL_REJECT_BATTERY_PRESENT:
+        cliPrintErrorLinef("Disconnect the battery first. The ESC only reads its");
+        cliPrintErrorLinef("endpoints as it powers up, and full throttle must not be");
+        cliPrintErrorLinef("presented to an ESC that can already act on it.");
+        break;
+    case SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR:
+        cliPrintErrorLinef("No battery voltage sensing, so the ESC powering up cannot be");
+        cliPrintErrorLinef("detected. Use 'esc_calibrate high' and 'low' by hand instead.");
+        break;
+    }
+}
+
+static void cliEscCalibrate(char *cmdline)
+{
+    static const char * const phaseName[] = {
+        "off", "waiting for battery", "holding high", "holding low",
+        "holding high (manual)", "holding low (manual)"
+    };
+
+    if (isEmpty(cmdline)) {
+        cliPrintLinef("Phase: %s", phaseName[srxl2MotorCalibrationPhase()]);
+        cliPrintLine("");
+        cliPrintLine("Teaches a Spektrum Smart ESC its throttle endpoints. The ESC reads");
+        cliPrintLine("them from the signal present as it powers up, so the sequence is");
+        cliPrintLine("timed from the moment the battery goes in.");
+        cliPrintLine("");
+        cliPrintLine("REMOVE THE PROPELLER. This commands full throttle.");
+        cliPrintLine("");
+        cliPrintLine("  esc_calibrate start    battery DISCONNECTED, then plug it in");
+        cliPrintLine("                         when told. The rest is automatic.");
+        cliPrintLine("  esc_calibrate off      abort");
+        cliPrintLine("");
+        cliPrintLine("By hand, for boards without battery voltage sensing:");
+        cliPrintLine("  esc_calibrate high     then connect the battery");
+        cliPrintLine("  esc_calibrate low      within five seconds of the two short tones");
+        cliPrintLine("");
+        cliPrintLine("Every phase ends by itself. Arming cancels it.");
+        return;
+    }
+
+    if (sl_strcasecmp(cmdline, "start") == 0) {
+        const srxl2CalResult_e r = srxl2MotorCalibrationBegin();
+        cliEscCalibratePrintResult(r);
+        if (r == SRXL2_CAL_ACCEPTED) {
+            cliPrintLine("Propeller off? Full throttle is now on the wire.");
+            cliPrintLine("Connect the battery. The ESC will sound its tones, and the");
+            cliPrintLine("throttle drops to minimum on its own about three seconds later.");
+            cliPrintLine("A long tone means the range was stored.");
+        }
+    } else if (sl_strcasecmp(cmdline, "high") == 0) {
+        const srxl2CalResult_e r = srxl2MotorCalibrationManual(SRXL2_CAL_HIGH_MANUAL);
+        cliEscCalibratePrintResult(r);
+        if (r == SRXL2_CAL_ACCEPTED) {
+            cliPrintLine("Full throttle on the wire. Connect the battery now.");
+        }
+    } else if (sl_strcasecmp(cmdline, "low") == 0) {
+        const srxl2CalResult_e r = srxl2MotorCalibrationManual(SRXL2_CAL_LOW_MANUAL);
+        cliEscCalibratePrintResult(r);
+        if (r == SRXL2_CAL_ACCEPTED) {
+            cliPrintLine("Low throttle on the wire. Listen for the cell count, then a long tone.");
+        }
+    } else if (sl_strcasecmp(cmdline, "off") == 0) {
+        srxl2MotorCalibrationAbort();
+        cliPrintLine("Aborted.");
+    } else {
+        cliShowParseError();
+    }
+}
+#endif
 
 #ifdef USE_USB_MSC
 static void cliMsc(char *cmdline)
@@ -4842,6 +5029,16 @@ static void cliUbloxPrintSatelites(char *arg)
         }
         cliPrintLinefeed();
     }
+    // Enable and Print MON-RF stats if available
+    gpsSetOsdMonRfWidgetEnabled(true);
+    uint16_t noisePerMs = gpsGetMonRfNoisePerMs();
+    if (noisePerMs==0) {
+        cliPrintLine("MON-RF stat still not available...");
+    } else {    
+        cliPrintLinef("MON-RF noisePerMS: %u", gpsGetMonRfNoisePerMs());
+        cliPrintLinef("MON-RF CW Suppression: %u", gpsGetMonRfCWSuppression());
+        cliPrintLinef("MON-RF AutoGainCtrl(%%): %u", (unsigned)gpsGetMonAGCPercent());   
+    } 
 }
 #endif
 
@@ -4887,6 +5084,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("dfu", "DFU mode on reboot", NULL, cliDfu),
     CLI_COMMAND_DEF("diff", "list configuration changes from default",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDiff),
+#ifdef USE_DRONECAN
+    CLI_COMMAND_DEF("dronecan", "show DroneCAN CAN peripheral debug status", NULL, cliDronecan),
+#endif
     CLI_COMMAND_DEF("dump", "dump configuration",
         "[master|battery_profile|control_profile|mixer_profile|rates|all] {showdefaults}", cliDump),
 #ifdef USE_RX_ELERES
@@ -4923,12 +5123,17 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("help", NULL, NULL, cliHelp),
 #ifdef USE_LED_STRIP
     CLI_COMMAND_DEF("led", "configure leds", NULL, cliLed),
-    CLI_COMMAND_DEF("ledpinpwm", "start/stop PWM on LED pin, 0..100 duty ratio", "[<value>]\r\n", cliLedPinPWM),
+#endif
+#ifdef USE_PINIO
+    CLI_COMMAND_DEF("piniopwm", "set PINIO PWM duty cycle", "[<channel>] <duty>\r\n", cliPinioPwm),
 #endif
     CLI_COMMAND_DEF("map", "configure rc channel order", "[<map>]", cliMap),
     CLI_COMMAND_DEF("memory", "view memory usage", NULL, cliMemory),
     CLI_COMMAND_DEF("mmix", "custom motor mixer", NULL, cliMotorMix),
     CLI_COMMAND_DEF("motor",  "get/set motor", "<index> [<value>]", cliMotor),
+#ifdef USE_MOTOR_SRXL2
+    CLI_COMMAND_DEF("esc_calibrate", "teach a Spektrum Smart ESC its throttle range", "[start|high|low|off]", cliEscCalibrate),
+#endif
 #ifdef USE_USB_MSC
     CLI_COMMAND_DEF("msc", "switch into msc mode", NULL, cliMsc),
 #endif
@@ -4984,7 +5189,7 @@ const clicmd_t cmdTable[] = {
 #ifdef USE_OSD
     CLI_COMMAND_DEF("osd_layout", "get or set the layout of OSD items", "[<layout> [<item> [<col> <row> [<visible>]]]]", cliOsdLayout),
 #endif
-    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS>]]", cliTimerOutputMode),
+    CLI_COMMAND_DEF("timer_output_mode", "get or set the outputmode for a given timer.",  "[<timer> [<AUTO|MOTORS|SERVOS|LED|PINIO|BEEPER>]]", cliTimerOutputMode),
 };
 
 static void cliHelp(char *cmdline)

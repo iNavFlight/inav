@@ -722,8 +722,15 @@ HAL_StatusTypeDef HAL_MDIOS_EnableEvents(MDIOS_HandleTypeDef *hmdios)
   */
 void HAL_MDIOS_IRQHandler(MDIOS_HandleTypeDef *hmdios)
 {
+  uint32_t itsource = READ_REG(hmdios->Instance->CR);
+  uint32_t itflag = READ_REG(hmdios->Instance->SR);
+  uint32_t exti_flag = READ_REG(EXTI->PR2);
+#if defined(DUAL_CORE)
+  uint32_t exti_flag2 = READ_REG(EXTI->C2PR2);
+#endif
+
   /* Write Register Interrupt enabled ? */
-  if(__HAL_MDIOS_GET_IT_SOURCE(hmdios, MDIOS_IT_WRITE) != (uint32_t)RESET)
+  if((itsource & MDIOS_IT_WRITE) != 0U)
   {
     /* Write register flag */
     if(HAL_MDIOS_GetWrittenRegAddress(hmdios) != (uint32_t)RESET)
@@ -737,12 +744,12 @@ void HAL_MDIOS_IRQHandler(MDIOS_HandleTypeDef *hmdios)
 #endif  /* USE_HAL_MDIOS_REGISTER_CALLBACKS */
 
       /* Clear write register flag */
-      hmdios->Instance->CWRFR |= MDIOS_ALL_REG_FLAG;
+      hmdios->Instance->CWRFR = MDIOS_ALL_REG_FLAG;
     }
   }
 
   /* Read Register Interrupt enabled ? */
-  if(__HAL_MDIOS_GET_IT_SOURCE(hmdios, MDIOS_IT_READ) != (uint32_t)RESET)
+  if((itsource & MDIOS_IT_READ) != 0U)
   {
     /* Read register flag */
     if(HAL_MDIOS_GetReadRegAddress(hmdios) != (uint32_t)RESET)
@@ -756,15 +763,15 @@ void HAL_MDIOS_IRQHandler(MDIOS_HandleTypeDef *hmdios)
 #endif  /* USE_HAL_MDIOS_REGISTER_CALLBACKS */
 
       /* Clear read register flag */
-      hmdios->Instance->CRDFR |= MDIOS_ALL_REG_FLAG;
+      hmdios->Instance->CRDFR = MDIOS_ALL_REG_FLAG;
     }
   }
 
   /* Error Interrupt enabled ? */
-  if(__HAL_MDIOS_GET_IT_SOURCE(hmdios, MDIOS_IT_ERROR) != (uint32_t)RESET)
+  if((itsource & MDIOS_IT_ERROR) != 0U)
   {
     /* All Errors Flag */
-    if(__HAL_MDIOS_GET_ERROR_FLAG(hmdios, MDIOS_ALL_ERRORS_FLAG) != (uint32_t)RESET)
+    if((itflag & MDIOS_ALL_ERRORS_FLAG) != 0U)
     {
       hmdios->ErrorCode |= HAL_MDIOS_ERROR_DATA;
 
@@ -785,7 +792,7 @@ void HAL_MDIOS_IRQHandler(MDIOS_HandleTypeDef *hmdios)
 
   if (HAL_GetCurrentCPUID() == CM7_CPUID)
   {
-    if(__HAL_MDIOS_WAKEUP_EXTI_GET_FLAG(MDIOS_WAKEUP_EXTI_LINE) != (uint32_t)RESET)
+    if((exti_flag & MDIOS_WAKEUP_EXTI_LINE) != 0U)
     {
       /* Clear MDIOS WAKEUP Exti pending bit */
       __HAL_MDIOS_WAKEUP_EXTI_CLEAR_FLAG(MDIOS_WAKEUP_EXTI_LINE);
@@ -801,7 +808,7 @@ void HAL_MDIOS_IRQHandler(MDIOS_HandleTypeDef *hmdios)
   }
   else
   {
-    if(__HAL_MDIOS_WAKEUP_EXTID2_GET_FLAG(MDIOS_WAKEUP_EXTI_LINE) != (uint32_t)RESET)
+    if((exti_flag2 & MDIOS_WAKEUP_EXTI_LINE) != 0U)
     {
       /* Clear MDIOS WAKEUP Exti D2 pending bit */
       __HAL_MDIOS_WAKEUP_EXTID2_CLEAR_FLAG(MDIOS_WAKEUP_EXTI_LINE);
@@ -816,7 +823,7 @@ void HAL_MDIOS_IRQHandler(MDIOS_HandleTypeDef *hmdios)
   }
 #else
   /* check MDIOS WAKEUP exti flag */
-  if(__HAL_MDIOS_WAKEUP_EXTI_GET_FLAG(MDIOS_WAKEUP_EXTI_LINE) != (uint32_t)RESET)
+  if((exti_flag & MDIOS_WAKEUP_EXTI_LINE) != 0U)
   {
     /* Clear MDIOS WAKEUP Exti pending bit */
     __HAL_MDIOS_WAKEUP_EXTI_CLEAR_FLAG(MDIOS_WAKEUP_EXTI_LINE);

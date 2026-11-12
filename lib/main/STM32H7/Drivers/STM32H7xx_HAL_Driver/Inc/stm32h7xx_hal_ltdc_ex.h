@@ -27,6 +27,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal_def.h"
 
+#if defined(HAL_LTDC_MODULE_ENABLED) && defined(HAL_DSI_MODULE_ENABLED)
+
 #if defined (LTDC) && defined (DSI)
 
 #include "stm32h7xx_hal_dsi.h"
@@ -75,6 +77,8 @@ HAL_StatusTypeDef HAL_LTDCEx_StructInitFromAdaptedCommandConfig(LTDC_HandleTypeD
   */
 
 #endif /* LTDC && DSI */
+
+#endif /* HAL_LTCD_MODULE_ENABLED && HAL_DSI_MODULE_ENABLED */
 
 #ifdef __cplusplus
 }

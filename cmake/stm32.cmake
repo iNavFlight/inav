@@ -193,8 +193,9 @@ function(get_stm32_flash_size out size)
 endfunction()
 
 function(add_hex_target name exe hex)
+    escape_env(escaped_path PATH)
     add_custom_target(${name} ALL
-        cmake -E env PATH="$ENV{PATH}"
+        cmake -E env PATH="${escaped_path}"
         # TODO: Overriding the start address with --set-start 0x08000000
         # seems to be required due to some incorrect assumptions about .hex
         # files in the configurator. Verify wether that's the case and fix
@@ -205,8 +206,9 @@ function(add_hex_target name exe hex)
 endfunction()
 
 function(add_bin_target name exe bin)
+    escape_env(escaped_path PATH)
     add_custom_target(${name}
-        cmake -E env PATH="$ENV{PATH}"
+        cmake -E env PATH="${escaped_path}"
         ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${exe}> ${bin}
         BYPRODUCTS ${bin}
     )
@@ -238,7 +240,7 @@ function(add_stm32_executable)
         # Single value arguments
         "FILENAME;NAME;OPTIMIZATION;OUTPUT_BIN_FILENAME;OUTPUT_HEX_FILENAME;OUTPUT_TARGET_NAME"
         # Multi-value arguments
-        "COMPILE_DEFINITIONS;COMPILE_OPTIONS;INCLUDE_DIRECTORIES;LINK_OPTIONS;LINKER_SCRIPT;SOURCES"
+        "COMPILE_DEFINITIONS;COMPILE_OPTIONS;INCLUDE_DIRECTORIES;SYSTEM_INCLUDE_DIRECTORIES;LINK_OPTIONS;LINKER_SCRIPT;SOURCES"
         # Start parsing after the known arguments
         ${ARGN}
     )
@@ -246,6 +248,7 @@ function(add_stm32_executable)
     add_executable(${elf_target})
     target_sources(${elf_target} PRIVATE ${args_SOURCES})
     target_include_directories(${elf_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${args_INCLUDE_DIRECTORIES} ${STM32_INCLUDE_DIRS})
+    target_include_directories(${elf_target} SYSTEM PRIVATE ${args_SYSTEM_INCLUDE_DIRECTORIES})
     target_compile_definitions(${elf_target} PRIVATE ${args_COMPILE_DEFINITIONS})
     target_compile_options(${elf_target} PRIVATE ${STM32_COMPILE_OPTIONS} ${args_COMPILE_OPTIONS})
     if(WARNINGS_AS_ERRORS)
@@ -289,7 +292,7 @@ function(target_stm32)
         # Single value arguments
         "HSE_MHZ;LINKER_SCRIPT;NAME;OPENOCD_TARGET;OPTIMIZATION;STARTUP;SVD"
         # Multi-value arguments
-        "COMPILE_DEFINITIONS;COMPILE_OPTIONS;INCLUDE_DIRECTORIES;LINK_OPTIONS;SOURCES;MSC_SOURCES;MSC_INCLUDE_DIRECTORIES;VCP_SOURCES;VCP_INCLUDE_DIRECTORIES"
+        "COMPILE_DEFINITIONS;COMPILE_OPTIONS;INCLUDE_DIRECTORIES;SYSTEM_INCLUDE_DIRECTORIES;LINK_OPTIONS;SOURCES;MSC_SOURCES;MSC_INCLUDE_DIRECTORIES;VCP_SOURCES;VCP_INCLUDE_DIRECTORIES"
         # Start parsing after the known arguments
         ${ARGN}
     )
@@ -308,6 +311,7 @@ function(target_stm32)
     list(APPEND target_sources ${target_c_sources} ${target_h_sources})
 
     set(target_include_directories ${args_INCLUDE_DIRECTORIES})
+    set(target_system_include_directories ${args_SYSTEM_INCLUDE_DIRECTORIES})
 
     set(target_definitions ${STM32_DEFINITIONS} ${COMMON_COMPILE_DEFINITIONS})
 
@@ -363,10 +367,12 @@ function(target_stm32)
         COMPILE_DEFINITIONS ${target_definitions}
         COMPILE_OPTIONS ${args_COMPILE_OPTIONS}
         INCLUDE_DIRECTORIES ${target_include_directories}
+        SYSTEM_INCLUDE_DIRECTORIES ${target_system_include_directories}
         LINK_OPTIONS ${args_LINK_OPTIONS}
         LINKER_SCRIPT ${args_LINKER_SCRIPT}
         OPTIMIZATION ${args_OPTIMIZATION}
 
+        OUTPUT_BIN_FILENAME main_bin_filename
         OUTPUT_HEX_FILENAME main_hex_filename
         OUTPUT_TARGET_NAME main_target_name
     )
@@ -387,6 +393,7 @@ function(target_stm32)
             COMPILE_DEFINITIONS ${target_definitions} BOOTLOADER MSP_FIRMWARE_UPDATE
             COMPILE_OPTIONS ${args_COMPILE_OPTIONS}
             INCLUDE_DIRECTORIES ${target_include_directories}
+            SYSTEM_INCLUDE_DIRECTORIES ${target_system_include_directories}
             LINK_OPTIONS ${args_LINK_OPTIONS}
             LINKER_SCRIPT ${args_LINKER_SCRIPT}${bl_suffix}
             OPTIMIZATION ${args_OPTIMIZATION}
@@ -406,6 +413,7 @@ function(target_stm32)
             COMPILE_DEFINITIONS ${target_definitions} MSP_FIRMWARE_UPDATE
             COMPILE_OPTIONS ${args_COMPILE_OPTIONS}
             INCLUDE_DIRECTORIES ${target_include_directories}
+            SYSTEM_INCLUDE_DIRECTORIES ${target_system_include_directories}
             LINK_OPTIONS ${args_LINK_OPTIONS}
             LINKER_SCRIPT ${args_LINKER_SCRIPT}${for_bl_suffix}
             OPTIMIZATION ${args_OPTIMIZATION}
@@ -428,20 +436,14 @@ function(target_stm32)
     endif()
 
     # clean_<target>
-    set(generator_cmd "")
-    if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-        set(generator_cmd "make")
-    elseif(CMAKE_GENERATOR STREQUAL "Ninja")
-        set(generator_cmd "ninja")
+    set(clean_executables ${main_target_name})
+    set(clean_files ${main_hex_filename} ${main_bin_filename})
+    if(args_BOOTLOADER AND NOT args_NO_BOOTLOADER)
+        list(APPEND clean_executables ${bl_target_name} ${for_bl_target_name})
+        list(APPEND clean_files
+            ${bl_hex_filename} ${bl_bin_filename}
+            ${for_bl_hex_filename} ${for_bl_bin_filename}
+            ${combined_hex})
     endif()
-    if (NOT generator_cmd STREQUAL "")
-        set(clean_target "clean_${name}")
-        add_custom_target(${clean_target}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND ${generator_cmd} clean
-            COMMENT "Removing intermediate files for ${name}")
-        set_property(TARGET ${clean_target} PROPERTY
-            EXCLUDE_FROM_ALL 1
-            EXCLUDE_FROM_DEFAULT_BUILD 1)
-    endif()
+    add_clean_target(${name} EXECUTABLES ${clean_executables} FILES ${clean_files})
 endfunction()

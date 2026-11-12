@@ -17,10 +17,17 @@
 
 #pragma once
 
+#include "target/common.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
-#define MAVLINK_COMM_NUM_BUFFERS 1
-#include "common/mavlink.h"
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
+/* Helpers compile once with external linkage in mavlink/mavlink_helpers.c. */
+#ifndef MAVLINK_SEPARATE_HELPERS
+#define MAVLINK_SEPARATE_HELPERS
+#endif
+#include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
 
 void mavlinkRxHandleMessage(const mavlink_rc_channels_override_t *msg);

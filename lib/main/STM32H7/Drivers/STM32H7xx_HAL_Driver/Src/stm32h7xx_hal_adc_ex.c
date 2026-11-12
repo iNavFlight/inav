@@ -1013,7 +1013,7 @@ HAL_StatusTypeDef HAL_ADCEx_InjectedStop_IT(ADC_HandleTypeDef *hadc)
   *         conversions.
   * @param hadc ADC handle of ADC master (handle of ADC slave must not be used)
   * @param pData Destination Buffer address.
-  * @param Length Length of data to be transferred from ADC peripheral to memory (in bytes).
+  * @param Length Length of data to be transferred from ADC peripheral to memory.
   * @retval HAL status
   */
 HAL_StatusTypeDef HAL_ADCEx_MultiModeStart_DMA(ADC_HandleTypeDef *hadc, const uint32_t *pData, uint32_t Length)

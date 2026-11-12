@@ -78,7 +78,19 @@ typedef struct  {
     char                            osdCustomElementText[OSD_CUSTOM_ELEMENT_TEXT_SIZE];
 } osdCustomElement_t;
 
+typedef struct {
+    uint8_t index;
+    uint16_t icon;
+} twoByteChar_t;
+
+typedef struct {
+    char *buffStart;
+    char *buff;
+    uint8_t totalSeek;
+    twoByteChar_t twoByteChar[CUSTOM_ELEMENTS_PARTS];
+} osdCustomElementScreenBuffer_t;
+
 PG_DECLARE_ARRAY(osdCustomElement_t, MAX_CUSTOM_ELEMENTS, osdCustomElements);
 
-void customElementDrawElement(char *buff, uint8_t customElementIndex);
+void customElementDrawElement(displayPort_t *osdDisplayPort, char *buff, uint8_t customElementIndex, uint8_t x, uint8_t y);
 uint8_t customElementLength(uint8_t customElementIndex);

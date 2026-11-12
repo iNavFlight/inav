@@ -358,8 +358,15 @@ void uartIrqHandler(uartPort_t *s)
     }
 
     /* UART in mode Transmitter (transmission end) -----------------------------*/
+    // TCIE is never enabled here, so TC is only a stale status flag left over from
+    // the last transmitted byte. It used to be forwarded to HAL_UART_IRQHandler(),
+    // which treats a pending overrun as a blocking error and permanently disables
+    // the RX interrupts (UART_EndRxTransfer) - a receiver on a busy UART then dies
+    // after any long IRQ-disabled window such as an internal flash write. Nothing
+    // in the HAL handler is needed for INAV's own TXE/RXNE-driven transfers, so
+    // just acknowledge the flag.
     if ((__HAL_UART_GET_IT(huart, UART_IT_TC) != RESET)) {
-        HAL_UART_IRQHandler(huart);
+        __HAL_UART_CLEAR_IT(huart, UART_CLEAR_TCF);
     }
 }
 

@@ -103,8 +103,17 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
 #endif
 
     /* MSP GPS */
-#ifdef USE_GPS_PROTO_MSP
+    // GPS_NULL_PORT_UNIT_TEST's minimal build links only io/gps.c, so optional
+    // protocols/features that pull in other production globals are excluded here.
+#if defined(USE_GPS_PROTO_MSP) && !defined(GPS_NULL_PORT_UNIT_TEST)
     { true, 0, &gpsRestartMSP, &gpsHandleMSP },
+#else
+    { false, 0, NULL, NULL },
+#endif
+
+    /* CRSF GPS */
+#ifdef USE_GPS_PROTO_CRSF
+    { true, 0, &gpsRestartCRSF, &gpsHandleCRSF },
 #else
     { false, 0, NULL, NULL },
 #endif
@@ -115,9 +124,16 @@ static gpsProviderDescriptor_t gpsProviders[GPS_PROVIDER_COUNT] = {
     { false, 0, NULL, NULL },
 #endif
 
+    /* DRONECAN GPS */
+#if defined(USE_DRONECAN) && !defined(GPS_NULL_PORT_UNIT_TEST)
+    {true, 0, &gpsRestartDronecan, &gpsHandleDronecan },
+#else
+    {false, 0, NULL, NULL },
+#endif
+
 };
 
-PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 5);
+PG_REGISTER_WITH_RESET_TEMPLATE(gpsConfig_t, gpsConfig, PG_GPS_CONFIG, 6);
 
 PG_RESET_TEMPLATE(gpsConfig_t, gpsConfig,
     .provider = SETTING_GPS_PROVIDER_DEFAULT,
@@ -214,7 +230,7 @@ void gpsSetProtocolTimeout(timeMs_t timeoutMs)
     gpsState.timeoutMs = timeoutMs;
 }
 
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
 bool canEstimateGPSFix(void)
 {
 #if defined(USE_GPS) && defined(USE_BARO)
@@ -232,8 +248,8 @@ bool canEstimateGPSFix(void)
 }
 #endif
 
-#ifdef USE_GPS_FIX_ESTIMATION
-void processDisableGPSFix(void) 
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
+void processDisableGPSFix(void)
 {
     static int32_t last_lat = 0;
     static int32_t last_lon = 0;
@@ -248,6 +264,9 @@ void processDisableGPSFix(void)
         gpsSol.flags.validVelD = false;  
         gpsSol.flags.validEPE = false;
         gpsSol.flags.validTime = false;
+        gpsSol.flags.validEllipsoidAltitude = false;
+        gpsSol.flags.validSpeedAccuracy = false;
+        gpsSol.flags.validHeadingAccuracy = false;
 
         //freeze coordinates
         gpsSol.llh.lat = last_lat;
@@ -261,7 +280,7 @@ void processDisableGPSFix(void)
 }
 #endif
 
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
 //called after gpsSolDRV is copied to gpsSol and processed by "Disable GPS Fix logical condition"
 void updateEstimatedGPSFix(void) 
 {
@@ -343,9 +362,12 @@ void updateEstimatedGPSFix(void)
 
 void gpsProcessNewDriverData(void)
 {
+    // gpsHeartbeat is toggled on gpsSol only, so the driver copy must not reset it
+    const bool gpsHeartbeat = gpsSol.flags.gpsHeartbeat;
     gpsSol = gpsSolDRV;
+    gpsSol.flags.gpsHeartbeat = gpsHeartbeat;
 
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     processDisableGPSFix();
     updateEstimatedGPSFix();
 #endif
@@ -358,7 +380,7 @@ void gpsProcessNewDriverData(void)
 //On GPS sensor timeout - called after updateEstimatedGPSFix()
 void gpsProcessNewSolutionData(bool timeout)
 {
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     if ( gpsSol.numSat == 99 ) {
         ENABLE_STATE(GPS_ESTIMATED_FIX);
         DISABLE_STATE(GPS_FIX);
@@ -377,7 +399,7 @@ void gpsProcessNewSolutionData(bool timeout)
             gpsSol.flags.validEPE = false;
             DISABLE_STATE(GPS_FIX);
         }
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     }
 #endif
 
@@ -418,6 +440,9 @@ static void gpsResetSolution(gpsSolutionData_t* gpsSol)
     gpsSol->flags.validVelD = false;
     gpsSol->flags.validEPE = false;
     gpsSol->flags.validTime = false;
+    gpsSol->flags.validEllipsoidAltitude = false;
+    gpsSol->flags.validSpeedAccuracy = false;
+    gpsSol->flags.validHeadingAccuracy = false;
 }
 
 void gpsTryEstimateOnTimeout(void)
@@ -425,7 +450,7 @@ void gpsTryEstimateOnTimeout(void)
     gpsResetSolution(&gpsSol);
     DISABLE_STATE(GPS_FIX);
 
-#ifdef USE_GPS_FIX_ESTIMATION
+#if defined(USE_GPS_FIX_ESTIMATION) && !defined(GPS_NULL_PORT_UNIT_TEST)
     if ( canEstimateGPSFix() ) {
         updateEstimatedGPSFix();
 
@@ -530,7 +555,7 @@ bool gpsUpdate(void)
         return false;
     }
 
-#ifdef USE_SIMULATOR
+#if defined(USE_SIMULATOR) && !defined(GPS_NULL_PORT_UNIT_TEST)
     if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
         if ( SIMULATOR_HAS_OPTION(HITL_GPS_TIMEOUT)) {
             gpsSetState(GPS_LOST_COMMUNICATION);
@@ -578,8 +603,8 @@ bool gpsUpdate(void)
         // Call GPS protocol thread
         gpsProviders[gpsState.gpsConfig->provider].protocol();
 
-        // Check for GPS timeout
-        if ((millis() - gpsState.lastMessageMs) > gpsState.baseTimeoutMs) {
+        // Check for GPS timeout: the protocol may ask for longer, never for less than the base
+        if ((millis() - gpsState.lastMessageMs) > MAX(gpsState.timeoutMs, gpsState.baseTimeoutMs)) {
             sensorsClear(SENSOR_GPS);
             DISABLE_STATE(GPS_FIX);
             gpsSol.fixType = GPS_NO_FIX;

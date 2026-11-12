@@ -18,7 +18,7 @@ push builds happen via `nightly-build.yml` instead (see below).
 
 #### `nightly-build.yml` - "Build pre-release"
 **Triggers:** `push` to `master`, `maintenance-8.x.x`, `maintenance-9.x`,
-`maintenance-10.x`, `release/9.1` — **not** a schedule, despite the
+`maintenance-10.x`, `maintenance-11.x`, `release/9.1` — **not** a schedule, despite the
 filename. Invokes `ci.yml`'s jobs via `workflow_call`, then publishes a
 prerelease to the companion `iNavFlight/inav-nightly` repo.
 **Purpose:** Creates nightly development builds for testing, and is the
@@ -35,19 +35,24 @@ fire.
 ### Code Quality
 
 #### `pg-version-check.yml` - Parameter Group Version Check
-**Triggers:** Pull requests to maintenance-9.x and maintenance-10.x
+**Triggers:** Pull requests to maintenance-9.x, maintenance-10.x, maintenance-11.x, and release/9.1
 **Purpose:** Detects parameter group struct modifications and verifies version increments
 **Why:** Prevents settings corruption when struct layout changes without version bump
 
 **How it works:**
-1. Scans changed .c/.h files for `PG_REGISTER` entries
-2. Detects if associated struct typedefs were modified
-3. Checks if the PG version parameter was incremented
+1. Maps every `PG_REGISTER` in the repository's .c/.h files to its struct, so a registration in a
+   different file than the struct is still found
+2. Detects if associated struct typedefs were modified, comparing against the PR's merge base
+   so later changes on the base branch are not attributed to the PR
+3. Checks if the PG version parameter was incremented, per preprocessor condition: a struct
+   guarded by `#ifdef` is only compared under the conditions where it actually changes
 4. Posts helpful comment if version not incremented
 
 **Reference:** See `docs/development/parameter_groups/` for PG system documentation
 
-**Script:** `.github/scripts/check-pg-versions.sh`
+**Script:** `.github/scripts/check-pg-versions.sh`, a thin wrapper around
+`.github/scripts/check-pg-versions.py` (standard library only, python3 required). Its regression
+fixtures live in `.github/scripts/test-check-pg-versions.py` and run in CI.
 
 **When to increment PG versions:**
 - ✅ Adding/removing fields from struct
@@ -73,7 +78,7 @@ every PR.
 1. `ci.yml` extracts a small per-target size report (`arm-none-eabi-size`
    on each built `.elf`) right after each build and uploads it as an
    artifact — no second build anywhere in this flow.
-2. On pushes to `master`/`maintenance-9.x`/`maintenance-10.x`/`release/9.1`,
+2. On pushes to `master`/`maintenance-9.x`/`maintenance-10.x`/`maintenance-11.x`/`release/9.1`,
    `nightly-build.yml` ("Build pre-release") invokes `ci.yml` via
    `workflow_call` as part of building nightly releases — this already
    produces the size report above at no extra build cost. When that
@@ -88,18 +93,20 @@ every PR.
    so this deliberately listens to `nightly-build.yml` instead of trying to
    fix that separately; verified empirically that `ci.yml` alone has zero
    push-triggered runs in this repo's history.)
-3. On PR builds, it computes the PR's TRUE base commit — the merge-base of
-   the PR head and base ref via the compare API — fetches the per-commit
-   baseline for that exact commit, falling back to the nearest ancestor
-   commit that has one (never the branch tip, which would include unrelated
-   changes merged after the PR forked), diffs it against the PR's own size
+3. On PR builds, it takes the base commit the PR was built on: CI builds
+   `refs/pull/<n>/merge`, and `ci.yml` records that merge's first parent
+   (builds that did not record it fall back to the merge-base of the PR head and
+   base ref via the compare API). It fetches the per-commit baseline for that
+   exact commit, falling back to the nearest ancestor commit that has one
+   (never the branch tip, which would include unrelated changes merged after
+   the build), diffs it against the PR's own size
    report, and posts/updates a comment (marker `<!-- pr-size-diff -->`)
    naming the baseline commit that was used.
 
 **Scripts:** `.github/scripts/extract-size-report.sh` (size extraction),
 `.github/scripts/merge-size-reports.sh` (merges per-shard reports),
 `.github/scripts/publish-size-baseline.sh` (per-commit publish + pruning),
-`.github/scripts/fetch-size-baseline.sh` (merge-base baseline resolution),
+`.github/scripts/fetch-size-baseline.sh` (base commit baseline resolution),
 `.github/scripts/size-diff-comment.js` (pure diff + markdown rendering,
 unit tested in `.github/scripts/size-diff-comment.test.js`)
 
@@ -115,11 +122,19 @@ as `pr-test-builds.yml`** (secrets available even for fork PRs).
 
 #### `pr-branch-suggestion.yml` - Branch Targeting Suggestion
 **Triggers:** PRs targeting master branch
-**Purpose:** Suggests using maintenance-9.x or maintenance-10.x instead
+**Purpose:** Suggests using maintenance-10.x (backward-compatible) or
+maintenance-11.x (breaking compatibility) instead
 
 #### `non-code-change.yaml` - Non-Code Change Detection
 **Triggers:** Pull requests
 **Purpose:** Detects PRs with only documentation/formatting changes
+
+It shares the name `Build firmware` with `ci.yml` but produces none of its
+artifacts. The `workflow_run` consumers `pr-test-builds.yml` and
+`ci-size-report.yml` therefore also require
+`github.event.workflow.path == '.github/workflows/ci.yml'` (a path, not a
+workflow ID, so forks behave the same). Check both conditions with
+`node --test .github/scripts/artifact-workflow-filter.test.js`.
 
 ## Configuration Files
 
@@ -182,7 +197,10 @@ Scripts in `.github/scripts/` can be run locally:
 cd inav
 export GITHUB_BASE_REF=maintenance-9.x
 export GITHUB_HEAD_REF=feature-branch
-bash .github/scripts/check-pg-versions.sh
+bash .github/scripts/check-pg-versions.sh   # needs python3 on PATH
+
+# run the checker's own regression fixtures
+python3 .github/scripts/test-check-pg-versions.py
 ```
 
 ## References

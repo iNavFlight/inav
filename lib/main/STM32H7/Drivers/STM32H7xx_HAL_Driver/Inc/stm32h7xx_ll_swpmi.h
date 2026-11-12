@@ -1175,7 +1175,7 @@ __STATIC_INLINE void LL_SWPMI_TransmitData32(SWPMI_TypeDef *SWPMIx, uint32_t TxD
   * @param  SWPMIx SWPMI Instance
   * @retval Value between Min_Data=0x00000000 and Max_Data=0xFFFFFFFF
   */
-__STATIC_INLINE uint32_t LL_SWPMI_ReceiveData32(SWPMI_TypeDef *SWPMIx)
+__STATIC_INLINE uint32_t LL_SWPMI_ReceiveData32(const SWPMI_TypeDef *SWPMIx)
 {
   return (uint32_t)(READ_BIT(SWPMIx->RDR, SWPMI_RDR_RD));
 }

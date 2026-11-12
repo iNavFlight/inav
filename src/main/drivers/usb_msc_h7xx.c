@@ -111,6 +111,12 @@ uint8_t mscStart(void)
 
     USBD_Start(&USBD_Device);
 
+    // The early VCP init is skipped in MSC mode, so the USB voltage detector
+    // must be enabled here (it is otherwise done in usbVcpInitHardware).
+    // Cold boot failures observed without this, even when USB cable is not connected.
+    HAL_PWREx_EnableUSBVoltageDetector();
+    delay(100);
+
     // NVIC configuration for SYSTick
     NVIC_DisableIRQ(SysTick_IRQn);
     NVIC_SetPriority(SysTick_IRQn, 0);

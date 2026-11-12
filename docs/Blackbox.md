@@ -70,7 +70,7 @@ First, tell the Blackbox to log using a serial port (rather than to an onboard d
 
 You need to let INAV know which of [your serial ports][] you connect your OpenLog to (i.e. the Blackbox port), which you can do on the Configurator's Ports tab.
 
-You should use a hardware serial port. SoftSerial ports can be used for the Blackbox. However, because they are limited to 19200 baud, your logging rate will need to be severely reduced to compensate. Therefore the use of SoftSerial is not recommended.
+You should use a hardware serial port. SoftSerial ports can be used for the Blackbox. However, because softserial is bit-banged and only reliably usable at low baud rates, your logging rate will need to be severely reduced to compensate. Therefore the use of SoftSerial is not recommended.
 
 When using a hardware serial port, Blackbox should be set to at least 115200 baud on that port. When using fast looptimes (<2500), a baud rate of 250000 should be used instead in order to reduce dropped frames.
 
@@ -168,6 +168,14 @@ The CLI command `blackbox` allows setting which Blackbox fields are recorded to 
 * `PEAKS_Y` - Yaw axis noise peak
 * `SERVOS` - Servo outputs (for planes, tris, etc.)
 
+On a board with two IMUs, `gyro_secondary_enabled` adds `gyroRaw2[0..2]`, the second
+sensor's rates in deg/s, in the same body frame as `gyroRaw` and with that sensor's
+own alignment already applied. It has no flag of its own here: that setting is the
+switch, and nothing else puts the field in the log, not even another feature that
+starts the second sensor for its own reasons. With the setting on, the flight
+controller reads that sensor only while a log is being written. Include `GYRO_RAW` as well to compare the two sensors, since
+`gyroADC` is filtered and `gyroRaw2` is not.
+
 Usage:
 
 * `blackbox` currently enabled Blackbox fields
@@ -185,6 +193,7 @@ Available debug modes include:
 - `POS_EST` - Position estimation debugging
 - `GPS` - GPS debugging
 - `ALTITUDE` - Altitude estimation debugging
+- `MAG` - Raw, uncalibrated magnetometer samples (useful for external compass calibration)
 - And 20+ other modes for specific subsystems
 
 To use debug mode logging:

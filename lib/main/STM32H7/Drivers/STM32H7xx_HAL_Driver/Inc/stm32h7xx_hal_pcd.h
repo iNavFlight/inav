@@ -381,8 +381,8 @@ PCD_StateTypeDef HAL_PCD_GetState(PCD_HandleTypeDef const *hpcd);
   * @{
   */
 #if defined (USB_OTG_FS) || defined (USB_OTG_HS)
-#define USB_OTG_FS_WAKEUP_EXTI_LINE                                   (0x1U << 12)  /*!< USB FS EXTI Line WakeUp Interrupt */
-#define USB_OTG_HS_WAKEUP_EXTI_LINE                                   (0x1U << 11)  /*!< USB HS EXTI Line WakeUp Interrupt */
+#define USB_OTG_FS_WAKEUP_EXTI_LINE                                   (0x1UL << 12)  /*!< USB FS EXTI Line WakeUp Interrupt */
+#define USB_OTG_HS_WAKEUP_EXTI_LINE                                   (0x1UL << 11)  /*!< USB HS EXTI Line WakeUp Interrupt */
 #endif /* defined (USB_OTG_FS) || defined (USB_OTG_HS) */
 
 

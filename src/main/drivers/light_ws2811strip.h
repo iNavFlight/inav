@@ -16,43 +16,21 @@
  */
 
 #pragma once
+
+#include <stdbool.h>
+
 #include "common/color.h"
-#include "config/parameter_group.h"
 
 #define WS2811_LED_STRIP_LENGTH 128
 #define WS2811_BITS_PER_LED 24
-#define WS2811_DELAY_BUFFER_LENGTH 42 // for 50us delay 
-
-#define WS2811_DATA_BUFFER_SIZE (WS2811_BITS_PER_LED * WS2811_LED_STRIP_LENGTH)
-
-#define WS2811_DMA_BUFFER_SIZE (WS2811_DELAY_BUFFER_LENGTH + WS2811_DATA_BUFFER_SIZE + 1)   // leading bytes (reset low 302us) + data bytes LEDS*3  + 1 byte(keep line high optionally)
 
 #define WS2811_TIMER_HZ         2400000
 #define WS2811_CARRIER_HZ       800000
 
-typedef enum {
-    LED_PIN_PWM_MODE_SHARED_LOW = 0,
-    LED_PIN_PWM_MODE_SHARED_HIGH = 1,
-    LED_PIN_PWM_MODE_LOW = 2,
-    LED_PIN_PWM_MODE_HIGH = 3
-} led_pin_pwm_mode_e;
-
-typedef struct ledPinConfig_s {
-    uint8_t led_pin_pwm_mode;  //led_pin_pwm_mode_e
-} ledPinConfig_t;
-
-PG_DECLARE(ledPinConfig_t, ledPinConfig);
-
 void ws2811LedStripInit(void);
-void ws2811LedStripHardwareInit(void);
-void ws2811LedStripDMAEnable(void);
-bool ws2811LedStripDMAInProgress(void);
+void ws2811SetIdleHigh(bool high);
 
-//value 0...100
-void ledPinStartPWM(uint16_t value);
-void ledPinStopPWM(void);
-
-void ws2811UpdateStrip(void);
+void ws2811UpdateStrip(uint16_t usedLedCount);
 
 void setLedHsv(uint16_t index, const hsvColor_t *color);
 void getLedHsv(uint16_t index, hsvColor_t *color);

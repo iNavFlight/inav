@@ -350,7 +350,7 @@ HAL_StatusTypeDef FMC_NORSRAM_Timing_Init(FMC_NORSRAM_TypeDef *Device,
   /* Configure Clock division value (in NORSRAM bank 1) when continuous clock is enabled */
   if (HAL_IS_BIT_SET(Device->BTCR[FMC_NORSRAM_BANK1], FMC_BCR1_CCLKEN))
   {
-    tmpr = (uint32_t)(Device->BTCR[FMC_NORSRAM_BANK1 + 1U] & ~((0x0FU) << FMC_BTRx_CLKDIV_Pos));
+    tmpr = (uint32_t)(Device->BTCR[FMC_NORSRAM_BANK1 + 1U] & ~((0x0FUL) << FMC_BTRx_CLKDIV_Pos));
     tmpr |= (uint32_t)(((Timing->CLKDivision) - 1U) << FMC_BTRx_CLKDIV_Pos);
     MODIFY_REG(Device->BTCR[FMC_NORSRAM_BANK1 + 1U], FMC_BTRx_CLKDIV, tmpr);
   }
@@ -465,7 +465,6 @@ HAL_StatusTypeDef FMC_NORSRAM_WriteOperation_Disable(FMC_NORSRAM_TypeDef *Device
 /**
   * @}
   */
-
 
 /** @defgroup FMC_LL_Exported_Functions_NAND FMC Low Layer NAND Exported Functions
   * @brief    NAND Controller functions
@@ -738,7 +737,6 @@ HAL_StatusTypeDef FMC_NAND_GetECC(const FMC_NAND_TypeDef *Device, uint32_t *ECCv
 /**
   * @}
   */
-
 
 /** @defgroup FMC_LL_SDRAM
   * @brief    SDRAM Controller functions

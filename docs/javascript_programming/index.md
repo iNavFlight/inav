@@ -65,7 +65,7 @@ Comprehensive guide to all INAV logic condition operations:
 - ✅ Arithmetic: `+`, `-`, `*`, `/`, `%`
 - ✅ Comparisons: `===`, `>`, `<`, `approxEqual()`
 - ✅ Logical: `&&`, `||`, `!`, `xor()`, `nand()`, `nor()`
-- ✅ Math: `Math.min()`, `Math.max()`, `Math.sin()`, `Math.cos()`, `Math.tan()`, `Math.abs()`
+- ✅ Math: `Math.min()`, `Math.max()`, `Math.sin()`, `Math.cos()`, `Math.tan()`, `Math.acos()`, `Math.asin()`, `Math.atan2()`, `Math.abs()`
 - ✅ Scaling: `mapInput()`, `mapOutput()`
 - ✅ Flow control: `edge()`, `sticky()`, `delay()`, `timer()`, `whenChanged()`
 - ✅ Variables: `gvar[0-7]`, `let`, `var`

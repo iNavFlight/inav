@@ -519,6 +519,11 @@ static char * osdArmingDisabledReasonMessage(void)
             return OSD_MESSAGE_STR("MOTOR BEEPER ACTIVE");
             // Cases without message
         case ARMING_DISABLED_GEOZONE:
+#ifdef USE_GEOZONE
+            if (geozoneIsConfigInvalid()) {
+                return OSD_MESSAGE_STR("GEOZONE CONFIG ERR");
+            }
+#endif
             return OSD_MESSAGE_STR("NO FLY ZONE");
         case ARMING_DISABLED_LANDING_DETECTED:
             FALLTHROUGH;
@@ -681,7 +686,7 @@ void osdDJIFormatVelocityStr(char* buff)
             break;
         case OSD_SPEED_SOURCE_3D:
             strcpy(sourceBuf, "3D");
-            vel = osdGet3DSpeed();
+            vel = posControl.actualState.vel3D;
             break;
         case OSD_SPEED_SOURCE_AIR:
             strcpy(sourceBuf, "AIR");
@@ -785,8 +790,8 @@ static void osdDJIEfficiencyMahPerKM(char *buff)
 #endif
         ) && gpsSol.groundSpeed > 0) {
         if (efficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-            value = pt1FilterApply4(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f,
-                1, US2S(efficiencyTimeDelta));
+            if (!eFilterState.RC) pt1FilterSetCutoff(&eFilterState, 1.0f);
+            value = pt1FilterApply3(&eFilterState, ((float)getAmperage() / gpsSol.groundSpeed) / 0.0036f, US2S(efficiencyTimeDelta));
 
             efficiencyUpdated = currentTimeUs;
         } else {
@@ -961,7 +966,7 @@ static void osdDJIAdjustmentMessage(char *buff, uint8_t adjustmentFunction)
             tfp_sprintf(buff, "TPA %3d", currentControlProfile->throttle.dynPID);
             break;
         case ADJUSTMENT_TPA_BREAKPOINT:
-            tfp_sprintf(buff, "TPABP %4d", currentControlProfile->throttle.pa_breakpoint);
+            tfp_sprintf(buff, "TPABP %4d", currentControlProfile->throttle.tpa_breakpoint);
             break;
         case ADJUSTMENT_NAV_FW_CONTROL_SMOOTHNESS:
             tfp_sprintf(buff, "CSM %3d", navConfigMutable()->fw.control_smoothness);
@@ -995,81 +1000,95 @@ static bool djiFormatMessages(char *buff)
     bool haveMessage = false;
     char messageBuf[MAX(SETTING_MAX_NAME_LENGTH, OSD_MESSAGE_LENGTH+1)];
     if (ARMING_FLAG(ARMED)) {
-        // Aircraft is armed. We might have up to 6
-        // messages to show.
-        char *messages[6];
+        // Aircraft is armed. Keep this bounded because transition, navigation,
+        // failsafe and normal status messages can be active at the same time.
+        const char *messages[8];
         unsigned messageCount = 0;
+        #define ADD_DJI_MSG(msg) do { if (messageCount < ARRAYLEN(messages)) messages[messageCount++] = (msg); } while (0)
+
+        const char *vtolTransitionMessage = osdVtolTransitionMessage();
+        if (vtolTransitionMessage) {
+            ADD_DJI_MSG(vtolTransitionMessage);
+        }
 
         if (FLIGHT_MODE(FAILSAFE_MODE)) {
             // In FS mode while being armed too
-            char *failsafePhaseMessage = osdFailsafePhaseMessage();
-            char *failsafeInfoMessage = osdFailsafeInfoMessage();
-            char *navStateFSMessage = navigationStateMessage();
+            const char *failsafePhaseMessage = osdFailsafePhaseMessage();
+            const char *failsafeInfoMessage = osdFailsafeInfoMessage();
+            const char *navStateFSMessage = navigationStateMessage();
 
             if (failsafePhaseMessage) {
-                messages[messageCount++] = failsafePhaseMessage;
+                ADD_DJI_MSG(failsafePhaseMessage);
             }
 
             if (failsafeInfoMessage) {
-                messages[messageCount++] = failsafeInfoMessage;
+                ADD_DJI_MSG(failsafeInfoMessage);
             }
 
             if (navStateFSMessage) {
-                messages[messageCount++] = navStateFSMessage;
+                ADD_DJI_MSG(navStateFSMessage);
             }
         } else {
 #ifdef USE_SERIALRX_CRSF
             if (djiOsdConfig()->rssi_source == DJI_CRSF_LQ && rxLinkStatistics.rfMode == 0) {
-                messages[messageCount++] = "CRSF LOW RF";
+                ADD_DJI_MSG("CRSF LOW RF");
             }
 #endif
             if (FLIGHT_MODE(NAV_RTH_MODE) || FLIGHT_MODE(NAV_WP_MODE) || navigationIsExecutingAnEmergencyLanding()) {
-                char *navStateMessage = navigationStateMessage();
+                const char *navStateMessage = navigationStateMessage();
                 if (navStateMessage) {
-                    messages[messageCount++] = navStateMessage;
+                    ADD_DJI_MSG(navStateMessage);
                 }
             } else if (STATE(FIXED_WING_LEGACY) && (navGetCurrentStateFlags() & NAV_CTL_LAUNCH)) {
-                messages[messageCount++] = "AUTOLAUNCH";
+                ADD_DJI_MSG("AUTOLAUNCH");
             } else {
                 if (FLIGHT_MODE(NAV_ALTHOLD_MODE) && !navigationRequiresAngleMode()) {
                     // ALTHOLD might be enabled alongside ANGLE/HORIZON/ACRO
                     // when it doesn't require ANGLE mode (required only in FW
                     // right now). If if requires ANGLE, its display is handled
                     // by OSD_FLYMODE.
-                    messages[messageCount++] = "(ALT HOLD)";
+                    ADD_DJI_MSG("(ALT HOLD)");
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOTRIM) && !feature(FEATURE_FW_AUTOTRIM)) {
-                    messages[messageCount++] = "(AUTOTRIM)";
+                    ADD_DJI_MSG("(AUTOTRIM)");
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOTUNE)) {
-                    messages[messageCount++] = "(AUTOTUNE)";
+                    ADD_DJI_MSG("(AUTOTUNE)");
                 }
 
                 if (IS_RC_MODE_ACTIVE(BOXAUTOLEVEL)) {
-                    messages[messageCount++] = "(AUTO LEVEL TRIM)";
+                    ADD_DJI_MSG("(AUTO LEVEL TRIM)");
                 }
 
                 if (FLIGHT_MODE(HEADFREE_MODE)) {
-                    messages[messageCount++] = "(HEADFREE)";
+                    ADD_DJI_MSG("(HEADFREE)");
                 }
 
                 if (FLIGHT_MODE(MANUAL_MODE)) {
-                    messages[messageCount++] = "(MANUAL)";
+                    ADD_DJI_MSG("(MANUAL)");
                 }
 
                 if (FLIGHT_MODE(NAV_FW_AUTOLAND)) {
-                     messages[messageCount++] = "(LAND)";
+                     ADD_DJI_MSG("(LAND)");
                 }
             }
         }
         // Pick one of the available messages. Each message lasts
         // a second.
         if (messageCount > 0) {
-           strcpy(buff, messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)]);
-           haveMessage = true;
+            const char *message = messages[OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT, messageCount)];
+            if (message == vtolTransitionMessage &&
+                osdVtolTransitionMessageShouldBlink() &&
+                OSD_ALTERNATING_CHOICES(DJI_ALTERNATING_DURATION_SHORT / 2, 2) == 0) {
+                buff[0] = '\0';
+            } else {
+                strcpy(buff, message);
+            }
+            haveMessage = true;
         }
+        #undef ADD_DJI_MSG
     } else if (ARMING_FLAG(ARMING_DISABLED_ALL_FLAGS)) {
         unsigned invalidIndex;
         // Check if we're unable to arm for some reason
@@ -1429,7 +1448,7 @@ static mspResult_e djiProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, ms
             sbufWriteU8(dst, currentControlProfile->throttle.dynPID);
             sbufWriteU8(dst, currentControlProfile->throttle.rcMid8);
             sbufWriteU8(dst, currentControlProfile->throttle.rcExpo8);
-            sbufWriteU16(dst, currentControlProfile->throttle.pa_breakpoint);
+            sbufWriteU16(dst, currentControlProfile->throttle.tpa_breakpoint);
             sbufWriteU8(dst, currentControlProfile->stabilized.rcYawExpo8);
             sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate
             sbufWriteU8(dst, 100);                                      // INAV doesn't use rcRate

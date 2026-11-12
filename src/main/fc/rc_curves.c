@@ -59,7 +59,7 @@ int16_t rcLookup(int32_t stickDeflection, uint8_t expo)
     return lrintf((2500.0f + (float)expo * (tmpf * tmpf - 25.0f)) * tmpf / 25.0f);
 }
 
-uint16_t rcLookupThrottle(uint16_t absoluteDeflection)
+uint16_t RP2350_FAST_CODE rcLookupThrottle(uint16_t absoluteDeflection)
 {
     if (absoluteDeflection > 999)
         return getMaxThrottle();

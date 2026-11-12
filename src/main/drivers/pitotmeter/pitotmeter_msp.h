@@ -26,4 +26,4 @@
 
 struct pitotDev_s;
 bool mspPitotmeterDetect(struct pitotDev_s *pitot);
-void mspPitotmeterReceiveNewData(uint8_t * bufferPtr);
+void mspPitotmeterReceiveNewData(uint8_t * bufferPtr, unsigned int dataSize);

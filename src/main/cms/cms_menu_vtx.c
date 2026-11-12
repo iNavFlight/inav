@@ -36,6 +36,7 @@
 #include "drivers/vtx_common.h"
 
 #include "fc/config.h"
+#include "fc/runtime_config.h"
 
 #include "io/vtx_string.h"
 #include "io/vtx.h"
@@ -166,7 +167,9 @@ static long cms_Vtx_Commence(displayPort_t *pDisp, const void *self)
     vtxSettingsConfigMutable()->channel = vtxChan;
     vtxSettingsConfigMutable()->power = vtxPower;
 
-    saveConfigAndNotify();
+    if (!ARMING_FLAG(ARMED)) {
+        saveConfigAndNotify();
+    }
 
     return MENU_CHAIN_BACK;
 }

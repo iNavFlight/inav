@@ -65,6 +65,7 @@
 
 #define USE_IMU_ICM42605
 #define USE_IMU_BMI270
+#define USE_IMU_LSM6DXX
 
 
 // Enable dual gyro mode

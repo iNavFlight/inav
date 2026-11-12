@@ -826,6 +826,7 @@ HAL_StatusTypeDef     HAL_OSPI_AutoPolling_IT(OSPI_HandleTypeDef *hospi, OSPI_Au
 
 /* OSPI memory-mapped mode functions */
 HAL_StatusTypeDef     HAL_OSPI_MemoryMapped(OSPI_HandleTypeDef *hospi, OSPI_MemoryMappedTypeDef *cfg);
+uint32_t              HAL_OSPI_IsMemoryMapped(const OSPI_HandleTypeDef *hospi);
 
 /* Callback functions in non-blocking modes ***********************************/
 void                  HAL_OSPI_ErrorCallback(OSPI_HandleTypeDef *hospi);
@@ -903,7 +904,7 @@ HAL_StatusTypeDef     HAL_OSPIM_Config(OSPI_HandleTypeDef *hospi, OSPIM_CfgTypeD
 
 #define IS_OSPI_DEVICE_SIZE(SIZE)          (((SIZE) >= 1U) && ((SIZE) <= 32U))
 
-#define IS_OSPI_CS_HIGH_TIME(TIME)         (((TIME) >= 1U) && ((TIME) <= 8U))
+#define IS_OSPI_CS_HIGH_TIME(TIME)         (((TIME) >= 1U) && ((TIME) <= 64U))
 
 #define IS_OSPI_FREE_RUN_CLK(CLK)          (((CLK) == HAL_OSPI_FREERUNCLK_DISABLE) || \
                                             ((CLK) == HAL_OSPI_FREERUNCLK_ENABLE))

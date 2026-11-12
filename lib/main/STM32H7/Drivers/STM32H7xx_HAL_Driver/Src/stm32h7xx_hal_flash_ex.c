@@ -181,6 +181,12 @@ static uint32_t FLASH_OB_CPUFreq_GetBoost(void);
   *          information on faulty sector in case of error (0xFFFFFFFF means that all
   *          the sectors have been correctly erased)
   *
+  * @note   For dual-bank devices, if the SWAP_BANK option byte is enabled, the parameter
+  *         pEraseInit->Banks is modified accordingly. The logical bank addresses are swapped
+  *         as follows:
+  *          - FLASH_BANK_1 corresponds to the physical Bank2
+  *          - FLASH_BANK_2 corresponds to the physical Bank1
+  *
   * @retval HAL Status
   */
 HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t *SectorError)
@@ -297,6 +303,12 @@ HAL_StatusTypeDef HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef *pEraseInit, uint32_t
   * @brief  Perform a mass erase or erase the specified FLASH memory sectors with interrupt enabled
   * @param  pEraseInit pointer to an FLASH_EraseInitTypeDef structure that
   *         contains the configuration information for the erasing.
+  *
+  * @note   For dual-bank devices, if the SWAP_BANK option byte is enabled, the parameter
+  *         pEraseInit->Banks is modified accordingly. The logical bank addresses are swapped
+  *         as follows:
+  *          - FLASH_BANK_1 corresponds to the physical Bank2
+  *          - FLASH_BANK_2 corresponds to the physical Bank1
   *
   * @retval HAL Status
   */
@@ -728,7 +740,8 @@ HAL_StatusTypeDef HAL_FLASHEx_ComputeCRC(FLASH_CRCInitTypeDef *pCRCInit, uint32_
 
       /* Clear CRC flags in Status Register: CRC end of calculation and CRC read error */
       FLASH->CCR1 |= (FLASH_CCR_CLR_CRCEND | FLASH_CCR_CLR_CRCRDERR);
-
+      /* Clear burst size and type bits before setting new values */
+      FLASH->CRCCR1 &= ~(FLASH_CRCCR_CRC_BURST_Msk | FLASH_CRCCR_ALL_BANK);
       /* Clear current CRC result, program burst size and define memory area on which CRC has to be computed */
       FLASH->CRCCR1 |= FLASH_CRCCR_CLEAN_CRC | pCRCInit->BurstSize | pCRCInit->TypeCRC;
 
@@ -777,7 +790,8 @@ HAL_StatusTypeDef HAL_FLASHEx_ComputeCRC(FLASH_CRCInitTypeDef *pCRCInit, uint32_
 
       /* Clear CRC flags in Status Register: CRC end of calculation and CRC read error */
       FLASH->CCR2 |= (FLASH_CCR_CLR_CRCEND | FLASH_CCR_CLR_CRCRDERR);
-
+      /* Clear burst size and type bits before setting new values */
+      FLASH->CRCCR2 &= ~(FLASH_CRCCR_CRC_BURST_Msk | FLASH_CRCCR_ALL_BANK);
       /* Clear current CRC result, program burst size and define memory area on which CRC has to be computed */
       FLASH->CRCCR2 |= FLASH_CRCCR_CLEAN_CRC | pCRCInit->BurstSize | pCRCInit->TypeCRC;
 

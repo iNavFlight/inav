@@ -135,6 +135,7 @@
 // #define USE_RANGEFINDER_SRF10
 
 // *************** NAV *****************************
+#undef NAV_MAX_WAYPOINTS
 #define NAV_MAX_WAYPOINTS       60
 
 // *************** Others *****************************

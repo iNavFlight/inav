@@ -74,7 +74,13 @@ typedef struct sdioPin_s {
 
 #define SDIO_MAX_PINDEFS 2
 
-#define IOCFG_SDMMC       IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+#define IOCFG_SDMMC_CLK   IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+
+#if defined(USE_SDIO_PULLUP)
+#define IOCFG_SDMMC_DATA  IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_PULLUP)
+#else
+#define IOCFG_SDMMC_DATA  IO_CONFIG(GPIO_MODE_AF_PP, GPIO_SPEED_FREQ_VERY_HIGH, GPIO_NOPULL)
+#endif
 
 #ifdef STM32F7
 #define SDMMC_CLK_DIV SDMMC_TRANSFER_CLK_DIV
@@ -259,14 +265,14 @@ void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
     const IO_t d2 = IOGetByTag(sdioPin[SDIO_PIN_D2].pin);
     const IO_t d3 = IOGetByTag(sdioPin[SDIO_PIN_D3].pin);
 
-    IOConfigGPIOAF(clk, IOCFG_SDMMC, sdioPin[SDIO_PIN_CK].af);
-    IOConfigGPIOAF(cmd, IOCFG_SDMMC, sdioPin[SDIO_PIN_CMD].af);
-    IOConfigGPIOAF(d0, IOCFG_SDMMC, sdioPin[SDIO_PIN_D0].af);
+    IOConfigGPIOAF(clk, IOCFG_SDMMC_CLK, sdioPin[SDIO_PIN_CK].af);
+    IOConfigGPIOAF(cmd, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_CMD].af);
+    IOConfigGPIOAF(d0, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_D0].af);
 
 #ifdef SDCARD_SDIO_4BIT
-    IOConfigGPIOAF(d1, IOCFG_SDMMC, sdioPin[SDIO_PIN_D1].af);
-    IOConfigGPIOAF(d2, IOCFG_SDMMC, sdioPin[SDIO_PIN_D2].af);
-    IOConfigGPIOAF(d3, IOCFG_SDMMC, sdioPin[SDIO_PIN_D3].af);
+    IOConfigGPIOAF(d1, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_D1].af);
+    IOConfigGPIOAF(d2, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_D2].af);
+    IOConfigGPIOAF(d3, IOCFG_SDMMC_DATA, sdioPin[SDIO_PIN_D3].af);
 #endif
 
 #ifdef STM32F7
@@ -630,7 +636,7 @@ typedef struct {
     uint32_t NumberOfBlocks;
 } sdReadParameters_t;
 
-sdReadParameters_t sdReadParameters;
+static volatile sdReadParameters_t sdReadParameters;
 
 SD_Error_t SD_ReadBlocks_DMA(uint64_t ReadAddress, uint32_t *buffer, uint32_t BlockSize, uint32_t NumberOfBlocks)
 {
@@ -688,14 +694,17 @@ void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd)
 {
     UNUSED(hsd);
 
-    SD_Handle.RXCplt = 0;
-
     /*
        the SCB_InvalidateDCache_by_Addr() requires a 32-Byte aligned address,
        adjust the address and the D-Cache size to invalidate accordingly.
      */
     uint32_t alignedAddr = (uint32_t)sdReadParameters.buffer &  ~0x1F;
     SCB_InvalidateDCache_by_Addr((uint32_t*)alignedAddr, sdReadParameters.NumberOfBlocks * sdReadParameters.BlockSize + ((uint32_t)sdReadParameters.buffer - alignedAddr));
+
+    // Flag the transfer as complete only after the receive buffer has been made coherent.
+    // SCB_InvalidateDCache_by_Addr() ends with a __DSB(), so the invalidation is guaranteed
+    // to have completed before the flag is observable.
+    SD_Handle.RXCplt = 0;
 }
 
 void HAL_SD_AbortCallback(SD_HandleTypeDef *hsd)

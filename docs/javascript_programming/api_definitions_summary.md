@@ -72,7 +72,7 @@ Waypoint mission data:
 
 Math functions:
 - **Basic**: min, max, abs
-- **Trig**: sin, cos, tan (degrees)
+- **Trig**: sin, cos, tan (degrees), acos/asin (ratio inputs), atan2 (y, x -> degrees)
 - **Mapping**: mapInput, mapOutput
 - **Arithmetic**: add, sub, mul, div, mod (operators)
 

@@ -161,9 +161,9 @@ typedef void (*pSWPMI_CallbackTypeDef)(SWPMI_HandleTypeDef *hswpmi);
   * @{
   */
 #define HAL_SWPMI_ERROR_NONE                  ((uint32_t)0x00000000) /*!< No error              */
-#define HAL_SWPMI_ERROR_CRC                   ((uint32_t)0x00000004) /*!< frame error           */
+#define HAL_SWPMI_ERROR_UDR                   ((uint32_t)0x00000002) /*!< Underrun error        */
+#define HAL_SWPMI_ERROR_CRC                   ((uint32_t)0x00000004) /*!< Frame error           */
 #define HAL_SWPMI_ERROR_OVR                   ((uint32_t)0x00000008) /*!< Overrun error         */
-#define HAL_SWPMI_ERROR_UDR                   ((uint32_t)0x0000000C) /*!< Underrun error        */
 #define HAL_SWPMI_ERROR_DMA                   ((uint32_t)0x00000010) /*!< DMA transfer error    */
 #define HAL_SWPMI_ERROR_TIMEOUT               ((uint32_t)0x00000020) /*!< Transfer timeout      */
 #define HAL_SWPMI_ERROR_TXBEF_TIMEOUT         ((uint32_t)0x00000040) /*!< End Tx buffer timeout */

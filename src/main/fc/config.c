@@ -103,7 +103,12 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
     .enabledFeatures = DEFAULT_FEATURES | COMMON_DEFAULT_FEATURES
 );
 
+// Keep PG version split because USE_AUTO_TRANSITION changes the stored layout only on >512 KB targets.
+#ifdef USE_AUTO_TRANSITION
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 11);
+#else
 PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
+#endif
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .current_profile_index = 0,
@@ -117,6 +122,17 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .i2c_speed = SETTING_I2C_SPEED_DEFAULT,
 #endif
     .throttle_tilt_compensation_strength = SETTING_THROTTLE_TILT_COMP_STR_DEFAULT,      // 0-100, 0 - disabled
+#ifdef USE_AUTO_TRANSITION
+    .vtolTransitionToFwMinAirspeed = SETTING_VTOL_TRANSITION_TO_FW_MIN_AIRSPEED_CM_S_DEFAULT,
+    .vtolTransitionToMcMaxAirspeed = SETTING_VTOL_TRANSITION_TO_MC_MAX_AIRSPEED_CM_S_DEFAULT,
+    .vtolFwToMcAutoSwitchAirspeed = SETTING_VTOL_FW_TO_MC_AUTO_SWITCH_AIRSPEED_CM_S_DEFAULT,
+    .vtolAutotransitionAlways = SETTING_VTOL_AUTOTRANSITION_ALWAYS_DEFAULT,
+    .vtolTransitionLiftMinPercent = SETTING_VTOL_TRANSITION_LIFT_MIN_PERCENT_DEFAULT,
+    .vtolTransitionMcAuthorityMinPercent = SETTING_VTOL_TRANSITION_MC_AUTHORITY_MIN_PERCENT_DEFAULT,
+    .vtolTransitionFwAuthorityMinPercent = SETTING_VTOL_TRANSITION_FW_AUTHORITY_MIN_PERCENT_DEFAULT,
+    .vtolMcProtectionMode = SETTING_VTOL_MC_PROTECTION_MODE_DEFAULT,
+    .vtolMcThrReservePercent = SETTING_VTOL_MC_THR_RESERVE_PERCENT_DEFAULT,
+#endif
     .craftName = SETTING_NAME_DEFAULT,
     .pilotName = SETTING_NAME_DEFAULT
 );
@@ -250,8 +266,37 @@ void validateAndFixConfig(void)
 
     // Limitations of different protocols
 #if !defined(USE_DSHOT)
-    if (motorConfig()->motorPwmProtocol > PWM_TYPE_BRUSHED) {
+    // Named explicitly rather than tested as "above BRUSHED". This is a DSHOT
+    // check, and the enum has since grown a UART protocol above DSHOT600 that a
+    // build without DSHOT can still drive perfectly well - a range test would
+    // quietly rewrite it to MULTISHOT on every boot.
+    if (motorConfig()->motorPwmProtocol >= PWM_TYPE_DSHOT150 &&
+        motorConfig()->motorPwmProtocol <= PWM_TYPE_DSHOT600) {
         motorConfigMutable()->motorPwmProtocol = PWM_TYPE_MULTISHOT;
+    }
+#endif
+
+#if !defined(USE_MOTOR_SRXL2)
+    // A configuration restored onto a build without the driver would keep SRXL2
+    // selected, and nothing would drive the motors: the branch that installs the
+    // SRXL2 writer is compiled out, so the writer stays null, while the protocol
+    // is not timer-based and so escapes the "not enough outputs" check too. The
+    // result is a model that arms and does nothing, which is the one outcome
+    // worth spending a boot-time rewrite on.
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2) {
+        motorConfigMutable()->motorPwmProtocol = PWM_TYPE_STANDARD;
+    }
+#else
+    // Reverse is either off or one of the channels a Smart ESC can be programmed
+    // to watch, which Spektrum document as 5 to 9. The setting's range cannot
+    // express "zero, or five to nine", so anything between is normalised here:
+    // channel 1 aliases the throttle and the driver refuses it outright, and 2
+    // to 4 would be sent faithfully to an ESC with no way to act on them. Both
+    // used to leave a reverse mode the Configurator offered and nothing
+    // performed. Corrected to off, where it can be seen.
+    const uint8_t reverseChannel = motorConfig()->srxl2ReverseChannel;
+    if (reverseChannel != 0 && (reverseChannel < 5 || reverseChannel > 9)) {
+        motorConfigMutable()->srxl2ReverseChannel = 0;
     }
 #endif
 
@@ -362,7 +407,7 @@ void processSaveConfigAndNotify(void)
     writeEEPROM();
     readEEPROM();
     resumeRxSignal();
-    beeperConfirmationBeeps(1);
+    beeper(BEEPER_ACTION_SUCCESS);
 #ifdef USE_OSD
     osdShowEEPROMSavedNotification();
 #endif

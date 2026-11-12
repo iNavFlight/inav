@@ -1,0 +1,1 @@
+target_stm32h743xi(HUMMINGBIRD_FC305_H7)

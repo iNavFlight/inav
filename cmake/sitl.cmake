@@ -13,8 +13,14 @@ main_sources(SITL_COMMON_SRC_EXCLUDES
 
 main_sources(SITL_SRC
     config/config_streamer_file.c
+    drivers/dronecan/libcanard/canard_sitl_driver.c
+    drivers/sdcard/sdcard.c
+    drivers/sdcard/sdcard_sitl.c
+    drivers/sdcard/sdcard_sitl.h
     drivers/serial_tcp.c
     drivers/serial_tcp.h
+    io/asyncfatfs/asyncfatfs.c
+    io/asyncfatfs/fat_standard.c
     target/SITL/sim/realFlight.c
     target/SITL/sim/realFlight.h
     target/SITL/sim/simHelper.c
@@ -70,6 +76,7 @@ if(NOT MACOSX)
         -Wno-error=maybe-uninitialized
         -fsingle-precision-constant
     )
+
     include(CheckLinkerFlag OPTIONAL)
     if(COMMAND check_linker_flag)
         check_linker_flag(C "-Wl,--no-warn-rwx-segments" LINKER_SUPPORTS_NO_RWX_WARNING)
@@ -157,20 +164,5 @@ function (target_sitl name)
 
     setup_firmware_target(${exe_target} ${name} ${ARGN})
     #clean_<target>
-    set(generator_cmd "")
-    if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-        set(generator_cmd "make")
-    elseif(CMAKE_GENERATOR STREQUAL "Ninja")
-        set(generator_cmd "ninja")
-    endif()
-    if (NOT generator_cmd STREQUAL "")
-        set(clean_target "clean_${name}")
-        add_custom_target(${clean_target}
-            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND ${generator_cmd} clean
-            COMMENT "Removing intermediate files for ${name}")
-        set_target_properties(${clean_target} PROPERTIES
-            EXCLUDE_FROM_ALL ON
-            EXCLUDE_FROM_DEFAULT_BUILD ON)
-    endif()
+    add_clean_target(${name} EXECUTABLES ${exe_target} FILES ${exe_filename})
 endfunction()
