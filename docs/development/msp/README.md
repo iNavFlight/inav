@@ -1524,7 +1524,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 
-**Notes:** Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`.
+**Notes:** Requires `USE_OSD`. Minimum payload is `OSD_CHAR_VISIBLE_BYTES + 1` (8-bit address + 54 bytes). Payload size determines the address width and whether the extra metadata bytes are present. Writes characters via `displayWriteFontCharacter()`. Returns error if no OSD display port is active, the display port cannot store font characters (e.g. MSP DisplayPort), or the OSD device is not available.
 
 ## <a id="msp_vtx_config"></a>`MSP_VTX_CONFIG (88 / 0x58)`
 **Description:** Retrieves the current VTX (Video Transmitter) configuration and capabilities.  

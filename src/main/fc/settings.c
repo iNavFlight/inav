@@ -102,7 +102,7 @@ void settingGetName(const setting_t *val, char *buf)
 bool settingNameContains(const setting_t *val, char *buf, const char *cmdline)
 {
 	settingGetName(val, buf);
-	return strstr(buf, cmdline) != NULL;
+	return sl_strstr(buf, cmdline) != NULL;
 }
 
 bool settingNameIsExactMatch(const setting_t *val, char *buf, const char *cmdline, uint8_t var_name_length)

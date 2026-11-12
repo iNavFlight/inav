@@ -37,8 +37,8 @@ target_stm32f722xe(MATEKF722)
 Format: `target_stm32<CHIP><SIZE>(<TARGET_NAME>)`
 
 Common MCU variants:
-- `target_stm32f405rg()` - F405, 1MB flash
-- `target_stm32f411ce()` - F411, 512KB flash
+- `target_stm32f405xg()` - F405, 1MB flash
+- `target_stm32f411xe()` - F411, 512KB flash
 - `target_stm32f722xe()` - F722, 512KB flash
 - `target_stm32h743xi()` - H743, 2MB flash
 

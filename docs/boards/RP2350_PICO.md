@@ -91,6 +91,8 @@ Physical pin numbers below are the **Pico 2 header pins (1–40)**. Orient the
 board with the micro-USB connector at the top: pins 1–20 run down the left
 edge (pin 1 top-left), pins 21–40 run up the right edge.
 
+![Raspberry Pi Pico 2 pinout](../assets/images/rp2350-pico2-inav-pinout.png)
+
 > GPIO numbers in this section are RP2350 GPIOs. The target expresses them in
 > INAV pin syntax where **PA0–PA15 = GPIO0–15** and **PB0–PB13 = GPIO16–29**.
 
