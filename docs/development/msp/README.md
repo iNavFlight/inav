@@ -3817,6 +3817,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `vbat` | `uint8_t` | 1 | - | (If `HITL_EXT_BATTERY_VOLTAGE`) Simulated battery voltage (0.1V units) |
 | `airspeed` | `uint16_t` | 2 | - | (If `HITL_AIRSPEED`) Simulated airspeed (cm/s) |
 | `extFlags` | `uint8_t` | 1 | - | (If `HITL_EXTENDED_FLAGS`) Additional flags (upper 8 bits) |
+| `stepUs` | `uint32_t` | 4 | us | (SITL, format 3, if `HITL_STEPPED_CLOCK`) Simulated time SITL runs before replying |
   
 **Reply Payload:**
 |Field|C Type|Size (Bytes)|Description|

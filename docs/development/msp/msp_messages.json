@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 2
+        "patch": 3
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -8888,6 +8888,12 @@
                         "ctype": "uint8_t",
                         "desc": "(If `HITL_EXTENDED_FLAGS`) Additional flags (upper 8 bits)",
                         "units": ""
+                    },
+                    {
+                        "name": "stepUs",
+                        "ctype": "uint32_t",
+                        "desc": "(SITL, format 3, if `HITL_STEPPED_CLOCK`) Simulated time SITL runs before replying",
+                        "units": "us"
                     }
                 ]
             },
