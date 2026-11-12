@@ -5707,6 +5707,16 @@ In meters, radar aircrafts closer than this will not be displayed in the hud
 
 ---
 
+### osd_hud_roi
+
+To 3D-display the navigation ROI (region of interest) in the hud
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
 ### osd_hud_wp_disp
 
 How many navigation waypoints are displayed, set to 0 (zero) to disable. As sample, if set to 2, and you just passed the 3rd waypoint of the mission, you'll see markers for the 4th waypoint (marked 1) and the 5th waypoint (marked 2)

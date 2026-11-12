@@ -3009,7 +3009,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
             ) && isImuHeadingValid()) {
 
-            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
+            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0 || osdConfig()->hud_roi) {
                     osdHudClear();
             }
 
@@ -3062,7 +3062,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 }
             }
 
-            if (navROIIsSet()) {
+            if (osdConfig()->hud_roi && navROIIsSet()) {
                 navROI_t roi;
                 navGetROI(&roi);
 
