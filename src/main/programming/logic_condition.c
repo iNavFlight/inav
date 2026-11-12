@@ -708,6 +708,50 @@ static int logicConditionGetWaypointOperandValue(int operand) {
             return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER4);
             break;
 
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_BEARING:
+            {
+                int32_t bearing = 0;
+                if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
+                    fpVector3_t poi;
+                    gpsLocation_t wp;
+                    navWaypoint_t waypoint;
+                    if (!navGetMissionWaypointByRelativeIndex(NAV_Status.activeWpIndex, &waypoint)) {
+                        return 0;
+                    }
+                    wp.lat = waypoint.lat;
+                    wp.lon = waypoint.lon;
+                    wp.alt = waypoint.alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(waypoint.p3));
+
+                    bearing = calculateBearingToDestination(&poi);
+                }
+
+                return bearing;
+            }
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_ELEVATION:
+            {
+                int32_t elevation = 0;
+                if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
+                    fpVector3_t poi;
+                    gpsLocation_t wp;
+                    navWaypoint_t waypoint;
+                    if (!navGetMissionWaypointByRelativeIndex(NAV_Status.activeWpIndex, &waypoint)) {
+                        return 0;
+                    }
+                    wp.lat = waypoint.lat;
+                    wp.lon = waypoint.lon;
+                    wp.alt = waypoint.alt;
+                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(waypoint.p3));
+
+                    elevation = calculateElevationToDestination(&poi);
+                }
+
+                return elevation;
+            }
+            break;
+
         default:
             return 0;
             break;

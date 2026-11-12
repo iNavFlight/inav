@@ -4466,6 +4466,17 @@ int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
     return calculateBearingFromDelta(deltaX, deltaY);
 }
 
+int32_t calculateElevationToDestination(const fpVector3_t * destinationPos)
+{
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
+    const float deltaZ = destinationPos->z - posvel->pos.z;
+    const float horizontalDistance = calc_length_pythagorean_2D(deltaX, deltaY);
+
+    return RADIANS_TO_CENTIDEGREES(atan2_approx(deltaZ, horizontalDistance));
+}
+
 int32_t calculateBearingBetweenLocalPositions(const fpVector3_t * startPos, const fpVector3_t * endPos)
 {
     const float deltaX = endPos->x - startPos->x;

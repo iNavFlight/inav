@@ -252,6 +252,8 @@ extern "C" {
         return false;
     }
     uint32_t calculateDistanceToDestination(const fpVector3_t *destinationPos) { (void)destinationPos; return 0; }
+    int32_t calculateBearingToDestination(const fpVector3_t *destinationPos) { (void)destinationPos; return 0; }
+    int32_t calculateElevationToDestination(const fpVector3_t *destinationPos) { (void)destinationPos; return 0; }
     float getFlightTime(void) { return 0.0f; }
     uint32_t getTotalTravelDistance(void) { return 0; }
     uint16_t getRSSI(void) { return 0; }

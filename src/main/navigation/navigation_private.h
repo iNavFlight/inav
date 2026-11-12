@@ -574,6 +574,7 @@ bool isThrustFacingDownwards(void);
 uint32_t calculateDistanceToDestination(const fpVector3_t * destinationPos);
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t bearing, int32_t distance);
 int32_t calculateBearingToDestination(const fpVector3_t * destinationPos);
+int32_t calculateElevationToDestination(const fpVector3_t * destinationPos);
 float calculateDistance2(const fpVector2_t* startPos, const fpVector2_t* destinationPos);
 
 bool isLandingDetected(void);
