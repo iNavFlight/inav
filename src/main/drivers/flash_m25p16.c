@@ -131,6 +131,9 @@ struct {
     // JEDEC_ID_GT_GT25Q128EZ
     // Datasheet: NA
     {0x1C7118, 256, 256 },
+    // JEDEC_ID_GT_GT25Q256EZ
+    // Datasheet: NA
+    {0xC44019, 256, 256 },
     // End of list
     {0x000000, 0, 0}};
 
