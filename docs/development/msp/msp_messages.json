@@ -1,8 +1,8 @@
 {
     "version": {
         "major": 2,
-        "minor": 1,
-        "patch": 2
+        "minor": 2,
+        "patch": 0
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -11896,6 +11896,132 @@
             },
             "notes": "Requires `USE_WIND_ESTIMATOR`; returns zeroes when wind estimation is not compiled in or not yet valid. Check bit 0 of `flags` before using speed/angle values.",
             "description": "Retrieves the estimated horizontal wind speed and direction from the internal wind estimator."
+        },
+        "MSP2_INAV_NAV_ROI": {
+            "code": 8758,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "lat",
+                        "ctype": "int32_t",
+                        "desc": "ROI latitude (`posControl.roi.lat`)",
+                        "units": "1e-7 deg"
+                    },
+                    {
+                        "name": "lon",
+                        "ctype": "int32_t",
+                        "desc": "ROI longitude (`posControl.roi.lon`)",
+                        "units": "1e-7 deg"
+                    },
+                    {
+                        "name": "alt",
+                        "ctype": "int32_t",
+                        "desc": "ROI altitude (`posControl.roi.alt`)",
+                        "units": "cm"
+                    },
+                    {
+                        "name": "p1",
+                        "ctype": "int16_t",
+                        "desc": "ROI parameter 1 (`posControl.roi.p1`)",
+                        "units": ""
+                    },
+                    {
+                        "name": "p2",
+                        "ctype": "int16_t",
+                        "desc": "ROI parameter 2 (`posControl.roi.p2`)",
+                        "units": ""
+                    },
+                    {
+                        "name": "alt_datum",
+                        "ctype": "uint8_t",
+                        "desc": "ROI altitude datum bitfield (`posControl.roi.alt_datum`)",
+                        "units": "bitfield"
+                    },
+                    {
+                        "name": "action",
+                        "ctype": "uint8_t",
+                        "desc": "ROI action field (`posControl.roi.action`)",
+                        "units": ""
+                    },
+                    {
+                        "name": "flag",
+                        "ctype": "uint8_t",
+                        "desc": "ROI state flag (`posControl.roi.flag`): 0 empty, 1 volatile, 2 persistent",
+                        "units": "enum"
+                    }
+                ]
+            },
+            "notes": "Returns the active navigation ROI slot.",
+            "description": "Gets the active navigation ROI."
+        },
+        "MSP2_INAV_SET_NAV_ROI": {
+            "code": 8759,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "lat",
+                        "ctype": "int32_t",
+                        "desc": "ROI latitude",
+                        "units": "1e-7 deg"
+                    },
+                    {
+                        "name": "lon",
+                        "ctype": "int32_t",
+                        "desc": "ROI longitude",
+                        "units": "1e-7 deg"
+                    },
+                    {
+                        "name": "alt",
+                        "ctype": "int32_t",
+                        "desc": "ROI altitude",
+                        "units": "cm"
+                    },
+                    {
+                        "name": "p1",
+                        "ctype": "int16_t",
+                        "desc": "ROI parameter 1",
+                        "units": ""
+                    },
+                    {
+                        "name": "p2",
+                        "ctype": "int16_t",
+                        "desc": "ROI parameter 2",
+                        "units": ""
+                    },
+                    {
+                        "name": "alt_datum",
+                        "ctype": "uint8_t",
+                        "desc": "ROI altitude datum bitfield",
+                        "units": "bitfield"
+                    },
+                    {
+                        "name": "action",
+                        "ctype": "uint8_t",
+                        "desc": "ROI action field",
+                        "units": ""
+                    },
+                    {
+                        "name": "flag",
+                        "ctype": "uint8_t",
+                        "desc": "Control flag: 0 clears ROI, non-zero stores ROI as volatile (`flag` forced to 1)",
+                        "units": "enum"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Expects at least 19 bytes; trailing bytes are ignored.",
+            "description": "Sets or clears the active navigation ROI."
+        },
+        "MSP2_INAV_GOTO_ROI": {
+            "code": 8760,
+            "mspv": 2,
+            "request": null,
+            "reply": null,
+            "notes": "Calls `navGotoROI()`. Returns error if ROI is not set or guided mode preconditions are not met.",
+            "description": "Commands navigation to move guided desired position to the active ROI."
         },
         "MSP2_BETAFLIGHT_BIND": {
             "code": 12288,

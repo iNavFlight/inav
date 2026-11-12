@@ -3009,7 +3009,7 @@ static bool osdDrawSingleElement(uint8_t item)
 #endif
             ) && isImuHeadingValid()) {
 
-            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0) {
+            if (osdConfig()->hud_homepoint || osdConfig()->hud_radar_disp > 0 || osdConfig()->hud_wp_disp > 0 || osdConfig()->hud_roi) {
                     osdHudClear();
             }
 
@@ -3059,6 +3059,25 @@ static bool osdDrawSingleElement(uint8_t item)
                         while (j > 9) j -= 10; // Only the last digit displayed if WP>=10, no room for more (48 = ascii 0)
                         osdHudDrawPoi(calculateDistanceToDestination(&poi) / 100, osdGetHeadingAngle(calculateBearingToDestination(&poi) / 100), (posControl.waypointList[j].alt - altConvModeAltitude)/ 100, 2, SYM_WAYPOINT, 48 + j, i);
                     }
+                }
+            }
+
+            if (osdConfig()->hud_roi && navROIIsSet()) {
+                navROI_t roi;
+                navGetROI(&roi);
+
+                gpsLocation_t roiGps;
+                roiGps.lat = roi.lat;
+                roiGps.lon = roi.lon;
+                roiGps.alt = roi.alt;
+
+                fpVector3_t roiLocal;
+                if (geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiGps, waypointMissionAltConvMode((geoAltitudeDatumFlag_e)roi.alt_datum))) {
+                    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+                    osdHudDrawPoi(calculateDistanceToDestination(&roiLocal) / 100,
+                        osdGetHeadingAngle(calculateBearingToDestination(&roiLocal) / 100),
+                        (int32_t)((roiLocal.z - posvel->pos.z) / 100),
+                        2, SYM_WAYPOINT, 'R', 0);
                 }
             }
         }

@@ -187,6 +187,7 @@
 - [logicFlightOperands_e](#enum-logicflightoperands_e)
 - [logicOperandType_e](#enum-logicoperandtype_e)
 - [logicOperation_e](#enum-logicoperation_e)
+- [logicROIOperands_e](#enum-logicroioperands_e)
 - [logicWaypointOperands_e](#enum-logicwaypointoperands_e)
 - [logTopic_e](#enum-logtopic_e)
 - [lsm6dxxConfigMasks_e](#enum-lsm6dxxconfigmasks_e)
@@ -3520,7 +3521,8 @@
 | `LOGIC_CONDITION_OPERAND_TYPE_GVAR` | 5 |  |
 | `LOGIC_CONDITION_OPERAND_TYPE_PID` | 6 |  |
 | `LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS` | 7 |  |
-| `LOGIC_CONDITION_OPERAND_TYPE_LAST` | 8 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_ROI` | 8 |  |
+| `LOGIC_CONDITION_OPERAND_TYPE_LAST` | 9 |  |
 
 ---
 ## <a id="enum-logicoperation_e"></a>`logicOperation_e`
@@ -3594,6 +3596,24 @@
 | `LOGIC_CONDITION_ACTIVATE_RTH` | 62 |  |
 | `LOGIC_CONDITION_ACTIVATE_LANDING` | 63 |  |
 | `LOGIC_CONDITION_LAST` | 64 |  |
+
+---
+## <a id="enum-logicroioperands_e"></a>`logicROIOperands_e`
+
+> Source: src/main/programming/logic_condition.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `LOGIC_CONDITION_OPERAND_ROI_ACTIVE` | 0 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_DISTANCE` | 1 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_GROUND_DISTANCE` | 2 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_ALTITUDE` | 3 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_BEARING` | 4 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_ELEVATION` | 5 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_PARAM1` | 6 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_PARAM2` | 7 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_ALT_DATUM` | 8 |  |
+| `LOGIC_CONDITION_OPERAND_ROI_ACTION` | 9 |  |
 
 ---
 ## <a id="enum-logicwaypointoperands_e"></a>`logicWaypointOperands_e`
