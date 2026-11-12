@@ -357,7 +357,7 @@ else if (cmdMSP == MSP_REBOOT) {
 - **Command definitions:** `src/main/msp/msp_protocol.h`
 - **MSP V2 commands:** `src/main/msp/msp_protocol_v2_inav.h`
 - **Serial layer:** `src/main/msp/msp_serial.c`
-- **Schema:** `docs/development/msp/msp_messages.json`
+- **Schema:** `msp/schema/msp_v2.yaml`
 
 ---
 

@@ -1,0 +1,5 @@
+MSPIntf	KEYWORD1
+InavAPI	KEYWORD1
+request	KEYWORD2
+command	KEYWORD2
+waitFor	KEYWORD2

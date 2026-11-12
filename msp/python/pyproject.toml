@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "inav-msp"
+version = "0.1.1"
+description = "INAV MSP library for Python: generated codec, typed API and transports"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "xznhj8129" }]
+requires-python = ">=3.9"
+dependencies = ["pyserial"]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: System :: Monitoring",
+]
+
+# The codec and API work without pydantic; inav_msp.models needs it.
+[project.optional-dependencies]
+models = ["pydantic>=2"]
+
+[project.urls]
+Homepage = "https://github.com/iNavFlight/inav"
+
+[project.scripts]
+inav-msp-shell = "inav_msp.msp_shell:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"inav_msp.generated" = ["*.py"]
+"inav_msp.models" = ["*.py"]

@@ -1,0 +1,5 @@
+// Generated from schema/constants.yaml by msp/generator/gen_js.py. Do not edit by hand.
+
+// MSP protocol constants with a fixed value. Target-supplied ones have no
+// single value and are absent.
+export const InavConstants = Object.freeze(@CONSTANTS@);

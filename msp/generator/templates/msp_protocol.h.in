@@ -1,0 +1,109 @@
+/*
+ * This file is part of Cleanflight.
+ *
+ * Cleanflight is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Cleanflight is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+// Message ids below are generated from the MSP YAML schema by msp/generator/gen_c.py.
+
+/**
+ * MSP Guidelines, emphasis is used to clarify.
+ *
+ * Each FlightController (FC, Server) MUST change the API version when any MSP command is added, deleted, or changed.
+ *
+ * If you fork the FC source code and release your own version, you MUST change the Flight Controller Identifier.
+ *
+ * NEVER release a modified copy of this code that shares the same Flight controller IDENT and API version
+ * if the API doesn't match EXACTLY.
+ *
+ * Consumers of the API (API clients) SHOULD first attempt to get a response from the MSP_API_VERSION command.
+ *
+ * API consumers should ALWAYS handle communication failures gracefully and attempt to continue
+ * without the information if possible.  Clients MAY log/display a suitable message.
+ *
+ * API clients should NOT attempt any communication if they can't handle the returned API MAJOR VERSION.
+ *
+ * API clients SHOULD attempt communication if the API MINOR VERSION has increased from the time
+ * the API client was written and handle command failures gracefully.  Clients MAY disable
+ * functionality that depends on the commands while still leaving other functionality intact.
+ * Clients SHOULD operate in READ-ONLY mode and SHOULD present a warning to the user to state
+ * that the newer API version may cause problems before using API commands that change FC state.
+ *
+ * It is for this reason that each MSP command should be specific as possible, such that changes
+ * to commands break as little functionality as possible.
+ *
+ * API client authors MAY use a compatibility matrix/table when determining if they can support
+ * a given command from a given flight controller at a given api version level.
+ *
+ * Developers MUST NOT create new MSP commands that do more than one thing.
+ *
+ * Failure to follow these guidelines will likely invoke the wrath of developers trying to write tools
+ * that use the API and the users of those tools.
+ */
+/* Protocol numbers used both by the wire format, config system, and
+   field setters.
+*/
+#define MSP_PROTOCOL_VERSION                0   // Same version over MSPv1 & MSPv2 - message format didn't change and it backward compatible
+#define API_VERSION_MAJOR                   2   // increment when major changes are made
+#define API_VERSION_MINOR                   6   // increment when any change is made, reset to zero when major changes are released after changing API_VERSION_MAJOR
+#define API_VERSION_LENGTH                  2
+#define MULTIWII_IDENTIFIER "MWII";
+#define BASEFLIGHT_IDENTIFIER "BAFL";
+#define BETAFLIGHT_IDENTIFIER "BTFL"
+#define CLEANFLIGHT_IDENTIFIER "CLFL"
+#define INAV_IDENTIFIER "INAV"
+#define RACEFLIGHT_IDENTIFIER "RCFL"
+#define FLIGHT_CONTROLLER_IDENTIFIER_LENGTH 4
+#define FLIGHT_CONTROLLER_VERSION_LENGTH    3
+#define FLIGHT_CONTROLLER_VERSION_MASK      0xFFF
+#define BOARD_IDENTIFIER_LENGTH             4 // 4 UPPER CASE alpha numeric characters that identify the board being used.
+#define BOARD_HARDWARE_REVISION_LENGTH      2
+// These are baseflight specific flags but they are useless now since MW 2.3 uses the upper 4 bits for the navigation version.
+#define CAP_PLATFORM_32BIT          ((uint32_t)1 << 31)
+#define CAP_BASEFLIGHT_CONFIG       ((uint32_t)1 << 30)
+// MW 2.3 stores NAVI_VERSION in the top 4 bits of the capability mask.
+#define CAP_NAVI_VERSION_BIT_4_MSB  ((uint32_t)1 << 31)
+#define CAP_NAVI_VERSION_BIT_3      ((uint32_t)1 << 30)
+#define CAP_NAVI_VERSION_BIT_2      ((uint32_t)1 << 29)
+#define CAP_NAVI_VERSION_BIT_1_LSB  ((uint32_t)1 << 28)
+#define CAP_DYNBALANCE              ((uint32_t)1 << 2)
+#define CAP_FLAPS                   ((uint32_t)1 << 3)
+#define CAP_NAVCAP                  ((uint32_t)1 << 4)
+#define CAP_EXTAUX                  ((uint32_t)1 << 5)
+//
+// MSP commands for Cleanflight original features
+//
+// private - only to be used by the configurator, the commands are likely to change
+//
+// Baseflight MSP commands (if enabled they exist in Cleanflight)
+//
+// Betaflight Additional Commands
+//
+// OSD specific
+//
+//
+// Multwii original MSP commands
+//
+// #define MSP_BIND                 240    //in message          no param
+// #define MSP_ALARMS               242
+// Additional commands that are not compatible with MultiWii
+// MSPv2 includes
+
+@MESSAGE_IDS@
+
+#include "msp_protocol_v2_common.h"
+#include "msp_protocol_v2_sensor.h"
+#include "msp_protocol_v2_inav.h"
