@@ -88,6 +88,7 @@
 #include "sensors/temperature.h"
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
+#include "sensors/bec.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/irlock.h"
@@ -153,6 +154,10 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
         powerLimiterUpdate(BatMonitoringTimeSinceLastServiced);
 #endif
     }
+#endif
+
+#ifdef USE_BEC_VOLTAGE
+    becUpdate(BatMonitoringTimeSinceLastServiced);
 #endif
 
     batMonitoringLastServiced = currentTimeUs;
@@ -398,7 +403,11 @@ void fcTasksInit(void)
 #ifdef USE_LIGHTS
     setTaskEnabled(TASK_LIGHTS, true);
 #endif
-    setTaskEnabled(TASK_BATTERY, feature(FEATURE_VBAT) || isAmperageConfigured());
+    bool batteryTask = feature(FEATURE_VBAT) || isAmperageConfigured();
+#ifdef USE_BEC_VOLTAGE
+    batteryTask = batteryTask || becIsConfigured();
+#endif
+    setTaskEnabled(TASK_BATTERY, batteryTask);
     setTaskEnabled(TASK_TEMPERATURE, true);
     setTaskEnabled(TASK_RX, true);
 #ifdef USE_GPS
