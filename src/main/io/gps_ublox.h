@@ -120,6 +120,10 @@ STATIC_ASSERT(MAX_UBLOX_PAYLOAD_SIZE >= 256, ubx_size_too_small);
 #define UBLOX_CFG_GLO_L1_ENA            0x10310018 // U1 default off
 
 #define UBLOX_CFG_SBAS_PRNSCANMASK      0x50360006 // 0 = auto // X8
+
+// AssistNow Autonomous (orbit prediction from the receiver's own observations), VALSET receivers
+#define UBLOX_CFG_ANA_USE_ANA           0x10230001 // L
+#define UBLOX_CFG_ANA_ORBMAXERR         0x30230002 // U2, metres, 5..1000, default 100
 #define UBLOX_SBAS_ALL                  0x0000000000000000 //Enable search for all SBAS PRNs
 #define UBLOX_SBAS_PRN120               0x0000000000000001 //Enable search for SBAS PRN120
 #define UBLOX_SBAS_PRN121               0x0000000000000002 //Enable search for SBAS PRN121
@@ -276,12 +280,41 @@ typedef struct {
 #define MAX_GNSS 7
 #define MAX_GNSS_SIZE_BYTES (sizeof(ubx_gnss_msg_t) + sizeof(ubx_gnss_element_t)*MAX_GNSS)
 
+// UBX-CFG-NAVX5 version 2 (u-blox 8 / M8 receiver description UBX-13003221, 40 bytes).
+// Only the fields selected in mask1 are applied, the rest is ignored by the receiver.
+typedef struct {
+    uint16_t version;           // 2
+    uint16_t mask1;             // bit 14: apply aopCfg and aopOrbMaxErr
+    uint32_t mask2;
+    uint8_t reserved1[2];
+    uint8_t minSVs;
+    uint8_t maxSVs;
+    uint8_t minCNO;
+    uint8_t reserved2;
+    uint8_t iniFix3D;
+    uint8_t reserved3[2];
+    uint8_t ackAiding;
+    uint16_t wknRollover;
+    uint8_t sigAttenCompMode;
+    uint8_t reserved4;
+    uint8_t reserved5[2];
+    uint8_t reserved6[2];
+    uint8_t usePPP;
+    uint8_t aopCfg;             // bit 0: use AssistNow Autonomous
+    uint8_t reserved7[2];
+    uint16_t aopOrbMaxErr;      // metres, 5..1000
+    uint8_t reserved8[4];
+    uint8_t reserved9[3];
+    uint8_t useAdr;
+} __attribute__((packed)) ubx_cfg_navx5_t;
+
 typedef union {
     uint8_t bytes[MAX_GNSS_SIZE_BYTES]; // placeholder
     ubx_sbas sbas;
     ubx_msg msg;
     ubx_rate rate;
     ubx_gnss_msg_t gnss;
+    ubx_cfg_navx5_t navx5;
 } ubx_payload;
 
 // UBX support
@@ -517,6 +550,7 @@ typedef enum {
     MSG_CFG_NAV_SETTINGS = 0x24,
     MSG_CFG_SBAS = 0x16,
     MSG_CFG_GNSS = 0x3e,
+    MSG_CFG_NAVX5 = 0x23,
     MSG_MON_GNSS = 0x28,
     MSG_NAV_SIG = 0x43,
     MSG_MON_RF = 0x38
