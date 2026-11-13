@@ -601,6 +601,11 @@ void tryArm(void)
         return;
     }
 
+#ifdef USE_SDCARD
+    // The free space count reads the FAT from the realtime callbacks: none of it in flight
+    afatfs_countFreeSpace(false);
+#endif
+
 #ifdef USE_DSHOT
 #ifdef USE_MULTI_FUNCTIONS
     const bool turtleIsActive = IS_RC_MODE_ACTIVE(BOXTURTLE) || MULTI_FUNC_FLAG(MF_TURTLE_MODE);
