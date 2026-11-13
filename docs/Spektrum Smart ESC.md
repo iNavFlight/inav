@@ -41,7 +41,7 @@ Nothing connects to the flight controller's ESC telemetry pad. That pad is for E
 with a separate telemetry lead, such as BLHeli or HobbyWing; a Smart ESC has no such
 lead.
 
-The motor pad that would normally have driven this ESC is simply left unused.
+No motor pad is reserved for a Smart ESC: the servos take the pads that can drive a servo from the first one, as if the model had no motor. A board set up on 10.0.0-rc1 or rc2, where the first motor pad and its timer were still taken, has its servos one or two pads further along: after updating, check every servo output before flying, or set `timer_output_mode` to MOTORS for the timer of that old motor pad to keep the layout the model was wired for.
 
 ## Setting it up
 
