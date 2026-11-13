@@ -33,10 +33,10 @@ tables:
   - name: failsafe_procedure
     values: ["LAND", "DROP", "RTH", "NONE"]
   - name: current_sensor
-    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT"]
+    values: ["NONE", "ADC", "VIRTUAL", "FAKE", "ESC", "SMARTPORT", "SMBUS"]
     enum: currentSensor_e
   - name: voltage_sensor
-    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT"]
+    values: ["NONE", "ADC", "ESC", "FAKE", "SMARTPORT", "SMBUS"]
     enum: voltageSensor_e
   - name: imu_inertia_comp_method
     values: ["VELNED", "TURNRATE","ADAPTIVE"]
@@ -979,7 +979,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running."
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, `SMBUS`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. `SMBUS` reads voltage from a SMBus smart battery (e.g. BQ40Z50) and forces I2C to 100kHz on boot."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -1011,7 +1011,7 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position."
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, SMBUS, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position. `SMBUS` reads current from a SMBus smart battery (e.g. BQ40Z50) and forces I2C to 100kHz on boot."
         default_value: "ADC"
         field: current.type
         table: current_sensor
@@ -1045,6 +1045,14 @@ groups:
         field: throttle_compensation_weight
         min: 0
         max: 2
+      - name: smbus_scale_factor
+        description: "Multiplier applied to SMBus battery current and capacity values (needed when the gauge, e.g. BQ40Z80, is configured with a scale factor that cannot be read back over SMBus). 1 = no scaling. Note: 0 zeroes all scaled readings."
+        condition: USE_SMBUS_BATT
+        default_value: 4
+        field: smbusScaleFactor
+        min: 0
+        max: 255
+        type: uint8_t
 
   - name: PG_BATTERY_PROFILES
     type: batteryProfile_t

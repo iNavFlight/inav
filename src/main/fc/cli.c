@@ -114,6 +114,7 @@ bool cliMode = false;
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
+#include "sensors/smbus.h"
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 #include "sensors/diagnostics.h"
@@ -4077,6 +4078,35 @@ static const char * getBatteryStateString(void)
     return batteryStateStrings[getBatteryState()];
 }
 
+#ifdef USE_SMBUS_BATT
+static void cliBattery(char *cmdline)
+{
+    UNUSED(cmdline);
+
+    cliPrintLinef("Voltage: %d.%02dV (%dS - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
+    cliPrintLinef("Current: %d.%02dA", getAmperage() / 100, getAmperage() % 100);
+
+    if (isSmbusBatteryEnabled()) {
+        cliPrintLinef("Battery source: SMBUS");
+        cliPrintLinef("SMBus scale factor: x%d", smbusBattGetScaleFactor());
+        uint16_t u16; uint32_t u32; uint8_t u8; int16_t i16; int32_t i32;
+        if (smbusBattGetVoltage(&u16))            cliPrintLinef("SMBus voltage: %dmV", u16);
+        if (smbusBattGetCurrent(&i32))            cliPrintLinef("SMBus current: %dmA", i32);
+        if (smbusBattGetPercent(&u8))             cliPrintLinef("SMBus charge: %d%%", u8);
+        if (smbusBattGetRemainingCapacity(&u32))  cliPrintLinef("SMBus remaining capacity: %dmAh", u32);
+        if (smbusBattGetFullChargeCapacity(&u32)) cliPrintLinef("SMBus full charge capacity: %dmAh", u32);
+        if (smbusBattGetTemperature(&i16))       cliPrintLinef("SMBus temperature: %d.%dC", i16 / 10, (i16 >= 0 ? i16 : -i16) % 10);
+        if (smbusBattGetDischargeTimeMin(&u16))  cliPrintLinef("SMBus time to empty: %dmin", u16);
+        if (smbusBattGetCycleCount(&u16))         cliPrintLinef("SMBus cycle count: %d", u16);
+        if (smbusBattGetHealth(&u8))              cliPrintLinef("SMBus state of health: %d%%", u8);
+        if (!smbusBattIsDetected())               cliPrintLinef("SMBus: battery not detected on bus");
+    } else {
+        cliPrintLinef("Battery source: ADC/OTHER (SMBus not enabled)");
+        cliPrintLinef("Enable with: set vbat_meter_type = SMBUS  and/or  set current_meter_type = SMBUS");
+    }
+}
+#endif
+
 static void cliStatus(char *cmdline)
 {
     UNUSED(cmdline);
@@ -4935,6 +4965,9 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
     CLI_COMMAND_DEF("control_profile", "change control profile", "[<index>]", cliControlProfile),
     CLI_COMMAND_DEF("mixer_profile", "change mixer profile", "[<index>]", cliMixerProfile),
+#if defined(USE_SMBUS_BATT)
+    CLI_COMMAND_DEF("battery", "show battery meter source and SMBus data", NULL, cliBattery),
+#endif
     CLI_COMMAND_DEF("battery_profile", "change battery profile", "[<index>]", cliBatteryProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),

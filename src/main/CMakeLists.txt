@@ -452,6 +452,8 @@ main_sources(COMMON_SRC
     sensors/battery.c
     sensors/battery.h
     sensors/battery_config_structs.h
+    sensors/smbus.c
+    sensors/smbus.h
     sensors/boardalignment.c
     sensors/boardalignment.h
     sensors/compass.c

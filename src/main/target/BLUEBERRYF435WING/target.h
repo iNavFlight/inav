@@ -99,6 +99,8 @@
 #define USE_MAG_ALL
 #define DEFAULT_I2C_BUS         BUS_I2C2
 
+#define SMBUS_I2C_BUS           BUS_I2C2
+
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_2 
 #define SPI2_SCK_PIN            PB13

@@ -54,6 +54,7 @@ typedef enum {
     OWNER_OLED_DISPLAY,
     OWNER_PINIO,
     OWNER_IRLOCK,
+    OWNER_SMBUS_BATT,
     OWNER_TOTAL_COUNT
 } resourceOwner_e;
 

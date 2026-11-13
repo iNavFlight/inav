@@ -485,4 +485,23 @@
     BUSDEV_REGISTER_I2C(busdev_pcf8574,      DEVHW_PCF8574,       PCF8574_I2C_BUS,     0x20,               NONE,           DEVFLAGS_NONE, 0);
 #endif
 
+#if defined(USE_SMBUS_BATT) && defined(USE_I2C)
+
+    #ifndef SMBUS_I2C_BUS
+        #if defined(EXTERNAL_I2C_BUS)
+            #define SMBUS_I2C_BUS EXTERNAL_I2C_BUS
+        #elif defined(DEFAULT_I2C_BUS)
+            #define SMBUS_I2C_BUS DEFAULT_I2C_BUS
+        #else
+            #define SMBUS_I2C_BUS BUS_I2C1
+        #endif
+    #endif
+
+    #ifndef SMBUS_I2C_ADDR
+        #define SMBUS_I2C_ADDR (0x0B)
+    #endif
+
+    BUSDEV_REGISTER_I2C(busdev_smbus_batt,   DEVHW_SMBUS_BATT,    SMBUS_I2C_BUS,       SMBUS_I2C_ADDR,     NONE,           DEVFLAGS_NONE, 0);
+#endif
+
 #endif  // USE_TARGET_HARDWARE_DESCRIPTORS

@@ -138,6 +138,7 @@
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
+#include "sensors/smbus.h"
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
@@ -442,6 +443,10 @@ void init(void)
             i2cInit(I2CDEV_EMULATED);
     #endif
 #endif
+#endif
+
+#if defined(USE_SMBUS_BATT)
+    smbusBattInit();
 #endif
 
 #ifdef USE_ADC

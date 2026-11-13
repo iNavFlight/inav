@@ -85,6 +85,7 @@
 #include "sensors/temperature.h"
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
+#include "sensors/smbus.h"
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/irlock.h"
@@ -127,6 +128,12 @@ void taskUpdateBattery(timeUs_t currentTimeUs)
 {
     static timeUs_t batMonitoringLastServiced = 0;
     timeDelta_t BatMonitoringTimeSinceLastServiced = cmpTimeUs(currentTimeUs, batMonitoringLastServiced);
+
+#if defined(USE_SMBUS_BATT)
+    if (isSmbusBatteryEnabled()) {
+        smbusBattUpdate();
+    }
+#endif
 
     if (isAmperageConfigured()) {
         currentMeterUpdate(BatMonitoringTimeSinceLastServiced);

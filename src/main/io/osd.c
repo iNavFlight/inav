@@ -102,6 +102,7 @@
 
 #include "sensors/acceleration.h"
 #include "sensors/battery.h"
+#include "sensors/smbus.h"
 #include "sensors/boardalignment.h"
 #include "sensors/compass.h"
 #include "sensors/diagnostics.h"
@@ -1965,10 +1966,16 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_BATTERY_REMAINING_CAPACITY:
     {
         bool unitsDrawn = false;
+#ifdef USE_SMBUS_BATT
+        /* SMBus: BQ40Z50 reports remaining capacity directly, skip the NA/NF estimation guards */
+        const bool skipEstimationChecks = isSmbusBatteryEnabled();
+#else
+        const bool skipEstimationChecks = false;
+#endif
 
-        if (currentBatteryProfile->capacity.value == 0)
+        if (!skipEstimationChecks && currentBatteryProfile->capacity.value == 0)
             tfp_sprintf(buff, "  NA");
-        else if (!batteryWasFullWhenPluggedIn())
+        else if (!skipEstimationChecks && !batteryWasFullWhenPluggedIn())
             tfp_sprintf(buff, "  NF");
         else if (batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MAH) {
             uint8_t mah_digits = osdConfig()->mAh_precision; // Initialize to config value
@@ -2021,6 +2028,53 @@ static bool osdDrawSingleElement(uint8_t item)
         buff[3] = SYM_MILLIOHM;
         buff[4] = '\0';
         break;
+
+#if defined(USE_SMBUS_BATT)
+    case OSD_SMBUS_BATT_TEMPERATURE:
+        {
+            int16_t temperature;
+            const bool valid = smbusBattGetTemperature(&temperature);
+            osdDisplayTemperature(elemPosX, elemPosY, SYM_TEMP, NULL, valid, temperature, 0, 0);
+            return true;
+        }
+
+    case OSD_SMBUS_BATT_DISCHARGE_TIME:
+        {
+            uint16_t t;
+            if (smbusBattGetDischargeTimeMin(&t)) {
+                if (t == 0xFFFF) {
+                    strcpy(buff, "----");   /* not discharging */
+                } else {
+                    tfp_sprintf(buff, "%3umin", t);
+                }
+            } else {
+                strcpy(buff, "---");
+            }
+            break;
+        }
+
+    case OSD_SMBUS_BATT_CYCLE_COUNT:
+        {
+            uint16_t c;
+            if (smbusBattGetCycleCount(&c)) {
+                tfp_sprintf(buff, "%u", c);
+            } else {
+                strcpy(buff, "---");
+            }
+            break;
+        }
+
+    case OSD_SMBUS_BATT_HEALTH:
+        {
+            uint8_t h;
+            if (smbusBattGetHealth(&h)) {
+                tfp_sprintf(buff, "%3u%%", h);
+            } else {
+                strcpy(buff, "---");
+            }
+            break;
+        }
+#endif
 
 #ifdef USE_GPS
     case OSD_GPS_SATS:
@@ -2516,24 +2570,34 @@ static bool osdDrawSingleElement(uint8_t item)
         {
             /*static int32_t updatedTimeSeconds = 0;*/
             static int32_t timeSeconds = -1;
-#if defined(USE_ADC) && defined(USE_GPS)
             static timeUs_t updatedTimestamp = 0;
             timeUs_t currentTimeUs = micros();
             if (cmpTimeUs(currentTimeUs, updatedTimestamp) >= MS2US(1000)) {
-#ifdef USE_WIND_ESTIMATOR
-                timeSeconds = calculateRemainingFlightTimeBeforeRTH(osdConfig()->estimations_wind_compensation);
-#else
-                timeSeconds = calculateRemainingFlightTimeBeforeRTH(false);
+#ifdef USE_SMBUS_BATT
+                if (isSmbusBatteryEnabled()) {
+                    uint16_t minutesToEmpty;
+                    if (smbusBattGetDischargeTimeMin(&minutesToEmpty)) {
+                        timeSeconds = (minutesToEmpty == 0xFFFF) ? -1 : (int32_t)minutesToEmpty * 60;
+                    } else {
+                        timeSeconds = -1;
+                    }
+                } else
 #endif
+                {
+#if defined(USE_ADC) && defined(USE_GPS)
+#ifdef USE_WIND_ESTIMATOR
+                    timeSeconds = calculateRemainingFlightTimeBeforeRTH(osdConfig()->estimations_wind_compensation);
+#else
+                    timeSeconds = calculateRemainingFlightTimeBeforeRTH(false);
+#endif
+#endif
+                }
                 updatedTimestamp = currentTimeUs;
             }
-#endif
             if ((!ARMING_FLAG(ARMED)) || (timeSeconds == -1)) {
                 buff[0] = SYM_FLIGHT_MINS_REMAINING;
                 strcpy(buff + 1, "--:--");
-#if defined(USE_ADC) && defined(USE_GPS)
                 updatedTimestamp = 0;
-#endif
             } else if (timeSeconds == -2) {
                 // Wind is too strong to come back with cruise throttle
                 buff[0] = SYM_FLIGHT_MINS_REMAINING;
@@ -4212,13 +4276,27 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
         if (elementIndex == OSD_EFFICIENCY_WH_PER_KM) {
             elementIndex = OSD_TRIP_DIST;
         }
-        if (elementIndex == OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH) {
+        if (
+#ifdef USE_SMBUS_BATT
+            !isSmbusBatteryEnabled() &&
+#endif
+            elementIndex == OSD_REMAINING_FLIGHT_TIME_BEFORE_RTH) {
             elementIndex = OSD_HOME_HEADING_ERROR;
         }
         if (elementIndex == OSD_CLIMB_EFFICIENCY) {
             elementIndex = OSD_NAV_WP_MULTI_MISSION_INDEX;
         }
     }
+
+#if defined(USE_SMBUS_BATT)
+    if (!isSmbusBatteryEnabled() && elementIndex == OSD_SMBUS_BATT_TEMPERATURE) {
+        elementIndex = OSD_ITEM_COUNT;
+    }
+#else
+    if (elementIndex == OSD_SMBUS_BATT_TEMPERATURE) {
+        elementIndex = OSD_ITEM_COUNT;
+    }
+#endif
 
     if (!STATE(ESC_SENSOR_ENABLED)) {
         if (elementIndex == OSD_ESC_RPM) {
@@ -4228,7 +4306,13 @@ uint8_t osdIncElementIndex(uint8_t elementIndex)
 
     if (!feature(FEATURE_GPS)) {
         if (elementIndex == OSD_GPS_HDOP || elementIndex == OSD_TRIP_DIST || elementIndex == OSD_3D_SPEED || elementIndex == OSD_MISSION ||
-            elementIndex == OSD_AZIMUTH || elementIndex == OSD_BATTERY_REMAINING_CAPACITY || elementIndex == OSD_EFFICIENCY_MAH_PER_KM) {
+            elementIndex == OSD_AZIMUTH ||
+#ifdef USE_SMBUS_BATT
+            (!isSmbusBatteryEnabled() && elementIndex == OSD_BATTERY_REMAINING_CAPACITY) ||
+#else
+            elementIndex == OSD_BATTERY_REMAINING_CAPACITY ||
+#endif
+            elementIndex == OSD_EFFICIENCY_MAH_PER_KM) {
             elementIndex++;
         }
         if (elementIndex == OSD_HEADING_GRAPH && !sensors(SENSOR_MAG)) {
@@ -4446,6 +4530,11 @@ void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)
     osdLayoutsConfig->item_pos[0][OSD_BATTERY_REMAINING_CAPACITY] = OSD_POS(1, 6);
     osdLayoutsConfig->item_pos[0][OSD_BATTERY_REMAINING_PERCENT] = OSD_POS(1, 7);
     osdLayoutsConfig->item_pos[0][OSD_POWER_SUPPLY_IMPEDANCE] = OSD_POS(1, 8);
+
+    osdLayoutsConfig->item_pos[0][OSD_SMBUS_BATT_TEMPERATURE] = OSD_POS(1, 9);
+    osdLayoutsConfig->item_pos[0][OSD_SMBUS_BATT_DISCHARGE_TIME] = OSD_POS(1, 10);
+    osdLayoutsConfig->item_pos[0][OSD_SMBUS_BATT_CYCLE_COUNT] = OSD_POS(1, 11);
+    osdLayoutsConfig->item_pos[0][OSD_SMBUS_BATT_HEALTH] = OSD_POS(1, 12);
 
     osdLayoutsConfig->item_pos[0][OSD_EFFICIENCY_MAH_PER_KM] = OSD_POS(1, 5);
     osdLayoutsConfig->item_pos[0][OSD_EFFICIENCY_WH_PER_KM] = OSD_POS(1, 5);

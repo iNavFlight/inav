@@ -65,6 +65,9 @@
 #if defined(USE_SMARTPORT_MASTER)
 #include "io/smartport_master.h"
 #endif
+#if defined(USE_SMBUS_BATT)
+#include "sensors/smbus.h"
+#endif
 
 #define ADCVREF 3300                            // in mV (3300 = 3.3V)
 
@@ -186,6 +189,10 @@ PG_RESET_TEMPLATE(batteryMetersConfig_t, batteryMetersConfig,
         .offset = CURRENT_METER_OFFSET
     },
 
+#ifdef USE_SMBUS_BATT
+    .smbusScaleFactor = SETTING_SMBUS_SCALE_FACTOR_DEFAULT,
+#endif
+
     .voltageSource = SETTING_BAT_VOLTAGE_SRC_DEFAULT,
 
     .capacity_unit = SETTING_BATTERY_CAPACITY_UNIT_DEFAULT,
@@ -304,6 +311,13 @@ static void updateBatteryVoltage(timeUs_t timeDelta, bool justConnected)
             vbat = 0;
         }
         break;
+#endif
+#if defined(USE_SMBUS_BATT)
+    case VOLTAGE_SENSOR_SMBUS: {
+        uint16_t smbusVoltage;
+        vbat = smbusBattGetVoltage(&smbusVoltage) ? smbusVoltage / 10 : 0;  /* mV -> 0.01V steps */
+        break;
+    }
 #endif
     case VOLTAGE_SENSOR_NONE:
         default:
@@ -539,6 +553,14 @@ uint16_t getBatterySagCompensatedAverageCellVoltage(void)
 
 uint32_t getBatteryRemainingCapacity(void)
 {
+#ifdef USE_SMBUS_BATT
+    if (isSmbusBatteryEnabled()) {
+        uint32_t smbusRemaining;
+        if (smbusBattGetRemainingCapacity(&smbusRemaining)) {
+            return smbusRemaining;
+        }
+    }
+#endif
     return batteryRemainingCapacity;
 }
 
@@ -623,6 +645,22 @@ void currentMeterUpdate(timeUs_t timeDelta)
                 amperage = 0;
             }
             break;
+#endif
+#if defined(USE_SMBUS_BATT)
+        case CURRENT_SENSOR_SMBUS: {
+            int32_t smbusCurrent;
+            if (smbusBattGetCurrent(&smbusCurrent)) {
+                /* BQ40Z50 current sign depends on sense-resistor orientation; INAV amperage
+                 * is consumption (>= 0), so use the magnitude of the reported current. */
+                if (smbusCurrent < 0) {
+                    smbusCurrent = -smbusCurrent;
+                }
+                amperage = smbusCurrent / 10;  /* mA -> 0.01A (centiampere) */
+            } else {
+                amperage = 0;
+            }
+            break;
+        }
 #endif
 #if defined(USE_FAKE_BATT_SENSOR)
         case CURRENT_SENSOR_FAKE:
@@ -741,6 +779,15 @@ uint8_t calculateBatteryPercentage(void)
 {
     if (batteryState == BATTERY_NOT_PRESENT)
         return 0;
+
+#ifdef USE_SMBUS_BATT
+    if (isSmbusBatteryEnabled()) {
+        uint8_t smbusPercent;
+        if (smbusBattGetPercent(&smbusPercent)) {
+            return smbusPercent;
+        }
+    }
+#endif
 
     if (batteryFullWhenPluggedIn && isAmperageConfigured() && (currentBatteryProfile->capacity.value > 0) && (currentBatteryProfile->capacity.critical > 0)) {
         uint32_t capacityDiffBetweenFullAndEmpty = currentBatteryProfile->capacity.value - currentBatteryProfile->capacity.critical;

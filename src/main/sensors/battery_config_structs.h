@@ -32,7 +32,8 @@ typedef enum {
     CURRENT_SENSOR_FAKE,
     CURRENT_SENSOR_ESC,
     CURRENT_SENSOR_SMARTPORT,
-    CURRENT_SENSOR_MAX = CURRENT_SENSOR_SMARTPORT
+    CURRENT_SENSOR_SMBUS,
+    CURRENT_SENSOR_MAX = CURRENT_SENSOR_SMBUS
 } currentSensor_e;
 
 typedef enum {
@@ -41,7 +42,8 @@ typedef enum {
     VOLTAGE_SENSOR_ESC,
     VOLTAGE_SENSOR_FAKE,
     VOLTAGE_SENSOR_SMARTPORT,
-    VOLTAGE_SENSOR_MAX = VOLTAGE_SENSOR_SMARTPORT
+    VOLTAGE_SENSOR_SMBUS,
+    VOLTAGE_SENSOR_MAX = VOLTAGE_SENSOR_SMBUS
 } voltageSensor_e;
 
 typedef enum {
@@ -68,6 +70,10 @@ typedef struct batteryMetersConfig_s {
         int16_t offset;                 // offset of the current sensor in millivolt steps
         currentSensor_e type;           // type of current meter used, either ADC or virtual
     } current;
+
+#ifdef USE_SMBUS_BATT
+    uint8_t smbusScaleFactor;           // multiplier applied to SMBus battery current and capacity values (BQ40Z80 configured scale). Cannot be read back over SMBus.
+#endif
 
     batVoltageSource_e voltageSource;
 
