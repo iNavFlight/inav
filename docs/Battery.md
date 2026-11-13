@@ -70,6 +70,16 @@ set vbat_warning_cell_voltage = 340
 set vbat_min_cell_voltage = 330
 ```
 
+## BEC voltage
+
+The BEC supplies the servo rail, and often the flight controller too. When it sags under a servo load, the board can reset or the servos glitch, so it is worth watching apart from the pack.
+
+The NEXUS, the NEXUS X/XR, the Vantac RF007 and the FlyDragon Pro measure the servo rail on their own ADC, on PC1, as Rotorflight does for the same boards. On the FlyDragon Pro that is the servo plug bank; PC2, the output of its built-in regulator, is not read. `bec_adc_channel` selects the channel, PC1's by default, and `vbec_scale` calibrates it as `vbat_scale` does the pack.
+
+Where the Smart ESC driver is built (F405, H7 and AT32 boards, and the four above), a board without a BEC input, or with `bec_adc_channel` at 0, takes it from a Spektrum Smart ESC that reports its BEC voltage, the lowest one when there are several, as long as `esc_srxl2_telemetry` is on. The ESC measures it at its own output, so the drop along the wires to the board is not included. Not every Smart ESC reports it: the Avian 70A does not.
+
+`status` in the CLI shows it and where it comes from. The OSD element "BEC voltage" shows it, and blinks below `vbec_warning_voltage` (0.01 V units, 0 for no warning).
+
 # Current Monitoring
 
 Current monitoring (amperage) is supported by connecting a current meter to the appropriate current meter ADC input (see the documentation for your particular board).
