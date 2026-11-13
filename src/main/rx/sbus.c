@@ -67,6 +67,7 @@ typedef struct sbusFrameData_s {
     uint8_t buffer[SBUS_FRAME_SIZE];
     uint8_t position;
     timeUs_t lastActivityTimeUs;
+    serialPort_t *port;
 } sbusFrameData_t;
 
 static uint8_t sbus2ActiveTelemetryPage = 0;
@@ -78,7 +79,7 @@ timeUs_t frameTime = 0;
 static void sbusDataReceive(uint16_t c, void *data)
 {
     sbusFrameData_t *sbusFrameData = data;
-    const timeUs_t currentTimeUs = micros();
+    const timeUs_t currentTimeUs = serialRxByteTimeUs(sbusFrameData->port);
     const timeDelta_t timeSinceLastByteUs = cmpTimeUs(currentTimeUs, sbusFrameData->lastActivityTimeUs);
     sbusFrameData->lastActivityTimeUs = currentTimeUs;
 
@@ -255,11 +256,12 @@ static bool sbusInitEx(const rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeC
         &sbusFrameData,
         sbusBaudRate,
         (portShared || rxConfig->serialrx_provider == SERIALRX_SBUS2) ? MODE_RXTX : MODE_RX,
-        SBUS_PORT_OPTIONS |
+        SBUS_PORT_OPTIONS | SERIAL_RX_BURSTS |
             (rxConfig->serialrx_inverted ? 0 : SERIAL_INVERTED) |
             ((rxConfig->serialrx_provider == SERIALRX_SBUS2) ? SERIAL_BIDIR : 0) |
             (tristateWithDefaultOffIsActive(rxConfig->halfDuplex) ? SERIAL_BIDIR : 0)
         );
+    sbusFrameData.port = sBusPort;
 
 #ifdef USE_TELEMETRY
     if (portShared || (rxConfig->serialrx_provider == SERIALRX_SBUS2)) {

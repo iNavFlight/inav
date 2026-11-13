@@ -72,6 +72,7 @@ void serialWriteBuf(serialPort_t *instance, const uint8_t *data, int count) { UN
 void serialPrint(serialPort_t *instance, const char *str) { UNUSED(instance); UNUSED(str); }
 void serialSetMode(serialPort_t *instance, portMode_t mode) { UNUSED(instance); UNUSED(mode); }
 void serialSetBaudRate(serialPort_t *instance, uint32_t baudRate) { UNUSED(instance); UNUSED(baudRate); }
+void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_t size) { UNUSED(instance); UNUSED(buffer); UNUSED(size); }
 
 serialPort_t *openSerialPort(serialPortIdentifier_e identifier, serialPortFunction_e function,
                              serialReceiveCallbackPtr rxCallback, void *rxCallbackData,
