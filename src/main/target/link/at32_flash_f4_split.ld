@@ -201,6 +201,26 @@ SECTIONS
     _efastram_data = .;        /* define a global symbol at data end */
   } >FASTRAM AT> FLASH1
 
+  /* MSC-boot-mode-only data (see FASTRAM_MSC_ONLY in build/build_config.h): kept
+   * in its own sub-section, ahead of the general .fastram_bss catch-all below,
+   * so it has a well-defined size/address range instead of being anonymously
+   * mixed into the general FASTRAM pool. That's what a future OVERLAY with a
+   * normal-mode-only FASTRAM consumer would reclaim it through - none exists
+   * yet, this only reserves and bounds the opportunity. The size ASSERT below
+   * is a soft budget: it exists to catch unexpected growth, not to cap this
+   * data's legitimate size - raise it if a real MSC-mode need requires more.
+   */
+  . = ALIGN(4);
+  .fastram_bss_msc_only (NOLOAD) :
+  {
+    __fastram_msc_only_start__ = .;
+    *(.fastram_bss.msc_only)
+    . = ALIGN(4);
+    __fastram_msc_only_end__ = .;
+  } >FASTRAM
+
+  ASSERT(__fastram_msc_only_end__ - __fastram_msc_only_start__ <= 16K, "FASTRAM_MSC_ONLY region grew past its documented 16 KB reclaim budget - see build/build_config.h")
+
 /* define FAST_DATA_ZERO_INIT part  Initialized in startup_at23f435_437_.S */
   . = ALIGN(4);
   .fastram_bss (NOLOAD) :
