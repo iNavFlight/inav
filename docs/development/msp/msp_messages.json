@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 2
+        "patch": 3
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -12023,6 +12023,50 @@
             "reply": null,
             "notes": "Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.",
             "description": "Controls SRXL2 ESC throttle-range calibration."
+        },
+        "MSP2_INAV_MAG_LEARN": {
+            "code": 8757,
+            "mspv": 2,
+            "request": null,
+            "reply": {
+                "payload": [
+                    {
+                        "name": "flags",
+                        "ctype": "uint16_t",
+                        "desc": "Bitmask (magLearnFlags_e): 0 collecting, 1 paused (armed, not flying), 4 save due at disarm, 5 too few sectors, 6 too few headings, 7 not a sphere, 8 off the stored scale, 9 step too big, 10 saved at the last disarm, 11 still moving a minute after the disarm (nothing saved).",
+                        "units": "Bitmask",
+                        "bitmask": true
+                    },
+                    {
+                        "name": "sectors",
+                        "ctype": "uint8_t",
+                        "desc": "Direction sectors filled, of 72 (12 headings x 6 elevation bands).",
+                        "units": ""
+                    },
+                    {
+                        "name": "headings",
+                        "ctype": "uint8_t",
+                        "desc": "Heading sectors filled, of 12.",
+                        "units": ""
+                    },
+                    {
+                        "name": "spread",
+                        "ctype": "uint16_t",
+                        "desc": "Spread of the field magnitude around the fitted radius.",
+                        "units": "0.1 %"
+                    },
+                    {
+                        "name": "delta",
+                        "ctype": "int16_t",
+                        "desc": "Fitted offset minus the stored magZero, X, Y, Z. After a save it is the change written.",
+                        "units": "Raw ADC",
+                        "array": true,
+                        "array_size": 3
+                    }
+                ]
+            },
+            "notes": "Requires USE_MAG_LEARN (USE_MAG on targets with more than 512 KB of flash); without it the command is not supported. All zero until the first armed flight with mag_learn ON. The save is decided once the 5 s emergency rearm window is over and the aircraft is still, at most a minute after the disarm. Kept in RAM only: lost at power off.",
+            "description": "Reads the state of the in-flight compass offset learning for the current flight, or for the last one once disarmed."
         }
     }
 }

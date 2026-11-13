@@ -18,7 +18,7 @@ gimbalSerialConfig_t             1 0
 gpsConfig_t                     11 5
 gyroConfig_t                    64 12
 headTrackerConfig_t             16 1
-imuConfig_t                     16 2
+imuConfig_t                     18 2
 ledPinConfig_t                   1 0
 logConfig_t                      8 0
 modeActivationOperatorConfig_t   1 0

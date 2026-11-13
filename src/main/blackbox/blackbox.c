@@ -57,6 +57,7 @@
 #include "fc/rc_smoothing.h"
 
 #include "flight/failsafe.h"
+#include "flight/gsf_yaw.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
@@ -79,6 +80,7 @@
 #include "sensors/barometer.h"
 #include "sensors/battery.h"
 #include "sensors/compass.h"
+#include "sensors/compass_learn.h"
 #include "sensors/gyro.h"
 #include "sensors/pitotmeter.h"
 #include "sensors/rangefinder.h"
@@ -118,7 +120,7 @@ PG_RESET_TEMPLATE(blackboxConfig_t, blackboxConfig,
     .includeFlags = BLACKBOX_FEATURE_NAV_PID | BLACKBOX_FEATURE_NAV_POS |
         BLACKBOX_FEATURE_MAG | BLACKBOX_FEATURE_ACC | BLACKBOX_FEATURE_ATTITUDE |
         BLACKBOX_FEATURE_RC_DATA | BLACKBOX_FEATURE_RC_COMMAND |
-        BLACKBOX_FEATURE_MOTORS | BLACKBOX_FEATURE_SERVOS,
+        BLACKBOX_FEATURE_MOTORS | BLACKBOX_FEATURE_SERVOS | BLACKBOX_FEATURE_MAG_LEARN,
 );
 
 void blackboxIncludeFlagSet(uint32_t mask)
@@ -397,6 +399,10 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"motor",       5, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_6)},
     {"motor",       6, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_7)},
     {"motor",       7, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_8)},
+    {"motor",       8, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_9)},
+    {"motor",       9, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_10)},
+    {"motor",      10, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_11)},
+    {"motor",      11, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_12)},
 
     /* servos */
     {"servo",       0, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_1)},
@@ -458,6 +464,15 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"navAcc",     0, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_ACC},
     {"navAcc",     1, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_ACC},
     {"navAcc",     2, SIGNED,   .Ipredict = PREDICT(0),       .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), FLIGHT_LOG_FIELD_CONDITION_NAV_ACC},
+#ifdef USE_GSF_YAW
+    {"gsfYaw",        -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfYawStd",     -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfExcitation", -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfNis",        -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfFlags",      -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfGpsDelay",   -1, UNSIGNED, .Ipredict = PREDICT(0), .Iencode = ENCODING(UNSIGNED_VB), .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+    {"gsfMagErr",     -1, SIGNED,   .Ipredict = PREDICT(0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(PREVIOUS), .Pencode = ENCODING(SIGNED_VB), CONDITION(GSF)},
+#endif
 };
 
 #ifdef USE_GPS
@@ -486,57 +501,65 @@ static const blackboxSimpleFieldDefinition_t blackboxGpsHFields[] = {
 };
 #endif
 
-// Rarely-updated fields
-static const blackboxSimpleFieldDefinition_t blackboxSlowFields[] = {
+// Rarely-updated fields; one without a condition is always logged
+static const blackboxConditionalFieldDefinition_t blackboxSlowFields[] = {
     /* "flightModeFlags" renamed internally to more correct ref of rcModeFlags, since it logs rc boxmode selections,
      * but name kept for external compatibility reasons.
      * "activeFlightModeFlags" logs actual active flight modes rather than rc boxmodes.
      * 'active' should at least distinguish it from the existing "flightModeFlags" */
 
-    {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"flightModeFlags2",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"activeFlightModeFlags", -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"stateFlags",            -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"activeWpNumber",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"flightModeFlags",       -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"flightModeFlags2",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"activeFlightModeFlags", -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"stateFlags",            -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
 
-    {"failsafePhase",         -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
-    {"rxSignalReceived",      -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
-    {"rxFlightChannelsValid", -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32)},
-    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB)},
+    {"failsafePhase",         -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32), CONDITION(ALWAYS)},
+    {"rxSignalReceived",      -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32), CONDITION(ALWAYS)},
+    {"rxFlightChannelsValid", -1, UNSIGNED, PREDICT(0),      ENCODING(TAG2_3S32), CONDITION(ALWAYS)},
+    {"rxUpdateRate",          -1, UNSIGNED, PREDICT(PREVIOUS),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
 
-    {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"sagCompensatedVBat",    -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
-    {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"hwHealthStatus",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"powerSupplyImpedance",  -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"sagCompensatedVBat",    -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"wind",                   0, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"wind",                   1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"wind",                   2, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #if defined(USE_RX_MSP) && defined(USE_MSP_RC_OVERRIDE)
-    {"mspOverrideFlags",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"mspOverrideFlags",      -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
 #endif
-    {"IMUTemperature",        -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"IMUTemperature",        -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #ifdef USE_BARO
-    {"baroTemperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"baroTemperature",       -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 #ifdef USE_TEMPERATURE_SENSOR
-    {"sens0Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens1Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens2Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens3Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens4Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens5Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens6Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
-    {"sens7Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB)},
+    {"sens0Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens1Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens2Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens3Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens4Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens5Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens6Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"sens7Temp",             -1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 #ifdef USE_ESC_SENSOR
-    {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB)},
-    {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB)},
+    {"escRPM",                -1, UNSIGNED, PREDICT(0),             ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
+    {"escTemperature",        -1, SIGNED,   PREDICT(PREVIOUS),      ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
 #endif
 #ifdef USE_DRONECAN
-    {"droneCANBusOffCount",   -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB)},
+    {"droneCANBusOffCount",   -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(ALWAYS)},
 #endif
 #ifdef USE_TERRAIN
-    {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
-    {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB)},
+    {"terrainAGL",                -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+    {"terrainAMSL",               -1, SIGNED,   PREDICT(0),             ENCODING(SIGNED_VB), CONDITION(ALWAYS)},
+#endif
+#ifdef USE_MAG_LEARN
+    {"magBias",                0, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBias",                1, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBias",                2, SIGNED,   PREDICT(0),      ENCODING(SIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasFlags",          -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasSectors",        -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
+    {"magBiasSpread",         -1, UNSIGNED, PREDICT(0),      ENCODING(UNSIGNED_VB), CONDITION(MAG_LEARN)},
 #endif
 };
 
@@ -608,6 +631,15 @@ typedef struct blackboxMainState_s {
     int32_t navPos[XYZ_AXIS_COUNT];
     int16_t navRealVel[XYZ_AXIS_COUNT];
     int16_t navAccNEU[XYZ_AXIS_COUNT];
+#ifdef USE_GSF_YAW
+    uint16_t gsfYaw;            // decidegrees
+    uint16_t gsfYawStd;         // decidegrees
+    uint16_t gsfExcitation;     // m/s
+    uint16_t gsfNis;            // x100
+    uint8_t gsfFlags;
+    uint16_t gsfGpsDelay;       // ms
+    int16_t gsfMagErr;          // decidegrees, compass heading minus the estimate
+#endif
     int16_t navTargetVel[XYZ_AXIS_COUNT];
     int32_t navTargetPos[XYZ_AXIS_COUNT];
     int16_t navHeading;
@@ -657,6 +689,9 @@ typedef struct blackboxSlowState_s {
 #ifdef USE_DRONECAN
     uint32_t droneCANBusOffCount;
 #endif
+#ifdef USE_MAG_LEARN
+    magLearnStatus_t magLearn;
+#endif
 } __attribute__((__packed__)) blackboxSlowState_t; // We pack this struct so that padding doesn't interfere with memcmp()
 
 //From rc_controls.c
@@ -679,12 +714,11 @@ static struct {
     } u;
 } xmitState;
 
-// Cache for FLIGHT_LOG_FIELD_CONDITION_* test results:
-static uint64_t blackboxConditionCache;
+// Cache for FLIGHT_LOG_FIELD_CONDITION_* test results, a bit for every condition up to and including LAST
+static uint32_t blackboxConditionCache[FLIGHT_LOG_FIELD_CONDITION_LAST / 32 + 1];
 
-// The cache holds a bit for every condition up to and including LAST, which is NEVER, so
-// it needs LAST + 1 bits. A dual-gyro target takes the 64th
-STATIC_ASSERT((sizeof(blackboxConditionCache) * 8) > FLIGHT_LOG_FIELD_CONDITION_LAST, too_many_flight_log_conditions);
+// The field definitions above declare 12 motors, and the writers log getMotorCount() of them
+STATIC_ASSERT(MAX_SUPPORTED_MOTORS <= 12, blackbox_declares_up_to_12_motors);
 
 static uint32_t blackboxIFrameInterval;
 static uint32_t blackboxIteration;
@@ -741,6 +775,10 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_6:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_7:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_8:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_9:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_10:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_11:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_12:
         return (getMotorCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_MOTORS);
 
     case FLIGHT_LOG_FIELD_CONDITION_SERVOS:
@@ -879,6 +917,18 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW:
         return blackboxIncludeFlag(BLACKBOX_FEATURE_GYRO_PEAKS_YAW);
 
+#ifdef USE_MAG_LEARN
+    case FLIGHT_LOG_FIELD_CONDITION_MAG_LEARN:
+        return sensors(SENSOR_MAG) && compassConfig()->magLearn && blackboxIncludeFlag(BLACKBOX_FEATURE_MAG_LEARN);
+#endif
+
+    case FLIGHT_LOG_FIELD_CONDITION_GSF:
+#ifdef USE_GSF_YAW
+        return feature(FEATURE_GPS) && blackboxIncludeFlag(BLACKBOX_FEATURE_GSF);
+#else
+        return false;
+#endif
+
     case FLIGHT_LOG_FIELD_CONDITION_NEVER:
         return false;
 
@@ -889,21 +939,17 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
 static void blackboxBuildConditionCache(void)
 {
-    blackboxConditionCache = 0;
+    memset(blackboxConditionCache, 0, sizeof(blackboxConditionCache));
     for (uint8_t cond = FLIGHT_LOG_FIELD_CONDITION_FIRST; cond <= FLIGHT_LOG_FIELD_CONDITION_LAST; cond++) {
-
-        const uint64_t position = ((uint64_t)1) << cond;
-
         if (testBlackboxConditionUncached(cond)) {
-            blackboxConditionCache |= position;
+            blackboxConditionCache[cond / 32] |= 1U << (cond % 32);
         }
     }
 }
 
 static bool testBlackboxCondition(FlightLogFieldCondition condition)
 {
-    const uint64_t position = ((uint64_t)1) << condition;
-    return (blackboxConditionCache & position) != 0;
+    return (blackboxConditionCache[condition / 32] >> (condition % 32)) & 1U;
 }
 
 static void blackboxSetState(BlackboxState newState)
@@ -1148,6 +1194,18 @@ static void writeIntraframe(void)
             blackboxWriteSignedVB(blackboxCurrent->navAccNEU[x]);
         }
     }
+
+#ifdef USE_GSF_YAW
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GSF)) {
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfYaw);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfYawStd);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfExcitation);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfNis);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfFlags);
+        blackboxWriteUnsignedVB(blackboxCurrent->gsfGpsDelay);
+        blackboxWriteSignedVB(blackboxCurrent->gsfMagErr);
+    }
+#endif
 
     //Rotate our history buffers:
 
@@ -1415,6 +1473,18 @@ static void writeInterframe(void)
         }
     }
 
+#ifdef USE_GSF_YAW
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_GSF)) {
+        blackboxWriteSignedVB(blackboxCurrent->gsfYaw - blackboxLast->gsfYaw);
+        blackboxWriteSignedVB(blackboxCurrent->gsfYawStd - blackboxLast->gsfYawStd);
+        blackboxWriteSignedVB(blackboxCurrent->gsfExcitation - blackboxLast->gsfExcitation);
+        blackboxWriteSignedVB(blackboxCurrent->gsfNis - blackboxLast->gsfNis);
+        blackboxWriteSignedVB(blackboxCurrent->gsfFlags - blackboxLast->gsfFlags);
+        blackboxWriteSignedVB(blackboxCurrent->gsfGpsDelay - blackboxLast->gsfGpsDelay);
+        blackboxWriteSignedVB(blackboxCurrent->gsfMagErr - blackboxLast->gsfMagErr);
+    }
+#endif
+
     //Rotate our history buffers
     blackboxHistory[2] = blackboxHistory[1];
     blackboxHistory[1] = blackboxHistory[0];
@@ -1479,6 +1549,15 @@ static void writeSlowFrame(void)
 
 #ifdef USE_DRONECAN
     blackboxWriteUnsignedVB(slowHistory.droneCANBusOffCount);
+#endif
+
+#ifdef USE_MAG_LEARN
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MAG_LEARN)) {
+        blackboxWriteSigned16VBArray(slowHistory.magLearn.delta, XYZ_AXIS_COUNT);
+        blackboxWriteUnsignedVB(slowHistory.magLearn.flags);
+        blackboxWriteUnsignedVB(slowHistory.magLearn.sectors);
+        blackboxWriteUnsignedVB(slowHistory.magLearn.spread);
+    }
 #endif
 
     blackboxSlowFrameIterationTimer = 0;
@@ -1584,6 +1663,14 @@ static void loadSlowState(blackboxSlowState_t *slow)
 #ifdef USE_TERRAIN
     slow->terrainAGL = terrainGetLastDistanceCm();
     slow->terrainAMSL = terrainGetLastAMSL();
+#endif
+#ifdef USE_MAG_LEARN
+    // Zero when not logged, or the state changing underneath would still trigger slow frames
+    if (testBlackboxCondition(FLIGHT_LOG_FIELD_CONDITION_MAG_LEARN)) {
+        slow->magLearn = magLearnStatus;
+    } else {
+        memset(&slow->magLearn, 0, sizeof(slow->magLearn));
+    }
 #endif
 }
 
@@ -1905,6 +1992,17 @@ static void loadMainState(timeUs_t currentTimeUs)
     }
     blackboxCurrent->navTargetHeading = navDesiredHeading;
     blackboxCurrent->navSurface = navActualSurface;
+
+#ifdef USE_GSF_YAW
+    const gsfYawStatus_t *gsf = gsfYawGetStatus();
+    blackboxCurrent->gsfYaw = constrain(lrintf(RADIANS_TO_DECIDEGREES(gsf->yaw)), 0, 3599);
+    blackboxCurrent->gsfYawStd = constrain(lrintf(RADIANS_TO_DECIDEGREES(gsf->yawSigma)), 0, 3600);
+    blackboxCurrent->gsfExcitation = constrain(lrintf(gsf->excitation), 0, UINT16_MAX);
+    blackboxCurrent->gsfNis = constrain(lrintf(gsf->nis * 100.0f), 0, UINT16_MAX);
+    blackboxCurrent->gsfFlags = gsf->flags;
+    blackboxCurrent->gsfGpsDelay = gsf->gpsDelayUs / 1000;
+    blackboxCurrent->gsfMagErr = (gsf->flags & GSF_YAW_MAG_COMPARED) ? lrintf(RADIANS_TO_DECIDEGREES(gsf->magError)) : 0;
+#endif
 }
 
 /**
@@ -2148,8 +2246,17 @@ static bool blackboxWriteSysinfo(void)
 #endif
 #ifdef USE_MAG
         BLACKBOX_PRINT_HEADER_LINE("mag_hardware", "%d",                    compassConfig()->mag_hardware);
+#ifdef USE_MAG_LEARN
+        BLACKBOX_PRINT_HEADER_LINE("mag_learn", "%d",                       compassConfig()->magLearn);
+        BLACKBOX_PRINT_HEADER_LINE("mag_zero", "%d,%d,%d",                  compassConfig()->magZero.raw[X],
+                                                                            compassConfig()->magZero.raw[Y],
+                                                                            compassConfig()->magZero.raw[Z]);
+#endif
 #else
         BLACKBOX_PRINT_HEADER_LINE("mag_hardware", "%d",                    MAG_NONE);
+#endif
+#ifdef USE_GSF_YAW
+        BLACKBOX_PRINT_HEADER_LINE("ahrs_gsf_yaw", "%d",                    imuConfig()->gsf_yaw);
 #endif
         BLACKBOX_PRINT_HEADER_LINE("serialrx_provider", "%d",               rxConfig()->serialrx_provider);
         BLACKBOX_PRINT_HEADER_LINE("motor_pwm_protocol", "%d",              motorConfig()->motorPwmProtocol);
@@ -2416,7 +2523,7 @@ void blackboxUpdate(timeUs_t currentTimeUs)
     case BLACKBOX_STATE_SEND_SLOW_HEADER:
         //On entry of this state, xmitState.headerIndex is 0 and xmitState.u.fieldIndex is -1
         if (!sendFieldDefinition('S', 0, blackboxSlowFields, blackboxSlowFields + 1, ARRAYLEN(blackboxSlowFields),
-                NULL, NULL)) {
+                &blackboxSlowFields[0].condition, &blackboxSlowFields[1].condition)) {
             blackboxSetState(BLACKBOX_STATE_SEND_SYSINFO);
         }
         break;
