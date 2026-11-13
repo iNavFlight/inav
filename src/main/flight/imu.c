@@ -47,6 +47,7 @@
 #include "fc/runtime_config.h"
 #include "fc/settings.h"
 
+#include "flight/gsf_yaw.h"
 #include "flight/imu.h"
 #include "flight/mixer.h"
 #include "flight/mixer_profile.h"
@@ -135,7 +136,10 @@ PG_RESET_TEMPLATE(imuConfig_t, imuConfig,
     .acc_ignore_slope = SETTING_AHRS_ACC_IGNORE_SLOPE_DEFAULT,
     .gps_yaw_windcomp = SETTING_AHRS_GPS_YAW_WINDCOMP_DEFAULT,
     .inertia_comp_method = SETTING_AHRS_INERTIA_COMP_METHOD_DEFAULT,
-    .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT
+    .gps_yaw_weight = SETTING_AHRS_GPS_YAW_WEIGHT_DEFAULT,
+#ifdef USE_GSF_YAW
+    .gsf_yaw = SETTING_AHRS_GSF_YAW_DEFAULT,
+#endif
 );
 
 STATIC_UNIT_TESTED RP2350_FAST_CODE void imuComputeRotationMatrix(void)
@@ -189,6 +193,9 @@ void imuInit(void)
     // Explicitly initialize FASTRAM statics
     isAccelUpdatedAtLeastOnce = false;
     gpsHeadingInitialized = false;
+#ifdef USE_GSF_YAW
+    gsfYawInit();
+#endif
 
     // Create magnetic declination matrix
 #ifdef USE_MAG
@@ -224,6 +231,11 @@ void imuSetMagneticDeclination(float declinationDeg)
     vCorrectedMagNorth.x = cos_approx(declinationRad);
     vCorrectedMagNorth.y = sin_approx(declinationRad);
     vCorrectedMagNorth.z = 0;
+}
+
+float imuGetMagneticDeclination(void)
+{
+    return atan2_approx(-vCorrectedMagNorth.y, vCorrectedMagNorth.x);
 }
 
 RP2350_FAST_CODE void imuTransformVectorBodyToEarth(fpVector3_t * v)
@@ -369,7 +381,25 @@ static float imuCalculateMcCogAccWeight(void)
     return wCoGAcc;
 }
 
-static RP2350_FAST_CODE void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, const fpVector3_t * vCOG, const fpVector3_t * vCOGAcc, float accWScaler, float magWScaler)
+#ifdef USE_GSF_YAW
+// vGsf: the GSF heading as the GPS course is passed, scaled by its weight; a heading, so always against the nose
+NOINLINE static void imuAddGsfHeadingError(fpVector3_t *vErr, const fpVector3_t *vGsf)
+{
+    const fpVector3_t vForward = { .v = { 1.0f, 0.0f, 0.0f } };
+    fpVector3_t vHeadingEF;
+    quaternionRotateVectorInv(&vHeadingEF, &vForward, &orientation);
+    vHeadingEF.z = 0.0f;
+    if (vectorNormSquared(&vHeadingEF) > 0.01f) {
+        vectorNormalize(&vHeadingEF, &vHeadingEF);
+        fpVector3_t vGsfErr;
+        vectorCrossProduct(&vGsfErr, vGsf, &vHeadingEF);
+        quaternionRotateVector(&vGsfErr, &vGsfErr, &orientation);
+        vectorAdd(vErr, vErr, &vGsfErr);
+    }
+}
+#endif
+
+static RP2350_FAST_CODE void imuMahonyAHRSupdate(float dt, const fpVector3_t * gyroBF, const fpVector3_t * accBF, const fpVector3_t * magBF, const fpVector3_t * vCOG, const fpVector3_t * vCOGAcc, const fpVector3_t * vGsf, float accWScaler, float magWScaler)
 {
     STATIC_FASTRAM fpVector3_t vGyroDriftEstimate = { 0 };
 
@@ -392,7 +422,7 @@ static RP2350_FAST_CODE void imuMahonyAHRSupdate(float dt, const fpVector3_t * g
 
     /* Step 1: Yaw correction */
     // Use measured magnetic field vector
-    if (magBF || vCOG || vCOGAcc) {
+    if (magBF || vCOG || vCOGAcc || vGsf) {
         float wMag = 1.0f;
         float wCoG = 1.0f;
         if (magBF) { wCoG *= imuConfig()->gps_yaw_weight / 100.0f; }
@@ -496,6 +526,11 @@ static RP2350_FAST_CODE void imuMahonyAHRSupdate(float dt, const fpVector3_t * g
         vectorScale(&vMagErr, &vMagErr, wMag);
         vectorScale(&vCoGErr, &vCoGErr, wCoG);
         vectorAdd(&vErr, &vMagErr, &vCoGErr);
+#ifdef USE_GSF_YAW
+        if (vGsf) {
+            imuAddGsfHeadingError(&vErr, vGsf);
+        }
+#endif
         // Compute and apply integral feedback if enabled
         if (imuRuntimeConfig.dcm_ki_mag > 0.0f) {
             // Stop integrating if spinning beyond the certain limit
@@ -784,6 +819,60 @@ void imuUpdateTailSitter(void)
     lastTailSitter = STATE(TAILSITTER);
 }
 
+#ifdef USE_GSF_YAW
+// The heading the compass alone gives: the AHRS heading plus the angle from the expected to the measured north
+NOINLINE bool imuGetCompassHeading(float *heading)
+{
+#ifdef USE_MAG
+    if (!sensors(SENSOR_MAG) || !compassIsHealthy() || compassIsCalibrating()) {
+        return false;
+    }
+    const fpVector3_t magBF = { .v = { mag.magADC[X], mag.magADC[Y], mag.magADC[Z] } };
+    fpVector3_t magEF;
+    quaternionRotateVectorInv(&magEF, &magBF, &orientation);
+    const float cross = vCorrectedMagNorth.x * magEF.y - vCorrectedMagNorth.y * magEF.x;
+    const float dot = vCorrectedMagNorth.x * magEF.x + vCorrectedMagNorth.y * magEF.y;
+    if (sq(cross) + sq(dot) < 1.0f) {
+        return false;
+    }
+    *heading = atan2_approx(cross, dot) - atan2_approx(rMat[1][0], rMat[0][0]);
+    return true;
+#else
+    UNUSED(heading);
+    return false;
+#endif
+}
+
+// The GSF stands in for the GPS course, the compass is dropped while it disagrees with it, a far heading is reset to it
+NOINLINE static bool imuGsfHeadingInput(fpVector3_t *vGsf, bool *useMag)
+{
+    gsfYawAhrsInput_t in;
+    gsfYawGetAhrsInput(&in);
+
+    if (in.resetYaw) {
+        int16_t yaw = lrintf(RADIANS_TO_DECIDEGREES(in.yaw));
+        if (yaw < 0) {
+            yaw += 3600;
+        }
+        imuComputeQuaternionFromRPY(attitude.values.roll, attitude.values.pitch, yaw);
+        resetHeadingHoldTarget(DECIDEGREES_TO_DEGREES(yaw));
+    }
+    if (in.ignoreMag) {
+        *useMag = false;
+    }
+    if (in.weight <= 0.0f) {
+        return false;
+    }
+
+    // Shares the AHRS with the compass as the GPS course does
+    const float weight = *useMag ? in.weight * imuConfig()->gps_yaw_weight / 100.0f : in.weight;
+    vGsf->x = -cos_approx(in.yaw) * weight;
+    vGsf->y = sin_approx(in.yaw) * weight;
+    vGsf->z = 0.0f;
+    return true;
+}
+#endif
+
 static RP2350_FAST_CODE void imuCalculateEstimatedAttitude(float dT)
 {
 #if defined(USE_MAG)
@@ -897,6 +986,16 @@ static RP2350_FAST_CODE void imuCalculateEstimatedAttitude(float dT)
     accWeight = accWeight * imuCalculateAccelerometerWeightRateIgnore(acc_ignore_slope_multipiler);
     const bool useAcc = (accWeight > 0.001f);
 
+    const fpVector3_t *vGsfRef = NULL;
+#ifdef USE_GSF_YAW
+    static fpVector3_t vGsf;
+    if (imuConfig()->gsf_yaw && imuGsfHeadingInput(&vGsf, &useMag)) {
+        vGsfRef = &vGsf;
+        useCOG = false;
+        useCOGAcc = false;
+    }
+#endif
+
     const float magWeight = imuGetPGainScaleFactor() * 1.0f;
     fpVector3_t measuredMagBF = {.v = {mag.magADC[X], mag.magADC[Y], mag.magADC[Z]}};
     imuMahonyAHRSupdate(dT, &imuMeasuredRotationBF,
@@ -904,6 +1003,7 @@ static RP2350_FAST_CODE void imuCalculateEstimatedAttitude(float dT)
                             useMag ? &measuredMagBF : NULL,
                             useCOG ? &vCOG : NULL,
                             useCOGAcc ? &vCOGAcc : NULL,
+                            vGsfRef,
                             accWeight,
                             magWeight);
     imuUpdateTailSitter();
@@ -944,6 +1044,9 @@ void imuUpdateAttitude(timeUs_t currentTimeUs)
         accGetMeasuredAcceleration(&imuMeasuredAccelBF);  // Calculate accel in body frame in cm/s/s
         imuCheckVibrationLevels();
         imuCalculateEstimatedAttitude(dT);  // Update attitude estimate
+#ifdef USE_GSF_YAW
+        gsfYawAccumulateImu(dT);
+#endif
     } else {
         acc.accADCf[X] = 0.0f;
         acc.accADCf[Y] = 0.0f;
