@@ -34,7 +34,8 @@
  *   UART2_TX_PIN / UART2_RX_PIN
  *
  * RX is interrupt-driven (IRQ on FIFO not-empty).
- * TX is interrupt-driven (IRQ on FIFO not-full, enabled on first write).
+ * TX: a write fills the hardware FIFO directly, the interrupt only refills it
+ * when more is queued than the FIFO holds, see rp2350UartTxPump().
  *
  * Signal inversion (e.g. SBUS) is done in the GPIO controller via
  * gpio_set_inover() — no external inverter circuit required.
@@ -58,6 +59,7 @@
 
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
+#include "hardware/sync.h"
 #include "hardware/uart.h"
 
 #define RP2350_UART_RX_BUFFER_SIZE 256
@@ -139,6 +141,29 @@ static void rp2350UartHwConfigure(rp2350UartDevice_t *s)
     }
 }
 
+/* ── TX pump ─────────────────────────────────────────────────────────────── */
+
+/*
+ * Moves bytes from the software ring buffer into the hardware FIFO. Called
+ * with the UART interrupt masked or from the handler itself.
+ *
+ * The PL011 TX interrupt is raised when the FIFO level *falls* to the trigger
+ * level, not while it is below it: with an empty FIFO it never comes. So the
+ * FIFO is filled here directly, and the interrupt is asked for only when bytes
+ * are left over, that is when the FIFO is full and has to pass the level.
+ */
+static void rp2350UartTxPump(rp2350UartDevice_t *s)
+{
+    while (s->port.port.txBufferTail != s->port.port.txBufferHead && uart_is_writable(s->dev)) {
+        uart_get_hw(s->dev)->dr = s->port.port.txBuffer[s->port.port.txBufferTail];
+        s->port.port.txBufferTail = (s->port.port.txBufferTail + 1) % s->port.port.txBufferSize;
+    }
+
+    uart_set_irqs_enabled(s->dev,
+                          (s->port.port.mode & MODE_RX) != 0,
+                          s->port.port.txBufferTail != s->port.port.txBufferHead);
+}
+
 /* ── Shared IRQ handler ──────────────────────────────────────────────────── */
 
 static void rp2350UartIrqHandler(rp2350UartDevice_t *s)
@@ -155,21 +180,7 @@ static void rp2350UartIrqHandler(rp2350UartDevice_t *s)
         }
     }
 
-    /* TX: push from software ring buffer into hardware FIFO */
-    while (uart_is_writable(s->dev)) {
-        if (s->port.port.txBufferTail != s->port.port.txBufferHead) {
-            uart_get_hw(s->dev)->dr =
-                s->port.port.txBuffer[s->port.port.txBufferTail];
-            s->port.port.txBufferTail =
-                (s->port.port.txBufferTail + 1) % s->port.port.txBufferSize;
-        } else {
-            /* Buffer empty — disable TX interrupt until next write */
-            uart_set_irqs_enabled(s->dev,
-                                  (s->port.port.mode & MODE_RX) != 0,
-                                  false);
-            break;
-        }
-    }
+    rp2350UartTxPump(s);
 }
 
 /* ── UART1 (INAV) → RP2350 uart0 ────────────────────────────────────────── */
@@ -213,7 +224,7 @@ uartPort_t *serialUART1(uint32_t baudRate, portMode_t mode, portOptions_t option
     irq_set_exclusive_handler(UART0_IRQ, uart0IrqHandler);
     irq_set_enabled(UART0_IRQ, true);
 
-    /* Enable RX interrupt; TX interrupt is enabled on demand by rp2350UartWrite() */
+    /* Enable RX interrupt; the TX interrupt is managed by rp2350UartTxPump() */
     uart_set_irqs_enabled(uart0, (mode & MODE_RX) != 0, false);
 
     return &s->port;
@@ -275,14 +286,15 @@ static void rp2350UartWrite(serialPort_t *instance, uint8_t ch)
 {
     rp2350UartDevice_t *s = (rp2350UartDevice_t *)instance;
 
+    /* The handler pumps the same buffer */
+    const uint32_t status = save_and_disable_interrupts();
+
     s->port.port.txBuffer[s->port.port.txBufferHead] = ch;
     s->port.port.txBufferHead =
         (s->port.port.txBufferHead + 1) % s->port.port.txBufferSize;
 
-    /* Enable TX FIFO-empty interrupt to drain the ring buffer */
-    uart_set_irqs_enabled(s->dev,
-                          (s->port.port.mode & MODE_RX) != 0,
-                          true);
+    rp2350UartTxPump(s);
+    restore_interrupts(status);
 }
 
 static uint32_t rp2350UartTotalRxBytesWaiting(const serialPort_t *instance)
@@ -333,10 +345,10 @@ static bool rp2350UartIsTransmitBufferEmpty(const serialPort_t *instance)
 static void rp2350UartSetMode(serialPort_t *instance, portMode_t mode)
 {
     rp2350UartDevice_t *s = (rp2350UartDevice_t *)instance;
+    const uint32_t status = save_and_disable_interrupts();
     s->port.port.mode = mode;
-    uart_set_irqs_enabled(s->dev,
-                          (mode & MODE_RX) != 0,
-                          !rp2350UartIsTransmitBufferEmpty(instance));
+    rp2350UartTxPump(s);
+    restore_interrupts(status);
 }
 
 static void rp2350UartSetOptions(serialPort_t *instance, portOptions_t options)

@@ -63,6 +63,22 @@
 
 static vcpPort_t vcpPort;
 
+// The 1 ms timer interrupt runs tud_task(), which takes the same TinyUSB
+// mutexes as the calls below. An interrupt cannot wait for a mutex its own
+// main loop holds, it would wait forever: so while one of these calls is
+// running, the timer skips tud_task() and tries again a millisecond later.
+volatile uint8_t rp2350UsbBusy;
+
+static inline void usbBusyEnter(void)
+{
+    rp2350UsbBusy = 1;
+}
+
+static inline void usbBusyLeave(void)
+{
+    rp2350UsbBusy = 0;
+}
+
 static void usbVcpSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     UNUSED(instance);
@@ -99,7 +115,9 @@ static uint8_t usbVcpRead(serialPort_t *instance)
     // Callers must check serialRxBytesWaiting() > 0 before calling serialRead().
     // Do not spin here — that would block the cooperative scheduler.
     uint8_t ch = 0;
+    usbBusyEnter();
     tud_cdc_read(&ch, 1);
+    usbBusyLeave();
     return ch;
 }
 
@@ -120,12 +138,14 @@ static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
     uint32_t start = millis();
     const uint8_t *p = data;
     while (count > 0) {
+        usbBusyEnter();
         uint32_t written = tud_cdc_write(p, count);
         if (written > 0) {
             count -= written;
             p += written;
         }
         tud_cdc_write_flush();
+        usbBusyLeave();
         if (millis() - start > USB_TIMEOUT) {
             break;
         }
@@ -148,12 +168,14 @@ static bool usbVcpFlush(vcpPort_t *port)
     uint32_t start = millis();
     uint8_t *p = port->txBuf;
     while (count > 0) {
+        usbBusyEnter();
         uint32_t written = tud_cdc_write(p, count);
         if (written > 0) {
             count -= written;
             p += written;
         }
         tud_cdc_write_flush();
+        usbBusyLeave();
         if (millis() - start > USB_TIMEOUT) {
             break;
         }

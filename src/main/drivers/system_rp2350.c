@@ -87,6 +87,10 @@ void SystemInit(void)
 static bool usb_task_timer_cb(repeating_timer_t *rt)
 {
     (void)rt;
+    // The main loop is inside TinyUSB and may hold a mutex tud_task() needs
+    if (rp2350UsbBusy) {
+        return true;
+    }
     tud_task();
     return true;
 }

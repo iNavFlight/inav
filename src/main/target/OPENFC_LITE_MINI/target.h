@@ -161,21 +161,22 @@
 #define PINIO1_PIN                  PB11    // GPIO27
 #define PINIO1_FLAGS                PINIO_FLAGS_INVERTED
 
+// ESC passthrough over the motor pins
+#define USE_SERIAL_4WAY_BLHELI_INTERFACE
+
 #define USE_OSD
 #define USE_MSP_OSD
 
 #define DEFAULT_FEATURES            (FEATURE_OSD | FEATURE_VBAT | FEATURE_CURRENT_METER | FEATURE_TELEMETRY | FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
 
 // *************** Not available on the RP2350 platform ***************
-// No driver for the OLED, PPM/PWM receivers, camera control, the 4-way interface
+// No driver for the OLED, PPM/PWM receivers, camera control
 #undef USE_DASHBOARD
 #undef USE_PPM
 #undef USE_PWM
 #undef USE_RESOURCE_MGMT
 #undef USE_CAMERA_CONTROL
 #undef USE_BRUSHED_ESC_AUTODETECT
-#undef USE_SERIAL_4WAY_BLHELI_BOOTLOADER
-#undef USE_SERIAL_4WAY_SK_BOOTLOADER
 // The UART drivers have no single-wire half-duplex mode
 #undef USE_MSP_OVER_TELEMETRY
 #undef USE_TELEMETRY_FRSKY_HUB

@@ -72,7 +72,6 @@ not available. Inverted signals (SBUS) need no external inverter.
 
 * Analog OSD (GPIO 4, 5, 6)
 * Bidirectional DSHOT, use the ESC telemetry wire instead
-* ESC passthrough (BLHeli 4-way interface)
 * Dynamic gyro notch, gyro Kalman and adaptive filter
 * Servo outputs: the board has none
 

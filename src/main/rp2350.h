@@ -51,6 +51,10 @@ extern uint32_t SystemCoreClock;
 #endif
 #define __NOP()     __ASM volatile ("nop")
 
+/* Set by the USB VCP driver while the main loop is inside TinyUSB, see
+ * drivers/serial_usb_vcp_rp2350.c */
+extern volatile uint8_t rp2350UsbBusy;
+
 /* ── Timer ─────────────────────────────────────────────────────────────────── */
 
 typedef struct { void* dummy; } TIM_TypeDef;
