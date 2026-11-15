@@ -333,6 +333,13 @@ void mavlinkRuntimeHandle(timeUs_t currentTimeUs)
         mavlinkSetActivePortContext(portIndex);
         bool shouldSendTelemetry = false;
 
+        // A radio that stopped reporting must not hold the port forever
+        if (state->txbuffValid &&
+            cmpTimeUs(currentTimeUs, state->lastTxbuffReportUs) > MAVLINK_TXBUFF_REPORT_TIMEOUT_US) {
+            state->txbuffValid = false;
+            state->txbuffFree = 100;
+        }
+
         if (isMAVLinkTelemetryHalfDuplexBackoff(portIndex, currentTimeUs)) {
             continue;
         }

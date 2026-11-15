@@ -291,9 +291,11 @@ static void mavlinkParseRxStats(const mavlink_radio_status_t *msg) {
 static bool handleIncoming_RADIO_STATUS(void) {
     mavlink_radio_status_t msg;
     mavlink_msg_radio_status_decode(&mavlinkContext.recvMsg, &msg);
-    if (msg.txbuf > 0) {
+    // 0 is a full buffer, not a missing value: mLRS reports it at its worst congestion
+    if (msg.txbuf <= 100) {
         mavActivePort->txbuffValid = true;
         mavActivePort->txbuffFree = msg.txbuf;
+        mavActivePort->lastTxbuffReportUs = (uint32_t)mavActivePort->lastRxFrameUs;
     } else {
         mavActivePort->txbuffValid = false;
         mavActivePort->txbuffFree = 100;
@@ -419,6 +421,7 @@ static bool handleIncoming_MLRS_RADIO_LINK_FLOW_CONTROL(uint8_t ingressPortIndex
     if (msg.txbuf <= 100) {
         mavActivePort->txbuffValid = true;
         mavActivePort->txbuffFree = msg.txbuf;
+        mavActivePort->lastTxbuffReportUs = (uint32_t)mavActivePort->lastRxFrameUs;
     } else {
         mavActivePort->txbuffValid = false;
         mavActivePort->txbuffFree = 100;
