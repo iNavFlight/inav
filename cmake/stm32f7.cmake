@@ -68,7 +68,7 @@ main_sources(STM32F7_SRC
     config/config_streamer_extflash.c
 
     drivers/adc_stm32f7xx.c
-    drivers/bus_i2c_hal.c
+    drivers/bus_i2c_stm32f7xx.c
     drivers/dma_stm32f7xx.c
     drivers/bus_spi_hal_ll.c
     drivers/timer.c
