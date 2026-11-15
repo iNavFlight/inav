@@ -395,7 +395,6 @@ void calculateFarAwayPos(fpVector3_t * farAwayPos, const fpVector3_t *start, int
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t bearing, int32_t distance);
 bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBearing);
 bool isWaypointAltitudeReached(void);
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
 static bool isWaypointMissionValid(void);
 #ifdef USE_AUTO_TRANSITION
@@ -5763,7 +5762,7 @@ void resetSafeHomes(void)
 }
 #endif
 
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv)
+void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv)
 {
     gpsLocation_t wpLLH;
 

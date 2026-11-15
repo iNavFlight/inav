@@ -606,6 +606,20 @@ static bool logicConditionMissionWaypointHasUserAction(int16_t relativeIndex, ui
            (waypoint.p3 & userAction) == userAction;
 }
 
+// Where the active waypoint of a running WP mission is, in the local frame, as
+// the mission navigates to it (a home-flagged or 0,0 waypoint is home). False
+// outside WP mode: SEND_TO and FW autoland also carry NAV_AUTO_WP, but fly to a
+// target of their own.
+static bool logicConditionGetActiveMissionWaypoint(fpVector3_t *pos)
+{
+    navWaypoint_t waypoint;
+    if (!FLIGHT_MODE(NAV_WP_MODE) || !navGetMissionWaypointByRelativeIndex(NAV_Status.activeWpIndex, &waypoint)) {
+        return false;
+    }
+    mapWaypointToLocalPosition(pos, &waypoint, waypointMissionAltConvMode(waypoint.p3));
+    return true;
+}
+
 static int logicConditionGetWaypointOperandValue(int operand) {
 
     switch (operand) {
@@ -710,45 +724,15 @@ static int logicConditionGetWaypointOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_BEARING:
             {
-                int32_t bearing = 0;
-                if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
-                    fpVector3_t poi;
-                    gpsLocation_t wp;
-                    navWaypoint_t waypoint;
-                    if (!navGetMissionWaypointByRelativeIndex(NAV_Status.activeWpIndex, &waypoint)) {
-                        return 0;
-                    }
-                    wp.lat = waypoint.lat;
-                    wp.lon = waypoint.lon;
-                    wp.alt = waypoint.alt;
-                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(waypoint.p3));
-
-                    bearing = calculateBearingToDestination(&poi);
-                }
-
-                return bearing;
+                fpVector3_t poi;
+                return logicConditionGetActiveMissionWaypoint(&poi) ? calculateBearingToDestination(&poi) : 0;
             }
             break;
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_ELEVATION:
             {
-                int32_t elevation = 0;
-                if (navGetCurrentStateFlags() & NAV_AUTO_WP) {
-                    fpVector3_t poi;
-                    gpsLocation_t wp;
-                    navWaypoint_t waypoint;
-                    if (!navGetMissionWaypointByRelativeIndex(NAV_Status.activeWpIndex, &waypoint)) {
-                        return 0;
-                    }
-                    wp.lat = waypoint.lat;
-                    wp.lon = waypoint.lon;
-                    wp.alt = waypoint.alt;
-                    geoConvertGeodeticToLocal(&poi, &posControl.gpsOrigin, &wp, waypointMissionAltConvMode(waypoint.p3));
-
-                    elevation = calculateElevationToDestination(&poi);
-                }
-
-                return elevation;
+                fpVector3_t poi;
+                return logicConditionGetActiveMissionWaypoint(&poi) ? calculateElevationToDestination(&poi) : 0;
             }
             break;
 
