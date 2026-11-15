@@ -25,8 +25,13 @@
 #define CFG_TUD_CDC_RX_BUFSIZE 256
 #define CFG_TUD_CDC_TX_BUFSIZE 256
 
-// No other USB classes needed for M2
-#define CFG_TUD_MSC 0
+// MSC class — the SD card as a disk (CLI `msc`), goes with USE_USB_MSC in
+// CMakeLists.txt. The buffer is a multiple of the 512 byte block, see
+// usb_msc_rp2350.c
+#define CFG_TUD_MSC 1
+#define CFG_TUD_MSC_EP_BUFSIZE 4096
+
+// No other USB classes needed
 #define CFG_TUD_HID 0
 #define CFG_TUD_MIDI 0
 #define CFG_TUD_VENDOR 0

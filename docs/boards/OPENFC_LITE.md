@@ -68,6 +68,19 @@ not available. Inverted signals (SBUS) need no external inverter.
 * The 10 V VTX rail is on after boot. The `USER1` mode switches it **off**
 * Blackbox is enabled and logs to the microSD card (`blackbox_device = SDCARD`)
 
+## USB mass storage
+
+The CLI command `msc` reboots the board as a USB disk with the microSD card.
+Unplug USB to return to normal operation.
+
+Some cards do not cope with the way a computer writes to the disk: one block
+at a time, where the blackbox writes long runs. A 4 GB no-name card (it reports
+itself as `APPSD` in `sd_info`) failed about every 30th read and stopped
+responding on the second write, the disk then disappeared from the computer
+and the card stayed dead until the board was powered off. Blackbox logging
+worked on the same card. If deleting or copying files to the card fails, use another card,
+or take the logs off with a card reader.
+
 ## Not supported yet
 
 * Analog OSD (GPIO 4, 5, 6)

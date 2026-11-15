@@ -55,6 +55,7 @@
 
 #include "serial.h"
 #include "serial_usb_vcp.h"
+#include "drivers/usb_msc.h"
 
 #include "tusb.h"
 #include "pico/unique_id.h"
@@ -284,14 +285,14 @@ portOptions_t usbVcpGetLineCoding(void)
 //
 // USB identifiers:
 //   VID 0x2E8A = Raspberry Pi
-//   PID 0x000B = Pico 2 (RP2350) CDC serial application
+//   PID 0x0009 = Pico SDK CDC UART, see github.com/raspberrypi/usb-pid
 //   Product string from USBD_PRODUCT_STRING defined in target.h
 
 #ifndef USBD_VID
 #define USBD_VID 0x2E8A  // Raspberry Pi
 #endif
 #ifndef USBD_PID
-#define USBD_PID 0x000B  // Pico 2 (RP2350) CDC application
+#define USBD_PID 0x0009  // Pico SDK CDC UART
 #endif
 #ifndef USBD_MANUFACTURER
 #define USBD_MANUFACTURER "Raspberry Pi"
@@ -343,6 +344,45 @@ static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
         USBD_CDC_IN_OUT_MAX_SIZE),
 };
 
+#ifdef USE_USB_MSC
+// Mass storage mode (CLI `msc`): the board is a plain MSC device with its own
+// PID, hosts remember the driver of a VID/PID pair and would otherwise keep
+// treating it as the serial port. 0x4002 is a placeholder, not an allocated
+// PID: replace it once Raspberry Pi assigns one.
+#ifndef USBD_PID_MSC
+#define USBD_PID_MSC 0x4002
+#endif
+
+#define USBD_MSC_DESC_LEN   (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+#define USBD_MSC_EP_OUT     0x01
+#define USBD_MSC_EP_IN      0x81
+#define USBD_MSC_EP_SIZE    64
+
+static const tusb_desc_device_t usbd_msc_desc_device = {
+    .bLength            = sizeof(tusb_desc_device_t),
+    .bDescriptorType    = TUSB_DESC_DEVICE,
+    .bcdUSB             = 0x0200,
+    .bDeviceClass       = 0,    // class is given by the interface
+    .bDeviceSubClass    = 0,
+    .bDeviceProtocol    = 0,
+    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor           = USBD_VID,
+    .idProduct          = USBD_PID_MSC,
+    .bcdDevice          = 0x0100,
+    .iManufacturer      = USBD_STR_MANUF,
+    .iProduct           = USBD_STR_PRODUCT,
+    .iSerialNumber      = USBD_STR_SERIAL,
+    .bNumConfigurations = 1,
+};
+
+static const uint8_t usbd_msc_desc_cfg[USBD_MSC_DESC_LEN] = {
+    TUD_CONFIG_DESCRIPTOR(1, 1, USBD_STR_LANGID, USBD_MSC_DESC_LEN,
+        0, 250),
+    TUD_MSC_DESCRIPTOR(0, 0, USBD_MSC_EP_OUT, USBD_MSC_EP_IN,
+        USBD_MSC_EP_SIZE),
+};
+#endif
+
 static char usbd_serial_str[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
 
 static const char *const usbd_desc_str[] = {
@@ -354,12 +394,22 @@ static const char *const usbd_desc_str[] = {
 
 const uint8_t *tud_descriptor_device_cb(void)
 {
+#ifdef USE_USB_MSC
+    if (mscCheckBoot()) {
+        return (const uint8_t *)&usbd_msc_desc_device;
+    }
+#endif
     return (const uint8_t *)&usbd_desc_device;
 }
 
 const uint8_t *tud_descriptor_configuration_cb(uint8_t index)
 {
     (void)index;
+#ifdef USE_USB_MSC
+    if (mscCheckBoot()) {
+        return usbd_msc_desc_cfg;
+    }
+#endif
     return usbd_desc_cfg;
 }
 

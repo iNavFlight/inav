@@ -51,6 +51,8 @@ main_sources(RP2350_SRC
     drivers/bus_i2c_rp2350.c
     drivers/bus_spi_rp2350.c
     drivers/persistent_rp2350.c
+    # USB mass storage mode, compiled in only with USE_USB_MSC
+    drivers/usb_msc_rp2350.c
     # SD card over SPI and its FAT filesystem, compiled in only with USE_SDCARD
     drivers/sdcard/sdcard.c
     drivers/sdcard/sdcard_spi.c
@@ -141,6 +143,7 @@ set(TINYUSB_SOURCES
     ${TINYUSB_SRC_DIR}/device/usbd.c
     ${TINYUSB_SRC_DIR}/device/usbd_control.c
     ${TINYUSB_SRC_DIR}/class/cdc/cdc_device.c
+    ${TINYUSB_SRC_DIR}/class/msc/msc_device.c
     ${TINYUSB_SRC_DIR}/portable/raspberrypi/rp2040/dcd_rp2040.c
     ${TINYUSB_SRC_DIR}/portable/raspberrypi/rp2040/rp2040_usb.c
 )
@@ -290,6 +293,8 @@ set(RP2350_INCLUDE_DIRS
 #                  RP2350_CONFIG_SIZE_KB of it hold the settings.
 #   COMPILE_DEFINITIONS  extra definitions that must be visible before
 #                  target/common.h is read, e.g. MCU_FLASH_SIZE=<KiB>
+#                  USE_USB_MSC enables the CLI `msc` (SD card as a USB disk),
+#                  the target also sets CFG_TUD_MSC in its tusb_config.h
 set(RP2350_CONFIG_SIZE_KB 64)
 
 function(target_rp2350 name)

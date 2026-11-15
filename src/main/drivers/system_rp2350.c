@@ -18,6 +18,7 @@
 #include "common/utils.h"
 #include "drivers/system.h"
 #include "drivers/persistent.h"
+#include "drivers/usb_msc.h"
 
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
@@ -120,6 +121,13 @@ void systemInit(void)
     // tusb_init()/IRQ/alarm machinery inside stdio_usb.c — so there is no
     // second tusb_init() and no competing tud_task() timer.
     tusb_init();
+
+#ifdef USE_USB_MSC
+    // Mass storage mode: stay off the bus until mscStart() has the card ready
+    if (mscCheckBoot()) {
+        tud_disconnect();
+    }
+#endif
 
     // Drive USB CDC from a dedicated 1ms hardware alarm so tud_task() runs even
     // when the cooperative scheduler is busy (e.g. during long tasks or CLI mode).
