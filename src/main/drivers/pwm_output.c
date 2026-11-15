@@ -18,90 +18,28 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
-#include <string.h>
 
 #include "platform.h"
 
 #if !defined(SITL_BUILD) && !defined(RP2350)
 
-#include "build/atomic.h"
-#include "build/debug.h"
-
 #include "common/log.h"
 #include "common/maths.h"
-#include "common/circular_queue.h"
+#include "common/utils.h"
 
+#include "drivers/dshot/dshot.h"
 #include "drivers/io.h"
-#include "drivers/nvic.h"
-#include "drivers/time.h"
-#include "drivers/timer.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
+#include "drivers/timer.h"
+
 #include "io/motor_srxl2.h"
 #include "io/servo_sbus.h"
-#include "sensors/esc_sensor.h"
-
-#include "config/feature.h"
-
-#include "fc/config.h"
-#include "fc/runtime_config.h"
-
-#include "drivers/timer_impl.h"
-#include "drivers/timer.h"
 
 #define MULTISHOT_5US_PW    (MULTISHOT_TIMER_HZ * 5 / 1000000.0f)
 #define MULTISHOT_20US_MULT (MULTISHOT_TIMER_HZ * 20 / 1000000.0f / 1000.0f)
 
-#ifdef USE_DSHOT
-/* Timer clock per DSHOT rate: DSHOT_MOTOR_BITLENGTH (20) ticks make one bit, so
- * 12 MHz / 20 = 600 kbit/s. */
-#define MOTOR_DSHOT600_HZ     12000000
-#define MOTOR_DSHOT300_HZ     6000000
-#define MOTOR_DSHOT150_HZ     3000000
-/* Fastest rate INAV supports; static buffers that depend on the bit period (keep-alive
- * buffer) are sized from it, so update this when a faster rate is added. */
-#define MOTOR_DSHOT_FASTEST_HZ MOTOR_DSHOT600_HZ
-
-
-#define DSHOT_MOTOR_BIT_0       7
-#define DSHOT_MOTOR_BIT_1       14
-#define DSHOT_MOTOR_BITLENGTH   20
-
-#define DSHOT_DMA_BUFFER_SIZE   18 /* resolution + frame reset (2us) */
-#define MAX_DMA_TIMERS          8
-
-/* Keep-alive frame replayed by circular DMA while the CPU is stalled by a flash write:
- * 16 data bits followed by an idle (line low) gap of DSHOT_KEEPALIVE_GAP_US.
- * One DMA slot is one DSHOT bit period, so the gap needs gapUs * dshotHz / bitLength slots. */
-#define DSHOT_KEEPALIVE_GAP_US      40
-#define DSHOT_KEEPALIVE_SLOTS(dshotHz)  (16 + (DSHOT_KEEPALIVE_GAP_US * ((dshotHz) / 1000000) + DSHOT_MOTOR_BITLENGTH - 1) / DSHOT_MOTOR_BITLENGTH)
-/* The buffer is static, so it is sized for the fastest rate: the shorter the bit period,
- * the more slots a 40 us gap needs (40 slots at DSHOT600, 28 at DSHOT300, 22 at DSHOT150).
- * Only DSHOT_KEEPALIVE_SLOTS(actual rate) slots are used at run time. */
-#define DSHOT_KEEPALIVE_BUFFER_SIZE     DSHOT_KEEPALIVE_SLOTS(MOTOR_DSHOT_FASTEST_HZ)
-/* Bound for the waits at the keep-alive transitions: two keep-alive cycles at DSHOT150 */
-#define DSHOT_KEEPALIVE_WAIT_TIMEOUT_US 400
-
-#define DSHOT_COMMAND_DELAY_US 1000
-#define DSHOT_COMMAND_INTERVAL_US 10000
-#define DSHOT_COMMAND_QUEUE_LENGTH 8
-#define DHSOT_COMMAND_QUEUE_SIZE   DSHOT_COMMAND_QUEUE_LENGTH * sizeof(dshotCommands_e)
-#endif
-
 typedef void (*pwmWriteFuncPtr)(uint8_t index, uint16_t value);  // function pointer used to write motors
-
-#ifdef USE_DSHOT_DMAR
-    timerDMASafeType_t dmaBurstBuffer[MAX_DMA_TIMERS][DSHOT_DMA_BUFFER_SIZE * 4];
-#endif
-
-#ifdef USE_DSHOT
-// Every motor replays the same zero-throttle keep-alive frame, so one buffer feeds all DMA streams
-#ifdef USE_DSHOT_DMAR
-static DMA_RAM timerDMASafeType_t dshotKeepaliveBuffer[DSHOT_KEEPALIVE_BUFFER_SIZE * 4];
-#else
-static DMA_RAM timerDMASafeType_t dshotKeepaliveBuffer[DSHOT_KEEPALIVE_BUFFER_SIZE];
-#endif
-#endif
 
 typedef struct {
     TCH_t * tch;
@@ -112,25 +50,12 @@ typedef struct {
     volatile timCCR_t *ccr;         // Shortcut for timer CCR register
     float pulseOffset;
     float pulseScale;
-
-#ifdef USE_DSHOT
-    // DSHOT parameters
-    timerDMASafeType_t dmaBuffer[DSHOT_DMA_BUFFER_SIZE];
-#ifdef USE_DSHOT_DMAR
-    timerDMASafeType_t *dmaBurstBuffer;
-#endif
-#endif
 } pwmOutputPort_t;
 
-typedef struct {
-    pwmOutputPort_t *   pwmPort;        // May be NULL if motor doesn't use the PWM port
-    uint16_t            value;          // Used to keep track of last motor value
-    bool                requestTelemetry;
-} pwmOutputMotor_t;
+static pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUTS];
 
-static DMA_RAM pwmOutputPort_t pwmOutputPorts[MAX_PWM_OUTPUTS];
-
-static pwmOutputMotor_t        motors[MAX_MOTORS];
+// NULL for a motor without a PWM port: not configured, or driven by DSHOT (dshot/dshot.c)
+static pwmOutputPort_t *       motors[MAX_MOTORS];
 static motorPwmProtocolTypes_e initMotorProtocol;
 static pwmWriteFuncPtr         motorWritePtr = NULL;    // Function to write value to motors
 
@@ -144,30 +69,6 @@ static uint16_t beeperFrequency = 0;
 static uint8_t allocatedOutputPortCount = 0;
 
 static bool pwmMotorsEnabled = true;
-
-#ifdef USE_DSHOT
-static timeUs_t digitalMotorUpdateIntervalUs = 0;
-static timeUs_t digitalMotorLastUpdateUs;
-static timeUs_t lastCommandSent = 0;
-static timeUs_t commandPostDelay = 0;
-    
-static circularBuffer_t commandsCircularBuffer;
-static uint8_t commandsBuff[DHSOT_COMMAND_QUEUE_SIZE];
-static currentExecutingCommand_t currentExecutingCommand;
-
-static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry);
-uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType);
-#ifndef USE_DSHOT_DMAR
-static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet);
-#else
-static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, uint16_t packet);
-#endif
-
-#ifdef USE_DSHOT_DMAR
-burstDmaTimer_t burstDmaTimers[MAX_DMA_TIMERS];
-uint8_t burstDmaTimersCount = 0;
-#endif
-#endif
 
 static void pwmOutConfigTimer(pwmOutputPort_t * p, TCH_t * tch, uint32_t hz, uint16_t period, uint16_t value)
 {
@@ -237,8 +138,8 @@ static void pwmWriteNull(uint8_t index, uint16_t value)
 
 static void pwmWriteStandard(uint8_t index, uint16_t value)
 {
-    if (motors[index].pwmPort) {
-        *(motors[index].pwmPort->ccr) = lrintf((value * motors[index].pwmPort->pulseScale) + motors[index].pwmPort->pulseOffset);
+    if (motors[index]) {
+        *(motors[index]->ccr) = lrintf((value * motors[index]->pulseScale) + motors[index]->pulseOffset);
     }
 }
 
@@ -253,8 +154,8 @@ void pwmShutdownPulsesForAllMotors(uint8_t motorCount)
 {
     for (int index = 0; index < motorCount; index++) {
         // Set the compare register to 0, which stops the output pulsing if the timer overflows
-        if (motors[index].pwmPort) {
-            *(motors[index].pwmPort->ccr) = 0;
+        if (motors[index]) {
+            *(motors[index]->ccr) = 0;
         }
     }
 }
@@ -262,6 +163,11 @@ void pwmShutdownPulsesForAllMotors(uint8_t motorCount)
 void pwmDisableMotors(void)
 {
     pwmMotorsEnabled = false;
+#ifdef USE_DSHOT
+    if (isMotorProtocolDshot()) {
+        dshotStop();
+    }
+#endif
 }
 
 void pwmEnableMotors(void)
@@ -269,101 +175,11 @@ void pwmEnableMotors(void)
     pwmMotorsEnabled = true;
 }
 
-#ifdef USE_DSHOT
-/*
- * Wait (bounded) until the keep-alive stream of this port is sending its idle padding.
- * CCR holds the slot last written by DMA: a bit length while a data bit is in flight,
- * 0 in the padding. Waiting for the data -> padding transition leaves a full
- * DSHOT_KEEPALIVE_GAP_US before the DMA wraps to the next frame, so the stream can be
- * stopped with the last frame complete and the line low.
- */
-static void dshotWaitForKeepalivePadding(const pwmOutputPort_t *port)
-{
-    const timeUs_t start = micros();
-    while (*port->ccr == 0 && (micros() - start) < DSHOT_KEEPALIVE_WAIT_TIMEOUT_US);
-    while (*port->ccr != 0 && (micros() - start) < DSHOT_KEEPALIVE_WAIT_TIMEOUT_US);
-}
-#endif
-
 void pwmSetMotorDMACircular(bool circular)
 {
 #ifdef USE_DSHOT
-    if (!isMotorProtocolDshot()) {
-        return;
-    }
-
-    int motorCount = getMotorCount();
-    const uint32_t dshotHz = getDshotHz(initMotorProtocol);
-    const uint32_t keepaliveSlots = DSHOT_KEEPALIVE_SLOTS(dshotHz);
-
-    if (circular) {
-        // A frame started by pwmCompleteMotorUpdate() may still be in flight: let it finish
-        // and keep the line low for one full gap before the keep-alive stream starts
-        delayMicroseconds(DSHOT_DMA_BUFFER_SIZE * DSHOT_MOTOR_BITLENGTH * 1000000UL / dshotHz + DSHOT_KEEPALIVE_GAP_US);
-
-        // Load a zero-throttle packet into the shared keep-alive buffer. The padding slots
-        // must be zero (line low between frames); DMA_RAM is NOLOAD and not cleared at
-        // startup, so clear it explicitly.
-        uint16_t packet = prepareDshotPacket(0, false);
-        ZERO_FARRAY(dshotKeepaliveBuffer);
-#ifdef USE_DSHOT_DMAR
-        for (int i = 0; i < motorCount; i++) {
-            if (motors[i].pwmPort && motors[i].pwmPort->configured) {
-                loadDmaBufferDshotStride(&dshotKeepaliveBuffer[motors[i].pwmPort->tch->timHw->channelIndex], 4, packet);
-            }
-        }
-#else
-        loadDmaBufferDshot(dshotKeepaliveBuffer, packet);
-#endif
-    }
-
-#ifdef USE_DSHOT_DMAR
-    // Burst DMA: one DMA stream per timer, shared across channels
-    for (int i = 0; i < burstDmaTimersCount; i++) {
-        burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[i];
-        // Find the first motor using this timer to get the TCH for DMA state
-        for (int m = 0; m < motorCount; m++) {
-            if (motors[m].pwmPort && motors[m].pwmPort->configured && motors[m].pwmPort->tch
-                && motors[m].pwmPort->tch->timHw->tim == burstDmaTimer->timer) {
-                if (circular) {
-                    impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, true, dshotKeepaliveBuffer, keepaliveSlots * 4);
-                } else {
-                    // Atomic so no ISR can delay the stop past the padding into the next frame
-                    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-                        dshotWaitForKeepalivePadding(motors[m].pwmPort);
-                        impl_pwmBurstDMASetCircular(burstDmaTimer, motors[m].pwmPort->tch, false, burstDmaTimer->dmaBurstBuffer, DSHOT_DMA_BUFFER_SIZE * 4);
-                    }
-                }
-                break;
-            }
-        }
-    }
-#else
-    // Per-channel DMA: one DMA stream per motor
-    for (int i = 0; i < motorCount; i++) {
-        if (motors[i].pwmPort && motors[i].pwmPort->configured && motors[i].pwmPort->tch) {
-            if (circular) {
-                impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, true, dshotKeepaliveBuffer, keepaliveSlots);
-            } else {
-                // Atomic so no ISR can delay the stop past the padding into the next frame
-                ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-                    dshotWaitForKeepalivePadding(motors[i].pwmPort);
-                    impl_timerPWMSetDMACircular(motors[i].pwmPort->tch, false, motors[i].pwmPort->dmaBuffer, DSHOT_DMA_BUFFER_SIZE);
-                }
-            }
-        }
-    }
-#endif
-
-    if (!circular) {
-        // The streams were stopped while sending padding, so CCR is already 0 and the lines
-        // stay low until pwmCompleteMotorUpdate() sends the next frame. Enforce it in case a
-        // wait above timed out; the timer would otherwise keep repeating the last bit.
-        for (int i = 0; i < motorCount; i++) {
-            if (motors[i].pwmPort && motors[i].pwmPort->configured) {
-                *motors[i].pwmPort->ccr = 0;
-            }
-        }
+    if (isMotorProtocolDshot()) {
+        dshotSetDMACircular(circular);
     }
 #else
     UNUSED(circular);
@@ -393,123 +209,6 @@ static pwmOutputPort_t * motorConfigPwm(const timerHardware_t *timerHardware, fl
     return port;
 }
 
-#ifdef USE_DSHOT
-uint32_t getDshotHz(motorPwmProtocolTypes_e pwmProtocolType)
-{
-    switch (pwmProtocolType) {
-        case(PWM_TYPE_DSHOT600):
-            return MOTOR_DSHOT600_HZ;
-        case(PWM_TYPE_DSHOT300):
-            return MOTOR_DSHOT300_HZ;
-        default:
-        case(PWM_TYPE_DSHOT150):
-            return MOTOR_DSHOT150_HZ;
-    }
-}
-
-#ifdef USE_DSHOT_DMAR
-static uint8_t getBurstDmaTimerIndex(TIM_TypeDef *timer)
-{
-    for (int i = 0; i < burstDmaTimersCount; i++) {
-        if (burstDmaTimers[i].timer == timer) {
-            return i;
-        }
-    }
-    burstDmaTimers[burstDmaTimersCount++].timer = timer;
-    return burstDmaTimersCount - 1;
-}
-#endif
-
-static pwmOutputPort_t * motorConfigDshot(const timerHardware_t * timerHardware, uint32_t dshotHz, bool enableOutput)
-{
-    // Try allocating new port
-    pwmOutputPort_t * port = pwmOutConfig(timerHardware, OWNER_MOTOR, dshotHz, DSHOT_MOTOR_BITLENGTH, 0, enableOutput);
-
-    if (!port) {
-        return NULL;
-    }
-
-    // Configure timer DMA
-#ifdef USE_DSHOT_DMAR
-    //uint8_t timerIndex = lookupTimerIndex(timerHardware->tim);
-    uint8_t burstDmaTimerIndex = getBurstDmaTimerIndex(timerHardware->tim);
-    if (burstDmaTimerIndex >= MAX_DMA_TIMERS) {
-        return NULL;
-    }
-
-    port->dmaBurstBuffer = &dmaBurstBuffer[burstDmaTimerIndex][0];
-    burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
-    burstDmaTimer->dmaBurstBuffer = port->dmaBurstBuffer;
-
-    if (timerPWMConfigDMABurst(burstDmaTimer, port->tch, port->dmaBurstBuffer, sizeof(port->dmaBurstBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
-        port->configured = true;
-    }
-#else
-    if (timerPWMConfigChannelDMA(port->tch, port->dmaBuffer, sizeof(port->dmaBuffer[0]), DSHOT_DMA_BUFFER_SIZE)) {
-        // Only mark as DSHOT channel if DMA was set successfully
-        ZERO_FARRAY(port->dmaBuffer);
-        port->configured = true;
-    }
-#endif
-
-    return port;
-}
-
-#ifdef USE_DSHOT_DMAR
-static void loadDmaBufferDshotStride(timerDMASafeType_t *dmaBuffer, int stride, uint16_t packet)
-{
-    int i;
-    for (i = 0; i < 16; i++) {
-        dmaBuffer[i * stride] = (packet & 0x8000) ? DSHOT_MOTOR_BIT_1 : DSHOT_MOTOR_BIT_0;  // MSB first
-        packet <<= 1;
-    }
-    dmaBuffer[i++ * stride] = 0;
-    dmaBuffer[i++ * stride] = 0;
-}
-#else
-static void loadDmaBufferDshot(timerDMASafeType_t *dmaBuffer, uint16_t packet)
-{
-    for (int i = 0; i < 16; i++) {
-        dmaBuffer[i] = (packet & 0x8000) ? DSHOT_MOTOR_BIT_1 : DSHOT_MOTOR_BIT_0;  // MSB first
-        packet <<= 1;
-    }
-}
-#endif
-
-static uint16_t prepareDshotPacket(const uint16_t value, bool requestTelemetry)
-{
-    uint16_t packet = (value << 1) | (requestTelemetry ? 1 : 0);
-
-    // compute checksum
-    int csum = 0;
-    int csum_data = packet;
-    for (int i = 0; i < 3; i++) {
-        csum ^=  csum_data;   // xor data by nibbles
-        csum_data >>= 4;
-    }
-    csum &= 0xf;
-
-    // append checksum
-    packet = (packet << 4) | csum;
-
-    return packet;
-}
-#endif
-
-#if defined(USE_DSHOT)
-static void motorConfigDigitalUpdateInterval(uint16_t motorPwmRateHz)
-{
-    digitalMotorUpdateIntervalUs = 1000000 / motorPwmRateHz;
-    digitalMotorLastUpdateUs = 0;
-}
-
-static void pwmWriteDigital(uint8_t index, uint16_t value)
-{
-    // Just keep track of motor value, actual update happens in pwmCompleteMotorUpdate()
-    // DSHOT and some other digital protocols use 11-bit throttle range [0;2047]
-    motors[index].value = constrain(value, 0, 2047);
-}
-
 bool isMotorProtocolDshot(void)
 {
     // We look at cached `initMotorProtocol` to make sure we are consistent with the initialized config
@@ -524,149 +223,24 @@ bool isMotorProtocolDigital(void)
 
 void pwmRequestMotorTelemetry(int motorIndex)
 {
-    if (!isMotorProtocolDigital()) {
-        return;
-    }
-
-    const int motorCount = getMotorCount();
-    for (int index = 0; index < motorCount; index++) {
-        if (motors[index].pwmPort && motors[index].pwmPort->configured && index == motorIndex) {
-            motors[index].requestTelemetry = true;
-        }
-    }
-}
-
 #ifdef USE_DSHOT
-void sendDShotCommand(dshotCommands_e cmd) {
-    circularBufferPushElement(&commandsCircularBuffer, (uint8_t *) &cmd);
-}
-
-void initDShotCommands(void) {
-    circularBufferInit(&commandsCircularBuffer, commandsBuff,DHSOT_COMMAND_QUEUE_SIZE, sizeof(dshotCommands_e));
-
-    currentExecutingCommand.remainingRepeats = 0;
-}
-
-static int getDShotCommandRepeats(dshotCommands_e cmd) {
-    int repeats = 1;
-
-    switch (cmd) {
-        case DSHOT_CMD_SPIN_DIRECTION_NORMAL:
-        case DSHOT_CMD_SPIN_DIRECTION_REVERSED:
-            repeats = 10;
-            break;
-        default:
-            break;
+    if (isMotorProtocolDigital()) {
+        dshotRequestTelemetry(motorIndex);
     }
-
-    return repeats;
-}
-
-static bool executeDShotCommands(void){
-    
-    timeUs_t tNow = micros();
-
-    if(currentExecutingCommand.remainingRepeats == 0) {
-       const int isTherePendingCommands = !circularBufferIsEmpty(&commandsCircularBuffer);
-        if (isTherePendingCommands && (tNow - lastCommandSent > DSHOT_COMMAND_INTERVAL_US)){
-            //Load the command
-            dshotCommands_e cmd;
-            circularBufferPopHead(&commandsCircularBuffer, (uint8_t *) &cmd);
-            currentExecutingCommand.cmd = cmd;
-            currentExecutingCommand.remainingRepeats = getDShotCommandRepeats(cmd);
-            commandPostDelay = DSHOT_COMMAND_INTERVAL_US;
-        } else {
-            if (commandPostDelay) {
-                if (tNow - lastCommandSent < commandPostDelay) {
-                    return false;
-                }
-                commandPostDelay = 0;
-            }
-
-            return true;
-        }  
-    }
-    for (uint8_t i = 0; i < getMotorCount(); i++) {
-         motors[i].requestTelemetry = true;
-         motors[i].value = currentExecutingCommand.cmd;
-    }
-    if (tNow - lastCommandSent >= DSHOT_COMMAND_DELAY_US) {
-        currentExecutingCommand.remainingRepeats--; 
-        lastCommandSent = tNow;
-        return true;
-    } else {
-        return false;
-    }
-}
-#endif
-
-void pwmCompleteMotorUpdate(void) {
-    // This only makes sense for digital motor protocols
-    if (!isMotorProtocolDigital()) {
-        return;
-    }
-
-    int motorCount = getMotorCount();
-    timeUs_t currentTimeUs = micros();
-
-    // Enforce motor update rate
-    if ((digitalMotorUpdateIntervalUs == 0) || ((currentTimeUs - digitalMotorLastUpdateUs) <= digitalMotorUpdateIntervalUs)) {
-        return;
-    }
-
-    digitalMotorLastUpdateUs = currentTimeUs;
-
-#ifdef USE_DSHOT
-    if (isMotorProtocolDshot()) {
-
-        if (!executeDShotCommands()) {
-            return;
-        }
-
-#ifdef USE_DSHOT_DMAR
-        for (int index = 0; index < motorCount; index++) {
-            if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
-                loadDmaBufferDshotStride(&motors[index].pwmPort->dmaBurstBuffer[motors[index].pwmPort->tch->timHw->channelIndex], 4, packet);
-                motors[index].requestTelemetry = false;
-            }
-        }
-
-        for (int burstDmaTimerIndex = 0; burstDmaTimerIndex < burstDmaTimersCount; burstDmaTimerIndex++) {
-            burstDmaTimer_t *burstDmaTimer = &burstDmaTimers[burstDmaTimerIndex];
-            pwmBurstDMAStart(burstDmaTimer, DSHOT_DMA_BUFFER_SIZE * 4);
-        }
 #else
-        // Generate DMA buffers
-        for (int index = 0; index < motorCount; index++) {
-            if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                uint16_t packet = prepareDshotPacket(motors[index].value, motors[index].requestTelemetry);
-                loadDmaBufferDshot(motors[index].pwmPort->dmaBuffer, packet);
-                timerPWMPrepareDMA(motors[index].pwmPort->tch, DSHOT_DMA_BUFFER_SIZE);
-                motors[index].requestTelemetry = false;
-            }
-        }
-
-        // Start DMA on all timers
-        for (int index = 0; index < motorCount; index++) {
-            if (motors[index].pwmPort && motors[index].pwmPort->configured) {
-                timerPWMStartDMA(motors[index].pwmPort->tch);
-            }
-        }
+    UNUSED(motorIndex);
 #endif
+}
+
+void pwmCompleteMotorUpdate(void)
+{
+#ifdef USE_DSHOT
+    // This only makes sense for digital motor protocols
+    if (isMotorProtocolDigital()) {
+        dshotCompleteMotorUpdate(pwmMotorsEnabled);
     }
 #endif
 }
-
-#else // digital motor protocol
-
-// This stub is needed to avoid ESC_SENSOR dependency on DSHOT
-void pwmRequestMotorTelemetry(int motorIndex)
-{
-    UNUSED(motorIndex);
-}
-
-#endif
 
 void pwmMotorPreconfigure(void)
 {
@@ -694,8 +268,8 @@ void pwmMotorPreconfigure(void)
         case PWM_TYPE_DSHOT600:
         case PWM_TYPE_DSHOT300:
         case PWM_TYPE_DSHOT150:
-            motorConfigDigitalUpdateInterval(getEscUpdateFrequency());
-            motorWritePtr = pwmWriteDigital;
+            dshotInit(initMotorProtocol, getEscUpdateFrequency());
+            motorWritePtr = dshotWriteMotor;
             break;
 #endif
 
@@ -717,7 +291,7 @@ void pwmMotorPreconfigure(void)
 
 /**
  * This function return the PWM frequency based on ESC protocol. We allow customer rates only for Brushed motors
- */ 
+ */
 uint32_t getEscUpdateFrequency(void) {
     switch (initMotorProtocol) {
         case PWM_TYPE_BRUSHED:
@@ -749,42 +323,57 @@ bool pwmMotorConfig(const timerHardware_t *timerHardware, uint8_t motorIndex, bo
 {
     switch (initMotorProtocol) {
     case PWM_TYPE_BRUSHED:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 0.0f, 0.0f, getEscUpdateFrequency(), enableOutput);
+        motors[motorIndex] = motorConfigPwm(timerHardware, 0.0f, 0.0f, getEscUpdateFrequency(), enableOutput);
         break;
 
     case PWM_TYPE_ONESHOT125:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, getEscUpdateFrequency(), enableOutput);
+        motors[motorIndex] = motorConfigPwm(timerHardware, 125e-6f, 125e-6f, getEscUpdateFrequency(), enableOutput);
         break;
 
     case PWM_TYPE_MULTISHOT:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, getEscUpdateFrequency(), enableOutput);
+        motors[motorIndex] = motorConfigPwm(timerHardware, 5e-6f, 20e-6f, getEscUpdateFrequency(), enableOutput);
         break;
 
 #ifdef USE_DSHOT
     case PWM_TYPE_DSHOT600:
     case PWM_TYPE_DSHOT300:
     case PWM_TYPE_DSHOT150:
-        motors[motorIndex].pwmPort = motorConfigDshot(timerHardware, getDshotHz(initMotorProtocol), enableOutput);
-        break;
+        return dshotMotorConfig(timerHardware, motorIndex, enableOutput);
 #endif
 
     case PWM_TYPE_STANDARD:
-        motors[motorIndex].pwmPort = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, getEscUpdateFrequency(), enableOutput);
+        motors[motorIndex] = motorConfigPwm(timerHardware, 1e-3f, 1e-3f, getEscUpdateFrequency(), enableOutput);
         break;
 
     default:
-        motors[motorIndex].pwmPort = NULL;
+        motors[motorIndex] = NULL;
         break;
     }
 
-    return (motors[motorIndex].pwmPort != NULL);
+    return (motors[motorIndex] != NULL);
+}
+
+// After every other timer and DMA user has had its pick (fc_init)
+bool pwmMotorPostInit(void)
+{
+#ifdef USE_DSHOT
+    if (isMotorProtocolDshot()) {
+        return dshotMotorPostInit();
+    }
+#endif
+    return true;
 }
 
 // Helper function for ESC passthrough
 ioTag_t pwmGetMotorPinTag(int motorIndex)
 {
-    if (motors[motorIndex].pwmPort) {
-        return motors[motorIndex].pwmPort->tch->timHw->tag;
+#ifdef USE_DSHOT
+    if (isMotorProtocolDshot()) {
+        return dshotGetMotorPinTag(motorIndex);
+    }
+#endif
+    if (motors[motorIndex]) {
+        return motors[motorIndex]->tch->timHw->tag;
     }
     else {
         return IOTAG_NONE;
@@ -796,8 +385,14 @@ ioTag_t pwmGetMotorPinTag(int motorIndex)
 // on HAL targets a bare IOConfigGPIO(IOCFG_AF_PP) programs AF0 and the timer loses the pin.
 void pwmRestoreMotorPin(int motorIndex)
 {
-    if (motors[motorIndex].pwmPort) {
-        const timerHardware_t *timHw = motors[motorIndex].pwmPort->tch->timHw;
+#ifdef USE_DSHOT
+    if (isMotorProtocolDshot()) {
+        dshotRestoreMotorPin(motorIndex);
+        return;
+    }
+#endif
+    if (motors[motorIndex]) {
+        const timerHardware_t *timHw = motors[motorIndex]->tch->timHw;
         IOConfigGPIOAF(IOGetByTag(timHw->tag), IOCFG_AF_PP, timHw->alternateFunction);
     }
 }
