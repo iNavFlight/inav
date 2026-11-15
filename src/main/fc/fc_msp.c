@@ -2182,9 +2182,16 @@ static mspResult_e mspFcNavROIInCommand(sbuf_t *src)
 
     if (roi.flag == 0) {
         navClearROI();
-    } else {
-        navSetROI(&roi);
+        return MSP_RESULT_ACK;
     }
+
+    // Only datums with a conversion to the local frame: terrain and relative
+    // would be read as takeoff-relative and MSL respectively
+    if (roi.alt_datum != NAV_WP_TAKEOFF_DATUM && roi.alt_datum != NAV_WP_MSL_DATUM) {
+        return MSP_RESULT_ERROR;
+    }
+
+    navSetROI(&roi);
 
     return MSP_RESULT_ACK;
 }

@@ -11936,8 +11936,9 @@
                     {
                         "name": "alt_datum",
                         "ctype": "uint8_t",
-                        "desc": "ROI altitude datum bitfield (`posControl.roi.alt_datum`)",
-                        "units": "bitfield"
+                        "desc": "ROI altitude datum (`posControl.roi.alt_datum`): `NAV_WP_TAKEOFF_DATUM` or `NAV_WP_MSL_DATUM`",
+                        "units": "",
+                        "enum": "geoAltitudeDatumFlag_e"
                     },
                     {
                         "name": "action",
@@ -11994,8 +11995,9 @@
                     {
                         "name": "alt_datum",
                         "ctype": "uint8_t",
-                        "desc": "ROI altitude datum bitfield",
-                        "units": "bitfield"
+                        "desc": "ROI altitude datum (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` or `NAV_WP_MSL_DATUM`; other datums are rejected",
+                        "units": "",
+                        "enum": "geoAltitudeDatumFlag_e"
                     },
                     {
                         "name": "action",
@@ -12012,7 +12014,7 @@
                 ]
             },
             "reply": null,
-            "notes": "Expects at least 19 bytes; trailing bytes are ignored.",
+            "notes": "Expects at least 19 bytes; trailing bytes are ignored. Storing an ROI (`flag` non-zero) with `NAV_WP_TERRAIN_DATUM` or `NAV_WP_RELATIVE_DATUM` returns an error and leaves the stored ROI unchanged.",
             "description": "Sets or clears the active navigation ROI."
         },
         "MSP2_INAV_GOTO_ROI": {
@@ -12020,7 +12022,7 @@
             "mspv": 2,
             "request": null,
             "reply": null,
-            "notes": "Calls `navGotoROI()`. Returns error if ROI is not set or guided mode preconditions are not met.",
+            "notes": "Calls `navGotoROI()`. Returns error if ROI is not set or guided mode preconditions are not met. An ROI altitude of 0 keeps the current altitude; otherwise the target altitude is the ROI's.",
             "description": "Commands navigation to move guided desired position to the active ROI."
         },
         "MSP2_BETAFLIGHT_BIND": {

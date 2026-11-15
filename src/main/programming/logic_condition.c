@@ -757,7 +757,7 @@ static int logicConditionGetROIOperandValue(int operand)
             return roiLocalValid ? calculateDistanceToDestination(&roiLocal) / 100 : 0;
 
         case LOGIC_CONDITION_OPERAND_ROI_ALTITUDE:
-            return roiLocalValid ? roiLocal.z : roi.alt;
+            return roiLocalValid ? roiLocal.z : 0;
 
         case LOGIC_CONDITION_OPERAND_ROI_BEARING:
             return roiLocalValid ? calculateBearingToDestination(&roiLocal) : 0;
@@ -767,9 +767,8 @@ static int logicConditionGetROIOperandValue(int operand)
                 const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
                 const float groundDistanceCm = calculateDistanceToDestination(&roiLocal);
                 const float altitudeDiffCm = roiLocal.z - posvel->pos.z;
-                if (groundDistanceCm > 0.0f) {
-                    return RADIANS_TO_CENTIDEGREES(atan2_approx(altitudeDiffCm, groundDistanceCm));
-                }
+                // straight above or below is +-90 deg; atan2_approx(0, 0) is 0
+                return RADIANS_TO_CENTIDEGREES(atan2_approx(altitudeDiffCm, groundDistanceCm));
             }
             return 0;
 

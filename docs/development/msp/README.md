@@ -5061,7 +5061,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `alt` | `int32_t` | 4 | cm | ROI altitude (`posControl.roi.alt`) |
 | `p1` | `int16_t` | 2 | - | ROI parameter 1 (`posControl.roi.p1`) |
 | `p2` | `int16_t` | 2 | - | ROI parameter 2 (`posControl.roi.p2`) |
-| `alt_datum` | `uint8_t` | 1 | bitfield | ROI altitude datum bitfield (`posControl.roi.alt_datum`) |
+| `alt_datum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | ROI altitude datum (`posControl.roi.alt_datum`): `NAV_WP_TAKEOFF_DATUM` or `NAV_WP_MSL_DATUM` |
 | `action` | `uint8_t` | 1 | - | ROI action field (`posControl.roi.action`) |
 | `flag` | `uint8_t` | 1 | enum | ROI state flag (`posControl.roi.flag`): 0 empty, 1 volatile, 2 persistent |
 
@@ -5078,13 +5078,13 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 | `alt` | `int32_t` | 4 | cm | ROI altitude |
 | `p1` | `int16_t` | 2 | - | ROI parameter 1 |
 | `p2` | `int16_t` | 2 | - | ROI parameter 2 |
-| `alt_datum` | `uint8_t` | 1 | bitfield | ROI altitude datum bitfield |
+| `alt_datum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | ROI altitude datum (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` or `NAV_WP_MSL_DATUM`; other datums are rejected |
 | `action` | `uint8_t` | 1 | - | ROI action field |
 | `flag` | `uint8_t` | 1 | enum | Control flag: 0 clears ROI, non-zero stores ROI as volatile (`flag` forced to 1) |
 
 **Reply Payload:** **None**  
 
-**Notes:** Expects at least 19 bytes; trailing bytes are ignored.
+**Notes:** Expects at least 19 bytes; trailing bytes are ignored. Storing an ROI (`flag` non-zero) with `NAV_WP_TERRAIN_DATUM` or `NAV_WP_RELATIVE_DATUM` returns an error and leaves the stored ROI unchanged.
 
 ## <a id="msp2_inav_goto_roi"></a>`MSP2_INAV_GOTO_ROI (8760 / 0x2238)`
 **Description:** Commands navigation to move guided desired position to the active ROI.  
@@ -5093,7 +5093,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Reply Payload:** **None**  
 
-**Notes:** Calls `navGotoROI()`. Returns error if ROI is not set or guided mode preconditions are not met.
+**Notes:** Calls `navGotoROI()`. Returns error if ROI is not set or guided mode preconditions are not met. An ROI altitude of 0 keeps the current altitude; otherwise the target altitude is the ROI's.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

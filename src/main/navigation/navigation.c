@@ -5592,7 +5592,9 @@ bool navGotoROI(void)
         return false;
     }
 
-    setDesiredPosition(&roiLocal, posControl.desiredState.yaw, NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z);
+    // An ROI is usually a point on the ground: altitude 0 keeps the current
+    // altitude, as for WP #255 and MSP2_INAV_SET_GLOBAL_TARGET
+    setDesiredPosition(&roiLocal, posControl.desiredState.yaw, posControl.roi.alt != 0 ? NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z : NAV_POS_UPDATE_XY);
     return true;
 }
 
