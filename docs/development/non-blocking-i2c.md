@@ -169,9 +169,11 @@ parses. `compassUpdate()` returns the delay until its next call: 1 ms while a
 transfer is on the bus, the regular 100 ms period once the sample was
 handled. Drivers without `readStart` keep their blocking `read()`.
 
-Converted so far: QMC5883L and QMC5883P, two transfers per sample. The status
+Converted so far: QMC5883L, QMC5883P and IST8310, two transfers per sample. The status
 byte is read first; the six data bytes only when `DRDY` confirms a fresh
-sample, otherwise `read()` reports the miss as before. A sample costs three
+sample, otherwise `read()` reports the miss as before (the QMC drivers
+return a failed read; the IST8310 polls the status about every 1 ms for up to
+one output period first and then keeps the previous values). A sample costs three
 task runs about 1 ms apart, then the task sleeps for the rest of the period.
 
 ## Converting a driver
