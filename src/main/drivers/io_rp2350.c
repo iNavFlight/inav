@@ -23,10 +23,12 @@
  *
  * RP2350 GPIO abstraction for INAV.
  *
- * RP2350 has a flat GPIO model (GPIO 0-29, single port).
- * We map these into INAV's two-port model:
+ * RP2350 has a flat GPIO model (GPIO 0-29 on RP2350A, GPIO 0-47 on RP2350B).
+ * We map these into INAV's 16-pin port model, GPIO = port * 16 + pin:
  *   Port A (gpioid 0) = GPIO 0-15
- *   Port B (gpioid 1) = GPIO 16-29
+ *   Port B (gpioid 1) = GPIO 16-31 (16-29 on RP2350A)
+ *   Port C (gpioid 2) = GPIO 32-47 (RP2350B only)
+ * A target enables the pins it has with TARGET_IO_PORTA/B/C.
  *
  * Unlike STM32, the pin field in ioRec_t stores the raw GPIO number
  * (not a bitmask), and IO operations use Pico SDK gpio functions.

@@ -184,6 +184,10 @@ void ws2811LedStripInit(void)
     ledStripSm = (uint)sm;
 
     pio_gpio_init(ledStripPio, gpio);
+#ifdef WS2811_PIN_INVERTED
+    // For boards whose level shifter inverts. After pio_gpio_init(), which resets the override.
+    gpio_set_outover(gpio, GPIO_OVERRIDE_INVERT);
+#endif
     pio_sm_set_consecutive_pindirs(ledStripPio, ledStripSm, gpio, 1, true);
 
     pio_sm_config c = pio_get_default_sm_config();
@@ -271,6 +275,8 @@ void ws2811UpdateStrip(uint16_t usedLedCount)
  * PIO-based WS2812 does not support this mode; leave as no-ops. */
 void ledPinStartPWM(uint16_t value) { UNUSED(value); }
 void ledPinStopPWM(void) { }
+// PINIO channel 0 (the LED pad as an on/off output) is not available: the pad belongs to the PIO program
+void ws2811SetIdleHigh(bool high) { UNUSED(high); }
 
 /* Declared in the header for completeness; not called by INAV at runtime. */
 void ws2811LedStripHardwareInit(void) { }

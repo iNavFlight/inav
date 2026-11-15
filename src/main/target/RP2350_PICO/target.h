@@ -35,8 +35,8 @@
 #define TARGET_IO_PORTA 0xFFFF
 #define TARGET_IO_PORTB 0x3FFF
 
-// Flash-based config storage in FLASH_CONFIG region (0x103F0000, 64 KB)
-// __config_start / __config_end are defined in rp2350_flash.ld.
+// Flash-based config storage in FLASH_CONFIG region (last 64 KB of flash,
+// 0x103F0000 here).  __config_start / __config_end are defined in rp2350_flash.ld.
 #define CONFIG_IN_FLASH
 #define EEPROM_SIZE     32768
 
@@ -62,6 +62,7 @@
 #define ADC_CHANNEL_1_PIN          PB10  /* GPIO 26 — battery voltage  */
 #define ADC_CHANNEL_2_PIN          PB11  /* GPIO 27 — current sensor   */
 #define ADC_CHANNEL_3_PIN          PB12  /* GPIO 28 — RSSI voltage     */
+#define ADC_CHANNEL_4_PIN          PB13  /* GPIO 29 — VSYS/3 on Pico 2, no default function */
 
 #define VBAT_ADC_CHANNEL           ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL  ADC_CHN_2
@@ -188,19 +189,4 @@
 #define SOFTSERIAL_1_TIMER 2
 #define SOFTSERIAL_2_TIMER 3
 
-/* RP2350 PWM slice "timers" — one TIM_TypeDef per slice, used as group IDs.
- * Analogous to TIM1/TIM3/… on STM32; pins sharing a slice must run at the
- * same update rate.  Defined in drivers/timer_rp2350.c. */
-extern TIM_TypeDef rp2350Pwm4;   /* slice 4:  GP8/GP9   — servos (dual-use UART3) */
-extern TIM_TypeDef rp2350Pwm5;   /* slice 5:  GP10/GP11 — motors 1-2              */
-extern TIM_TypeDef rp2350Pwm6;   /* slice 6:  GP12/GP13 — motors 3-4              */
-extern TIM_TypeDef rp2350Pwm7;   /* slice 7:  GP14/GP15 — servos (dual-use UART4) */
-extern TIM_TypeDef rp2350Pwm10;  /* slice 10: GP20/GP21 — servos (dedicated)      */
-
-/* On RP2350, TIMn = PWM slice n (slice = gpio / 2; A/B channels share clkdiv/wrap).
- * GP8/9→slice4, GP10/11→slice5, GP12/13→slice6, GP14/15→slice7, GP20/21→slice10. */
-#define TIM4  (&rp2350Pwm4)
-#define TIM5  (&rp2350Pwm5)
-#define TIM6  (&rp2350Pwm6)
-#define TIM7  (&rp2350Pwm7)
-#define TIM10 (&rp2350Pwm10)
+/* TIM4..TIM7 and TIM10 (PWM slice group IDs used in target.c) come from rp2350.h. */

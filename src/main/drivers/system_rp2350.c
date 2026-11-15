@@ -18,6 +18,7 @@
 #include "common/utils.h"
 #include "drivers/system.h"
 #include "drivers/persistent.h"
+#include "drivers/usb_msc.h"
 
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
@@ -32,7 +33,7 @@
 #include "tusb.h"
 
 // SystemCoreClock — updated by systemInit from SDK clock tree
-uint32_t SystemCoreClock = 192000000;
+uint32_t SystemCoreClock = 150000000;
 
 // ── Pre-init diagnostic blinks (run inside runtime_run_initializers) ──────────
 // Enable by defining RP2350_DIAG_BLINK at compile time (e.g. in CMakeLists.txt).
@@ -87,6 +88,10 @@ void SystemInit(void)
 static bool usb_task_timer_cb(repeating_timer_t *rt)
 {
     (void)rt;
+    // The main loop is inside TinyUSB and may hold a mutex tud_task() needs
+    if (rp2350UsbBusy) {
+        return true;
+    }
     tud_task();
     return true;
 }
@@ -97,13 +102,14 @@ void systemInit(void)
 {
     persistentObjectInit();
 
-    // Raise sys clock from SDK default (150 MHz) to 192 MHz.
+    // Sys clock at the rated 150 MHz. It was 192 MHz, lowered while a freeze
+    // on the OPENFC_LITE_MINI is being hunted.
     // The USB PLL is independent (clk_usb stays at 48 MHz from pll_usb) so
     // TinyUSB CDC is unaffected. The hardware timer (clk_timer, derived from
     // clk_ref at 12 MHz) is also unaffected, so micros() stays accurate.
     // Must be called before tusb_init() / stdio_init_all() so those see the
     // final clock rate.
-    set_sys_clock_khz(192000, true);
+    set_sys_clock_khz(150000, true);
 
     // SDK runtime already initialized clocks, GPIO, etc. via crt0 → runtime_init
     SystemCoreClock = clock_get_hz(clk_sys);
@@ -115,6 +121,13 @@ void systemInit(void)
     // tusb_init()/IRQ/alarm machinery inside stdio_usb.c — so there is no
     // second tusb_init() and no competing tud_task() timer.
     tusb_init();
+
+#ifdef USE_USB_MSC
+    // Mass storage mode: stay off the bus until mscStart() has the card ready
+    if (mscCheckBoot()) {
+        tud_disconnect();
+    }
+#endif
 
     // Drive USB CDC from a dedicated 1ms hardware alarm so tud_task() runs even
     // when the cooperative scheduler is busy (e.g. during long tasks or CLI mode).
@@ -131,6 +144,17 @@ void systemInit(void)
 }
 
 // --- Timing functions ---
+
+void failureMode(failureMode_e mode)
+{
+    UNUSED(mode);
+    while (1) {}
+}
+
+bool isMPUSoftReset(void)
+{
+    return false;
+}
 
 timeUs_t micros(void)
 {

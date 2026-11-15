@@ -44,10 +44,42 @@
 
 extern uint32_t SystemCoreClock;
 
+/* CMSIS name used by shared drivers (sdcard_spi.c). Spelled as in cmsis_gcc.h,
+ * which arm_math.h pulls in for some files, so that it is not a redefinition. */
+#ifndef __ASM
+#define __ASM       __asm
+#endif
+#define __NOP()     __ASM volatile ("nop")
+
+/* Set by the USB VCP driver while the main loop is inside TinyUSB, see
+ * drivers/serial_usb_vcp_rp2350.c */
+extern volatile uint8_t rp2350UsbBusy;
+
 /* ── Timer ─────────────────────────────────────────────────────────────────── */
 
 typedef struct { void* dummy; } TIM_TypeDef;
 typedef struct { void* dummy; } TIM_OCInitTypeDef;
+
+/* RP2350-only identity tokens — NOT hardware register addresses.
+ * A "TIMn" groups the timerHardware[] pins that share one PWM slice and so
+ * must run at the same update rate; TIM4..TIM7 are slices 4..7, TIM10 is
+ * slice 2 (the name is kept: its timerOverrides slot is stored in settings).
+ * The slice a GPIO really drives is never taken from the token, the drivers
+ * ask pwm_gpio_to_slice_num():
+ *   GPIO 0-31:  slice = (gpio / 2) % 8   (GPIO 16-31 repeat slices 0-7)
+ *   GPIO 32-47: slice = 8 + (gpio / 2) % 4   (RP2350B only)
+ * Defined in drivers/timer_rp2350.c. */
+extern TIM_TypeDef rp2350Pwm4;
+extern TIM_TypeDef rp2350Pwm5;
+extern TIM_TypeDef rp2350Pwm6;
+extern TIM_TypeDef rp2350Pwm7;
+extern TIM_TypeDef rp2350Pwm10;
+
+#define TIM4  (&rp2350Pwm4)
+#define TIM5  (&rp2350Pwm5)
+#define TIM6  (&rp2350Pwm6)
+#define TIM7  (&rp2350Pwm7)
+#define TIM10 (&rp2350Pwm10)
 
 /* ── DMA ───────────────────────────────────────────────────────────────────── */
 
