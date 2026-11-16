@@ -517,8 +517,10 @@ uint32_t millis(void) {
 
 void delayMicroseconds(timeUs_t us)
 {
-    // On the stepped clock a delay passes sim time, not wall time.
-    if (steppedClock) {
+    // Inside a step a delay passes sim time. Between steps sim time stands
+    // still while MSP and the CLI are serviced, so a delay there (e.g. the CLI
+    // line delay) waits on the wall clock.
+    if (stepInProgress) {
         simTimeUs += us;
         return;
     }

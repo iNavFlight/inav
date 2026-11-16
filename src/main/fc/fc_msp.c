@@ -4757,6 +4757,13 @@ static mspResult_e mspProcessSimulatorCommand(sbuf_t *dst, sbuf_t *src, const in
 #endif
         }
     }
+#if defined(SITL_BUILD)
+    else if (simMspVersion == SIMULATOR_MSP_VERSION_3 && SIMULATOR_HAS_OPTION(HITL_STEPPED_CLOCK)) {
+        // SITL mode frames carry no sensors: SITL's sensors come from a
+        // simulator that runs on its own wall clock, so there is no step to run
+        return MSP_RESULT_ERROR;
+    }
+#endif
 
     sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_ROLL]);
     sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_PITCH]);

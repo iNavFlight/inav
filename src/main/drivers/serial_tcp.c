@@ -241,10 +241,41 @@ uint8_t tcpRead(serialPort_t *instance)
     return ch;
 }
 
+// send() can take less than asked: send the rest, after a signal (EINTR)
+// retry, and when the socket buffer is full (EAGAIN, the client socket is
+// non-blocking on some systems) wait up to 100 ms for room before dropping
+// the rest. A dropped tail is a client that stopped reading.
+static void tcpSendAll(tcpPort_t *port, const void *data, int count)
+{
+    const uint8_t *next = data;
+
+    while (count > 0 && port->isClientConnected) {
+        const ssize_t sent = send(port->clientSocketFd, next, count, 0);
+        if (sent > 0) {
+            next += sent;
+            count -= sent;
+            continue;
+        }
+        if (sent < 0 && errno == EINTR) {
+            continue;
+        }
+        if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            fd_set writable;
+            FD_ZERO(&writable);
+            FD_SET(port->clientSocketFd, &writable);
+            struct timeval timeout = { .tv_sec = 0, .tv_usec = 100000 };
+            if (select(port->clientSocketFd + 1, NULL, &writable, NULL, &timeout) > 0) {
+                continue;
+            }
+        }
+        return;
+    }
+}
+
 static void tcpSendStaged(tcpPort_t *port)
 {
-    if (port->txStaged > 0 && port->isClientConnected) {
-        send(port->clientSocketFd, port->txStage, port->txStaged, 0);
+    if (port->txStaged > 0) {
+        tcpSendAll(port, port->txStage, port->txStaged);
     }
     port->txStaged = 0;
 }
@@ -269,7 +300,7 @@ void tcpWritBuf(serialPort_t *instance, const void *data, int count)
     }
 
     tcpSendStaged(port);
-    send(port->clientSocketFd, data, count, 0);
+    tcpSendAll(port, data, count);
 }
 
 static void tcpBeginWrite(serialPort_t *instance)

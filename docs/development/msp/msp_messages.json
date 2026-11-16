@@ -8892,7 +8892,7 @@
                     {
                         "name": "stepUs",
                         "ctype": "uint32_t",
-                        "desc": "(SITL, format 3, if `HITL_STEPPED_CLOCK`) Simulated time SITL runs before replying",
+                        "desc": "(SITL, format 3, if `HITL_STEPPED_CLOCK`) Simulated time SITL runs before replying. A stepped frame with `HITL_SITL_MODE` is rejected",
                         "units": "us"
                     }
                 ]
