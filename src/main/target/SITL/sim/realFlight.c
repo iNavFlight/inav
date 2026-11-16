@@ -58,6 +58,10 @@
 #include "realFlight.h"
 
 #define RF_PORT "18083"
+#define RF_TIMEOUT_MS 1000
+// With --lockstep the simulator holds the ExchangeData reply while it steps
+// (and while it is paused or stalled): 1 s would drop the frame on a stall.
+#define RF_LOCKSTEP_TIMEOUT_MS 30000
 #define RF_MAX_CHANNEL_COUNT 12
 
 // "RealFlight Ranch" is located in Sierra Nevada, southern Spain
@@ -391,6 +395,15 @@ static void exchangeData(void)
         constrainToInt16(north.z * 16000.0f)
     );
 
+    // With --lockstep the simulator's physics time drives the clock
+    // (target.c). Last, so the tasks due at the new time see this frame.
+    // The build uses single-precision constants: scale by an integer.
+    const char *physicsTimeTag = "<m-currentPhysicsTime-SEC>";
+    const char *physicsTime = simLockstepEnabled() ? strstr(response, physicsTimeTag) : NULL;
+    if (physicsTime) {
+        simLockstepSetTime((int64_t)llround(atof(physicsTime + strlen(physicsTimeTag)) * 1000000));
+    }
+
     free(rfValues.m_currentAircraftStatus);
     free(response);
 }
@@ -459,6 +472,10 @@ static void* soapWorker(void* arg)
 
         exchangeData();
         unlockMainPID();
+        // Lockstep: the next ExchangeData carries the outputs for the time
+        // this one set, once the main loop has run every task due then.
+        while (simLockstepActive() && !atomic_load(&shouldStopSoapThread) && !simLockstepWaitAnswered(100)) {
+        }
     }
 
     return NULL;
@@ -470,7 +487,7 @@ bool simRealFlightInit(char* ip, uint8_t* mapping, uint8_t mapCount, bool imu)
     mappingCount = mapCount;
     useImu = imu;
 
-    if (soap_client_init(&client, ip, RF_PORT, "/", 1000) < 0) {
+    if (soap_client_init(&client, ip, RF_PORT, "/", simLockstepEnabled() ? RF_LOCKSTEP_TIMEOUT_MS : RF_TIMEOUT_MS) < 0) {
         return false;
     }
 
