@@ -238,7 +238,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "TERRAIN_NAV",
     "ESC",
     "FW_TURN",
-    "MAG"
+    "MAG",
+    "I2C"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
@@ -941,6 +942,12 @@ static void cliSerial(char *cmdline)
 
     if (validArgumentCount < 2) {
         cliShowParseError();
+        return;
+    }
+
+    const uint32_t duplicatedFunctions = serialGetDuplicatedSinglePortFunctions(&portConfig);
+    if (duplicatedFunctions) {
+        cliPrintErrorLinef("Function %d is already assigned to another port", (int)duplicatedFunctions);
         return;
     }
 

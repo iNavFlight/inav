@@ -77,9 +77,19 @@ typedef struct compassConfig_s {
 
 PG_DECLARE(compassConfig_t, compassConfig);
 
+// Regular sample rate of the compass task. compassUpdate() returns it after every sample, so it is the only place
+// the rate can be set
+#if defined(USE_MAG_MPU9250)
+// fixme temporary solution for AK6983 via slave I2C on MPU9250
+#define COMPASS_UPDATE_RATE_HZ      40
+#else
+#define COMPASS_UPDATE_RATE_HZ      10
+#endif
+#define COMPASS_UPDATE_PERIOD_US    (1000000 / COMPASS_UPDATE_RATE_HZ)
+
 bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse);
 bool compassInit(void);
-void compassUpdate(timeUs_t currentTimeUs);
+uint32_t compassUpdate(timeUs_t currentTimeUs);
 bool compassIsReady(void);
 bool compassIsHealthy(void);
 bool compassIsCalibrationComplete(void);
