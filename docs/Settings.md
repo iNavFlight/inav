@@ -645,6 +645,39 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### chirp_amplitude
+
+Peak chirp perturbation in degrees/second. Select a small excitation appropriate to the aircraft; the test does not change PID gains.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 10 | 1 | 30 |
+
+---
+
+### chirp_axis
+
+Experimental multirotor rate chirp axis. OFF disables excitation. Requires manual-throttle ANGLE flight and CHIRP Blackbox logging. See Multirotor Chirp.md.
+
+| Allowed Values |  |
+| --- | --- |
+| OFF | Default |
+| ROLL |  |
+| PITCH |  |
+| YAW |  |
+
+---
+
+### chirp_trigger_channel
+
+Dedicated receiver switch channel for the experimental chirp test (5 = AUX1). Observe low (900-1300) in valid flight conditions, then high (1700-2100) to start one sweep. Do not share with other functions.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 5 | 5 | 12 |
+
+---
+
 ### crsf_use_legacy_baro_packet
 
 CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'
@@ -803,6 +836,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | ESC |  |
 | FW_TURN |  |
 | MAG |  |
+| CHIRP |  |
 
 ---
 
