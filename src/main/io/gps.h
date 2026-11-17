@@ -103,6 +103,7 @@ typedef struct gpsConfig_s {
     bool ubloxUseGalileo;
     bool ubloxUseBeidou;
     bool ubloxUseGlonass;
+    bool ubloxAssistNowAutonomous;
     uint8_t gpsMinSats;
     uint8_t ubloxNavHz;
     gpsBaudRate_e autoBaudMax;
