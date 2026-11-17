@@ -211,6 +211,10 @@ const djiOsdMapping_t djiOSDItemIndexMap[] = {
     { -1,                                     0 }, // DJI: OSD_STICK_OVERLAY_RIGHT
     { -1,                                     0 }, // DJI: OSD_DISPLAY_NAME
     { -1,                                     0 }, // DJI: OSD_ESC_RPM_FREQ
+    // These are native Betaflight profile-name fields, not INAV OSD item IDs.
+    // INAV control/battery/mixer names are rendered by osd.c via analog OSD or
+    // MSP DisplayPort. This legacy telemetry backend has no corresponding
+    // name payload; mapping positions alone would enable fields without text.
     { -1,                                     0 }, // DJI: OSD_RATE_PROFILE_NAME
     { -1,                                     0 }, // DJI: OSD_PID_PROFILE_NAME
     { -1,                                     0 }, // DJI: OSD_PROFILE_NAME
