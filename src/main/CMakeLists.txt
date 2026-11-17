@@ -115,6 +115,8 @@ main_sources(COMMON_SRC
     drivers/barometer/barometer_bmp280.h
     drivers/barometer/barometer_bmp388.c
     drivers/barometer/barometer_bmp388.h
+    drivers/barometer/barometer_bmp58x.c
+    drivers/barometer/barometer_bmp58x.h
     drivers/barometer/barometer_dps310.c
     drivers/barometer/barometer_dps310.h
     drivers/barometer/barometer_fake.c
