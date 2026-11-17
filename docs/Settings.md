@@ -591,6 +591,16 @@ If the remaining battery capacity goes below this threshold the beeper will emit
 
 ---
 
+### bec_adc_channel
+
+ADC channel measuring the BEC voltage, on the servo rail the BEC supplies. Defaults to the board's input for it. 0 = none: the BEC voltage then comes from a Smart ESC that reports it
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | ADC_CHN_NONE | ADC_CHN_MAX |
+
+---
+
 ### beeper_pwm_mode
 
 Allows disabling PWM mode for beeper on some targets. Switch from ON to OFF if the external beeper sound is weak. Do not switch from OFF to ON without checking if the board supports PWM beeper mode
@@ -1042,6 +1052,16 @@ DJI O4 release firmware has a broken MSP DisplayPort implementation. This enable
 ### esc_sensor_listen_only
 
 Enable when BLHeli32 Auto Telemetry function is used. Disable in every other case
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### esc_srxl2_connector
+
+Only on a board with an ESC connector that can also be a UART's TX (NEXUS, NEXUS X/XR, Vantac RF007), with motor_pwm_protocol set to SRXL2. ON puts a Smart ESC on that connector as motor 1, on the one UART the board can wire to it, which must have no function assigned in the ports tab. ESCs on UARTs assigned in the ports tab follow as motors 2 and on.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7469,6 +7489,26 @@ Warning voltage per cell, this triggers battery-warning alarms, in 0.01V units, 
 | Default | Min | Max |
 | --- | --- | --- |
 | 350 | 100 | 500 |
+
+---
+
+### vbec_scale
+
+BEC voltage calibration value, as vbat_scale: 1100 = 11:1 voltage divider (10k:1k) x 100. Adjust it if the BEC voltage shown by "status" in the CLI differs from a multimeter's reading
+
+| Default | Min | Max |
+| --- | --- | --- |
+| _target default_ | 0 | 5000 |
+
+---
+
+### vbec_warning_voltage
+
+Below this BEC voltage the OSD's BEC element blinks [0.01V]. 0 = no warning
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 1500 |
 
 ---
 

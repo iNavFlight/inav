@@ -470,6 +470,32 @@ groups:
         field: adcFunctionChannel[ADC_AIRSPEED]
         min: ADC_CHN_NONE
         max: ADC_CHN_MAX
+      - name: bec_adc_channel
+        description: "ADC channel measuring the BEC voltage, on the servo rail the BEC supplies. Defaults to the board's input for it. 0 = none: the BEC voltage then comes from a Smart ESC that reports it"
+        default_value: :target
+        field: adcFunctionChannel[ADC_BEC]
+        condition: USE_BEC_VOLTAGE_ADC
+        min: ADC_CHN_NONE
+        max: ADC_CHN_MAX
+
+  - name: PG_BEC_CONFIG
+    type: becConfig_t
+    headers: ["sensors/bec.h"]
+    condition: USE_BEC_VOLTAGE
+    members:
+      - name: vbec_scale
+        description: "BEC voltage calibration value, as vbat_scale: 1100 = 11:1 voltage divider (10k:1k) x 100. Adjust it if the BEC voltage shown by \"status\" in the CLI differs from a multimeter's reading"
+        default_value: :target
+        field: scale
+        condition: USE_BEC_VOLTAGE_ADC
+        min: 0
+        max: 5000
+      - name: vbec_warning_voltage
+        description: "Below this BEC voltage the OSD's BEC element blinks [0.01V]. 0 = no warning"
+        default_value: 0
+        field: warningVoltage
+        min: 0
+        max: 1500
 
   - name: PG_ACCELEROMETER_CONFIG
     type: accelerometerConfig_t
@@ -902,6 +928,17 @@ groups:
         min: 4
         max: 255
         default_value: 14
+
+  - name: PG_ESC_CONNECTOR_CONFIG
+    type: escConnectorConfig_t
+    headers: ["io/motor_srxl2.h"]
+    condition: ESC_CONNECTOR_UART
+    members:
+      - name: esc_srxl2_connector
+        description: "Only on a board with an ESC connector that can also be a UART's TX (NEXUS, NEXUS X/XR, Vantac RF007), with motor_pwm_protocol set to SRXL2. ON puts a Smart ESC on that connector as motor 1, on the one UART the board can wire to it, which must have no function assigned in the ports tab. ESCs on UARTs assigned in the ports tab follow as motors 2 and on."
+        default_value: OFF
+        field: srxl2
+        type: bool
 
   - name: PG_FAILSAFE_CONFIG
     type: failsafeConfig_t

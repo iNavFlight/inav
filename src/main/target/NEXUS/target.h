@@ -140,6 +140,8 @@
 #define ADC_CHANNEL_1_PIN       PC2   // Vin (input power rail)
 #define VBAT_ADC_CHANNEL        ADC_CHN_1
 #define ADC_CHANNEL_2_PIN       PC1   // BEC 5V rail
+#define BEC_ADC_CHANNEL         ADC_CHN_2
+#define VBEC_SCALE_DEFAULT      625   // Rotorflight's scale / divider, 1000 / 160
 // VBAT scale: hardware-verified value (divider ratio ~320)
 #define VBAT_SCALE_DEFAULT      320
 
@@ -152,7 +154,7 @@
 //   S2:   PB5  (TIM3_CH2)  - Servo header
 //   S3:   PB0  (TIM3_CH3)  - Servo header
 //   S4:   PB3  (TIM2_CH2)  - Servo header (Tail)
-//   M1:   PB6  (TIM4_CH1)  - ESC header (motor only, NOT UART1)
+//   M1:   PB6  (TIM4_CH1)  - ESC header (motor, or UART1 TX with esc_srxl2_connector)
 //
 // Pin multiplexing when UARTs freed:
 //   PA2 (TIM5_CH3) - shared with UART2 TX / FREQ input
@@ -171,3 +173,9 @@
 #define TARGET_IO_PORTC         0xffff
 
 #define DEFAULT_FEATURES        (FEATURE_TX_PROF_SEL | FEATURE_BLACKBOX)
+
+// A Smart ESC plugs into the connector labelled ESC with nothing assigned in Ports: see
+// "Boards with an ESC connector" in docs/Spektrum Smart ESC.md
+#define USE_MOTOR_SRXL2
+#define ESC_CONNECTOR_UART      SERIAL_PORT_USART1
+#define ESC_CONNECTOR_PIN       PB6
