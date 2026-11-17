@@ -525,11 +525,8 @@ bool pitotIsValidForAirspeed(bool requireAccuratePitot)
 #if defined(USE_WIND_ESTIMATOR) && defined(USE_PITOT_VIRTUAL)
         if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL || pitotHardwareFailed) {
             return isEstimatedWindSpeedValid();
-        } else
-#endif
-        {
-        return !pitotHardwareFailed;
         }
+#endif
     }
 
     return pitotAirspeedValidCached;

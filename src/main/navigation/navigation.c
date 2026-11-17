@@ -3812,7 +3812,7 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
     }
 
     if (micros() - posControl.fwLandState.loiterStartTime > FW_LAND_LOITER_MIN_TIME) {
- #ifdef USE_WIND_ESTIMATOR
+#ifdef USE_WIND_ESTIMATOR
         if (isEstimatedWindSpeedValid()) {
             uint16_t windAngle = 0;
             int32_t approachHeading = -1;
