@@ -228,7 +228,9 @@ static struct blackboxSDCardAccessStatus_s {
  */
 bool requestToSdCardAccess(void)
 {
-    if(blackboxConfig()->device != BLACKBOX_DEVICE_SDCARD || !canUseBlackboxWithCurrentConfiguration()){
+    //a full device stops the log for good and processBlackbox() no longer calls
+    //blackboxUpdate(), the only place that grants the card, so the card is free
+    if(blackboxConfig()->device != BLACKBOX_DEVICE_SDCARD || !canUseBlackboxWithCurrentConfiguration() || isBlackboxDeviceFull()){
         return true;
     }
 
