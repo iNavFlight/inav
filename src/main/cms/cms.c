@@ -70,6 +70,10 @@
 #include "io/osd.h"
 #include "io/rcdevice_cam.h"
 
+#ifdef USE_VTX_CONTROL
+#include "cms/cms_menu_vtx.h"
+#endif
+
 #include "rx/rx.h"
 
 // DisplayPort management
@@ -1591,6 +1595,11 @@ void cmsUpdate(timeUs_t currentTimeUs)
 
         // Only scan keys and draw if we're not yielding
         if (cmsYieldUntil == 0) {
+#ifdef USE_VTX_CONTROL
+            if (currentCtx.menu == &cmsx_menuVtxControl) {
+                cmsVtxUpdatePowerMetadata();
+            }
+#endif
             // XXX: Note that one call to cmsScanKeys() might generate multiple keypresses
             // when repeating, that's why cmsYieldDisplay() has to check for multiple calls.
             rcDelayMs = cmsScanKeys(currentTimeMs, lastCalledMs, rcDelayMs);

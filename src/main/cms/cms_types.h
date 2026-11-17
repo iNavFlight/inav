@@ -123,7 +123,7 @@ typedef enum {
 } CMSDataType_e;
 
 // Use a function and data type to make sure switches are exhaustive
-static inline CMSDataType_e CMS_DATA_TYPE(const OSD_Entry *entry) { return entry->flags & 0xF0; }
+static inline CMSDataType_e CMS_DATA_TYPE(const OSD_Entry *entry) { return (CMSDataType_e)(entry->flags & 0xF0); }
 
 typedef long (*CMSMenuFuncPtr)(const OSD_Entry *from);
 
