@@ -29,3 +29,6 @@ bool mscCheckBoot(void);
 uint8_t mscStart(void);
 bool mscCheckButton(void);
 void mscWaitForButton(void);
+#ifdef FASTRAM_MSC_ONLY_NEEDS_EXPLICIT_ZERO
+void mscZeroOnlyRegion(void);
+#endif
