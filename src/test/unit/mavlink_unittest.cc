@@ -129,6 +129,8 @@ static uint16_t testReplyPayloadLength;
 static const timeMs_t testMissionUploadRetryMs = 1500;
 static timeMs_t fakeMillis;
 static timeUs_t fakeMicros;
+static bool testTxBufferEmpty;
+static timeUs_t testMicrosPerCommand;
 static int mspCommandCallCount;
 static int mspPassthroughDispatchCount;
 static int mspRebootPostProcessCount;
@@ -368,6 +370,8 @@ static void initMavlinkTestState(bool secondPort = false)
     serialTxOverrun = false;
     fakeMillis = 0;
     fakeMicros = 0;
+    testTxBufferEmpty = true;
+    testMicrosPerCommand = 0;
     setWaypointCalls = 0;
     lastWaypointNumber = 0;
     resetWaypointCalls = 0;
@@ -3945,6 +3949,71 @@ TEST(MavlinkTelemetryTest, GpsRawReportsNativeAccuracyExtensions)
     EXPECT_EQ(raw.hdg_acc, 321U);
 }
 
+static void queueSerialRequests(int count)
+{
+    const std::vector<uint8_t> request = makeMspV1Request(testSimpleMspCommand);
+    for (int i = 0; i < count; i++) {
+        memcpy(&serialRxBuffer[serialRxLen], request.data(), request.size());
+        serialRxLen += request.size();
+    }
+}
+
+TEST(MspSerialTest, OneCommandPerRunOutsideHitl)
+{
+    initMavlinkTestState();
+    queueSerialRequests(3);
+    mspPort_t port;
+    resetMspPort(&port, &testSerialPort);
+
+    mspSerialProcessOnePort(&port, MSP_SKIP_NON_MSP_DATA, mspFcProcessCommand);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+}
+
+TEST(MspSerialTest, HitlRunsQueuedCommandsUpToTheCap)
+{
+    initMavlinkTestState();
+    queueSerialRequests(6);
+    ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+    mspPort_t port;
+    resetMspPort(&port, &testSerialPort);
+
+    mspSerialProcessOnePort(&port, MSP_SKIP_NON_MSP_DATA, mspFcProcessCommand);
+    EXPECT_EQ(mspCommandCallCount, 4);
+
+    mspSerialProcessOnePort(&port, MSP_SKIP_NON_MSP_DATA, mspFcProcessCommand);
+    EXPECT_EQ(mspCommandCallCount, 6);
+    EXPECT_EQ(serialRxPos, serialRxLen);
+}
+
+TEST(MspSerialTest, HitlTakesOneCommandWhileTheTransmitBufferIsBusy)
+{
+    initMavlinkTestState();
+    queueSerialRequests(3);
+    ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+    testTxBufferEmpty = false;   // a UART still sending the previous reply
+    mspPort_t port;
+    resetMspPort(&port, &testSerialPort);
+
+    mspSerialProcessOnePort(&port, MSP_SKIP_NON_MSP_DATA, mspFcProcessCommand);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+}
+
+TEST(MspSerialTest, HitlEndsTheRunAfterASlowReply)
+{
+    initMavlinkTestState();
+    queueSerialRequests(3);
+    ENABLE_ARMING_FLAG(SIMULATOR_MODE_HITL);
+    testMicrosPerCommand = 50000;   // a USB host that stopped reading: the write waits out its timeout
+    mspPort_t port;
+    resetMspPort(&port, &testSerialPort);
+
+    mspSerialProcessOnePort(&port, MSP_SKIP_NON_MSP_DATA, mspFcProcessCommand);
+
+    EXPECT_EQ(mspCommandCallCount, 1);
+}
+
 extern "C" {
 
 int32_t debug[DEBUG32_VALUE_COUNT];
@@ -4132,7 +4201,7 @@ bool serialIsConnected(const serialPort_t *instance)
 bool isSerialTransmitBufferEmpty(const serialPort_t *instance)
 {
     UNUSED(instance);
-    return true;
+    return testTxBufferEmpty;
 }
 
 void waitForSerialPortToFinishTransmitting(serialPort_t *serialPort)
@@ -4478,6 +4547,7 @@ static void testMspRebootPostProcess(serialPort_t *serialPort)
 mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
 {
     mspCommandCallCount++;
+    fakeMicros += testMicrosPerCommand;
     reply->cmd = cmd->cmd;
     reply->flags = 0;
     reply->result = 0;
