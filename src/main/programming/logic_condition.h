@@ -201,6 +201,8 @@ typedef enum {
     LOGIC_CONDITION_OPERAND_WAYPOINTS_USER2_ACTION_NEXT_WP,                 // 11
     LOGIC_CONDITION_OPERAND_WAYPOINTS_USER3_ACTION_NEXT_WP,                 // 12
     LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION_NEXT_WP,                 // 13
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_BEARING,                              // 14
+    LOGIC_CONDITION_OPERAND_WAYPOINTS_ELEVATION,                            // 15
 } logicWaypointOperands_e;
 
 typedef enum {
