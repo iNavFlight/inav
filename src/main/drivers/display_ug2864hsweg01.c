@@ -221,6 +221,7 @@ static uint8_t oledChunkLen = 0;                    // > 0: chunk built, waiting
 static bool oledChunkIsCmd = false;
 static uint8_t oledChunkCol = 0;                    // first column carried by a data chunk, re-dirtied on a bus error
 static bool oledTransferPending = false;
+static bool oledBackoffActive = false;              // a chunk was lost, oledRetryAtUs is valid
 static timeUs_t oledRetryAtUs = 0;                  // no transfer is started before this time
 
 // SH1106 has 132-wide GDDRAM but only 128 columns are visible; the first
@@ -247,7 +248,7 @@ static void oledResetState(void)
     oledChunkLen = 0;
     oledRunActive = false;
     oledRunNeedsAddress = true;
-    oledRetryAtUs = 0;
+    oledBackoffActive = false;
     oledCursorPage = 0;
     oledCursorCol = 0;
     for (uint8_t page = 0; page < OLED_PAGE_COUNT; page++) {
@@ -276,12 +277,17 @@ bool i2c_OLED_pump(void)
             }
             oledRunNeedsAddress = true;
             oledRetryAtUs = micros() + OLED_ERROR_BACKOFF_US;
+            oledBackoffActive = true;
         }
     }
 
     if (oledChunkLen == 0) {
-        if (cmpTimeUs(micros(), oledRetryAtUs) < 0) {
-            return false;                           // backing off after a lost chunk, the dirty columns wait
+        // cmpTimeUs() is only good for about 35 minutes around the deadline, so a stale one must not be compared
+        if (oledBackoffActive) {
+            if (cmpTimeUs(micros(), oledRetryAtUs) < 0) {
+                return false;                       // backing off after a lost chunk, the dirty columns wait
+            }
+            oledBackoffActive = false;
         }
 
         if (!oledRunActive) {
