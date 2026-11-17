@@ -71,9 +71,19 @@ static void flashfsSetTailAddress(uint32_t address)
 
 void flashfsEraseCompletely(void)
 {
+    // The scan below reuses the NAND page buffer; NOR drivers have no flush callback
+    if (flashGetGeometry()->flashType == FLASH_TYPE_NAND) {
+        flashFlush();
+    }
     flashPartitionErase(flashPartition);
     flashfsClearBuffer();
-    flashfsSetTailAddress(0);
+
+    // Measure the result as the next boot will; a NOR bulk erase is still running and cannot be read yet
+    if (flashIsReady()) {
+        flashfsSetTailAddress(flashfsIdentifyStartOfFreeSpace());
+    } else {
+        flashfsSetTailAddress(0);
+    }
 }
 
 void flashfsClose(void)
