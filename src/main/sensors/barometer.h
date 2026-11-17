@@ -62,6 +62,7 @@ bool baroInit(void);
 bool baroIsCalibrationComplete(void);
 void baroStartCalibration(void);
 uint32_t baroUpdate(void);
+bool baroIsPolling(void);
 int32_t baroCalculateAltitude(void);
 int32_t baroGetLatestAltitude(void);
 int16_t baroGetTemperature(void);
