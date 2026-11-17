@@ -555,6 +555,31 @@ static void i2cErrorHandler(I2CDevice device)
     state->busy = false;
 }
 
+// EV8 / EV8_1: queue the subaddress or the next payload byte
+static void i2cSendNextByte(I2C_TypeDef *I2Cx, i2cBusState_t *state)
+{
+    if (state->index != -1) {                                                   // we dont have a subaddress to send
+        if (state->index < state->bytes) {
+            I2Cx->DR = state->writeBuf[state->index++];
+            if (state->bytes == state->index) {                                 // we have sent all the data
+                I2C_ITConfig(I2Cx, I2C_IT_BUF, DISABLE);                        // disable TXE to allow the buffer to flush
+            }
+        }
+        else {                                                                  // raw write without data - nothing to send, end the transfer
+            I2C_ITConfig(I2Cx, I2C_IT_BUF, DISABLE);
+            I2C_GenerateSTOP(I2Cx, ENABLE);
+            state->index = state->bytes + 1;                                    // to show that the job is complete
+        }
+    }
+    else {
+        state->index++;
+        I2Cx->DR = state->reg;                                                  // send the subaddress
+        if (state->reading || !(state->bytes)) {                                // if receiving or sending 0 bytes, flush now
+            I2C_ITConfig(I2Cx, I2C_IT_BUF, DISABLE);                            // disable TXE to allow the buffer to flush
+        }
+    }
+}
+
 static void i2cEventHandlerBody(I2CDevice device)
 {
     I2C_TypeDef *I2Cx = i2cHardwareMap[device].dev;
@@ -623,7 +648,13 @@ static void i2cEventHandlerBody(I2CDevice device)
             }
         }
         else {                                                                  // EV8_2, which may be due to a subaddress sent or a write completion
-            if (state->subaddressSent || !state->reading) {
+            if (!state->reading && state->index < state->bytes) {
+                // A late interrupt: the previous byte went out before the next one was queued, so BTF is set together
+                // with TXE and wins the dispatch. The write is not finished - a STOP here would drop the rest of it
+                // and still report success. Writing DR clears BTF
+                i2cSendNextByte(I2Cx, state);
+            }
+            else if (state->subaddressSent || !state->reading) {
                 I2C_GenerateSTOP(I2Cx, ENABLE);                                 // program the Stop
                 state->index++;                                                 // to show that the job is complete
             }
@@ -648,26 +679,7 @@ static void i2cEventHandlerBody(I2CDevice device)
         }
     }
     else if (SReg_1 & I2C_SR1_TXE) {                                            // Byte transmitted EV8 / EV8_1
-        if (state->index != -1) {                                               // we dont have a subaddress to send
-            if (state->index < state->bytes) {
-                I2Cx->DR = state->writeBuf[state->index++];
-                if (state->bytes == state->index) {                             // we have sent all the data
-                    I2C_ITConfig(I2Cx, I2C_IT_BUF, DISABLE);                    // disable TXE to allow the buffer to flush
-                }
-            }
-            else {                                                              // raw write without data - nothing to send, end the transfer
-                I2C_ITConfig(I2Cx, I2C_IT_BUF, DISABLE);
-                I2C_GenerateSTOP(I2Cx, ENABLE);
-                state->index = state->bytes + 1;                                // to show that the job is complete
-            }
-        }
-        else {
-            state->index++;
-            I2Cx->DR = state->reg;                                              // send the subaddress
-            if (state->reading || !(state->bytes)) {                            // if receiving or sending 0 bytes, flush now
-                I2C_ITConfig(I2Cx, I2C_IT_BUF, DISABLE);                        // disable TXE to allow the buffer to flush
-            }
-        }
+        i2cSendNextByte(I2Cx, state);
     }
 
     if (state->index == state->bytes + 1) {                                     // we have completed the current job
