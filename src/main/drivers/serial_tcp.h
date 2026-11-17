@@ -33,6 +33,7 @@
 #define TCP_BASE_PORT_DEFAULT 5760
 #define TCP_BUFFER_SIZE 2048
 #define TCP_MAX_PACKET_SIZE 65535
+#define TCP_TX_STAGE_SIZE 2048      // what is written between beginWrite and endWrite goes out in one send()
 
 typedef struct
 {
@@ -49,6 +50,9 @@ typedef struct
     struct sockaddr_storage sockAddress;
     struct sockaddr_storage clientAddress;
     bool isClientConnected;
+    bool txStaging;
+    int txStaged;
+    uint8_t txStage[TCP_TX_STAGE_SIZE];
 } tcpPort_t;
 
 

@@ -6379,6 +6379,7 @@
 | `HITL_RANGEFINDER` | (1 << 12) |  |
 | `HITL_FAILSAFE_TRIGGERED` | (1 << 13) |  |
 | `HITL_SITL_MODE` | (1 << 14) |  |
+| `HITL_STEPPED_CLOCK` | (1 << 15) |  |
 
 ---
 ## <a id="enum-sitlcanmode_e"></a>`sitlCANMode_e`

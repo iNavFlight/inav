@@ -19,10 +19,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#if defined(SITL_BUILD)
-#include <unistd.h>
-#endif
-
 #include "platform.h"
 
 #include "scheduler.h"
@@ -35,6 +31,10 @@
 #include "common/utils.h"
 
 #include "drivers/time.h"
+
+#if defined(SITL_BUILD)
+#include "target/SITL/stepped_clock.h"
+#endif
 
 STATIC_FASTRAM cfTask_t *currentTask = NULL;
 
@@ -320,6 +320,9 @@ void FAST_CODE NOINLINE scheduler(void)
     totalWaitingTasks += waitingTasks;
 
     currentTask = selectedTask;
+#if defined(SITL_BUILD)
+    const bool sitlTaskRan = selectedTask != NULL;
+#endif
 
     if (selectedTask) {
         // Found a task that should be run
@@ -354,10 +357,10 @@ void FAST_CODE NOINLINE scheduler(void)
             sitlLoadBusyTimeUs += sitlBusyTimeUs;
         }
 
-        // Avoid busy-waiting and burning 100% CPU in SITL.  After executing the
-        // current task (or finding nothing to do), sleep until just before the
-        // next task is due.  For event-driven tasks (checkFunc) we limit the
-        // sleep so the check function is still called frequently.
+        // Avoid busy-waiting and burning 100% CPU in SITL: the target waits
+        // until the next task is due, on wall time or, inside a stepped-clock
+        // step, by advancing sim time. For event-driven tasks (checkFunc) the
+        // wait is limited so the check function is still called frequently.
         if (sitlHasCheckFuncTask) {
             // Poll event-driven tasks at least every 500 µs
             const timeUs_t eventCap = micros() + 500;
@@ -365,13 +368,7 @@ void FAST_CODE NOINLINE scheduler(void)
                 sitlEarliestNextTaskAt = eventCap;
             }
         }
-        const timeUs_t nowUs = micros();
-        if (sitlEarliestNextTaskAt > nowUs + 50) {
-            const timeDelta_t sleepUs = (timeDelta_t)(sitlEarliestNextTaskAt - nowUs) - 50;
-            if (sleepUs > 0) {
-                usleep((useconds_t)sleepUs);
-            }
-        }
+        sitlSchedulerIdle(sitlEarliestNextTaskAt, sitlTaskRan);
     }
 #endif
 }
