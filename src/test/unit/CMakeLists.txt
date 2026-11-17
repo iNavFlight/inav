@@ -59,6 +59,9 @@ set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
 set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")
 
+set_property(SOURCE display_ug2864hsweg01_unittest.cc PROPERTY depends "drivers/display_ug2864hsweg01.c")
+set_property(SOURCE display_ug2864hsweg01_unittest.cc PROPERTY definitions USE_OLED_UG2864 USE_I2C USE_I2C_DEVICE_1)
+
 # DroneCAN tests - headers in separate include/ dir, no auto .h transform needed
 set_property(SOURCE dronecan_messages_unittest.cc PROPERTY depends
     "drivers/dronecan/libcanard/canard.c")

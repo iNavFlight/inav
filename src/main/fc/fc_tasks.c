@@ -61,6 +61,7 @@
 #include "io/beeper.h"
 #include "io/lights.h"
 #include "io/dashboard.h"
+#include "drivers/display_ug2864hsweg01.h"
 #include "io/gps.h"
 #include "io/ledstrip.h"
 #include "io/osd.h"
@@ -188,7 +189,11 @@ void taskProcessGPS(timeUs_t currentTimeUs)
 void taskUpdateCompass(timeUs_t currentTimeUs)
 {
     if (sensors(SENSOR_MAG)) {
-        compassUpdate(currentTimeUs);
+        // A non-blocking read asks to be revisited shortly, otherwise the regular period is restored
+        const uint32_t newDeadline = compassUpdate(currentTimeUs);
+        if (newDeadline != 0) {
+            rescheduleTask(TASK_SELF, newDeadline);
+        }
     }
 }
 #endif
@@ -200,12 +205,16 @@ void taskUpdateBaro(timeUs_t currentTimeUs)
         return;
     }
 
-    const uint32_t newDeadline = baroUpdate();
+    bool newSampleReady = false;
+    const uint32_t newDeadline = baroUpdate(&newSampleReady);
     if (newDeadline != 0) {
         rescheduleTask(TASK_SELF, newDeadline);
     }
 
-    updatePositionEstimator_BaroTopic(currentTimeUs);
+    // The estimator derives the climb rate from consecutive samples, feed it only when there is a new one
+    if (newSampleReady) {
+        updatePositionEstimator_BaroTopic(currentTimeUs);
+    }
 }
 #endif
 
@@ -271,6 +280,8 @@ void taskDashboardUpdate(timeUs_t currentTimeUs)
 {
     if (feature(FEATURE_DASHBOARD)) {
         dashboardUpdate(currentTimeUs);
+        // The display is drawn into a shadow frame, stream the changed columns quickly while there are any
+        rescheduleTask(TASK_SELF, i2c_OLED_pump() ? OLED_PUMP_RETRY_US : TASK_PERIOD_HZ(10));
     }
 }
 #endif
@@ -410,10 +421,6 @@ void fcTasksInit(void)
 #endif
 #ifdef USE_MAG
     setTaskEnabled(TASK_COMPASS, sensors(SENSOR_MAG));
-#if defined(USE_MAG_MPU9250)
-    // fixme temporary solution for AK6983 via slave I2C on MPU9250
-    rescheduleTask(TASK_COMPASS, TASK_PERIOD_HZ(40));
-#endif
 #endif
 #ifdef USE_BARO
     setTaskEnabled(TASK_BARO, sensors(SENSOR_BARO));
@@ -595,7 +602,7 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_COMPASS] = {
         .taskName = "COMPASS",
         .taskFunc = taskUpdateCompass,
-        .desiredPeriod = TASK_PERIOD_HZ(10),      // Compass is updated at 10 Hz
+        .desiredPeriod = TASK_PERIOD_HZ(COMPASS_UPDATE_RATE_HZ),
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 #endif

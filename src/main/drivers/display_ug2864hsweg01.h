@@ -41,5 +41,10 @@ void i2c_OLED_set_line(uint8_t row);
 void i2c_OLED_send_char(unsigned char ascii);
 void i2c_OLED_send_string(const char *string);
 bool i2c_OLED_send_byte(uint8_t val);
-void i2c_OLED_clear_display(void);
+bool i2c_OLED_clear_display(void);          // blocking, initialisation only
 void i2c_OLED_clear_display_quick(void);
+
+// Changed columns are sent in the background, call the pump at this interval while it reports work
+#define OLED_PUMP_RETRY_US  1000
+bool i2c_OLED_pump(void);           // send the next chunk, true while there is still something to send
+bool i2c_OLED_isBusy(void);         // something is still to be sent, or on the bus
