@@ -53,6 +53,9 @@ typedef struct imuConfig_s {
     uint8_t gps_yaw_windcomp;
     uint8_t inertia_comp_method;
     uint16_t gps_yaw_weight;
+#ifdef USE_GSF_YAW
+    uint8_t gsf_yaw;                        // heading from the GSF yaw estimator once it has settled
+#endif
 } imuConfig_t;
 
 PG_DECLARE(imuConfig_t, imuConfig);
@@ -89,6 +92,10 @@ bool isYawZeroResetAllowed(void);
 
 void imuTransformVectorBodyToEarth(fpVector3_t * v);
 void imuTransformVectorEarthToBody(fpVector3_t * v);
+
+#ifdef USE_GSF_YAW
+bool imuGetCompassHeading(float *heading);
+#endif
 
 void imuInit(void);
 
