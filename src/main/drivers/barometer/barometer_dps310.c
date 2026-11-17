@@ -110,6 +110,10 @@ typedef struct {
 static baroState_t  baroState;
 static uint8_t chipId[1];
 
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t measurementStatus;   // MEAS_CFG, polled for PRS_RDY before the data is fetched
+static uint8_t measurementBuf[6];
+
 
 // Helper functions
 static uint8_t registerRead(busDevice_t * busDev, uint8_t reg)
@@ -252,26 +256,37 @@ static bool deviceConfigure(busDevice_t * busDev)
     return true;
 }
 
+// The temperature phase of the measurement cycle is used to poll MEAS_CFG, the pressure phase fetches the data
+static bool deviceStartReadStatus(baroDev_t *baro)
+{
+    return busReadBufStart(baro->busDev, DPS310_REG_MEAS_CFG, &measurementStatus, sizeof(measurementStatus));
+}
+
+static bool deviceCheckStatus(baroDev_t *baro)
+{
+    UNUSED(baro);
+
+    // No new pressure result yet, the cycle restarts after ut_delay
+    return (measurementStatus & DPS310_MEAS_CFG_PRS_RDY) != 0;
+}
+
+static bool deviceStartReadMeasurement(baroDev_t *baro)
+{
+    // Kick off the read of PSR_B2, PSR_B1, PSR_B0, TMP_B2, TMP_B1, TMP_B0
+    return busReadBufStart(baro->busDev, DPS310_REG_PSR_B2, measurementBuf, sizeof(measurementBuf));
+}
+
 static bool deviceReadMeasurement(baroDev_t *baro)
 {
-    // 1. Check if pressure is ready
-    bool pressure_ready = registerRead(baro->busDev, DPS310_REG_MEAS_CFG) & DPS310_MEAS_CFG_PRS_RDY;
-    if (!pressure_ready) {
-        return false;
-    }
+    UNUSED(baro);
 
-    // 2. Choose scaling factors kT (for temperature) and kP (for pressure) based on the chosen precision rate.
+    // 1. Choose scaling factors kT (for temperature) and kP (for pressure) based on the chosen precision rate.
     // The scaling factors are listed in Table 9.
     static float kT = 253952; // 16 times (Standard)
     static float kP = 253952; // 16 times (Standard)
 
-    // 3. Read the pressure and temperature result from the registers
-    // Read PSR_B2, PSR_B1, PSR_B0, TMP_B2, TMP_B1, TMP_B0
-    uint8_t buf[6];
-    if (!busReadBuf(baro->busDev, DPS310_REG_PSR_B2, buf, 6)) {
-        return false;
-    }
-
+    // 2. Pick the pressure and temperature result from the buffer filled by deviceStartReadMeasurement()
+    const uint8_t *buf = measurementBuf;
     const int32_t Praw = getTwosComplement((buf[0] << 16) + (buf[1] << 8) + buf[2], 24);
     const int32_t Traw = getTwosComplement((buf[3] << 16) + (buf[4] << 8) + buf[5], 24);
 
@@ -380,12 +395,18 @@ bool baroDPS310Detect(baroDev_t *baro)
 
     const uint32_t baroDelay = 1000000 / 32 / 2;      // twice the sample rate to capture all new data
 
-    baro->ut_delay = 0;
-    baro->start_ut = NULL;
-    baro->get_ut = NULL;
+    // Continuous mode, nothing needs to be triggered. The temperature phase polls PRS_RDY every baroDelay,
+    // the pressure phase reads the result right after the flag was seen.
+    baro->combined_read = false;
 
-    baro->up_delay = baroDelay;
+    baro->ut_delay = baroDelay;
+    baro->start_ut = NULL;
+    baro->read_ut = deviceStartReadStatus;
+    baro->get_ut = deviceCheckStatus;
+
+    baro->up_delay = 1000;      // one scheduler step between the status check and the data read
     baro->start_up = NULL;
+    baro->read_up = deviceStartReadMeasurement;
     baro->get_up = deviceReadMeasurement;
 
     baro->calculate = deviceCalculate;

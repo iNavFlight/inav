@@ -16,8 +16,6 @@ set(STM32F7_HAL_SRC
     stm32f7xx_hal_flash.c
     stm32f7xx_hal_flash_ex.c
     stm32f7xx_hal_gpio.c
-    stm32f7xx_hal_i2c.c
-    stm32f7xx_hal_i2c_ex.c
     stm32f7xx_hal_pcd.c
     stm32f7xx_hal_pcd_ex.c
     stm32f7xx_hal_pwr.c
@@ -68,7 +66,7 @@ main_sources(STM32F7_SRC
     config/config_streamer_extflash.c
 
     drivers/adc_stm32f7xx.c
-    drivers/bus_i2c_hal.c
+    drivers/bus_i2c_stm32f7xx.c
     drivers/dma_stm32f7xx.c
     drivers/bus_spi_hal_ll.c
     drivers/timer.c

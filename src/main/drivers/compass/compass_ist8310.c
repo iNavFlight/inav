@@ -112,8 +112,16 @@
 #define IST8310_CNTRL2_DRPOL 0x04
 #define IST8310_CNTRL2_DRENA 0x08
 
+// Time the sensor needs to finish its power-on-reset routine after a soft reset
+#define IST8310_RESET_DELAY_MS 50
+
 static bool ist8310Init(magDev_t * mag)
 {
+    // A reboot of the FC does not power-cycle the sensor: it keeps measuring in whatever state the previous run
+    // left it and may never raise DRDY again. Start from the power-on state every time
+    busWrite(mag->busDev, IST8310_REG_CNTRL2, IST8310_CNTRL2_RESET);
+    delay(IST8310_RESET_DELAY_MS);
+
     busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_50_HZ);
     delay(5);
 
@@ -126,34 +134,70 @@ static bool ist8310Init(magDev_t * mag)
     return true;
 }
 
-static bool ist8310Read(magDev_t * mag)
-{
-    uint8_t status = 0;
+// Status polls about 1 ms apart, enough to cover a whole 20 ms output period
+#define IST8310_DRDY_MAX_RETRIES 25
 
-    if (!busRead(mag->busDev, IST8310_REG_STAT1, &status)) {
-        return false;
+// Targets of the non-blocking reads, filled by the bus driver in the background
+static uint8_t ist8310Status;
+static uint8_t ist8310Data[6];
+
+// Two transfers per sample: the status byte first, the data only when DRDY confirms a fresh sample
+static busReadStepResult_e ist8310ReadStart(magDev_t * mag, bool firstStep)
+{
+    static bool statusStarted = false;
+    static uint8_t statusRetries = 0;
+
+    if (firstStep) {
+        statusStarted = false;
+        statusRetries = 0;
+        ist8310Status = 0;
+    }
+
+    if (!statusStarted) {
+        if (!busReadBufStart(mag->busDev, IST8310_REG_STAT1, &ist8310Status, 1)) {
+            return BUS_READ_STEP_BUSY;
+        }
+        statusStarted = true;
+        return BUS_READ_STEP_NEXT;
     }
 
     // The IST8310 updates its data registers once per output-data period. Only read
     // them once DRDY is set; a read racing an update would mix old and new samples
-    // across axes, corrupting the mag vector and calibration. When no fresh sample
-    // is ready, return success so the caller keeps the previous values.
-    if (!(status & IST8310_DRDY_MASK)) {
+    // across axes, corrupting the mag vector and calibration.
+    if (!(ist8310Status & IST8310_DRDY_MASK)) {
+        // DRDY is low while the sensor converts. The task period is a multiple of the sensor's
+        // output period, so waiting a whole task period would hit the same gap again and again
+        // and the values would freeze. Poll the status until the conversion is over instead.
+        if (statusRetries < IST8310_DRDY_MAX_RETRIES) {
+            if (!busReadBufStart(mag->busDev, IST8310_REG_STAT1, &ist8310Status, 1)) {
+                return BUS_READ_STEP_BUSY;
+            }
+            statusRetries++;
+            return BUS_READ_STEP_NEXT;
+        }
+        return BUS_READ_STEP_LAST;     // nothing new to fetch, ist8310Read() keeps the previous values
+    }
+
+    if (!busReadBufStart(mag->busDev, IST8310_REG_DATA, ist8310Data, sizeof(ist8310Data))) {
+        return BUS_READ_STEP_BUSY;
+    }
+
+    return BUS_READ_STEP_LAST;
+}
+
+static bool ist8310Read(magDev_t * mag)
+{
+    // When no fresh sample is ready, return success so the caller keeps the previous values
+    if (!(ist8310Status & IST8310_DRDY_MASK)) {
         return true;
     }
 
-    uint8_t buf[6];
-    uint8_t LSB2FSV = 3; // 3mG - 14 bit
-
-    bool ack = busReadBuf(mag->busDev, IST8310_REG_DATA, buf, 6);
-    if (!ack) {
-        return false;
-    }
+    const uint8_t LSB2FSV = 3; // 3mG - 14 bit
 
     // Invert Y axis to co convert from left to right coordinate system
-    mag->magADCRaw[X] =  (int16_t)(buf[1] << 8 | buf[0]) * LSB2FSV;
-    mag->magADCRaw[Y] = -(int16_t)(buf[3] << 8 | buf[2]) * LSB2FSV;
-    mag->magADCRaw[Z] =  (int16_t)(buf[5] << 8 | buf[4]) * LSB2FSV;
+    mag->magADCRaw[X] =  (int16_t)(ist8310Data[1] << 8 | ist8310Data[0]) * LSB2FSV;
+    mag->magADCRaw[Y] = -(int16_t)(ist8310Data[3] << 8 | ist8310Data[2]) * LSB2FSV;
+    mag->magADCRaw[Z] =  (int16_t)(ist8310Data[5] << 8 | ist8310Data[4]) * LSB2FSV;
 
     return true;
 }
@@ -185,6 +229,7 @@ bool ist8310Detect(magDev_t * mag)
 
         if (deviceDetect(mag)) {
             mag->init = ist8310Init;
+            mag->readStart = ist8310ReadStart;
             mag->read = ist8310Read;
             return true;
         } else {
