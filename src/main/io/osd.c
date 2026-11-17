@@ -1253,6 +1253,17 @@ static inline int32_t osdGetAltitudeMsl(void)
     return getEstimatedActualPosition(Z) + posControl.gpsOrigin.alt;
 }
 
+STATIC_UNIT_TESTED uint16_t osdGlideTimeFromValues(int32_t altitude, float verticalSpeed)
+{
+    const int32_t sinkRate = abs((int)verticalSpeed);
+
+    if (verticalSpeed < 0 && sinkRate > 0) {
+        return (uint16_t)(altitude / sinkRate);
+    }
+
+    return 0;
+}
+
 uint16_t osdGetRemainingGlideTime(void) {
     float value = getEstimatedActualVelocity(Z);
     const  timeMs_t curTimeMs = millis();
@@ -1261,13 +1272,7 @@ uint16_t osdGetRemainingGlideTime(void) {
     value = pt1FilterApply3(&glideTimeFilterState, isnormal(value) ? value : 0, MS2S(curTimeMs - glideTimeUpdatedMs));
     glideTimeUpdatedMs = curTimeMs;
 
-    if (value < 0) {
-        value = osdGetAltitude() / abs((int)value);
-    } else {
-        value = 0;
-    }
-
-    return (uint16_t)roundf(value);
+    return osdGlideTimeFromValues(osdGetAltitude(), value);
 }
 
 static bool osdIsHeadingValid(void)
