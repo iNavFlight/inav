@@ -61,6 +61,9 @@ static pt1Filter_t estVelFilterState_X;
 static pt1Filter_t estVelFilterState_Y;
 static pt1Filter_t estVelFilterState_Z;
 
+// carries the vel*dt remainder a float32 position far from the origin cannot hold (ULP 4 cm at 470 km)
+static float estPosPredictionComp[2];
+
 PG_REGISTER_WITH_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig, PG_POSITION_ESTIMATION_CONFIG, 8);
 
 PG_RESET_TEMPLATE(positionEstimationConfig_t, positionEstimationConfig,
@@ -549,15 +552,21 @@ static void estimationPredict(estimationContext_t * ctx)
     /* Prediction step: XY-axis */
     if ((ctx->newFlags & EST_XY_VALID)) {
         // Predict based on known velocity
-        posEstimator.est.pos.x += posEstimator.est.vel.x * ctx->dt;
-        posEstimator.est.pos.y += posEstimator.est.vel.y * ctx->dt;
+        float delta[2] = { posEstimator.est.vel.x * ctx->dt, posEstimator.est.vel.y * ctx->dt };
 
         // If heading is valid, accelNEU is valid as well. Account for acceleration
         if (navIsHeadingUsable() && navIsAccelerationUsable()) {
-            posEstimator.est.pos.x += posEstimator.imu.accelNEU.x * sq(ctx->dt) / 2.0f;
-            posEstimator.est.pos.y += posEstimator.imu.accelNEU.y * sq(ctx->dt) / 2.0f;
+            delta[X] += posEstimator.imu.accelNEU.x * sq(ctx->dt) / 2.0f;
+            delta[Y] += posEstimator.imu.accelNEU.y * sq(ctx->dt) / 2.0f;
             posEstimator.est.vel.x += posEstimator.imu.accelNEU.x * ctx->dt;
             posEstimator.est.vel.y += posEstimator.imu.accelNEU.y * ctx->dt;
+        }
+
+        for (int axis = X; axis <= Y; axis++) {
+            const float increment = delta[axis] - estPosPredictionComp[axis];
+            const float newPos = posEstimator.est.pos.v[axis] + increment;
+            estPosPredictionComp[axis] = (newPos - posEstimator.est.pos.v[axis]) - increment;
+            posEstimator.est.pos.v[axis] = newPos;
         }
     }
 }
@@ -697,6 +706,8 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
         if (!(ctx->newFlags & EST_XY_VALID)) {
             posEstimator.est.pos.x = posEstimator.gps.pos.x;
             posEstimator.est.pos.y = posEstimator.gps.pos.y;
+            estPosPredictionComp[X] = 0.0f;
+            estPosPredictionComp[Y] = 0.0f;
             posEstimator.est.vel.x = posEstimator.gps.vel.x;
             posEstimator.est.vel.y = posEstimator.gps.vel.y;
             ctx->newEPH = posEstimator.gps.eph;
