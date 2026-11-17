@@ -474,6 +474,9 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8754 - MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)  
 [8755 - MSP2_INAV_ESC_SRXL2_STATUS](#msp2_inav_esc_srxl2_status)  
 [8756 - MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)  
+[8758 - MSP2_INAV_NAV_ROI](#msp2_inav_nav_roi)  
+[8759 - MSP2_INAV_SET_NAV_ROI](#msp2_inav_set_nav_roi)  
+[8760 - MSP2_INAV_GOTO_ROI](#msp2_inav_goto_roi)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -5044,6 +5047,53 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
+
+## <a id="msp2_inav_nav_roi"></a>`MSP2_INAV_NAV_ROI (8758 / 0x2236)`
+**Description:** Gets the active navigation ROI.  
+
+**Request Payload:** **None**  
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `lat` | `int32_t` | 4 | 1e-7 deg | ROI latitude (`posControl.roi.lat`) |
+| `lon` | `int32_t` | 4 | 1e-7 deg | ROI longitude (`posControl.roi.lon`) |
+| `alt` | `int32_t` | 4 | cm | ROI altitude (`posControl.roi.alt`) |
+| `p1` | `int16_t` | 2 | - | ROI parameter 1 (`posControl.roi.p1`) |
+| `p2` | `int16_t` | 2 | - | ROI parameter 2 (`posControl.roi.p2`) |
+| `alt_datum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | ROI altitude datum (`posControl.roi.alt_datum`): `NAV_WP_TAKEOFF_DATUM` or `NAV_WP_MSL_DATUM` |
+| `action` | `uint8_t` | 1 | - | ROI action field (`posControl.roi.action`) |
+| `flag` | `uint8_t` | 1 | enum | ROI state flag (`posControl.roi.flag`): 0 empty, 1 volatile, 2 persistent |
+
+**Notes:** Returns the active navigation ROI slot.
+
+## <a id="msp2_inav_set_nav_roi"></a>`MSP2_INAV_SET_NAV_ROI (8759 / 0x2237)`
+**Description:** Sets or clears the active navigation ROI.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `lat` | `int32_t` | 4 | 1e-7 deg | ROI latitude |
+| `lon` | `int32_t` | 4 | 1e-7 deg | ROI longitude |
+| `alt` | `int32_t` | 4 | cm | ROI altitude |
+| `p1` | `int16_t` | 2 | - | ROI parameter 1 |
+| `p2` | `int16_t` | 2 | - | ROI parameter 2 |
+| `alt_datum` | `uint8_t` | 1 | [geoAltitudeDatumFlag_e](https://github.com/iNavFlight/inav/wiki/Enums-reference#enum-geoaltitudedatumflag_e) | ROI altitude datum (`geoAltitudeDatumFlag_e`): `NAV_WP_TAKEOFF_DATUM` or `NAV_WP_MSL_DATUM`; other datums are rejected |
+| `action` | `uint8_t` | 1 | - | ROI action field |
+| `flag` | `uint8_t` | 1 | enum | Control flag: 0 clears ROI, non-zero stores ROI as volatile (`flag` forced to 1) |
+
+**Reply Payload:** **None**  
+
+**Notes:** Expects at least 19 bytes; trailing bytes are ignored. Storing an ROI (`flag` non-zero) with `NAV_WP_TERRAIN_DATUM` or `NAV_WP_RELATIVE_DATUM` returns an error and leaves the stored ROI unchanged.
+
+## <a id="msp2_inav_goto_roi"></a>`MSP2_INAV_GOTO_ROI (8760 / 0x2238)`
+**Description:** Commands navigation to move guided desired position to the active ROI.  
+
+**Request Payload:** **None**  
+
+**Reply Payload:** **None**  
+
+**Notes:** Calls `navGotoROI()`. Returns error if ROI is not set or guided mode preconditions are not met. An ROI altitude of 0 keeps the current altitude; otherwise the target altitude is the ROI's.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

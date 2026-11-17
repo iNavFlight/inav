@@ -37,7 +37,7 @@
 
 #ifdef USE_OSD
 
-#define HUD_DRAWN_MAXCHARS 54 // 8 POI (1 home, 4 radar, 3 WP) x 7 chars max for each, minus 2 for H
+#define HUD_DRAWN_MAXCHARS 61 // 9 POI (1 home, 4 radar, 3 WP, 1 ROI) x 7 chars max for each, minus 2 for H
 
 static int8_t hud_drawn[HUD_DRAWN_MAXCHARS][2];
 static int8_t hud_drawn_pt;

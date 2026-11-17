@@ -514,6 +514,7 @@ typedef struct {
     int8_t                      startWpIndex;               // index of first waypoint in mission
     int8_t                      geoWaypointCount;           // total geospatial WPs in mission
     bool                        wpMissionRestart;           // mission restart from first waypoint
+    navROI_t                    roi;
 
     /* WP Mission planner */
     int8_t                      wpMissionPlannerStatus;     // WP save status for setting in flight WP mission planner

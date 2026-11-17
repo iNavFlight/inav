@@ -584,6 +584,7 @@ typedef struct osdConfig_s {
     uint8_t geozoneDistanceWarning;                     // Distance to fence or action
     bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action
 #endif
+    bool hud_roi;                                       // Appended at the end to keep existing EEPROM field offsets stable
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);

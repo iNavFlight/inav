@@ -2295,7 +2295,8 @@
             "LOGIC_CONDITION_OPERAND_TYPE_GVAR": "5",
             "LOGIC_CONDITION_OPERAND_TYPE_PID": "6",
             "LOGIC_CONDITION_OPERAND_TYPE_WAYPOINTS": "7",
-            "LOGIC_CONDITION_OPERAND_TYPE_LAST": "8"
+            "LOGIC_CONDITION_OPERAND_TYPE_ROI": "8",
+            "LOGIC_CONDITION_OPERAND_TYPE_LAST": "9"
         },
         "logicOperation_e": {
             "_source": "inav/src/main/programming/logic_condition.h",
@@ -2364,6 +2365,19 @@
             "LOGIC_CONDITION_ACTIVATE_RTH": "62",
             "LOGIC_CONDITION_ACTIVATE_LANDING": "63",
             "LOGIC_CONDITION_LAST": "64"
+        },
+        "logicROIOperands_e": {
+            "_source": "inav/src/main/programming/logic_condition.h",
+            "LOGIC_CONDITION_OPERAND_ROI_ACTIVE": "0",
+            "LOGIC_CONDITION_OPERAND_ROI_DISTANCE": "1",
+            "LOGIC_CONDITION_OPERAND_ROI_GROUND_DISTANCE": "2",
+            "LOGIC_CONDITION_OPERAND_ROI_ALTITUDE": "3",
+            "LOGIC_CONDITION_OPERAND_ROI_BEARING": "4",
+            "LOGIC_CONDITION_OPERAND_ROI_ELEVATION": "5",
+            "LOGIC_CONDITION_OPERAND_ROI_PARAM1": "6",
+            "LOGIC_CONDITION_OPERAND_ROI_PARAM2": "7",
+            "LOGIC_CONDITION_OPERAND_ROI_ALT_DATUM": "8",
+            "LOGIC_CONDITION_OPERAND_ROI_ACTION": "9"
         },
         "logicWaypointOperands_e": {
             "_source": "inav/src/main/programming/logic_condition.h",
