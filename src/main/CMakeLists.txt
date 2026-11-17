@@ -347,6 +347,8 @@ main_sources(COMMON_SRC
 
     flight/failsafe.c
     flight/failsafe.h
+    flight/gsf_yaw.c
+    flight/gsf_yaw.h
     flight/imu.c
     flight/imu.h
     flight/kalman.c
@@ -505,6 +507,8 @@ main_sources(COMMON_SRC
     sensors/boardalignment.h
     sensors/compass.c
     sensors/compass.h
+    sensors/compass_learn.c
+    sensors/compass_learn.h
     sensors/compass_orientation.c
     sensors/compass_orientation.h
     sensors/diagnostics.c
