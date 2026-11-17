@@ -374,8 +374,8 @@ void i2c_OLED_clear_display_quick(void)
     }
 }
 
-// Initialisation only, blocking: blanks the panel while it is switched off
-void i2c_OLED_clear_display(void)
+// Initialisation only, blocking: blanks the panel while it is switched off. False when the panel could not be blanked
+bool i2c_OLED_clear_display(void)
 {
     static const uint8_t displayOff[] = { 0xA6, 0xAE, 0x40 };   // normal display, display off, start line 0
     static const uint8_t displayOn[] = { 0x81, 200, 0xAF };     // contrast (1 = dull, 255 = very bright), display on
@@ -384,7 +384,12 @@ void i2c_OLED_clear_display(void)
     i2c_OLED_clear_display_quick();
     while (i2c_OLED_pump()) {
     }
-    busWriteBuf(busDev, OLED_CONTROL_COMMANDS, displayOn, sizeof(displayOn));
+    // The pump also stops when it backs off after a lost chunk. Waiting that out would block the caller for too
+    // long, so the panel stays switched off rather than showing whatever it holds
+    if (i2c_OLED_isBusy()) {
+        return false;
+    }
+    return busWriteBuf(busDev, OLED_CONTROL_COMMANDS, displayOn, sizeof(displayOn));
 }
 
 void i2c_OLED_set_xy(uint8_t col, uint8_t row)
@@ -531,7 +536,12 @@ bool ug2864hsweg01InitI2C(void)
         return false;
     }
 
-    i2c_OLED_clear_display();   // the panel is blank and switched on when this returns
+    // The panel is blank and switched on when this succeeds
+    if (!i2c_OLED_clear_display()) {
+        LOG_ERROR(SYSTEM, "OLED: Failed to clear the display");
+        oledResetState();       // nothing is left for the pump to send to a display reported as absent
+        return false;
+    }
 
     return true;
 }
