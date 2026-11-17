@@ -4,6 +4,7 @@ set(MAIN_INCLUDE_DIRS
     "${MAIN_LIB_DIR}/main/MAVLink"
     "${MAIN_SRC_DIR}/drivers/dronecan/libcanard"
     "${DSDLC_GENERATED_DIRS}"
+    "${CMAKE_SOURCE_DIR}/msp/c"
 )
 
 set(MAIN_DEFINITIONS

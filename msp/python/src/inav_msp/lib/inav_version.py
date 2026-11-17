@@ -1,0 +1,4 @@
+VERSION = "10.0.0"
+MAJOR = 10
+MINOR = 0
+PATCH = 0

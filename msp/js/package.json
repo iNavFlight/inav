@@ -1,0 +1,16 @@
+{
+  "name": "inav-msp",
+  "version": "0.1.0",
+  "description": "INAV MSP library for JavaScript: codec generated from INAV's MSP schema",
+  "type": "module",
+  "main": "mspcodec.js",
+  "exports": {
+    ".": "./mspcodec.js",
+    "./messages": "./generated/messages.js",
+    "./enums": "./generated/enums.js",
+    "./constants": "./generated/constants.js",
+    "./inav_version": "./generated/inav_version.js"
+  },
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://github.com/iNavFlight/inav"
+}

@@ -74,7 +74,7 @@
 #include "sensors/boardalignment.h"
 
 #include "msp/msp.h"
-#include "msp/msp_protocol.h"
+#include "msp_protocol.h"
 #include "msp/msp_serial.h"
 
 #include "common/string_light.h"

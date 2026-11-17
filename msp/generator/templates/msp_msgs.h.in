@@ -1,0 +1,30 @@
+#pragma once
+// Generated from the MSP YAML schema by msp/generator/gen_c.py. Do not edit by hand.
+
+#include <stdint.h>
+#include "msp_consts.h"
+#include "msp_protocol.h"   // message ids
+
+#if defined(_MSC_VER)
+#  pragma pack(push, 1)
+#  define MSP_PACKED
+#else
+#  define MSP_PACKED __attribute__((__packed__))
+#endif
+
+#if !defined(MSP_STATIC_ASSERT)
+#  if defined(__cplusplus)
+#    define MSP_STATIC_ASSERT(cond, name) static_assert(cond, #name)
+#  elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#    define MSP_STATIC_ASSERT(cond, name) _Static_assert(cond, #name)
+#  else
+#    define MSP_STATIC_ASSERT(cond, name) typedef char name[(cond) ? 1 : -1]
+#  endif
+#endif
+
+@MESSAGE_STRUCTS@
+
+#if defined(_MSC_VER)
+#  pragma pack(pop)
+#endif
+#undef MSP_PACKED

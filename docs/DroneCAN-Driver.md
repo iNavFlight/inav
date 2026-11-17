@@ -627,7 +627,7 @@ if (uavcan_equipment_gnss_Fix_decode(transfer, &gnssFix) == 0) {
 ## MSP Commands
 
 Three MSP2 commands expose DroneCAN node/parameter data to external tools (configurator, GCS, test scripts).
-Full wire-level field definitions are the source of truth in `docs/development/msp/msp_messages.json` — the
+Full wire-level field definitions are the source of truth in `msp/schema/msp_v2.yaml` — the
 summaries below are for orientation; check that file (and its generated `README.md`) for exact byte offsets.
 
 ### `MSP2_INAV_DRONECAN_NODES` (0x2042)

@@ -44,7 +44,7 @@
 
 #include "msp/msp.h"
 #include "msp/msp_serial.h"
-#include "msp/msp_protocol.h"
+#include "msp_protocol.h"
 
 #if defined(USE_LOG)
 

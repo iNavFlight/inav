@@ -55,7 +55,7 @@ extern "C" {
     #include "io/osd.h"
 
     #include "msp/msp.h"
-    #include "msp/msp_protocol.h"
+    #include "msp_protocol.h"
     #include "msp/msp_serial.h"
 
     #include "mavlink/mavlink_runtime.h"

@@ -30,7 +30,7 @@
 #include "common/log.h"
 #include "common/crc.h"
 #include "drivers/vtx_common.h"
-#include "msp/msp_protocol.h"
+#include "msp_protocol.h"
 #include "rx/rx.h"
 #include "rx/crsf.h"
 #include "telemetry/crsf.h"

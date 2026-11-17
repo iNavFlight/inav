@@ -55,7 +55,7 @@
 static char infoGitRev[GIT_SHORT_REVISION_LENGTH + 1];
 static char infoTargetName[] = __TARGET__;
 
-#include "msp/msp_protocol.h" // XXX for FC identification... not available elsewhere
+#include "msp_protocol.h" // XXX for FC identification... not available elsewhere
 
 static long cmsx_InfoInit(const OSD_Entry *from)
 {
