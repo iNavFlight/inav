@@ -112,8 +112,16 @@
 #define IST8310_CNTRL2_DRPOL 0x04
 #define IST8310_CNTRL2_DRENA 0x08
 
+// Time the sensor needs to finish its power-on-reset routine after a soft reset
+#define IST8310_RESET_DELAY_MS 50
+
 static bool ist8310Init(magDev_t * mag)
 {
+    // A reboot of the FC does not power-cycle the sensor: it keeps measuring in whatever state the previous run
+    // left it and may never raise DRDY again. Start from the power-on state every time
+    busWrite(mag->busDev, IST8310_REG_CNTRL2, IST8310_CNTRL2_RESET);
+    delay(IST8310_RESET_DELAY_MS);
+
     busWrite(mag->busDev, IST8310_REG_CNTRL1, IST8310_ODR_50_HZ);
     delay(5);
 
