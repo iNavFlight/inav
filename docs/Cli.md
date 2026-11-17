@@ -245,7 +245,7 @@ Note that the usual caveat that one should not share a timer with both a motor a
 
 ## Flash chip management
 
-For targets that have a flash data chip, typically used for blackbox logs, the following additional comamnds are provided.
+For targets that have a flash data chip, typically used for blackbox logs, the following additional commands are provided.
 
 | Command | Effect |
 | ------- | ------ |

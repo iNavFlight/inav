@@ -377,14 +377,15 @@ typedef enum {
     NAV_CTL_SPEED           = (1 << 18),    // Auto speed allowed
 } navigationFSMStateFlags_t;
 
+// Word-sized members first, then the byte-sized ones: no padding inside the const table
 typedef struct {
-    navigationPersistentId_e            persistentId;
     navigationFSMEvent_t                (*onEntry)(navigationFSMState_t previousState);
     uint32_t                            timeoutMs;
-    navSystemStatus_State_e             mwState;
-    navSystemStatus_Error_e             mwError;
     navigationFSMStateFlags_t           stateFlags;
     flightModeFlags_e                   mapToFlightModes;
+    navigationPersistentId_e            persistentId;
+    navSystemStatus_State_e             mwState;
+    navSystemStatus_Error_e             mwError;
     navigationFSMState_t                onEvent[NAV_FSM_EVENT_COUNT];
 } navigationFSMStateDescriptor_t;
 
