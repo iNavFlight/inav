@@ -58,25 +58,30 @@
 #ifndef SPI3_NSS_PIN
 #define SPI3_NSS_PIN NONE
 #endif
+#ifndef SPI4_NSS_PIN
+#define SPI4_NSS_PIN NONE
+#endif
 
 #if defined(AT32F43x)
+    // Both APB1 and APB2 run at 144 MHz (PLL 288 MHz / 2), so both tables divide the same clock.
+    // INITIALIZATION stays under the 400 kHz an SD card allows before identification
     #if defined(USE_SPI_DEVICE_1)
     static const uint32_t spiDivisorMapFast[] = {
-        SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      328.125 KBits/s
-        SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               656.25 KBits/s
-        SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           10.5 MBits/s
-        SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               21.0 MBits/s
-        SPI_MCLK_DIV_4        // SPI_CLOCK_ULTRAFAST          42.0 MBits/s
+        SPI_MCLK_DIV_512,     // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
+        SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               1.125 MBits/s
+        SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           9.0 MBits/s
+        SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               18.0 MBits/s
+        SPI_MCLK_DIV_4        // SPI_CLOCK_ULTRAFAST          36.0 MBits/s
     };
     #endif
 
-    #if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3)
+    #if defined(USE_SPI_DEVICE_2) || defined(USE_SPI_DEVICE_3) || defined(USE_SPI_DEVICE_4)
     static const uint32_t spiDivisorMapSlow[] = {
-        SPI_MCLK_DIV_256,     // SPI_CLOCK_INITIALIZATON      164.062 KBits/s
-        SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               656.25 KBits/s
-        SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           10.5 MBits/s
-        SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               21.0 MBits/s
-        SPI_MCLK_DIV_8        // SPI_CLOCK_ULTRAFAST          21.0 MBits/s
+        SPI_MCLK_DIV_512,     // SPI_CLOCK_INITIALIZATON      281.25 KBits/s
+        SPI_MCLK_DIV_128,     // SPI_CLOCK_SLOW               1.125 MBits/s
+        SPI_MCLK_DIV_16,      // SPI_CLOCK_STANDARD           9.0 MBits/s
+        SPI_MCLK_DIV_8,       // SPI_CLOCK_FAST               18.0 MBits/s
+        SPI_MCLK_DIV_8        // SPI_CLOCK_ULTRAFAST          18.0 MBits/s
     };
     #endif
 
@@ -148,6 +153,9 @@ SPIDevice spiDeviceByInstance(spi_type *instance)
 
     if (instance == SPI3)
         return SPIDEV_3;
+
+    if (instance == SPI4)
+        return SPIDEV_4;
 
     return SPIINVALID;
 }
@@ -297,9 +305,14 @@ void spiSetSpeed(spi_type *instance, SPIClockSpeed_e speed)
     // instance->ctrl1 = tempRegister | (spiHardwareMap[device].divisorMap[speed] << 3);
     // #undef BR_BITS
 
+    // Dividers above 256 also need ctrl2's mdiv_h, as in the vendor's spi_init()
+    const uint32_t divisor = spiHardwareMap[device].divisorMap[speed];
+    instance->ctrl2_bit.mdiv3en = FALSE;
+    instance->ctrl2_bit.mdiv_h = (divisor > SPI_MCLK_DIV_256);
+
     uint16_t tempRegister = instance->ctrl1;
     tempRegister &= BR_CLEAR_MASK;
-    tempRegister |= (spiHardwareMap[device].divisorMap[speed] << 3);
+    tempRegister |= ((divisor & 0x7) << 3);
     instance->ctrl1 = tempRegister;
     
     spi_enable (instance, TRUE);
