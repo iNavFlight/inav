@@ -397,6 +397,10 @@ static const blackboxDeltaFieldDefinition_t blackboxMainFields[] = {
     {"motor",       5, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_6)},
     {"motor",       6, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_7)},
     {"motor",       7, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_8)},
+    {"motor",       8, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_9)},
+    {"motor",       9, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_10)},
+    {"motor",      10, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_11)},
+    {"motor",      11, UNSIGNED, .Ipredict = PREDICT(MOTOR_0), .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),     .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_MOTORS_12)},
 
     /* servos */
     {"servo",       0, UNSIGNED, .Ipredict = PREDICT(1500),    .Iencode = ENCODING(SIGNED_VB),   .Ppredict = PREDICT(AVERAGE_2),      .Pencode = ENCODING(SIGNED_VB), CONDITION(AT_LEAST_SERVOS_1)},
@@ -679,12 +683,11 @@ static struct {
     } u;
 } xmitState;
 
-// Cache for FLIGHT_LOG_FIELD_CONDITION_* test results:
-static uint64_t blackboxConditionCache;
+// Cache for FLIGHT_LOG_FIELD_CONDITION_* test results, a bit for every condition up to and including LAST
+static uint32_t blackboxConditionCache[FLIGHT_LOG_FIELD_CONDITION_LAST / 32 + 1];
 
-// The cache holds a bit for every condition up to and including LAST, which is NEVER, so
-// it needs LAST + 1 bits. A dual-gyro target takes the 64th
-STATIC_ASSERT((sizeof(blackboxConditionCache) * 8) > FLIGHT_LOG_FIELD_CONDITION_LAST, too_many_flight_log_conditions);
+// The field definitions above declare 12 motors, and the writers log getMotorCount() of them
+STATIC_ASSERT(MAX_SUPPORTED_MOTORS <= 12, blackbox_declares_up_to_12_motors);
 
 static uint32_t blackboxIFrameInterval;
 static uint32_t blackboxIteration;
@@ -741,6 +744,10 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_6:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_7:
     case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_8:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_9:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_10:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_11:
+    case FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_12:
         return (getMotorCount() >= condition - FLIGHT_LOG_FIELD_CONDITION_AT_LEAST_MOTORS_1 + 1) && blackboxIncludeFlag(BLACKBOX_FEATURE_MOTORS);
 
     case FLIGHT_LOG_FIELD_CONDITION_SERVOS:
@@ -889,21 +896,17 @@ static bool testBlackboxConditionUncached(FlightLogFieldCondition condition)
 
 static void blackboxBuildConditionCache(void)
 {
-    blackboxConditionCache = 0;
+    memset(blackboxConditionCache, 0, sizeof(blackboxConditionCache));
     for (uint8_t cond = FLIGHT_LOG_FIELD_CONDITION_FIRST; cond <= FLIGHT_LOG_FIELD_CONDITION_LAST; cond++) {
-
-        const uint64_t position = ((uint64_t)1) << cond;
-
         if (testBlackboxConditionUncached(cond)) {
-            blackboxConditionCache |= position;
+            blackboxConditionCache[cond / 32] |= 1U << (cond % 32);
         }
     }
 }
 
 static bool testBlackboxCondition(FlightLogFieldCondition condition)
 {
-    const uint64_t position = ((uint64_t)1) << condition;
-    return (blackboxConditionCache & position) != 0;
+    return (blackboxConditionCache[condition / 32] >> (condition % 32)) & 1U;
 }
 
 static void blackboxSetState(BlackboxState newState)
