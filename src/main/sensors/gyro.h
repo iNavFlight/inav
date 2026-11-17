@@ -117,8 +117,31 @@ typedef struct gyroConfig_s {
     // defaults, so appending leaves existing settings at their offset and needs no version
     // bump. A field added here must default to zero: it can land in the old struct's padding
     bool     gyro_secondary_enabled;
+
+    /* Appended after gyro_secondary_enabled and defaulting to OFF, so the same
+     * reasoning about padding applies: zero is the default, and a configuration
+     * written before this field existed loads as OFF. */
+    uint8_t  gyro_fusion;
 #endif
 } gyroConfig_t;
+
+/*
+ * What to do with a second IMU once it is being sampled.
+ *
+ * OFF leaves it as the instrumentation channel it is: read, logged, and kept out
+ * of the control path. AVERAGE feeds the mean of the two into the filters, which
+ * is what two sensors buy without a state estimator to weight them - uncorrelated
+ * noise falls by about a third, and nothing else changes.
+ *
+ * Deliberately not a fault-tolerance feature. With two sensors a disagreement
+ * says one of them is wrong and cannot say which, so there is no vote to hold;
+ * telling them apart needs a third, or an estimator that can weigh them against
+ * an independent reference.
+ */
+typedef enum {
+    GYRO_FUSION_OFF = 0,
+    GYRO_FUSION_AVERAGE,
+} gyroFusion_e;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);
 
@@ -133,6 +156,16 @@ void gyroFilter(void);
 void gyroStartCalibration(void);
 bool gyroIsCalibrationComplete(void);
 bool gyroReadTemperature(void);
+#ifdef USE_DUAL_GYRO
+/* How far apart the two gyros have drifted, as the attitude error the
+ * disagreement has been worth so far, and whether that went far enough to stop
+ * trusting the pair. */
+/* Whether a gyro is alive: producing samples, on time, and not repeating one
+ * value while the other sensor moves. Says nothing about whether it is right. */
+bool gyroSensorIsHealthy(uint8_t index);
+float gyroSecondaryDisagreementDeg(void);
+bool gyroSecondaryAbandoned(void);
+#endif
 int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 void gyroUpdateDynamicLpf(float cutoffFreq);
