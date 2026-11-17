@@ -201,6 +201,18 @@ void i2cInit(I2CDevice device)
     IOConfigGPIOAF(sda, IOCFG_OUT_OD, 0);
 }
 
+// Send a byte and take the slave's answer. A NACK ends the transfer: the bus is released and the error counted
+static bool I2C_SendByteAcked(uint8_t byte)
+{
+    I2C_SendByte(byte);
+    if (!I2C_WaitAck()) {
+        I2C_Stop();
+        i2cErrorCount++;
+        return false;
+    }
+    return true;
+}
+
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, const uint8_t * data, bool allowRawAccess)
 {
     UNUSED(device);
@@ -210,20 +222,14 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, co
         i2cErrorCount++;
         return false;
     }
-    I2C_SendByte(addr << 1 | I2C_Direction_Transmitter);
-    if (!I2C_WaitAck()) {
-        I2C_Stop();
+    if (!I2C_SendByteAcked(addr << 1 | I2C_Direction_Transmitter)) {
         return false;
     }
-    if (!allowRawAccess || reg != 0xFF) {
-        I2C_SendByte(reg);
-        I2C_WaitAck();
+    if ((!allowRawAccess || reg != 0xFF) && !I2C_SendByteAcked(reg)) {
+        return false;
     }
     for (i = 0; i < len; i++) {
-        I2C_SendByte(data[i]);
-        if (!I2C_WaitAck()) {
-            I2C_Stop();
-            i2cErrorCount++;
+        if (!I2C_SendByteAcked(data[i])) {
             return false;
         }
     }
@@ -233,25 +239,7 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, co
 
 bool i2cWrite(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t data, bool allowRawAccess)
 {
-    UNUSED(device);
-
-    if (!I2C_Start()) {
-        return false;
-    }
-    I2C_SendByte(addr << 1 | I2C_Direction_Transmitter);
-    if (!I2C_WaitAck()) {
-        I2C_Stop();
-        i2cErrorCount++;
-        return false;
-    }
-    if (!allowRawAccess || reg != 0xFF) {
-        I2C_SendByte(reg);
-        I2C_WaitAck();
-    }
-    I2C_SendByte(data);
-    I2C_WaitAck();
-    I2C_Stop();
-    return true;
+    return i2cWriteBuffer(device, addr, reg, 1, &data, allowRawAccess);
 }
 
 bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t *buf, bool allowRawAccess)
@@ -259,23 +247,27 @@ bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t *
     UNUSED(device);
 
     if (!I2C_Start()) {
+        i2cErrorCount++;
         return false;
     }
 
     if (!allowRawAccess || reg != 0xFF) {
-        I2C_SendByte(addr << 1 | I2C_Direction_Transmitter);
-        if (!I2C_WaitAck()) {
+        if (!I2C_SendByteAcked(addr << 1 | I2C_Direction_Transmitter)) {
+            return false;
+        }
+        if (!I2C_SendByteAcked(reg)) {
+            return false;
+        }
+        if (!I2C_Start()) {                 // repeated start
             I2C_Stop();
             i2cErrorCount++;
             return false;
         }
-        I2C_SendByte(reg);
-        I2C_WaitAck();
-        I2C_Start();
     }
 
-    I2C_SendByte(addr << 1 | I2C_Direction_Receiver);
-    I2C_WaitAck();
+    if (!I2C_SendByteAcked(addr << 1 | I2C_Direction_Receiver)) {
+        return false;
+    }
     while (len) {
         *buf = I2C_ReceiveByte();
         if (len == 1) {
