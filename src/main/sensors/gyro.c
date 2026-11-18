@@ -373,33 +373,12 @@ bool gyroInit(void)
     gyroDev[0].imuSensorToUse = 0;
 #endif
 
-    // Detecting gyro0
-    gyroSensor_e gyroHardware = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
-    if (gyroHardware == GYRO_NONE) {
-        gyro.initialized = false;
-        detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
-        return true;
-    }
-
-    // Gyro is initialized
-    gyro.initialized = true;
-    detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
-    sensorsSet(SENSOR_GYRO);
-
-    // Driver initialisation
-#ifdef USE_SPI_DATA_READY
-    gyroDev[0].readOnDataReady = gyroReadOnDataReady();
-    gyroDev[0].readOnDataReadyWithAcc = true;
-#endif
-    gyroDevStart(&gyroDev[0]);
-
-    // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
-    gyro.targetLooptime = gyroDev[0].sampleRateIntervalUs;
-
-    gyroInitFilters();
-
 #ifdef USE_DUAL_GYRO
-    // Optional secondary IMU, logged as gyroRaw2 and read by nothing else
+    // Optional secondary IMU, logged as gyroRaw2 and read by nothing else. It goes before the
+    // primary: a driver probes at the slowest SPI clock and leaves it there when it finds no
+    // chip, so on a bus the two share the primary has to set its clock after the last probe.
+    // Each gyro still starts right after its own detection, as a driver keeps the variant it
+    // detected in one static that its init reads
     if (gyroConfig()->gyro_secondary_enabled) {
         // Targets disagree on how they tag the second IMU, so probe rather than assume tag 1
         for (uint8_t tag = 0; tag <= MAX_GYRO_SENSOR_TAG; tag++) {
@@ -420,6 +399,35 @@ bool gyroInit(void)
         }
     }
 #endif
+
+    // Detecting gyro0
+    gyroSensor_e gyroHardware = gyroDetect(&gyroDev[0], GYRO_AUTODETECT);
+    if (gyroHardware == GYRO_NONE) {
+        gyro.initialized = false;
+#ifdef USE_DUAL_GYRO
+        // Without a primary nothing reads the secondary
+        gyro.secondaryInitialized = false;
+#endif
+        detectedSensors[SENSOR_INDEX_GYRO] = GYRO_NONE;
+        return true;
+    }
+
+    // Gyro is initialized
+    gyro.initialized = true;
+    detectedSensors[SENSOR_INDEX_GYRO] = gyroHardware;
+    sensorsSet(SENSOR_GYRO);
+
+    // Driver initialisation
+#ifdef USE_SPI_DATA_READY
+    gyroDev[0].readOnDataReady = gyroReadOnDataReady();
+    gyroDev[0].readOnDataReadyWithAcc = true;
+#endif
+    gyroDevStart(&gyroDev[0]);
+
+    // initFn will initialize sampleRateIntervalUs to actual gyro sampling rate (if driver supports it). Calculate target looptime using that value
+    gyro.targetLooptime = gyroDev[0].sampleRateIntervalUs;
+
+    gyroInitFilters();
 
 #ifdef USE_DYNAMIC_FILTERS
     // Dynamic notch running at PID frequency
