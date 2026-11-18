@@ -979,7 +979,7 @@ groups:
     headers: ["sensors/battery_config_structs.h"]
     members:
       - name: vbat_meter_type
-        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, `SMBUS`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. `SMBUS` reads voltage from a SMBus smart battery (e.g. BQ40Z50) and forces I2C to 100kHz on boot."
+        description: "Vbat voltage source. Possible values: `NONE`, `ADC`, `SMARTPORT`, `ESC`, `SMBUS`. `ESC` requires ESC telemetry enabled and running. `SMARTPORT` requires SmartPort Master enabled and running. `SMBUS` reads voltage from a SMBus smart battery (e.g. BQ40Z50)."
         condition: USE_ADC
         default_value: ADC
         field: voltage.type
@@ -1011,7 +1011,7 @@ groups:
         min: -32768
         max: 32767
       - name: current_meter_type
-        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, SMBUS, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position. `SMBUS` reads current from a SMBus smart battery (e.g. BQ40Z50) and forces I2C to 100kHz on boot."
+        description: "ADC, VIRTUAL, FAKE, ESC, SMARTPORT, SMBUS, NONE. The virtual current sensor, once calibrated, estimates the current value from throttle position. `SMBUS` reads current from a SMBus smart battery (e.g. BQ40Z50)."
         default_value: "ADC"
         field: current.type
         table: current_sensor

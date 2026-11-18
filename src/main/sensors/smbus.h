@@ -28,9 +28,8 @@
  * SMBus Smart Battery driver (e.g. TI BQ40Z50).
  *
  * The SMBus protocol runs on top of the standard I2C peripheral. It adds a
- * CRC-8 (PEC) byte covering the whole transaction (address bytes included)
- * and limits the clock to 100kHz (handled by the I2C speed override in
- * fc_init.c when a SMBus meter type is selected).
+ * CRC-8 (PEC) byte covering the whole transaction (address bytes included).
+ * Bus speed follows the user-configured i2c_speed setting.
  *
  * Code structure follows barometer.c (init + detect + state-machine update)
  * and reuses the I2C bus device abstraction (busReadBuf/busWrite) rather than

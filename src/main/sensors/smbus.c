@@ -47,6 +47,7 @@
  * read per interval. Hot-plugging the line is picked up within the interval. */
 #define SMBUS_BATT_BACKOFF_FAILURES     18      /* ~2 full rounds of all-9 reads failed */
 #define SMBUS_BATT_BACKOFF_RETRY_MS     500
+#define SMBUS_BATT_STALE_FAILURES       9       /* one full round failed: comms lost, invalidate held values */
 
 typedef struct smbusBattData_s {
     uint16_t voltage;              /* mV                                 */
@@ -179,7 +180,7 @@ uint32_t smbusBattUpdate(void)
             if (readOk) {
                 smbusData.voltage = word;
             }
-            smbusData.voltageValid = readOk;
+            smbusData.voltageValid |= readOk;
             smbusState = SMBUS_STATE_CURRENT;
             break;
 
@@ -191,7 +192,7 @@ uint32_t smbusBattUpdate(void)
                  * int32 to survive 16-bit overflow after scaling. */
                 smbusData.current = (int32_t)(int16_t)word * batteryMetersConfig()->smbusScaleFactor;
             }
-            smbusData.currentValid = readOk;
+            smbusData.currentValid |= readOk;
             smbusState = SMBUS_STATE_PERCENT;
             break;
 
@@ -200,7 +201,7 @@ uint32_t smbusBattUpdate(void)
             if (readOk) {
                 smbusData.percent = (uint8_t)(word <= 100 ? word : 100);
             }
-            smbusData.percentValid = readOk;
+            smbusData.percentValid |= readOk;
             smbusState = SMBUS_STATE_REMAINING;
             break;
 
@@ -209,7 +210,7 @@ uint32_t smbusBattUpdate(void)
             if (readOk) {
                 smbusData.remainingCapacity = (uint32_t)word * batteryMetersConfig()->smbusScaleFactor;
             }
-            smbusData.remainingValid = readOk;
+            smbusData.remainingValid |= readOk;
             smbusState = SMBUS_STATE_FULL_CHARGE;
             break;
 
@@ -218,7 +219,7 @@ uint32_t smbusBattUpdate(void)
             if (readOk) {
                 smbusData.fullChargeCapacity = (uint32_t)word * batteryMetersConfig()->smbusScaleFactor;
             }
-            smbusData.fullChargeValid = readOk;
+            smbusData.fullChargeValid |= readOk;
             smbusState = SMBUS_STATE_TEMPERATURE;
             break;
 
@@ -228,7 +229,7 @@ uint32_t smbusBattUpdate(void)
                 /* 0.1 K -> 0.1 C (273.15 K offset, integer 2731) */
                 smbusData.temperature = (int16_t)word - SMBUS_BATT_KELVIN_TO_CELSIUS_0p1;
             }
-            smbusData.temperatureValid = readOk;
+            smbusData.temperatureValid |= readOk;
             smbusState = SMBUS_STATE_RUN_TIME;
             break;
 
@@ -237,7 +238,7 @@ uint32_t smbusBattUpdate(void)
             if (readOk) {
                 smbusData.runTimeToEmpty = word;     /* 0xFFFF = not discharging */
             }
-            smbusData.runTimeValid = readOk;
+            smbusData.runTimeValid |= readOk;
             smbusState = SMBUS_STATE_CYCLES;
             break;
 
@@ -246,7 +247,7 @@ uint32_t smbusBattUpdate(void)
             if (readOk) {
                 smbusData.cycleCount = word;
             }
-            smbusData.cycleValid = readOk;
+            smbusData.cycleValid |= readOk;
             smbusState = SMBUS_STATE_HEALTH;
             break;
 
@@ -255,7 +256,7 @@ uint32_t smbusBattUpdate(void)
             if (readOk) {
                 smbusData.health = (uint8_t)(word <= 100 ? word : 100);
             }
-            smbusData.healthValid = readOk;
+            smbusData.healthValid |= readOk;
             smbusState = SMBUS_STATE_VOLTAGE;    /* wrap around */
             break;
 
@@ -268,7 +269,23 @@ uint32_t smbusBattUpdate(void)
     if (readOk) {
         consecutiveFailures = 0;
     } else {
-        consecutiveFailures++;
+        if (consecutiveFailures < 0xFF) {
+            consecutiveFailures++;
+        }
+        /* A full round of failed reads means comms are lost - drop all held
+         * values so consumers see invalid data instead of stale numbers.
+         * A single transient failure keeps the last good value (stale-hold). */
+        if (consecutiveFailures >= SMBUS_BATT_STALE_FAILURES) {
+            smbusData.voltageValid = false;
+            smbusData.currentValid = false;
+            smbusData.percentValid = false;
+            smbusData.remainingValid = false;
+            smbusData.fullChargeValid = false;
+            smbusData.temperatureValid = false;
+            smbusData.runTimeValid = false;
+            smbusData.cycleValid = false;
+            smbusData.healthValid = false;
+        }
     }
 
     return SMBUS_BATT_UPDATE_INTERVAL_US;

@@ -4079,7 +4079,7 @@ static const char * getBatteryStateString(void)
 }
 
 #ifdef USE_SMBUS_BATT
-static void cliBattery(char *cmdline)
+static void cliSmbus(char *cmdline)
 {
     UNUSED(cmdline);
 
@@ -4965,9 +4965,6 @@ const clicmd_t cmdTable[] = {
     CLI_COMMAND_DEF("play_sound", NULL, "[<index>]\r\n", cliPlaySound),
     CLI_COMMAND_DEF("control_profile", "change control profile", "[<index>]", cliControlProfile),
     CLI_COMMAND_DEF("mixer_profile", "change mixer profile", "[<index>]", cliMixerProfile),
-#if defined(USE_SMBUS_BATT)
-    CLI_COMMAND_DEF("battery", "show battery meter source and SMBus data", NULL, cliBattery),
-#endif
     CLI_COMMAND_DEF("battery_profile", "change battery profile", "[<index>]", cliBatteryProfile),
     CLI_COMMAND_DEF("resource", "view currently used resources", NULL, cliResource),
     CLI_COMMAND_DEF("rxrange", "configure rx channel ranges", NULL, cliRxRange),
@@ -4998,6 +4995,9 @@ const clicmd_t cmdTable[] = {
                     , osdCustom),
 #endif
     CLI_COMMAND_DEF("set", "change setting", "[<name>=<value>]", cliSet),
+#if defined(USE_SMBUS_BATT)
+    CLI_COMMAND_DEF("smbus", "show battery meter source and SMBus data", NULL, cliSmbus),
+#endif
     CLI_COMMAND_DEF("smix", "servo mixer",
         "<rule> <servo> <source> <rate> <speed> <conditionId>\r\n"
         "\treset\r\n", cliServoMix),

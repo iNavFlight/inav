@@ -557,7 +557,16 @@ uint32_t getBatteryRemainingCapacity(void)
     if (isSmbusBatteryEnabled()) {
         uint32_t smbusRemaining;
         if (smbusBattGetRemainingCapacity(&smbusRemaining)) {
-            return smbusRemaining;
+            if (batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MWH) {
+                /* Gauge reports mAh; convert to mWh using the pack voltage so
+                 * the value matches the configured capacity unit. */
+                uint16_t smbusVoltage;
+                if (smbusBattGetVoltage(&smbusVoltage)) {
+                    return (uint32_t)smbusVoltage * smbusRemaining / 1000;
+                }
+            } else {
+                return smbusRemaining;
+            }
         }
     }
 #endif
