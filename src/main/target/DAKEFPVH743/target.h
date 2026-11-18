@@ -67,10 +67,6 @@
 #define USE_IMU_BMI270
 #define USE_IMU_LSM6DXX
 
-
-// Enable dual gyro mode
-#define USE_DUAL_GYRO
-
 // Primary IMU options
 #define IMU_1_CS_PIN       PA4
 #define IMU_1_IRQ_PIN      PC4
@@ -79,7 +75,7 @@
 
 // Secondary IMU options
 #define IMU_2_CS_PIN     PB1
-#define IMU_2_SPI_BUS    BUS_SPI1
+#define IMU_2_SPI_BUS    BUS_SPI4
 #define IMU_2_ALIGN      CW180_DEG
 
 
