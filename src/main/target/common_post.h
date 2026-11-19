@@ -185,7 +185,39 @@ extern uint8_t __config_end;
 #endif
 #endif
 
-#ifdef USE_ESC_SENSOR
+// DSHOT variants, all on top of USE_DSHOT:
+//  - USE_DSHOT_DMAR: one burst DMA stream per timer (target choice)
+//  - USE_DSHOT_BIDIR: bidirectional DSHOT (eRPM telemetry on the motor line,
+//    dshot_bidir_enabled), in one of the two forms below. Needs a DMA stream per
+//    motor channel or port group, so it excludes USE_DSHOT_DMAR. RP2350 drives its
+//    motors from a PIO program that only transmits, so the setting is hidden there
+//    and stays off. STM32F7 is excluded as well for now, F7 targets lack the flash.
+//  - USE_DSHOT_BIDIR_TIMER: the motor timer channels send the frame and are turned
+//    round to capture the reply (dshot/dshot.c). STM32F4 and STM32H7.
+//  - USE_DSHOT_BITBANG: the motor pins are driven as plain GPIO by DMA, paced by a
+//    spare TMR1/TMR8 channel, and sampled the same way for the reply
+//    (dshot_bitbang.c). AT32F43x, where timer channel 4 cannot capture both edges
+//    (see AT32_BIDIR_DSHOT.md in the repository root). Used whenever
+//    dshot_bidir_enabled is on and a whole TMR8 or TMR1 is free, otherwise the motors
+//    fall back to plain DSHOT on their timers (dshotMotorPostInit()).
+#if defined(USE_DSHOT_DMAR) && !defined(USE_DSHOT)
+#error "USE_DSHOT_DMAR requires USE_DSHOT"
+#endif
+#if defined(USE_DSHOT) && !defined(USE_DSHOT_DMAR) && !defined(RP2350) && !defined(STM32F7)
+#define USE_DSHOT_BIDIR
+#endif
+#if defined(USE_DSHOT_BIDIR) && defined(AT32F43x)
+#define USE_DSHOT_BITBANG
+#endif
+#if defined(USE_DSHOT_BIDIR) && !defined(USE_DSHOT_BITBANG)
+#define USE_DSHOT_BIDIR_TIMER
+#endif
+#if defined(USE_DSHOT_BIDIR) && (!defined(USE_DSHOT) || defined(USE_DSHOT_DMAR))
+#error "USE_DSHOT_BIDIR requires USE_DSHOT and excludes USE_DSHOT_DMAR"
+#endif
+
+// RPM filter sources: serial ESC telemetry or bidirectional DSHOT
+#if defined(USE_ESC_SENSOR) || defined(USE_DSHOT_BIDIR)
     #define USE_RPM_FILTER
 #endif
 
