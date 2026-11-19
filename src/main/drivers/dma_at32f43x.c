@@ -103,6 +103,11 @@ DMA_t dmaGetByTag(dmaTag_t tag)
     return (DMA_t) NULL;
 }
 
+DMA_t dmaGetByIndex(unsigned index)
+{
+    return index < ARRAYLEN(dmaDescriptors) ? &dmaDescriptors[index] : NULL;
+}
+
 void dmaEnableClock(DMA_t dma)
 {
     if (dma->dma == DMA1) {

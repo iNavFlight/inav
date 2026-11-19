@@ -22,11 +22,11 @@
 #include <math.h>
 
 #include "platform.h"
-#include "drivers/bidir_dshot.h"
+#include "drivers/dshot/bidir_dshot.h"
 
 // Bidirectional DSHOT telemetry only: eRPM / EDT decoding, RPM state for the RPM filter and
 // the ESC sensor. Frame generation, DMA and DSHOT commands for plain DSHOT live in
-// pwm_output.c under USE_DSHOT. Every user of this API is guarded by USE_DSHOT_BIDIR.
+// dshot.c under USE_DSHOT. Every user of this API is guarded by USE_DSHOT_BIDIR.
 //
 // Values are published as decoded, unfiltered: frames arrive at the DSHOT frame rate, which
 // follows the scheduler's idle time rather than any fixed period, so smoothing belongs to the
@@ -90,7 +90,7 @@ bool isDshotTelemetryActive(void)
     return useDshotTelemetry;
 }
 
-// useDshotTelemetry itself is set by the motor driver (pwmMotorPreconfigure()), which
+// useDshotTelemetry itself is set by the DSHOT driver (dshotInit()), which
 // knows whether the outputs were configured for DSHOT at all
 void initDshotTelemetry(void)
 {

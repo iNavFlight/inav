@@ -32,11 +32,6 @@ typedef enum {
     DSHOT_CMD_SPIN_DIRECTION_REVERSED = 21,
 } dshotCommands_e;
 
-typedef struct {
-    dshotCommands_e cmd;
-    int remainingRepeats;
-} currentExecutingCommand_t;
-
 void pwmRequestMotorTelemetry(int motorIndex);
 
 ioTag_t pwmGetMotorPinTag(int motorIndex);
@@ -57,12 +52,14 @@ struct timerHardware_s;
 
 void pwmMotorPreconfigure(void);
 bool pwmMotorConfig(const struct timerHardware_s *timerHardware, uint8_t motorIndex, bool enableOutput);
+bool pwmMotorPostInit(void);
 
 void pwmServoPreconfigure(void);
 bool pwmServoConfig(const struct timerHardware_s *timerHardware, uint8_t servoIndex, uint16_t servoPwmRate, uint16_t servoCenterPulse, bool enableOutput);
 void pwmWriteBeeper(bool onoffBeep);
 bool beeperPwmInit(ioTag_t tag, uint16_t frequency);
 
+// DSHOT commands, implemented by the DSHOT driver (dshot/dshot.c; pwm_output_rp2350.c on RP2350)
 void sendDShotCommand(dshotCommands_e cmd);
 void initDShotCommands(void);
 

@@ -135,6 +135,9 @@ DMA_t dmaGetByRef(const DMA_Stream_TypeDef * ref);
 DMA_t dmaGetByRef(const dma_channel_type * ref);
 
 void dmaMuxEnable(DMA_t dma, uint32_t dmaMuxid);
+// Walks the channel table; NULL past its end. Any channel serves any peripheral through
+// the DMAMUX, so a user without a fixed assignment can take whichever is still free.
+DMA_t dmaGetByIndex(unsigned index);
 
 #endif
 

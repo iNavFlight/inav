@@ -15,6 +15,23 @@ ESC protocol can be selected in Configurator. No special configuration is requir
 
 Check the ESC documentation for the list of protocols that are supported.
 
+### Bidirectional DSHOT
+
+With `dshot_bidir_enabled = ON` the ESC answers every DSHOT frame with its eRPM on the motor
+wire (and, with `dshot_edt_enabled`, temperature, voltage and current), which feeds the RPM
+filter and the ESC telemetry without a separate ESC telemetry UART. Set `motor_poles` to the
+pole count of the motors so the eRPM is converted to RPM. The ESC firmware must support
+bidirectional DSHOT (BLHeli_32, Bluejay, AM32).
+
+On STM32 the reply is captured by the motor's own timer channel, so every motor output needs
+its timer channel's DMA stream. On AT32 the motor pins are "bitbanged" instead, as in
+Betaflight: a spare channel of TMR8 or TMR1 paces DMA transfers that drive and read the
+whole GPIO port, one per port with motors on it. That timer must be unused by anything else
+(LED strip, servos, beeper). If neither TMR8 nor TMR1 is free, bidirectional DSHOT is switched
+off for that boot: the motors run plain DSHOT on their timers, there is no eRPM telemetry or
+RPM filter, and the boot log reports "Bitbang DSHOT unavailable". Without
+`dshot_bidir_enabled` DSHOT on AT32 stays on the timers as before.
+
 ## Servo outputs
 
 By default, INAV uses 50Hz servo update rate. If you want to increase it, make sure that servos support
