@@ -2855,6 +2855,12 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_RX_POWER_DOWNLINK:
         {
+            // 0 means the link does not report receiver power (e.g. ExpressLRS over CRSF)
+            if (rxLinkStatistics.downlinkTXPower == 0) {
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
+                return true;
+            }
+
             if (!failsafeIsReceivingRxData())
                 tfp_sprintf(buff, "%s%c%c", "    ", SYM_MW, SYM_AH_DECORATION_DOWN);
             else
@@ -3506,8 +3512,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_AIR_SPEED:
         {
         #ifdef USE_PITOT
-            if (pitotIsHealthy())
-            {
+            if (pitotIsHealthy()) {
                 const float airspeed_estimate = getAirspeedEstimate();
                 osdFormatVelocityStr(buff, airspeed_estimate, OSD_SPEED_TYPE_AIR, false);
                 if ((osdConfig()->airspeed_alarm_min != 0 && airspeed_estimate < osdConfig()->airspeed_alarm_min) ||

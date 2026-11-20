@@ -652,7 +652,7 @@ static navFwWpTurnMode_e fwEffectiveTurnMode(void)
 uint16_t navGetFwLandApproachSpeed(void)
 {
 #if defined(USE_FW_AUTOLAND) && defined(USE_PITOT)
-    if (navFwAutolandConfig()->approachSpeed && pitotGetValidForAirspeed()) {
+    if (navFwAutolandConfig()->approachSpeed && pitotIsValidForAirspeed(true)) {
         return navFwAutolandConfig()->approachSpeed;
     }
 #endif
@@ -2039,7 +2039,7 @@ bool isFixedWingFlying(void)
 {
     float airspeed = 0.0f;
 #ifdef USE_PITOT
-    if (sensors(SENSOR_PITOT) && pitotIsHealthy()) {
+    if (pitotIsValidForAirspeed(false)) {
         airspeed = getAirspeedEstimate();
     }
 #endif
@@ -2251,7 +2251,7 @@ void applyAutoSpeedThrottleDemand(int16_t *throttleCommand, timeUs_t currentTime
         uint16_t groundSpeedBoost = 0;
 
 #ifdef USE_PITOT
-        if (pitotGetValidForAirspeed()) {
+        if (pitotIsValidForAirspeed(true)) {
             // Pitot available and airspeed source selected or low airspeed boost applied when using ground speed source
             if (useAirSpeed || autoSpeedAirspeedBoost) {
                 actualSpeed = getAirspeedEstimate();
