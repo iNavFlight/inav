@@ -124,7 +124,7 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 #if defined(USE_UART1)
     // MSP is UART1's default next to the VCP and has always given these pins up to the outputs
     const serialPortConfig_t *uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
-    uartGetPortPins(UARTDEV_1, &uartPins);
+    getUartPins(UARTDEV_1, &uartPins);
     if (uart1Config && (uart1Config->functionMask & ~FUNCTION_MSP) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
         return true;
     }
