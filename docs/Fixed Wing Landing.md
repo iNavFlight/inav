@@ -18,6 +18,9 @@ This enables up to 4 different approach directions, based on the landing site an
 6. Final Approach: The engine power is reduced using "Pitch2throttle modifier" to reduce speed and the altitude is gradually reduced towards "Land Altitude" while approaching the Safehome coordinates.
 7. Glide: When "Glide Altitude" is reached, the motor is switched off and the pitch angle of "Glide Pitch" is held.
 7. Flare: Only if a LIDAR/Rangefinder sensor is present: the motor remains switched off and the pitch angle of "Flare Pitch" is held
+   From the glide on, the rudder gently holds the landing direction (2 s time constant, at most 8 degrees per second), so a tail or nose wheel steered by the rudder keeps the roll-out straight.
+   With a rangefinder, the glide and flare pitch are held on the measured attitude: after the throttle cut the pitch trim of the powered approach is wrong for the slowing aircraft, so the pitch I-term is re-trimmed on the attitude error until the nose holds the commanded pitch (within `pid_iterm_limit_percent`): the set one, or with `nav_fw_land_flare_sink` the one the sink rate asks for. Nothing changes once the wheels are on the runway.
+   During the whole landing the pitch I-term lock (`fw_iterm_lock_*`) is off: there is no stick input, and the trim the power change needs would wait for it.
 8. Landing: As soon as INAV has detected the landing, it is automatically disarmed, see setting `nav_disarm_on_landing`.
 
 All turns between the approach legs are flown as coordinated FLY_BY corner cuts: the turn start is anticipated from the aircraft's actual turn radius (speed and `nav_fw_bank_angle`) so the plane rolls out already aligned on the next leg. This applies during the landing approach regardless of the configured `nav_fw_wp_turn_mode`.
@@ -41,12 +44,12 @@ The following graphics illustrate the process:
 All settings can also be conveniently made in the Configurator via Mission Control.
 
 CLI command `fwapproach`:
-`fwapproach <index> <Approach altitude> <Land altitude> <Approach direction> <approach heading 1> <approach heading 2> <sea level>`
+`fwapproach <index> <Approach altitude> <Land altitude> <Approach direction> <approach heading 1> <approach heading 2> <sea level> [<runway start 1> <1 reverse> <2> <2 reverse> <height 1> <1 reverse> <2> <2 reverse>]`
 
 `fwapproach` has 17 slots in which landing parameters can be stored. In slot 0-7 the landing parameters for Safehome are stored, in 8 - 16 the parameters for waypoint missions. Only one landing point per mission can be saved. 
 
 * index: 0 - 17, 0 - 7 Safehome, 8 - 16 Mission
-* Approach direction: 0 - Left, 1 - Right. Always seen from the primary landing direction (positive value), i.e. whether the aircraft flies left or right turns on approach.
+* Approach direction: 0 - Left, 1 - Right. Always seen from the primary landing direction (positive value), i.e. whether the aircraft flies left or right turns on approach. With a landing circuit (`nav_fw_land_downwind_offset` set) it is the side of the runway the circuit is flown on, seen from approach heading 1 whatever the landing direction: the free side, away from trees and buildings.
 * Approach Altitude: Initial altitude of the approach, the altitude at which the wind direction is determined and the downwind approach, in cm
 * Land Altitude: Altitude of the landing site, in cm
 * Approach heading 1 and 2: Two landing directions can be set, values: 0 - +/-360. 0 = landing direction is deactivated. 
@@ -54,6 +57,7 @@ A positive value means that you can approach in both directions, a negative valu
 Example: 90 degrees: It is possible to land in 90 degrees as well as in 270 degrees. -90 means that you can only land in a 90 degree direction.
 This means that practically 4 landing directions can be saved.
 * Sea Level: 0 - Deactivated, 1 - Activated. If activated, approach and land altitude refer to normal zero (sea level), otherwise relative altitude to the altitude during first GPS fix.
+* Runway starts and heights: optional, for each landing direction (heading 1, its reverse, heading 2, its reverse) where the runway begins before the landing site, in metres (0 - 255), then the height the final crosses it at, in decimetres (0 - 255, 20 = 2 m). The final is placed so that it passes over the runway start at that height, on the round-out of the sink-rate flare when that is lower, and the wheels touch where the flare ends: the ground before a runway (a ploughed field, obstacles) is crossed high enough and the flare is flown over the runway. The glide and flare do not start before the runway start, where the rangefinder could read a hedge or raised ground under the final as the runway. 0 as runway start uses `nav_fw_land_aim_offset` as the touchdown point. With a runway start set the landing checks the approach (a stabilised approach gate): before the runway start the aircraft must not stay over half a second more than 1 m below the set height, and at the runway start it must be no more than 2 m above it, within 2 m/s under and 4 m/s over the approach speed. Otherwise it goes around: it climbs straight ahead to 10 m, then back to the wind circle, and flies the circuit again; at the third time the landing is aborted. Since INAV 11.0; the slots return to their defaults once on the update.
 
 > [!CAUTION]
 > The Configuator automatically determines the ground altitude based on databases on the Internet, which may be inaccurate. Please always compare with the measured GPS altitude at the landing site to avoid crashes.
@@ -81,8 +85,35 @@ In degrees. Min: 0, Max: 45, Default: 0
 * `nav_fw_land_flare_pitch`: Pitch value for flare phase. 
   In degrees. Min: 0, Max: 45, Default: 8
 
+* `nav_fw_land_flare_sink`: Sink rate the landing touches down with, 10 to 20 cm/s for a soft landing on delicate gear. Set, the landing flares on its sink rate instead of a fixed pitch. The flare asks the height / `nav_fw_land_flare_time`, down to this sink, held from there to the ground, and it starts where that equals the sink rate the aircraft has (between `nav_fw_land_flare_alt` and twice `nav_fw_land_glide_alt`): higher at more speed or on a steeper final, whatever the aircraft or the wind. Over the first half of the height it blends from the sink measured at its start. The pitch is the flight path angle of that sink plus the angle of attack, which an integral of the path error finds as the aircraft slows (the climb rate it flies on is the inertial one, accelerometer with baro and GPS, led by 0.2 s of vertical acceleration as it trails the true one by about that; the rangefinder's would take an obstacle before the runway for a climb); it starts from the pitch the approach was commanding, moves no faster than 4 m/s2 of vertical acceleration allow at the speed, and stays below `nav_fw_land_flare_pitch`. Near the ground (below this sink x `nav_fw_land_flare_time`) the lowest pitch rises to `nav_fw_land_glide_pitch`, so the main wheels touch first. The power comes off over the time the flare takes and the bank is limited to 5 degrees, with the course turned towards the runway axis through the landing site by 1.5 degrees per metre off it (at most 6). The heights are the rangefinder's while it is healthy. The final's straight line is aimed short by the part of the flare's run past where the line meets the ground, at the groundspeed the wind leaves, so the wheels touch at `nav_fw_land_aim_offset`.
+  In cm/s. Min: 0, Max: 500, Default: 0 (pitch flare)
+
+* `nav_fw_land_flare_time`: Time constant of the sink-rate flare, in ds (20 = 2 s). Longer is gentler and takes longer over the ground; it should be at least twice the time the aircraft takes to answer a pitch command with its flight path, about a second on a small model.
+  Min: 5, Max: 60, Default: 20
+
+* `nav_fw_land_approach_speed`: Airspeed the landing holds with the throttle, through the Auto Speed controller, from the wind circle to the throttle cut (kept within `fw_auto_speed_min_speed` and `fw_auto_speed_max_speed`). The wind circle is planned for it instead of the speed the RTH arrives with, so with flaps a lower approach speed gives a smaller circle, gentler turns and a slower touchdown. Half the headwind along the final is added to it, as pilots add, and the final's groundspeed planned with what is left. On the circuit's descending legs the throttle may go below `nav_fw_min_thr`, down to idle, to hold it: with flaps on the final the aircraft can be faster than the approach speed at the cruise minimum. It needs a valid airspeed: a pitot, or `pitot_hardware` VIRTUAL, which estimates it from the GPS and the wind estimate. It is never held on ground speed: downwind, ground speed above the airspeed would fly the aircraft slower than set. Without a valid airspeed, or at 0, the throttle follows the pitch as in the rest of the navigation.
+  In cm/s. Min: 0, Max: 5000, Default: 0
+
 * `nav_fw_land_max_tailwind`: Max. tailwind if no landing direction with downwind is available. Wind strengths below this value are ignored (error tolerance in the wind measurement). Landing then takes place in the main direction. If, for example, 90 degrees is configured, landing takes place in this direction, NOT in 270 degrees (see above).
 In cm/s. Min: 0; Max: 3000, Default: 140
+
+### Landing circuit
+
+By default the wind circle is flown over the landing site and the turning point before the final is placed 4 loiter radii beside the runway (or half the approach length, whichever is longer). Small fields with trees or buildings on one side want the whole pattern on the other side, at a known distance, with a final that is really as long as configured. The three settings below do that; all keep the default behaviour at 0.
+
+* `nav_fw_land_downwind_offset`: Distance between the edge of the wind circle and the landing site. The wind circle is flown abeam the landing site on the side given by the approach direction (seen from approach heading 1, whatever the landing direction, so always the same physical side of the runway), its centre one radius further out. The downwind leg is the circle's tangent parallel to the runway on its far side, two radii further out. The aircraft leaves the circle heading down it; when `fw_loiter_direction` turns the circle towards the runway for the landing direction the wind chose (right turns with the circle on the left of the landing direction, left turns on the right), that heading comes on the circle's near side, so the aircraft leaves heading straight out instead, on the side of the final, flies straight for 1.5 s to roll level and turns 90 degrees onto the downwind, which then lies further out by that straight and the turn. Then a base leg towards the runway and the final.
+In cm. Min: 0, Max: 50000, Default: 0 (classic approach)
+
+* `nav_fw_land_loiter_radius`: Radius of the wind circle. The aircraft cannot fly a circle tighter than its coordinated turn at the approach speed and `nav_fw_bank_angle` (V^2 / (g tan bank), 37 m at 16 m/s and 35 degrees), so the circle grows to that, at the speed the landing starts with. The radius is then fixed and the loiter controller holds exactly it; if the aircraft flies it wider (faster than planned), the circle grows to the radius flown after each full turn and moves out with it, so its edge stays at the offset. The circle altitude is reached slowly (0.5 m/s), so the descent does not build speed. The circuit turns onto the final one turn radius before the start of the final, so the straight final is `nav_fw_land_approach_length` long.
+In cm. Min: 0, Max: 30000, Default: 0 (uses `nav_fw_loiter_radius`)
+
+* `nav_fw_land_final_alt`: Altitude above the landing site at the start of the straight final. The downwind and base legs descend evenly to it from the altitude the circle is left at (the approach altitude give or take the loiter's error, so the path has no step there) with the distance flown since the circle, the straight final from it to the ground at the aim point. The turns cut the corners, so the final altitude is reached a little before the straight final and the turn onto it is about level. The altitude target leads along the path by the altitude controller's lag on a slope (100 / `nav_fw_alt_control_response` seconds), so the aircraft stays on the path. The circuit's turns are flown at the wind circle's radius, not tighter.
+In cm. Min: 0, Max: 30000, Default: 0 (two thirds of the approach altitude)
+
+* `nav_fw_land_aim_offset`: The glide path meets the ground this far before the landing site, in either landing direction (with `nav_fw_land_flare_sink` in the landing circuit, the wheels touch here). After the throttle cut at `nav_fw_land_glide_alt` the aircraft floats while it slows down (a 1.2 m model at 14 m/s floats 50 to 60 m), so aiming short puts the touchdown on the site. Works with the classic approach too.
+In cm. Min: 0, Max: 10000, Default: 0
+
+An RTH that will land with the circuit flies towards the far side of the wind circle instead of the landing site, and the landing takes over where the circle's own approach starts (3.7 radii from its centre), so the aircraft joins the circle tangentially and never circles over the runway.
 
 ### General paramters and tuning tips
 
@@ -119,3 +150,7 @@ The current landing state can be retrieved via ID 41 in "Flight" (FW Land State)
 | 4 | Final Approach |
 | 5 | Glide |
 | 6 | Flare |
+
+## Debug
+
+`debug_mode = AUTOLAND` logs the landing in the blackbox debug fields: 0 the landing state (as `fwAutolandState_t`), 1 the height above the landing site the landing flies on [cm], 2 on the circuit the path's climb rate and in the glide and flare the sink rate asked [cm/s], 3 the climb rate flown on (in the flare with its lead) [cm/s], 4 the flare's pitch command [0.1 deg], 5 the height the glide starts at [cm], 6 on the final the distance past the runway start and in the glide and flare the distance right of the runway axis [cm], 7 the climb rate the altitude controller is asked on the circuit [cm/s].
