@@ -313,6 +313,23 @@ bool isSerialConfigValid(const serialConfig_t *serialConfigToCheck)
     return true;
 }
 
+// Only the first port carrying one of these is ever opened (findSerialPortConfig)
+#define SERIAL_SINGLE_PORT_FUNCTIONS (FUNCTION_SERVO_SERIAL)
+
+uint32_t serialGetDuplicatedSinglePortFunctions(const serialPortConfig_t *portConfigToCheck)
+{
+    uint32_t functionMaskOfOtherPorts = 0;
+
+    for (int index = 0; index < SERIAL_PORT_COUNT; index++) {
+        const serialPortConfig_t *portConfig = &serialConfig()->portConfigs[index];
+        if (portConfig->identifier != portConfigToCheck->identifier) {
+            functionMaskOfOtherPorts |= portConfig->functionMask;
+        }
+    }
+
+    return portConfigToCheck->functionMask & functionMaskOfOtherPorts & SERIAL_SINGLE_PORT_FUNCTIONS;
+}
+
 serialPortConfig_t *serialFindPortConfiguration(serialPortIdentifier_e identifier)
 {
     for (int index = 0; index < SERIAL_PORT_COUNT; index++) {
