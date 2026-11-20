@@ -4,7 +4,9 @@
 # list_per_commit_baselines() jq filter: a release whose notes lack a
 # matching `branch: <name>` first line must still emit a full 3-column
 # TSV row with "?" in the branch column, not be silently truncated to 2
-# columns.
+# columns. And prune() must drop the oldest baselines by publication, even
+# when every release carries the same created_at (GitHub dates a release by
+# the commit its tag points to, which is one commit for all of these).
 #
 # This test extracts the function body verbatim from the real script (via
 # sed) rather than duplicating the jq filter, so it exercises the actual
@@ -78,8 +80,39 @@ elif [ "$(awk -F'\t' '{print $3}' <<<"$wellformed_row")" != "release/9.1" ]; the
     fail=1
 fi
 
+# Three baselines of one branch, all with the created_at GitHub really
+# reports for them: the first published has the highest SHA, the last the
+# lowest. Keeping two must drop the first published.
+OLD_TAG="size-baseline-$(printf 'f%.0s' $(seq 1 40))"
+MID_TAG="size-baseline-$(printf '5%.0s' $(seq 1 40))"
+NEW_TAG="size-baseline-$(printf '1%.0s' $(seq 1 40))"
+FIXTURE=$(jq -n --arg o "$OLD_TAG" --arg m "$MID_TAG" --arg n "$NEW_TAG" '[
+    {created_at: "2026-03-01T20:49:54Z", published_at: "2026-09-01T00:00:00Z", tag_name: $o, body: "branch: maintenance-10.x\nx"},
+    {created_at: "2026-03-01T20:49:54Z", published_at: "2026-09-02T00:00:00Z", tag_name: $m, body: "branch: maintenance-10.x\nx"},
+    {created_at: "2026-03-01T20:49:54Z", published_at: "2026-09-03T00:00:00Z", tag_name: $n, body: "branch: maintenance-10.x\nx"}
+]')
+
+PRUNE_BODY=$(sed -n '/^prune() {/,/^}/p' publish-size-baseline.sh)
+if [ -z "$PRUNE_BODY" ]; then
+    echo "FAIL: could not extract prune() from publish-size-baseline.sh"
+    exit 1
+fi
+eval "$PRUNE_BODY"
+# shellcheck disable=SC2034 -- consumed inside the eval'd function body
+KEEP_PER_BRANCH=2
+# shellcheck disable=SC2034
+GLOBAL_CAP=300
+# shellcheck disable=SC2034
+DRY_RUN=--dry-run
+pruned=$(prune)
+
+if [ "$pruned" != "[dry-run] would prune ${OLD_TAG}" ]; then
+    echo "FAIL: prune() should drop only the first published baseline, got: ${pruned:-nothing}"
+    fail=1
+fi
+
 if [ "$fail" = 0 ]; then
-    echo "PASS: list_per_commit_baselines() (2 checks)"
+    echo "PASS: list_per_commit_baselines() and prune() (3 checks)"
 else
     exit 1
 fi

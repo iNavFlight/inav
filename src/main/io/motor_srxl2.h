@@ -163,6 +163,7 @@ void srxl2MotorServiceFor(uint32_t ms);
  * (or the reversible-motor scale, where the neutral sits in the middle), so it
  * is interchangeable with pwmWriteMotor() as a motorWritePtr target.
  * Staging only: nothing reaches the wire until srxl2MotorSendUpdate().
+ * 1200 us goes out as 1199: an Avian's 20.0 % step, see motor_srxl2.c.
  */
 void srxl2MotorUpdate(uint8_t index, uint16_t value);
 

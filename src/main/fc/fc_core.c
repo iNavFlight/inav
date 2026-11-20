@@ -617,7 +617,9 @@ void tryArm(void)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (emergInflightRearmEnabled() || !isArmingDisabled() || emergencyArmingIsEnabled() ||
-        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
+        // The failsafe lockout must survive the override, or it re-arms right after a failsafe disarm
+        (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY) &&
+         !ARMING_FLAG(ARMING_DISABLED_FAILSAFE_SYSTEM))) {
 #else
     if (emergInflightRearmEnabled() || !isArmingDisabled() || emergencyArmingIsEnabled()) {
 #endif
@@ -678,7 +680,7 @@ bool fcSetArmState(bool arm)
         disarm(DISARM_SWITCH);
     }
 
-    return ARMING_FLAG(ARMED) == arm;
+    return (ARMING_FLAG(ARMED) != 0) == arm;
 }
 
 #define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)

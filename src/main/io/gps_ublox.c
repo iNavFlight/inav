@@ -35,6 +35,7 @@
 #include "common/typeconversion.h"
 #include "common/gps_conversion.h"
 #include "common/maths.h"
+#include "common/string_light.h"
 #include "common/utils.h"
 
 #include "drivers/serial.h"
@@ -742,17 +743,17 @@ static bool gpsParseFrameUBLOX(void)
                     for (int j = 40; j < _payload_length && !found; j += 30)
                     {
                         // Example content: GPS;GAL;BDS;GLO
-                        if (strnstr((const char *)(_buffer.bytes + j), "GAL", 30))
+                        if (sl_strnstr((const char *)(_buffer.bytes + j), "GAL", 30))
                         {
                             ubx_capabilities.supported |= UBX_MON_GNSS_GALILEO_MASK;
                             found = true;
                         }
-                        if (strnstr((const char *)(_buffer.bytes + j), "BDS", 30))
+                        if (sl_strnstr((const char *)(_buffer.bytes + j), "BDS", 30))
                         {
                             ubx_capabilities.supported |= UBX_MON_GNSS_BEIDOU_MASK;
                             found = true;
                         }
-                        if (strnstr((const char *)(_buffer.bytes + j), "GLO", 30))
+                        if (sl_strnstr((const char *)(_buffer.bytes + j), "GLO", 30))
                         {
                             ubx_capabilities.supported |= UBX_MON_GNSS_GLONASS_MASK;
                             found = true;
@@ -760,7 +761,7 @@ static bool gpsParseFrameUBLOX(void)
                     }
                 }
                 for(int j = 40; j < _payload_length; j += 30) {
-                    if (strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
+                    if (sl_strnstr((const char *)(_buffer.bytes + j), "PROTVER", 30)) {
                         gpsDecodeProtocolVersion((const char *)(_buffer.bytes + j), 30);
                         break;
                     }
@@ -955,6 +956,12 @@ static uint16_t hz2rate(uint8_t hz)
     return 1000 / hz;
 }
 
+// Satellite details only feed gpssats and the OSD's GPS extra stats: about 2 Hz, in epochs
+static uint8_t ubloxSatInfoRate(void)
+{
+    return MAX(1, (gpsState.gpsConfig->ubloxNavHz + 1) / 2);
+}
+
 STATIC_PROTOTHREAD(gpsConfigure)
 {
     ptBegin(gpsConfigure);
@@ -1073,7 +1080,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
             {UBLOX_CFG_MSGOUT_NAV_VELNED_UART1, 0}, // 2
             {UBLOX_CFG_MSGOUT_NAV_TIMEUTC_UART1, 0}, // 3
             {UBLOX_CFG_MSGOUT_NAV_PVT_UART1, 1}, // 4
-            {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, 1}, // 5
+            {UBLOX_CFG_MSGOUT_NAV_SIG_UART1, ubloxSatInfoRate()}, // 5
             {UBLOX_CFG_MSGOUT_NAV_SAT_UART1, 0}  // 6
         };
 
@@ -1101,7 +1108,7 @@ STATIC_PROTOTHREAD(gpsConfigure)
         configureMSG(MSG_CLASS_UBX, MSG_PVT, 1);
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
 
-        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, 1);
+        configureMSG(MSG_CLASS_UBX, MSG_NAV_SAT, ubloxSatInfoRate());
         ptWait(_ack_state == UBX_ACK_GOT_ACK || _ack_state == UBX_ACK_GOT_NAK);
     } else { // Really old stuff, consider upgrading :), ols setting API, no PVT or NAV_SAT or NAV_SIG
         // TODO: remove in INAV 9.0.0
