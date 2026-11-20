@@ -335,17 +335,17 @@ void updatePositionEstimator_BaroTopic(timeUs_t currentTimeUs)
 }
 #endif
 
-#if defined(USE_PITOT)
-/**
+// #if defined(USE_PITOT)
+/* NOT USED ANYWHERE !!
  * Read Pitot and update airspeed topic
- *  Function is called at main loop rate, updates happen at reduced rate
+ * Function is called at main loop rate, updates happen at reduced rate
  */
-void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
-{
-    posEstimator.pitot.airspeed = getAirspeedEstimate();
-    posEstimator.pitot.lastUpdateTime = currentTimeUs;
-}
-#endif
+// void updatePositionEstimator_PitotTopic(timeUs_t currentTimeUs)
+// {
+    // posEstimator.pitot.airspeed = getAirspeedEstimate();
+    // posEstimator.pitot.lastUpdateTime = currentTimeUs;
+// }
+// #endif
 
 /**
  * Update IMU topic
