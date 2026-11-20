@@ -437,7 +437,8 @@ typedef struct {
     int32_t landAltAgl;
     float climbAltTarget;
     timeUs_t climbAltTimeUs;
-    uint32_t turnRadius;
+    uint32_t turnRadius;            // [cm] planned for the turn onto the final
+    uint32_t downwindDistance;      // [cm] of the downwind from the final's line
     uint32_t circleRadius;
     float circleSum;
     float circleAngle;
@@ -449,6 +450,8 @@ typedef struct {
     float pathStartAlt;
     float pathClimbRate;            // [cm/s] the circuit path's, where the aircraft is
     float pathSinkLimit;            // [times pathClimbRate] most descent asked on the final, 0 elsewhere
+    float lineToGo;                 // [cm] to the aim point where the final's line starts, 0 before the rollout onto it
+    float lineHeight;               // [cm] the path's altitude there
     int16_t approachThrottle;
     timeUs_t throttleCutUs;
     float flareTimeS;
@@ -678,6 +681,7 @@ void applyFixedWingNavigationController(navigationFSMStateFlags_t navStateFlags,
 uint32_t navGetFwPlannedTurnRadius(void);
 uint32_t navGetFwPlannedTurnRadiusAt(float speed);
 uint32_t navGetFwPlannedTurnLead(void);
+uint32_t navGetFwPlannedTurnLeadAt(float speed);
 uint16_t navGetFwLandApproachSpeed(void);
 float navGetFwLandClimbRate(void);
 float navGetFwLandHeadwind(void);

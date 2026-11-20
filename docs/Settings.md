@@ -3853,7 +3853,7 @@ The glide path meets the ground this far [cm] before the landing site, in either
 
 ### nav_fw_land_approach_length
 
-Length of the final approach
+Length of the final approach [cm]. With the landing circuit (`nav_fw_land_downwind_offset`) the shortest straight of the final: its line starts where the aircraft rolls out onto the final, from as far out as the turn onto it left.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3893,7 +3893,7 @@ Flies a landing circuit instead of the classic approach: the edge of the wind ci
 
 ### nav_fw_land_final_alt
 
-Altitude above the landing site at the start of the final [cm]; the downwind and base legs descend linearly from the approach altitude to it. 0 uses two thirds of the approach altitude.
+Altitude above the landing site at the start of the final [cm]; the downwind and base legs descend linearly from the approach altitude to it. 0 uses two thirds of the approach altitude. With the landing circuit it is no higher than `nav_fw_land_approach_length` allows at 8 degrees; the downwind and base lose the rest.
 
 | Default | Min | Max |
 | --- | --- | --- |

@@ -818,6 +818,13 @@ uint32_t navGetFwPlannedTurnLead(void)
     return lrintf(getFwCoordinatedTurnRadius() + easeLead);
 }
 
+// The same at a groundspeed [cm/s] other than the current one, for a turn flown later
+uint32_t navGetFwPlannedTurnLeadAt(float speed)
+{
+    const float easeLead = speed * (fwTurnEaseTimeMs(getFwPlanningBankDeg()) / 1000.0f) * 1.5f;
+    return navGetFwPlannedTurnRadiusAt(speed) + lrintf(easeLead);
+}
+
 // Crossfade out of an arc handback: the arc leaves the wings near level while the PID and turn FF
 // still see the full carrot error, so adopting their command directly is a step of several degrees.
 static float applyFwArcHandbackFade(float rollTargetCd, timeDelta_t deltaMicros)
