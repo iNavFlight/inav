@@ -458,6 +458,7 @@ typedef struct {
     float flareSinkTarget;
     float flareHeight;
     float flareEntryHeight;
+    float flareLowestHeight;        // [cm] since the flare started: the power it took off stays off over a bounce
     float flareEntryOffset;         // [cm/s] the sink at the flare start over its law's, blended out
     fpVector3_t runwayStartPos;
     float runwayStartHeight;        // [cm] over the runway start; 0: no gate

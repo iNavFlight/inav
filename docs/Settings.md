@@ -3933,7 +3933,7 @@ Pitch value for flare phase. In degrees. Only applies with a healthy rangefinder
 
 ### nav_fw_land_flare_sink
 
-Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set, the landing flares on its sink rate: it asks the height / `nav_fw_land_flare_time` down to this sink, held from there to the ground, starting where that equals the sink the aircraft has and blending from it; the pitch is the flight path angle of that sink plus the angle of attack, up to `nav_fw_land_flare_pitch`, and the power comes off over the flare. The final's line meets the ground at `nav_fw_land_aim_offset` and the flare floats a little past it. 0 keeps the pitch glide and flare, with the motor cut at `nav_fw_land_glide_alt`.
+Sink rate [cm/s] the landing touches down with, 10 to 20 for delicate gear. Set, the landing flares on its sink rate: it asks the height / `nav_fw_land_flare_time` down to this sink, held from there to the ground, starting where that equals the sink the aircraft has and blending from it; the pitch is the flight path angle of that sink plus the angle of attack, up to `nav_fw_land_flare_pitch`, and the power comes off over the flare, with the motor stopped 30 cm over the ground. The final's line meets the ground at `nav_fw_land_aim_offset` and the flare floats a little past it. 0 keeps the pitch glide and flare, with the motor cut at `nav_fw_land_glide_alt`.
 
 | Default | Min | Max |
 | --- | --- | --- |

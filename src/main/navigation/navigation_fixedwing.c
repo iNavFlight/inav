@@ -110,6 +110,7 @@
 #define FW_LAND_PITCH_TRIM_GAP_S         0.5f     // [s] no call for longer: a new glide
 #define FW_LAND_FLARE_VERT_ACCEL         400.0f   // [cm/s2] the flare's pitch rate limit at the speed (ArduPilot, PX4: 700)
 #define FW_LAND_FLARE_BANK_LIMIT         5.0f     // [deg] in the glide and flare (ArduPilot LEVEL_ROLL_LIMIT)
+#define FW_LAND_FLARE_MOTOR_OFF_HEIGHT   30.0f    // [cm] the sink-rate flare stops the motor below it, over the lowest height since its start
 #define FW_LAND_FLARE_PATH_P             0.7f     // [deg of pitch per deg of flight path error] sink-rate flare
 #define FW_LAND_FLARE_PATH_I_S           2.0f     // [s] its integral holds the angle of attack; faster, on the late climb rate, it swung the nose
 #define FW_LAND_FLARE_ACCEL_LEAD_S       0.2f     // [s] the estimated climb rate trails the true one by 0.2-0.3 s: lead from the vertical acceleration
@@ -1976,10 +1977,13 @@ void applyFixedWingPitchRollThrottleController(navigationFSMStateFlags_t navStat
         const bool sinkFlare = navFwAutolandConfig()->flareSink
             && (posControl.navState == NAV_STATE_FW_LANDING_GLIDE || posControl.navState == NAV_STATE_FW_LANDING_FLARE);
         // Set motor to min. throttle and stop it when MOTOR_STOP feature is enabled. The sink-rate flare takes the
-        // approach power off over the time it takes to the ground: cut at once at speed above the runway it dropped the
-        // nose, and the aircraft with it; held to the ground it touched down at the approach speed, nose level
-        const float powerLeft = posControl.fwLandState.throttleCutUs
-            ? 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / MAX(posControl.fwLandState.flareTimeS, 0.5f) : 1.0f;
+        // approach power off over its time and stops the motor just over the ground: on to the contact a belly lander's
+        // propeller hit under power, off from 0.6 m a slow aircraft stalled onto its gear (cut at once, the nose dropped)
+        float powerLeft = 1.0f;
+        if (posControl.fwLandState.throttleCutUs) {
+            powerLeft = posControl.fwLandState.flareLowestHeight > FW_LAND_FLARE_MOTOR_OFF_HEIGHT
+                ? 1.0f - US2S(currentTimeUs - posControl.fwLandState.throttleCutUs) / MAX(posControl.fwLandState.flareTimeS, 0.5f) : 0.0f;
+        }
         if (sinkFlare && !STATE(LANDING_DETECTED) && powerLeft > 0.0f) {
             const uint16_t idle = getThrottleIdleValue();
             rcCommand[THROTTLE] = setDesiredThrottle(idle + (MAX(posControl.fwLandState.approachThrottle, idle) - idle) * powerLeft, false);

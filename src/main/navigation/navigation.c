@@ -4139,11 +4139,13 @@ static void fwLandUpdateSinkFlare(void)
     if (!posControl.fwLandState.throttleCutUs) {
         posControl.fwLandState.throttleCutUs = micros();
         posControl.fwLandState.flareEntryHeight = MAX(height, 1.0f);
+        posControl.fwLandState.flareLowestHeight = height;
         posControl.fwLandState.flareEntryOffset = -navGetFwLandClimbRate() - lawSink;
         posControl.fwLandState.flareTimeS = fwLandFlareDuration(height);
     }
     const float half = posControl.fwLandState.flareEntryHeight * 0.5f;
     posControl.fwLandState.flareHeight = height;
+    posControl.fwLandState.flareLowestHeight = MIN(posControl.fwLandState.flareLowestHeight, height);
     posControl.fwLandState.flareSinkTarget = MAX(lawSink + posControl.fwLandState.flareEntryOffset * constrainf((height - half) / half, 0.0f, 1.0f), 0.0f);
     DEBUG_SET(DEBUG_AUTOLAND, 0, posControl.fwLandState.landState);
     DEBUG_SET(DEBUG_AUTOLAND, 1, lrintf(height));
