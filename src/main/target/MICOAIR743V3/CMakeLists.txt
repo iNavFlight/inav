@@ -1,0 +1,2 @@
+target_stm32h743xi(MICOAIR743V3)
+target_stm32h743xi(MICOAIR743V3_EXTMAG)
