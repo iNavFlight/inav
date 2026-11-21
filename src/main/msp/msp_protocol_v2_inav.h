@@ -165,3 +165,6 @@
 // command keeps its number, an unmerged one has no claim on it.
 #define MSP2_INAV_ESC_SRXL2_STATUS              0x2233
 #define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2234
+
+#define MSP2_INAV_MOTOR_WIZARD_START            0x2235  //in message  twitch one motor for a firmware-limited time, disarmed only; payload: U8 motor index
+#define MSP2_INAV_MOTOR_WIZARD_STOP             0x2236  //in message  end the motor wizard sequence; payload: none

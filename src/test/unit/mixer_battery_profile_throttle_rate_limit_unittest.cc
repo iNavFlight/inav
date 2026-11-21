@@ -109,10 +109,10 @@ typedef struct navigationPosControl_s {
 extern "C" {
     navigationPosControl_t posControl = {};
 
+    uint32_t fakeFeatures = 0;
     bool feature(uint32_t mask)
     {
-        (void)mask;
-        return false;
+        return fakeFeatures & mask;
     }
 
     bool setConfigProfile(uint8_t profileIndex)
@@ -121,7 +121,8 @@ extern "C" {
         return true;
     }
 
-    timeMs_t millis(void) { return 0; }
+    timeMs_t fakeMillis = 0;
+    timeMs_t millis(void) { return fakeMillis; }
     timeUs_t micros(void) { return 0; }
     void delay(timeMs_t ms) { (void)ms; }
 
@@ -176,6 +177,15 @@ protected:
         profileWithoutLimiter->motor.throttleRateLimiter = 0;  // limiter OFF
 
         currentBatteryProfile = batteryProfiles(0);
+
+        // A quad: mixerInit() latches the motor count on its first call in this process
+        for (int i = 0; i < 4; i++) {
+            mixerProfilesMutable(0)->MotorMixers[i].throttle = 1.0f;
+        }
+
+        armingFlags = 0;
+        fakeMillis = 0;
+        fakeFeatures = 0;
     }
 };
 
@@ -208,6 +218,127 @@ TEST_F(ThrottleRateLimitTest, SwitchingToProfileWithLimiterDisabledClearsLimit)
            "\"FW throttle rate limiter\" check (if (STATE(AIRPLANE) && "
            "throttleRateLimit)) will keep applying the OLD limit for the "
            "rest of the flight.";
+}
+
+// Motor wizard: the firmware itself times the twitching of one motor while
+// disarmed. It shares this file because it needs the same mixer.c harness.
+class MotorWizardTest : public ThrottleRateLimitTest {
+protected:
+    void SetUp() override
+    {
+        ThrottleRateLimitTest::SetUp();
+        mixerInit();
+        motorWizardStop();
+    }
+
+    // mixer.c keeps what mixerInit() derived from the features in statics
+    void TearDown() override
+    {
+        motorWizardStop();
+        fakeFeatures = 0;
+        rcControlsConfigMutable()->mid_throttle_deadband = 0;
+        mixerInit();
+    }
+
+    bool isSpinningAt(timeMs_t ms, int motorIndex)
+    {
+        fakeMillis = startMs + ms;
+        mixTable(0.001f);
+        for (int i = 0; i < 4; i++) {
+            if (i != motorIndex && motor[i] != motor_disarmed[i]) {
+                ADD_FAILURE() << "motor " << i << " moved at " << ms << " ms";
+            }
+        }
+        return motor[motorIndex] > motor_disarmed[motorIndex];
+    }
+
+    const timeMs_t startMs = 100000;
+};
+
+TEST_F(MotorWizardTest, StartIsRefusedWhenArmedOrIndexOutOfRange)
+{
+    EXPECT_FALSE(motorWizardStart(4));
+    EXPECT_FALSE(motorWizardStart(255));
+
+    armingFlags = ARMED;
+    EXPECT_FALSE(motorWizardStart(1));
+
+    // The refused start must not be waiting for the disarm
+    armingFlags = 0;
+    EXPECT_FALSE(areMotorsRunning());
+    EXPECT_FALSE(isSpinningAt(0, 1));
+}
+
+TEST_F(MotorWizardTest, TwitchesOneMotorAndEndsByItself)
+{
+    fakeMillis = startMs;
+    ASSERT_TRUE(motorWizardStart(2));
+    EXPECT_TRUE(areMotorsRunning());
+
+    for (timeMs_t ms = 0; ms < MOTOR_WIZARD_DURATION_MS; ms++) {
+        ASSERT_EQ(ms % MOTOR_WIZARD_CYCLE_MS < MOTOR_WIZARD_SPIN_MS, isSpinningAt(ms, 2)) << "at " << ms << " ms";
+    }
+    EXPECT_TRUE(areMotorsRunning());
+
+    // Hard limit: nothing after it although nobody sent a stop
+    EXPECT_FALSE(isSpinningAt(MOTOR_WIZARD_DURATION_MS, 2));
+    EXPECT_FALSE(areMotorsRunning());
+    EXPECT_FALSE(isSpinningAt(MOTOR_WIZARD_DURATION_MS + 10, 2));
+}
+
+TEST_F(MotorWizardTest, StopEndsTheSequenceAndStartReplacesIt)
+{
+    fakeMillis = startMs;
+    ASSERT_TRUE(motorWizardStart(0));
+    EXPECT_TRUE(isSpinningAt(10, 0));
+
+    ASSERT_TRUE(motorWizardStart(3));
+    EXPECT_TRUE(isSpinningAt(20, 3));
+
+    motorWizardStop();
+    EXPECT_FALSE(isSpinningAt(30, 3));
+    EXPECT_FALSE(areMotorsRunning());
+}
+
+// The caller repeats the start while the user is still looking for the motor.
+// That must only push the time limit away, not restart the spin/pause rhythm.
+TEST_F(MotorWizardTest, RepeatedStartKeepsTheRhythmAndExtendsTheLimit)
+{
+    fakeMillis = startMs;
+    ASSERT_TRUE(motorWizardStart(1));
+
+    // Repeated at a rate unrelated to the cycle, well past the time limit
+    const timeMs_t repeatMs = MOTOR_WIZARD_CYCLE_MS + MOTOR_WIZARD_SPIN_MS / 2 + 7;
+    const timeMs_t lastMs = 4 * MOTOR_WIZARD_DURATION_MS;
+    timeMs_t lastStartMs = 0;
+    for (timeMs_t ms = 0; ms < lastMs; ms++) {
+        if (ms % repeatMs == repeatMs - 1) {
+            fakeMillis = startMs + ms;
+            ASSERT_TRUE(motorWizardStart(1));
+            lastStartMs = ms;
+        }
+        ASSERT_EQ(ms % MOTOR_WIZARD_CYCLE_MS < MOTOR_WIZARD_SPIN_MS, isSpinningAt(ms, 1)) << "at " << ms << " ms";
+    }
+
+    // No more starts: it ends by itself, at most one cycle before the full limit
+    EXPECT_TRUE(isSpinningAt(lastMs / MOTOR_WIZARD_CYCLE_MS * MOTOR_WIZARD_CYCLE_MS + MOTOR_WIZARD_CYCLE_MS, 1));
+    EXPECT_TRUE(areMotorsRunning());
+    EXPECT_FALSE(isSpinningAt(lastStartMs + MOTOR_WIZARD_DURATION_MS, 1));
+    EXPECT_FALSE(areMotorsRunning());
+}
+
+// Reversible motors rest at neutral and writeMotors() spins them forward only
+// above the centre throttle deadband, so the twitch has to be above it.
+TEST_F(MotorWizardTest, ReversibleMotorsTwitchAboveTheCentreDeadband)
+{
+    fakeFeatures = FEATURE_REVERSIBLE_MOTORS;
+    rcControlsConfigMutable()->mid_throttle_deadband = 150;
+    mixerInit();
+
+    fakeMillis = startMs;
+    ASSERT_TRUE(motorWizardStart(0));
+    ASSERT_TRUE(isSpinningAt(0, 0));
+    EXPECT_GT(motor[0], 1500 + 150);
 }
 
 } // namespace

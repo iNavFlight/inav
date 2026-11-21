@@ -2574,6 +2574,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         break;
 
+    case MSP2_INAV_MOTOR_WIZARD_START:
+        if (!sbufReadU8Safe(&tmp_u8, src) || !motorWizardStart(tmp_u8)) {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_INAV_MOTOR_WIZARD_STOP:
+        motorWizardStop();
+        break;
+
     case MSP_SET_SERVO_CONFIGURATION:
         if (dataSize < (1 + 14)) {
             return MSP_RESULT_ERROR;

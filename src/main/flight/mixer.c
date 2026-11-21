@@ -81,6 +81,16 @@ static EXTENDED_FASTRAM float throttleRateLimit = 0.0f;
 
 int motorZeroCommand = 0;
 
+// Motor wizard: one motor twitches while disarmed so the user can tell which output it is.
+// The firmware times the sequence and always ends it by itself, so a link lost at the
+// wrong moment cannot leave a motor running.
+// The timing constants are in mixer.h.
+#define MOTOR_WIZARD_THROTTLE_PERCENT   8
+#define MOTOR_WIZARD_IDLE               0xFF
+
+static uint8_t motorWizardMotor = MOTOR_WIZARD_IDLE;
+static timeMs_t motorWizardStartMs;
+
 PG_REGISTER_WITH_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig, PG_REVERSIBLE_MOTORS_CONFIG, 0);
 
 PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
@@ -262,6 +272,58 @@ float mixerGetThrottleRateLimit(void)
     return throttleRateLimit;
 }
 #endif
+
+bool motorWizardStart(uint8_t motorIndex)
+{
+    if (ARMING_FLAG(ARMED) || motorIndex >= motorCount) {
+        return false;
+    }
+
+    const timeMs_t nowMs = millis();
+
+    if (motorIndex == motorWizardMotor) {
+        // Asked again for the motor that is already twitching: move the start by whole
+        // cycles, which restarts the time limit (from the cycle that is running) and
+        // keeps the rhythm. The caller can then repeat the start at any rate without
+        // the firmware knowing it.
+        motorWizardStartMs += (nowMs - motorWizardStartMs) / MOTOR_WIZARD_CYCLE_MS * MOTOR_WIZARD_CYCLE_MS;
+        return true;
+    }
+
+    if (feature(FEATURE_REVERSIBLE_MOTORS)) {
+        // writeMotors() scales by this state while disarmed too and the last flight may have ended
+        // in reverse. This is the state mixerResetDisarmedMotors() sets at boot, so nothing to restore.
+        reversibleMotorsThrottleState = MOTOR_DIRECTION_FORWARD;
+        throttleRangeMin = throttleDeadbandHigh;
+        throttleRangeMax = getMaxThrottle();
+    }
+
+    motorWizardStartMs = nowMs;
+    motorWizardMotor = motorIndex;
+
+    return true;
+}
+
+void motorWizardStop(void)
+{
+    motorWizardMotor = MOTOR_WIZARD_IDLE;
+}
+
+// Called from the disarmed branch of mixTable() only while a sequence is active
+static void motorWizardApply(void)
+{
+    const timeMs_t elapsedMs = millis() - motorWizardStartMs;
+
+    if (elapsedMs >= MOTOR_WIZARD_DURATION_MS) {
+        motorWizardMotor = MOTOR_WIZARD_IDLE;
+    } else if (elapsedMs % MOTOR_WIZARD_CYCLE_MS < MOTOR_WIZARD_SPIN_MS) {
+        // Reversible motors rest at neutral, writeMotors() spins them forward from throttleDeadbandHigh up
+        const int rangeMin = feature(FEATURE_REVERSIBLE_MOTORS) ? throttleDeadbandHigh : motorConfig()->mincommand;
+        const int spinValue = rangeMin + (getMaxThrottle() - rangeMin) * MOTOR_WIZARD_THROTTLE_PERCENT / 100;
+
+        motor[motorWizardMotor] = MAX(spinValue, throttleIdleValue);
+    }
+}
 
 void mixerResetDisarmedMotors(void)
 {
@@ -676,6 +738,9 @@ void FAST_CODE mixTable(float dT)
         }
         mixerThrottleCommand = motor[0];
         lastMixerThrottleCommand = mixerThrottleCommand;
+        if (motorWizardMotor != MOTOR_WIZARD_IDLE) {
+            motorWizardApply();
+        }
         return;
     }
 
@@ -1015,7 +1080,7 @@ void loadPrimaryMotorMixer(void) {
 
 bool areMotorsRunning(void)
 {
-    if (ARMING_FLAG(ARMED)) {
+    if (ARMING_FLAG(ARMED) || motorWizardMotor != MOTOR_WIZARD_IDLE) {
         return true;
     } else {
         for (int i = 0; i < motorCount; i++) {
