@@ -580,11 +580,62 @@ static mspResult_e fixDjiBrokenO4ProcessMspCommand(mspPacket_t *cmd, mspPacket_t
 #define fixDjiBrokenO4ProcessMspCommand processMspCommand
 #endif
 
+/*
+ * Disarm hold (osd_msp_disarm_hold, seconds, 0 = off). For that long after a disarm, the status
+ * replies sent on THIS port only (the air unit's MSP DisplayPort UART) still carry the ARM bit, so
+ * goggles that record only while armed also record the stats screen. Nothing else changes: the
+ * flight controller is disarmed at once, and every other MSP user (MSP ports such as mLRS, MSP over
+ * CRSF / SmartPort, MSP in MAVLink, the configurator) is answered by mspFcProcessCommand directly
+ * and sees the real state. The hold starts when this port sees the disarm (the air unit asks
+ * several times a second) and ends early on a re-arm.
+ */
+static bool disarmHoldWasArmed = false;
+static bool disarmHoldActive = false;
+static timeMs_t disarmHoldUntil = 0;
+
+static bool mspOsdDisarmHold(void)
+{
+    if (ARMING_FLAG(ARMED)) {
+        disarmHoldWasArmed = true;
+        disarmHoldActive = false;
+        return false;
+    }
+    const timeMs_t now = millis();
+    if (disarmHoldWasArmed) {
+        disarmHoldWasArmed = false;
+        const uint8_t hold = MIN(osdConfig()->msp_disarm_hold, 7);
+        disarmHoldActive = hold > 0;
+        disarmHoldUntil = now + (timeMs_t)hold * 1000;
+    }
+    if (disarmHoldActive && (int32_t)(now - disarmHoldUntil) >= 0) {
+        disarmHoldActive = false;
+    }
+    return disarmHoldActive;
+}
+
+static mspResult_e disarmHoldProcessMspCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostProcessFnPtr *mspPostProcessFn)
+{
+    uint8_t * const start = reply->buf.ptr;
+    const mspResult_e result = fixDjiBrokenO4ProcessMspCommand(cmd, reply, mspPostProcessFn);
+    const bool hold = mspOsdDisarmHold();   // every command: notices the disarm even between status requests
+    if (!hold || result != MSP_RESULT_ACK) {
+        return result;
+    }
+    const int len = reply->buf.ptr - start;
+    if ((cmd->cmd == MSP_STATUS || cmd->cmd == MSP_STATUS_EX) && len >= 10) {
+        start[6] |= 0x01;               // mode flags from byte 6, bit 0 = ARM (first active box; DJI order too)
+    } else if (cmd->cmd == MSP2_INAV_STATUS && len >= 14) {
+        start[9] |= (uint8_t)ARMED;     // armingFlags (u32, little-endian) from byte 9
+        start[13] |= 0x01;              // mode flags from byte 13, bit 0 = ARM
+    }
+    return result;
+}
+
 void mspOsdSerialProcess(mspProcessCommandFnPtr mspProcessCommandFn)
 {
     if (mspPort.port) {
         mspProcessCommand = mspProcessCommandFn;
-        mspSerialProcessOnePort(&mspPort, MSP_SKIP_NON_MSP_DATA, fixDjiBrokenO4ProcessMspCommand);
+        mspSerialProcessOnePort(&mspPort, MSP_SKIP_NON_MSP_DATA, disarmHoldProcessMspCommand);
     }
 }
 

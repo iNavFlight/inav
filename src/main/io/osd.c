@@ -4410,7 +4410,10 @@ PG_RESET_TEMPLATE(osdConfig_t, osdConfig,
     .stats_page_auto_swap_time = SETTING_OSD_STATS_PAGE_AUTO_SWAP_TIME_DEFAULT,
     .stats_show_metric_efficiency = SETTING_OSD_STATS_SHOW_METRIC_EFFICIENCY_DEFAULT,
 
-    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT
+    .radar_peers_display_time = SETTING_OSD_RADAR_PEERS_DISPLAY_TIME_DEFAULT,
+#ifdef USE_MSP_OSD
+    .msp_disarm_hold = SETTING_OSD_MSP_DISARM_HOLD_DEFAULT,
+#endif
 );
 
 void pgResetFn_osdLayoutsConfig(osdLayoutsConfig_t *osdLayoutsConfig)

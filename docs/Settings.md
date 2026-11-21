@@ -5882,6 +5882,16 @@ Number of decimals for the battery voltages displayed in the OSD [1-2].
 
 ---
 
+### osd_msp_disarm_hold
+
+Seconds the MSP DisplayPort air unit is still told ARMED after a disarm, so goggles that record only while armed (DJI) also record the stats screen. Only the serial port set to MSP DisplayPort is affected: the flight controller disarms at once, and every other MSP port (mLRS, MSP over telemetry), MAVLink and the configurator see the real arm state. 0 = off.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 7 |
+
+---
+
 ### osd_msp_displayport_fullframe_interval
 
 Full Frame redraw interval for MSP DisplayPort [deciseconds]. This is how often a full frame update is sent to the DisplayPort, to cut down on OSD artifacting. The default value should be fine for most pilots. Though long range pilots may benefit from increasing the refresh time, especially near the edge of range. -1 = disabled (legacy mode) | 0 = every frame (not recommended) | default = 10 (1 second)

@@ -584,6 +584,7 @@ typedef struct osdConfig_s {
     uint8_t geozoneDistanceWarning;                     // Distance to fence or action
     bool geozoneDistanceType;                            // Shows a countdown timer or distance to fence/action
 #endif
+    uint8_t         msp_disarm_hold;                    // seconds the MSP DisplayPort port still reports ARM after a disarm (0 = off)
 } osdConfig_t;
 
 PG_DECLARE(osdConfig_t, osdConfig);
