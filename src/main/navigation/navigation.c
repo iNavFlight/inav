@@ -4129,15 +4129,6 @@ float navGetFwLandHeadwind(void)
     return -(getEstimatedWindSpeed(X) * cos_approx(direction) + getEstimatedWindSpeed(Y) * sin_approx(direction));
 }
 
-// Groundspeed [cm/s] on the final: the approach speed with half the headwind added, less the headwind
-static float fwLandFinalGroundSpeed(void)
-{
-    const float headwind = navGetFwLandHeadwind();
-    const uint16_t approachSpeed = navGetFwLandApproachSpeed();
-    const float airspeed = approachSpeed ? approachSpeed + MAX(headwind, 0.0f) * FW_LAND_WIND_COMP : posControl.actualState.velXY + headwind;
-    return MAX(airspeed - headwind, 100.0f);
-}
-
 // The sink-rate flare, each cycle: the sink its law asks over the height, blended over the first half of it from the
 // sink the aircraft had at the start so the pitch takes no step, and the power taken off over the time it lasts
 static void fwLandUpdateSinkFlare(void)
@@ -4369,21 +4360,14 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
                 }
                 posControl.fwLandState.turnRadius = offset ? fwLandFinalTurnRadius(dir) : exitTurnRadius;
                 const uint32_t finalLength = navFwAutolandConfig()->approachLength + (offset ? posControl.fwLandState.turnRadius : 0);
-                // The flare takes over from the final's line where its law asks the line's sink, at the groundspeed the
-                // wind leaves, and touches down after its time at that speed (ArduPilot aims short by its run too)
                 const float finalHeight = finalAlt - posControl.fwLandState.landAltAgl;
                 const float slope = finalHeight / MAX(navFwAutolandConfig()->approachLength, 1U);
-                float flareRun = 0.0f;
-                if (offset && navFwAutolandConfig()->flareSink) {
-                    const float groundSpeed = fwLandFinalGroundSpeed();
-                    const float start = fwLandFlareStartHeight(slope * groundSpeed);
-                    flareRun = groundSpeed * fwLandFlareDuration(start) - start / MAX(slope, 0.001f);
-                }
                 // Where the line meets the ground, before the site [cm]: with the runway start set the line crosses it
-                // at its height and the gate checks it there, else the wheels touch nav_fw_land_aim_offset before the site
+                // at its height and the gate checks it there, else nav_fw_land_aim_offset before the site. Not shorter by
+                // the flare's run: planned 31 to 48 m in HITL, flown 0 to 7, it touched down before the runway three times
                 const navFwAutolandApproach_t *runway = fwAutolandApproachConfig(posControl.fwLandState.approachSettingIdx);
                 const uint8_t slot = fwLandRunwaySlot(approachHeading);
-                float lineGround = navFwAutolandConfig()->aimOffset + flareRun;
+                float lineGround = navFwAutolandConfig()->aimOffset;
                 posControl.fwLandState.runwayStartHeight = 0.0f;
                 if (runway->runwayStart[slot]) {
                     const float height = MIN(runway->runwayStartHeight[slot] * 10.0f, finalHeight);
