@@ -256,7 +256,15 @@ static void SystemClockHSE_Config(void)
     pllConfig_t *pll1Config = (HAL_GetREVID() == REV_ID_V) ? &pll1ConfigRevV : &pll1ConfigRevY;
 #endif
 
+#if HSE_VALUE == 25000000
+    // 25 MHz has no integer M giving the 2 MHz VCI the N values above assume.
+    // M=10 gives VCI = 2.5 MHz; N scaled by 4/5 keeps the same VCO (800/960 MHz).
+    pll1Config->m = 10;
+    const uint16_t pll1n = pll1Config->n * 4 / 5;
+#else
     pll1Config->m = HSE_VALUE / 1000000 / 2;  // correction for different HSE_VALUE
+    const uint16_t pll1n = pll1Config->n;
+#endif
 
     // Configure voltage scale.
     // It has been pre-configured at PWR_REGULATOR_VOLTAGE_SCALE1,
@@ -296,13 +304,13 @@ static void SystemClockHSE_Config(void)
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLM = pll1Config->m;
-    RCC_OscInitStruct.PLL.PLLN = pll1Config->n;
+    RCC_OscInitStruct.PLL.PLLN = pll1n;
     RCC_OscInitStruct.PLL.PLLP = pll1Config->p;
     RCC_OscInitStruct.PLL.PLLQ = pll1Config->q;
     RCC_OscInitStruct.PLL.PLLR = pll1Config->r;
 
     RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
-    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_1; // VCI = HSE/M = 2 MHz, range is 2-4 MHz
+    RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_1; // VCI = HSE/M = 2 MHz (2.5 MHz for 25 MHz HSE), range is 2-4 MHz
 
     HAL_StatusTypeDef status = HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
@@ -498,6 +506,13 @@ void SystemClock_Config(void)
     HAL_RCCEx_PeriphCLKConfig(&RCC_PeriphClkInit);
 
 #if defined(USE_SDCARD_SDIO) || defined(USE_DRONECAN)
+#if HSE_VALUE == 25000000
+    // 25 MHz is not a multiple of 1.6 MHz. M=10 gives VCI = 2.5 MHz (the wide VCO needs 2-16 MHz),
+    // N=320 gives the same VCO = 800 MHz, so the P/Q/R outputs below are unchanged.
+    RCC_PeriphClkInit.PLL2.PLL2M = 10;
+    RCC_PeriphClkInit.PLL2.PLL2N = 320;
+    RCC_PeriphClkInit.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_1;
+#else
     // PLL2M = HSE_VALUE / 1600000 pins the VCO input to exactly 1.6 MHz for any HSE.
     // With N=500: VCO=800 MHz, PLL2R/4=200 MHz (SDMMC), PLL2Q/10=80 MHz (FDCAN).
     // HSE_VALUE must be an exact multiple of 1600000. CMake sets it per-target via -DHSE_VALUE=<n>;
@@ -506,10 +521,11 @@ void SystemClock_Config(void)
     STATIC_ASSERT(HSE_VALUE % 1600000 == 0, HSE_not_a_multiple_of_1600000);
     RCC_PeriphClkInit.PLL2.PLL2M = HSE_VALUE / 1600000;
     RCC_PeriphClkInit.PLL2.PLL2N = 500;
+    RCC_PeriphClkInit.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
+#endif
     RCC_PeriphClkInit.PLL2.PLL2P = 2;
     RCC_PeriphClkInit.PLL2.PLL2Q = 10; // 80 MHz for FDCAN
     RCC_PeriphClkInit.PLL2.PLL2R = 4;  // 200 MHz for SDMMC
-    RCC_PeriphClkInit.PLL2.PLL2RGE = RCC_PLL2VCIRANGE_0;
     RCC_PeriphClkInit.PLL2.PLL2VCOSEL = RCC_PLL2VCOWIDE;
     RCC_PeriphClkInit.PLL2.PLL2FRACN = 0;
 
