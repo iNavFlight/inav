@@ -1079,7 +1079,7 @@ void mavlinkSendHighLatency2(timeUs_t currentTimeUs)
         }
 
         if (posControl.activeWaypointIndex >= 0) {
-            wpNum = (uint16_t)posControl.activeWaypointIndex;
+            wpNum = (uint16_t)(posControl.activeWaypointIndex + mavlinkMissionHomeSlots());
             targetDistance = (uint16_t)constrain(lrintf(posControl.wpDistance / 1000.0f), 0, UINT16_MAX);
         }
     }
