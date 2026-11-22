@@ -82,16 +82,19 @@ static uint8_t gpsMapFixType(uint8_t dronecanFixType)
 
 /*
  * Date and time from the GNSS timestamp. Only UTC timestamps (microseconds
- * since the Unix epoch, as sent by ArduPilot-based GNSS nodes) are used.
+ * since the Unix epoch, as sent by ArduPilot-based GNSS nodes) are used, and
+ * only within the range that INAV's RTC (int32 seconds) can represent.
  */
 #define DRONECAN_GNSS_TIME_STANDARD_UTC     2
 #define DRONECAN_GNSS_MIN_VALID_UNIX_SEC    1577836800LL    // 2020-01-01
+#define DRONECAN_GNSS_MAX_VALID_UNIX_SEC    2147483647LL    // 2038-01-19, RTC time is int32 seconds
 
 static void dronecanGPSSetTime(uint64_t usec, uint8_t timeStandard)
 {
     const int64_t unixSec = (int64_t)(usec / 1000000ULL);
 
-    if (timeStandard != DRONECAN_GNSS_TIME_STANDARD_UTC || unixSec < DRONECAN_GNSS_MIN_VALID_UNIX_SEC) {
+    if (timeStandard != DRONECAN_GNSS_TIME_STANDARD_UTC ||
+        unixSec < DRONECAN_GNSS_MIN_VALID_UNIX_SEC || unixSec > DRONECAN_GNSS_MAX_VALID_UNIX_SEC) {
         gpsSolDRV.flags.validTime = false;
         return;
     }
