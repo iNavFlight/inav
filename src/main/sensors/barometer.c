@@ -40,6 +40,7 @@
 #include "drivers/barometer/barometer_ms56xx.h"
 #include "drivers/barometer/barometer_spl06.h"
 #include "drivers/barometer/barometer_dps310.h"
+#include "drivers/barometer/barometer_icp201xx.h"
 #include "drivers/barometer/barometer_2smpb_02b.h"
 #include "drivers/barometer/barometer_msp.h"
 #include "drivers/barometer/barometer_crsf.h"
@@ -175,6 +176,19 @@ bool baroDetect(baroDev_t *dev, baroSensor_e baroHardwareToUse)
 #if defined(USE_BARO_DPS310)
         if (baroDPS310Detect(dev)) {
             baroHardware = BARO_DPS310;
+            break;
+        }
+#endif
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (baroHardwareToUse != BARO_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case BARO_ICP201XX:
+#if defined(USE_BARO_ICP201XX)
+        if (baroICP201XXDetect(dev)) {
+            baroHardware = BARO_ICP201XX;
             break;
         }
 #endif
