@@ -10114,6 +10114,18 @@
                         "ctype": "uint8_t",
                         "desc": "1 if altitudes are relative to sea level, 0 if relative to home",
                         "units": "Boolean"
+                    },
+                    {
+                        "name": "runwayStart",
+                        "ctype": "uint8_t[4]",
+                        "desc": "Where the runway begins before the site for landing along heading 1, its reverse, heading 2, its reverse; 0 uses `nav_fw_land_aim_offset` as the touchdown point",
+                        "units": "m"
+                    },
+                    {
+                        "name": "runwayStartHeight",
+                        "ctype": "uint8_t[4]",
+                        "desc": "Height the final crosses the runway start at, same order",
+                        "units": "dm"
                     }
                 ]
             },
@@ -10167,11 +10179,23 @@
                         "ctype": "uint8_t",
                         "desc": "Sets altitude reference",
                         "units": "Boolean"
+                    },
+                    {
+                        "name": "runwayStart",
+                        "ctype": "uint8_t[4]",
+                        "desc": "Optional: where the runway begins before the site for landing along heading 1, its reverse, heading 2, its reverse; 0 uses `nav_fw_land_aim_offset` as the touchdown point. Left as they are when not sent",
+                        "units": "m"
+                    },
+                    {
+                        "name": "runwayStartHeight",
+                        "ctype": "uint8_t[4]",
+                        "desc": "Optional: height the final crosses the runway start at, same order. Left as they are when not sent",
+                        "units": "dm"
                     }
                 ]
             },
             "reply": null,
-            "notes": "Requires `USE_FW_AUTOLAND`. Expects 15 bytes. Returns error if index invalid.",
+            "notes": "Requires `USE_FW_AUTOLAND`. Expects 15 bytes, or 23 with the runway starts and their heights. Returns error if index invalid.",
             "description": "Sets the configuration for a specific Fixed Wing Autoland approach."
         },
         "MSP2_INAV_GPS_UBLOX_COMMAND": {
