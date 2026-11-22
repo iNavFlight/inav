@@ -803,6 +803,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | ESC |  |
 | FW_TURN |  |
 | MAG |  |
+| RPM_FILTER |  |
 
 ---
 
@@ -941,6 +942,26 @@ Sets the DShot beeper tone
 | Default | Min | Max |
 | --- | --- | --- |
 | 1 | 1 | 5 |
+
+---
+
+### dshot_bidir_enabled
+
+Enable bidirectional DShot telemetry on motor outputs. Required for RPM filtering without a separate ESC telemetry UART
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### dshot_edt_enabled
+
+Enable extended DShot telemetry (temperature, voltage, current in addition to eRPM). The ESC is asked for it on every arm, so the values appear after the first arm
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
 
 ---
 
