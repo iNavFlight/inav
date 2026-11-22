@@ -279,6 +279,12 @@ bool motorWizardStart(uint8_t motorIndex)
         return false;
     }
 
+    // The sequence owns the disarmed output: whatever a motor test left behind would keep the
+    // other motors running, fill the pauses of this one and come back after the stop.
+    for (int i = 0; i < MAX_SUPPORTED_MOTORS; i++) {
+        motor_disarmed[i] = motorZeroCommand;
+    }
+
     const timeMs_t nowMs = millis();
 
     if (motorIndex == motorWizardMotor) {

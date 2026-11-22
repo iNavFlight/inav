@@ -327,6 +327,51 @@ TEST_F(MotorWizardTest, RepeatedStartKeepsTheRhythmAndExtendsTheLimit)
     EXPECT_FALSE(areMotorsRunning());
 }
 
+// A motor test (MSP_SET_MOTOR, CLI "motor") may have left motors running. The
+// sequence has to take the output over: only the selected motor moves, it rests
+// in its pauses and nothing comes back after the stop.
+TEST_F(MotorWizardTest, StartTakesOverMotorsLeftRunningByMotorTest)
+{
+    const int16_t offValue = motor_disarmed[0];
+    for (int i = 0; i < 4; i++) {
+        motor_disarmed[i] = offValue + 200;
+    }
+
+    fakeMillis = startMs;
+    ASSERT_TRUE(motorWizardStart(2));
+
+    EXPECT_TRUE(isSpinningAt(0, 2));
+    for (int i = 0; i < 4; i++) {
+        if (i != 2) {
+            EXPECT_EQ(offValue, motor[i]) << "motor " << i;
+        }
+    }
+
+    EXPECT_FALSE(isSpinningAt(MOTOR_WIZARD_SPIN_MS, 2));
+    for (int i = 0; i < 4; i++) {
+        EXPECT_EQ(offValue, motor[i]) << "motor " << i;
+    }
+}
+
+TEST_F(MotorWizardTest, StopLeavesAllMotorsOff)
+{
+    const int16_t offValue = motor_disarmed[0];
+    for (int i = 0; i < 4; i++) {
+        motor_disarmed[i] = offValue + 200;
+    }
+
+    fakeMillis = startMs;
+    ASSERT_TRUE(motorWizardStart(1));
+    EXPECT_TRUE(isSpinningAt(10, 1));
+
+    motorWizardStop();
+    EXPECT_FALSE(isSpinningAt(20, 1));
+    for (int i = 0; i < 4; i++) {
+        EXPECT_EQ(offValue, motor[i]) << "motor " << i;
+    }
+    EXPECT_FALSE(areMotorsRunning());
+}
+
 // Reversible motors rest at neutral and writeMotors() spins them forward only
 // above the centre throttle deadband, so the twitch has to be above it.
 TEST_F(MotorWizardTest, ReversibleMotorsTwitchAboveTheCentreDeadband)

@@ -5420,7 +5420,7 @@
                 ]
             },
             "reply": null,
-            "notes": "Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently.",
+            "notes": "Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently. Ends a running motor wizard sequence (`MSP2_INAV_MOTOR_WIZARD_START`).",
             "description": "Sets the disarmed motor values, typically used for motor testing or propeller balancing functions in a configurator."
         },
         "MSP_SET_NAV_CONFIG": {
@@ -11988,7 +11988,7 @@
                 ]
             },
             "reply": null,
-            "notes": "Returns an error when armed or when the index is not below the mixer motor count. The firmware times the sequence itself (100 ms spin, 500 ms pause) and ends it 2.4 to 3 s after the last start (3 s counted from the beginning of the spin/pause cycle in which the start arrived). To keep the motor twitching, repeat the command for the same motor at any interval shorter than 2.4 s; that restarts the time limit without disturbing the rhythm. A start for another motor replaces the running sequence. Arming ends it. Remove propellers first.",
+            "notes": "Returns an error when armed or when the index is not below the mixer motor count. The firmware times the sequence itself (100 ms spin, 500 ms pause) and ends it 2.4 to 3 s after the last start (3 s counted from the beginning of the spin/pause cycle in which the start arrived). To keep the motor twitching, repeat the command for the same motor at any interval shorter than 2.4 s; that restarts the time limit without disturbing the rhythm. A start for another motor replaces the running sequence. Every start resets the disarmed motor values set by `MSP_SET_MOTOR` to off, so only the selected motor moves and all motors stay off after the sequence ends. Arming and `MSP_SET_MOTOR` end it. Remove propellers first.",
             "description": "Starts a firmware-timed sequence that twitches a single motor so it can be identified."
         },
         "MSP2_INAV_MOTOR_WIZARD_STOP": {
@@ -11996,7 +11996,7 @@
             "mspv": 2,
             "request": null,
             "reply": null,
-            "notes": "Always accepted, also when no sequence is running.",
+            "notes": "Always accepted, also when no sequence is running. All motors are off afterwards.",
             "description": "Ends the motor wizard sequence started by MSP2_INAV_MOTOR_WIZARD_START."
         }
     }

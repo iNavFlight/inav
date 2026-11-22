@@ -2552,7 +2552,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Reply Payload:** **None**  
 
-**Notes:** Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently.
+**Notes:** Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently. Ends a running motor wizard sequence (`MSP2_INAV_MOTOR_WIZARD_START`).
 
 ## <a id="msp_set_nav_config"></a>`MSP_SET_NAV_CONFIG (215 / 0xd7)`
 
@@ -5031,7 +5031,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Reply Payload:** **None**  
 
-**Notes:** Returns an error when armed or when the index is not below the mixer motor count. The firmware times the sequence itself (100 ms spin, 500 ms pause) and ends it 2.4 to 3 s after the last start (3 s counted from the beginning of the spin/pause cycle in which the start arrived). To keep the motor twitching, repeat the command for the same motor at any interval shorter than 2.4 s; that restarts the time limit without disturbing the rhythm. A start for another motor replaces the running sequence. Arming ends it. Remove propellers first.
+**Notes:** Returns an error when armed or when the index is not below the mixer motor count. The firmware times the sequence itself (100 ms spin, 500 ms pause) and ends it 2.4 to 3 s after the last start (3 s counted from the beginning of the spin/pause cycle in which the start arrived). To keep the motor twitching, repeat the command for the same motor at any interval shorter than 2.4 s; that restarts the time limit without disturbing the rhythm. A start for another motor replaces the running sequence. Every start resets the disarmed motor values set by `MSP_SET_MOTOR` to off, so only the selected motor moves and all motors stay off after the sequence ends. Arming and `MSP_SET_MOTOR` end it. Remove propellers first.
 
 ## <a id="msp2_inav_motor_wizard_stop"></a>`MSP2_INAV_MOTOR_WIZARD_STOP (8758 / 0x2236)`
 **Description:** Ends the motor wizard sequence started by MSP2_INAV_MOTOR_WIZARD_START.  
@@ -5040,7 +5040,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Reply Payload:** **None**  
 
-**Notes:** Always accepted, also when no sequence is running.
+**Notes:** Always accepted, also when no sequence is running. All motors are off afterwards.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  

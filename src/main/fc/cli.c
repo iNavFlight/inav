@@ -3761,6 +3761,8 @@ static void cliMotor(char *cmdline)
             cliShowArgumentRangeError("value", 1000, 2000);
             return;
         } else {
+            // An explicit motor test takes the output over from a running wizard sequence
+            motorWizardStop();
             motor_disarmed[motor_index] = motor_value;
         }
     }
