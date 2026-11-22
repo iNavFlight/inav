@@ -89,13 +89,11 @@ PG_RESET_TEMPLATE(reversibleMotorsConfig_t, reversibleMotorsConfig,
     .neutral = SETTING_3D_NEUTRAL_DEFAULT
 );
 
-PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 12);
+PG_REGISTER_WITH_RESET_TEMPLATE(motorConfig_t, motorConfig, PG_MOTOR_CONFIG, 11);
 
 PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .motorPwmProtocol = SETTING_MOTOR_PWM_PROTOCOL_DEFAULT,
     .motorPwmRate = SETTING_MOTOR_PWM_RATE_DEFAULT,
-    .useDshotTelemetry = 0,
-    .useDshotEdt = 0,
     .mincommand = SETTING_MIN_COMMAND_DEFAULT,
     .motorPoleCount = SETTING_MOTOR_POLES_DEFAULT,            // Most brushless motors that we use are 14 poles
 #ifdef USE_MOTOR_SRXL2
@@ -103,6 +101,8 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .srxl2TelemetryRate = SETTING_ESC_SRXL2_TELEMETRY_RATE_DEFAULT,
     .srxl2Telemetry = SETTING_ESC_SRXL2_TELEMETRY_DEFAULT,
 #endif
+    .useDshotTelemetry = 0,                                   // must stay 0, see motorConfig_t
+    .useDshotEdt = 0,                                         // must stay 0, see motorConfig_t
 );
 PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
 

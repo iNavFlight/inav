@@ -93,8 +93,6 @@ typedef struct motorConfig_s {
     uint16_t mincommand;                    // This is the value for the ESCs when they are not armed. In some cases, this value must be lowered down to 900 for some specific ESCs
     uint16_t motorPwmRate;                  // The update rate of motor outputs (50-498Hz)
     uint8_t  motorPwmProtocol;
-    uint8_t  useDshotTelemetry;
-    uint8_t  useDshotEdt;
     uint16_t digitalIdleOffsetValue;
     uint8_t motorPoleCount;                 // Magnetic poles in the motors for calculating actual RPM from eRPM provided by ESC telemetry
 #ifdef USE_MOTOR_SRXL2
@@ -123,6 +121,14 @@ typedef struct motorConfig_s {
     uint8_t srxl2Telemetry;                 // read ESC telemetry off the SRXL2 link
     uint8_t srxl2TelemetryRate;             // how often to ask the ESC for telemetry, as srxl2TelemetryRate_e
 #endif
+    /*
+     * Appended without a parameter group version bump. The first of these lands
+     * on the tail padding byte of the older record, which older configurations
+     * stored as zero (see above). That is harmless only because both default to
+     * 0 (off): a field added here with a non-zero default needs a pad byte first.
+     */
+    uint8_t useDshotTelemetry;              // bidirectional DSHOT (eRPM telemetry on the motor line)
+    uint8_t useDshotEdt;                    // extended DSHOT telemetry (temperature, voltage, current)
 } motorConfig_t;
 
 PG_DECLARE(motorConfig_t, motorConfig);
