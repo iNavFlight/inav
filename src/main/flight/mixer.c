@@ -53,6 +53,8 @@
 #include "flight/pid.h"
 #include "flight/servos.h"
 
+#include "io/motor_srxl2.h"
+
 #include "navigation/navigation.h"
 
 #include "rx/rx.h"
@@ -278,6 +280,16 @@ bool motorWizardStart(uint8_t motorIndex)
     if (ARMING_FLAG(ARMED) || motorIndex >= motorCount) {
         return false;
     }
+
+#ifdef USE_MOTOR_SRXL2
+    // The same check arming does: an ESC that is not linked or still sounding its startup tones
+    // ignores the throttle, and the sequence would be over before it obeys. Refuse instead of
+    // reporting a twitch that nobody sees. Only a new sequence can be refused, a repeated start
+    // must not fail while the motor is still twitching.
+    if (motorIndex != motorWizardMotor && motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2 && !srxl2MotorIsConnected()) {
+        return false;
+    }
+#endif
 
     // The sequence owns the disarmed output: whatever a motor test left behind would keep the
     // other motors running, fill the pauses of this one and come back after the stop.

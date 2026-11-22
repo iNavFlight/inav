@@ -42,6 +42,7 @@ extern "C" {
     #include "fc/config.h"
     #include "fc/rc_controls.h"
     #include "fc/runtime_config.h"
+    #include "drivers/pwm_mapping.h"
     #include "flight/mixer.h"
     #include "flight/mixer_profile.h"
     #include "flight/pid.h"
@@ -120,6 +121,9 @@ extern "C" {
         (void)profileIndex;
         return true;
     }
+
+    bool fakeSrxl2Connected = false;
+    bool srxl2MotorIsConnected(void) { return fakeSrxl2Connected; }
 
     timeMs_t fakeMillis = 0;
     timeMs_t millis(void) { return fakeMillis; }
@@ -236,6 +240,8 @@ protected:
     {
         motorWizardStop();
         fakeFeatures = 0;
+        fakeSrxl2Connected = false;
+        motorConfigMutable()->motorPwmProtocol = SETTING_MOTOR_PWM_PROTOCOL_DEFAULT;
         rcControlsConfigMutable()->mid_throttle_deadband = 0;
         mixerInit();
     }
@@ -370,6 +376,39 @@ TEST_F(MotorWizardTest, StopLeavesAllMotorsOff)
         EXPECT_EQ(offValue, motor[i]) << "motor " << i;
     }
     EXPECT_FALSE(areMotorsRunning());
+}
+
+// An SRXL2 ESC ignores the throttle until it is linked and through its startup
+// tones, longer than a whole sequence. The start is refused like arming is.
+TEST_F(MotorWizardTest, StartIsRefusedUntilSrxl2EscIsReady)
+{
+    motorConfigMutable()->motorPwmProtocol = PWM_TYPE_SRXL2;
+    fakeMillis = startMs;
+
+    fakeSrxl2Connected = false;
+    EXPECT_FALSE(motorWizardStart(1));
+    EXPECT_FALSE(areMotorsRunning());
+    EXPECT_FALSE(isSpinningAt(0, 1));
+
+    fakeSrxl2Connected = true;
+    ASSERT_TRUE(motorWizardStart(1));
+    EXPECT_TRUE(isSpinningAt(0, 1));
+
+    // A running sequence is not cut short by the repeated start, the time limit still ends it
+    fakeSrxl2Connected = false;
+    fakeMillis = startMs + MOTOR_WIZARD_CYCLE_MS;
+    EXPECT_TRUE(motorWizardStart(1));
+    EXPECT_TRUE(isSpinningAt(MOTOR_WIZARD_CYCLE_MS, 1));
+    EXPECT_FALSE(isSpinningAt(MOTOR_WIZARD_CYCLE_MS + MOTOR_WIZARD_DURATION_MS, 1));
+    EXPECT_FALSE(motorWizardStart(2));
+}
+
+// Other protocols have no such check
+TEST_F(MotorWizardTest, Srxl2ReadinessIsNotAskedForOtherProtocols)
+{
+    fakeSrxl2Connected = false;
+    fakeMillis = startMs;
+    EXPECT_TRUE(motorWizardStart(1));
 }
 
 // Reversible motors rest at neutral and writeMotors() spins them forward only
