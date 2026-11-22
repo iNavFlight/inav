@@ -47,7 +47,7 @@
 #include "io/serial.h"
 #include "io/osd.h"
 
-#include "msp/msp_protocol.h"
+#include "msp_protocol.h"
 #include "msp/msp_serial.h"
 
 #include "navigation/navigation.h"

@@ -1,0 +1,74 @@
+{
+  "escSensorData_t": {
+    "kind": "struct",
+    "fields": [
+      {
+        "name": "dataAge",
+        "offset": 0,
+        "size": 1,
+        "ctype": "uint8_t"
+      },
+      {
+        "name": "temperature",
+        "offset": 2,
+        "size": 2,
+        "ctype": "int16_t"
+      },
+      {
+        "name": "voltage",
+        "offset": 4,
+        "size": 2,
+        "ctype": "int16_t"
+      },
+      {
+        "name": "current",
+        "offset": 8,
+        "size": 4,
+        "ctype": "int32_t"
+      },
+      {
+        "name": "rpm",
+        "offset": 12,
+        "size": 4,
+        "ctype": "uint32_t"
+      }
+    ],
+    "size": 16
+  },
+  "ledConfig_t": {
+    "kind": "bitfield",
+    "fields": [
+      {
+        "name": "led_position",
+        "bit_offset": 0,
+        "bits": 8
+      },
+      {
+        "name": "led_function",
+        "bit_offset": 8,
+        "bits": 8
+      },
+      {
+        "name": "led_overlay",
+        "bit_offset": 16,
+        "bits": 8
+      },
+      {
+        "name": "led_color",
+        "bit_offset": 24,
+        "bits": 4
+      },
+      {
+        "name": "led_direction",
+        "bit_offset": 28,
+        "bits": 6
+      },
+      {
+        "name": "led_params",
+        "bit_offset": 34,
+        "bits": 6
+      }
+    ],
+    "size": 5
+  }
+}

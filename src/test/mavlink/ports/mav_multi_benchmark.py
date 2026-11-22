@@ -24,16 +24,7 @@ except ModuleNotFoundError:
 from pymavlink import mavutil
 from serial.serialutil import SerialException
 
-try:
-    from mspapi2 import MSPApi, InavMSP
-except ModuleNotFoundError:
-    repo_root_guess = Path(__file__).resolve().parents[4]
-    mspapi2_repo = repo_root_guess / "mspapi2"
-    if mspapi2_repo.exists():
-        import sys
-
-        sys.path.insert(0, str(mspapi2_repo))
-    from mspapi2 import MSPApi, InavMSP
+from inav_msp import MSPApi, InavMSP  # pip install -e msp/python
 
 
 DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent / "test_config_multiport4_sweep_rc460800_tele115200.yaml"

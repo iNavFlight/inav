@@ -1,0 +1,104 @@
+# Generated from INAV C source by msp/generator/harvest_consts.py. Do not edit by hand.
+version: 1
+package: inav.constants
+
+constants:
+  ADSB_CALL_SIGN_MAX_LENGTH:
+    type: uint8
+    value: 9
+
+  BUILD_DATE_LENGTH:
+    type: uint8
+    value: 11
+
+  BUILD_TIME_LENGTH:
+    type: uint8
+    value: 8
+
+  CUSTOM_ELEMENTS_PARTS:
+    type: uint8
+    value: 3
+
+  DEBUG32_VALUE_COUNT:
+    type: uint8
+    value: 8
+
+  GIT_SHORT_REVISION_LENGTH:
+    type: uint8
+    value: 8
+
+  HARDWARE_TIMER_DEFINITION_COUNT:
+    type: uint16
+    configurable: HARDWARE_TIMER_DEFINITION_COUNT
+
+  LED_CONFIGURABLE_COLOR_COUNT:
+    type: uint8
+    value: 16
+
+  LED_MAX_STRIP_LENGTH:
+    type: uint8
+    value: 128
+
+  MAX_ADJUSTMENT_RANGE_COUNT:
+    type: uint8
+    value: 20
+
+  MAX_GLOBAL_VARIABLES:
+    type: uint8
+    value: 8
+
+  MAX_LOGIC_CONDITIONS:
+    type: uint8
+    value: 64
+
+  MAX_MAPPABLE_RX_INPUTS:
+    type: uint8
+    value: 4
+
+  MAX_MODE_ACTIVATION_CONDITION_COUNT:
+    type: uint8
+    value: 40
+
+  MAX_PROGRAMMING_PID_COUNT:
+    type: uint8
+    value: 4
+
+  MAX_SERVO_RULES:
+    type: uint8
+    value: 36
+
+  MAX_SUPPORTED_MOTORS:
+    type: uint16
+    configurable: MAX_SUPPORTED_MOTORS
+
+  MAX_SUPPORTED_SERVOS:
+    type: uint8
+    value: 18
+
+  MAX_TEMP_SENSORS:
+    type: uint8
+    value: 8
+
+  OSD_CHAR_BYTES:
+    type: uint8
+    value: 64
+
+  OSD_CHAR_VISIBLE_BYTES:
+    type: uint8
+    value: 54
+
+  OSD_ITEM_COUNT:
+    type: uint8
+    value: 172
+
+  PID_ITEM_COUNT:
+    type: uint8
+    value: 12
+
+  RADAR_MAX_POIS:
+    type: uint8
+    value: 5
+
+  TEMPERATURE_LABEL_LEN:
+    type: uint8
+    value: 4
