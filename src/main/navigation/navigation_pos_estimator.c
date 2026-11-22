@@ -725,12 +725,14 @@ static bool estimationCalculateCorrection_XY_GPS(estimationContext_t * ctx)
             ctx->estVelCorr.x = gpsVelXResidual * w_xy_gps_v * dT;
             ctx->estVelCorr.y = gpsVelYResidual * w_xy_gps_v * dT;
 
-            // Accelerometer bias
-            ctx->accBiasCorr.x = dT * (gpsPosXResidual * sq(w_xy_gps_p) + gpsVelXResidual * sq(w_xy_gps_v));
-            ctx->accBiasCorr.y = dT * (gpsPosYResidual * sq(w_xy_gps_p) + gpsVelYResidual * sq(w_xy_gps_v));
-
             /* Adjust EPH */
             ctx->newEPH = updateEPE(posEstimator.est.eph, dT, MAX(posEstimator.gps.eph, gpsPosResidualMag), w_xy_gps_p);
+
+            // A residual that invalidates the estimate must not be learned as accel bias; the estimate is reset from GPS next
+            if (ctx->newEPH < positionEstimationConfig()->max_eph_epv) {
+                ctx->accBiasCorr.x = dT * (gpsPosXResidual * sq(w_xy_gps_p) + gpsVelXResidual * sq(w_xy_gps_v));
+                ctx->accBiasCorr.y = dT * (gpsPosYResidual * sq(w_xy_gps_p) + gpsVelYResidual * sq(w_xy_gps_v));
+            }
         }
 
         return true;
@@ -907,18 +909,18 @@ static void publishEstimatedTopic(timeUs_t currentTimeUs)
         navEPH = posEstimator.est.eph;
         navEPV = posEstimator.est.epv;
 
-        DEBUG_SET(DEBUG_POS_EST, 0, (int32_t) posEstimator.est.pos.x*1000.0F);                // Position estimate X
-        DEBUG_SET(DEBUG_POS_EST, 1, (int32_t) posEstimator.est.pos.y*1000.0F);                // Position estimate Y
+        DEBUG_SET(DEBUG_POS_EST, 0, (int32_t) posEstimator.est.pos.x);                        // Position estimate X
+        DEBUG_SET(DEBUG_POS_EST, 1, (int32_t) posEstimator.est.pos.y);                        // Position estimate Y
         if (IS_RC_MODE_ACTIVE(BOXSURFACE) && posEstimator.est.aglQual!=SURFACE_QUAL_LOW){
             // SURFACE (following) MODE
-            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t) posControl.actualState.agl.pos.z*1000.0F);  // Position estimate Z
-            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t) posControl.actualState.agl.vel.z*1000.0F);  // Speed estimate VZ
+            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t) posControl.actualState.agl.pos.z);          // Position estimate Z
+            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t) posControl.actualState.agl.vel.z);          // Speed estimate VZ
         } else {
-            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t) posEstimator.est.pos.z*1000.0F);            // Position estimate Z
-            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t) posEstimator.est.vel.z*1000.0F);            // Speed estimate VZ
+            DEBUG_SET(DEBUG_POS_EST, 2, (int32_t) posEstimator.est.pos.z);                    // Position estimate Z
+            DEBUG_SET(DEBUG_POS_EST, 5, (int32_t) posEstimator.est.vel.z);                    // Speed estimate VZ
         }
-        DEBUG_SET(DEBUG_POS_EST, 3, (int32_t) posEstimator.est.vel.x*1000.0F);                // Speed estimate VX
-        DEBUG_SET(DEBUG_POS_EST, 4, (int32_t) posEstimator.est.vel.y*1000.0F);                // Speed estimate VY
+        DEBUG_SET(DEBUG_POS_EST, 3, (int32_t) posEstimator.est.vel.x);                        // Speed estimate VX
+        DEBUG_SET(DEBUG_POS_EST, 4, (int32_t) posEstimator.est.vel.y);                        // Speed estimate VY
         DEBUG_SET(DEBUG_POS_EST, 6, (int32_t) attitude.values.yaw);                           // Yaw estimate (4 bytes still available here)
         DEBUG_SET(DEBUG_POS_EST, 7, (int32_t) (posEstimator.flags & 0b1111111)<<20 |          // navPositionEstimationFlags fit into 8bits
                                               (MIN(navEPH, 1000) & 0x3FF)<<10 |
