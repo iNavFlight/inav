@@ -800,7 +800,7 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
         buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
     } else {
         // DJICOMPAT mode enabled
-        decimalDigits = tfp_sprintf(buff + 1 + integerDigits, ".%06d", (int)decimalPart);
+        decimalDigits = tfp_sprintf(buff + 1 + integerDigits, ".%07d", (int)decimalPart);
     }
     // Fill up to coordinateLength with zeros
     int total = 1 + integerDigits + decimalDigits;
