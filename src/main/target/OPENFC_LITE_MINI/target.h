@@ -152,7 +152,7 @@
 #define USE_LED_STRIP
 #define WS2811_PIN                  PA8     // GPIO8
 #define WS2811_PIN_INVERTED
-#define PIO_LEDSTRIP_INDEX          2
+#define PIO_LEDSTRIP_INDEX          1       // shares PIO1 with UART3, keeps PIO2 free
 
 // 10 V VTX rail enable, active high. Inverted, so that the rail is on from
 // boot and the USER1 box switches it off.

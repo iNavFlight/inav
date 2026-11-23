@@ -23,10 +23,10 @@
  */
 
 /*
- * RP2350 WS2812 LED strip driver — PIO2 + DMA.
+ * RP2350 WS2812 LED strip driver — PIO + DMA.
  *
  * Replaces the STM32 timer/DMA implementation in light_ws2811strip.c for
- * RP2350 targets.  Uses PIO2 (PIO_LEDSTRIP_INDEX = 2) with a 4-instruction
+ * RP2350 targets.  Uses the PIO block picked by PIO_LEDSTRIP_INDEX with a 4-instruction
  * WS2812 program and a DMA channel to stream GRB words to the PIO TX FIFO.
  *
  * Replaces the generic light_ws2811strip.c (excluded from RP2350 builds in
@@ -34,7 +34,7 @@
  * drivers/light_ws2811strip.h.
  *
  * Pin: WS2811_PIN (GP22 = PB6 in target.h) — free from flash/I2C/UART/SPI.
- * PIO: PIO2 SM0, loaded once at ws2811LedStripInit().
+ * PIO: any free state machine of that block, loaded once at ws2811LedStripInit().
  * DMA: one channel, polled for completion — no IRQ needed.
  *
  * GRB word layout in led_data[] (WS2812 native order, left-shift OSR, 24-bit
@@ -155,6 +155,10 @@ bool isWS2811LedStripReady(void)
 }
 
 /* ─── Hardware init ──────────────────────────────────────────────────────── */
+
+#if PIO_LEDSTRIP_INDEX == 1 && defined(USE_UART4)
+#error "LED strip on PIO1 needs a free state machine: UART3 and UART4 claim all four"
+#endif
 
 void ws2811LedStripInit(void)
 {

@@ -27,12 +27,16 @@
  *
  * Implements UART3 and UART4 using PIO state machines on PIO1:
  *
- *   UART3 (INAV) → PIO1 SM0 (TX) + SM1 (RX)  — PIO1_IRQ0
- *   UART4 (INAV) → PIO1 SM2 (TX) + SM3 (RX)  — PIO1_IRQ1
+ *   UART3 (INAV) → PIO1, one TX + one RX state machine — PIO1_IRQ0
+ *   UART4 (INAV) → PIO1, one TX + one RX state machine — PIO1_IRQ1
+ *
+ * The state machines are claimed with pio_claim_unused_sm() when the port is
+ * first opened, so PIO1 can be shared with another driver (LED strip). A port
+ * that finds fewer than two free state machines fails to open.
  *
  * PIO program budget (32 instructions per block):
- *   TX program: 4 instructions  (shared by SM0 and SM2)
- *   RX program: 9 instructions  (shared by SM1 and SM3)
+ *   TX program: 4 instructions  (shared by both ports)
+ *   RX program: 9 instructions  (shared by both ports)
  *   Total used: 13 of 32 — well within budget.
  *
  * Each SM has its own clock divider, so UART3 and UART4 can run at
@@ -174,6 +178,7 @@ static void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin, uint b
  */
 typedef struct {
     uartPort_t  port;
+    bool        smClaimed;      /* state machines taken, kept across re-opens */
     uint        sm_tx;          /* state machine index for TX (0..3) */
     uint        sm_rx;          /* state machine index for RX (0..3) */
     uint        tx_pin;
@@ -290,13 +295,31 @@ static void piouartIrqHandler(piouartDevice_t *s)
  * whenever USE_UART3 or USE_UART4 (or both) are defined.  Placing it inside
  * the USE_UART3 guard would cause a linker error if only USE_UART4 is defined.
  */
-static uartPort_t *piouartInit(piouartDevice_t *s, uint sm_tx, uint sm_rx,
+static uartPort_t *piouartInit(piouartDevice_t *s,
                                 uint tx_pin, uint rx_pin, int irq_index,
                                 uint32_t baudRate, portMode_t mode,
                                 portOptions_t options)
 {
-    s->sm_tx       = sm_tx;
-    s->sm_rx       = sm_rx;
+    /*
+     * The state machines are not fixed per port: PIO1 can be shared (LED strip),
+     * so take whichever two are free. Once per port, a re-open keeps them.
+     */
+    if (!s->smClaimed) {
+        const int smTx = pio_claim_unused_sm(pio1, false);
+        const int smRx = pio_claim_unused_sm(pio1, false);
+        if (smTx < 0 || smRx < 0) {
+            if (smTx >= 0) {
+                pio_sm_unclaim(pio1, (uint)smTx);
+            }
+            return NULL;
+        }
+        s->sm_tx     = (uint)smTx;
+        s->sm_rx     = (uint)smRx;
+        s->smClaimed = true;
+    }
+    const uint sm_tx = s->sm_tx;
+    const uint sm_rx = s->sm_rx;
+
     s->tx_pin      = tx_pin;
     s->rx_pin      = rx_pin;
     s->irq_index   = irq_index;
@@ -340,7 +363,7 @@ static uartPort_t *piouartInit(piouartDevice_t *s, uint sm_tx, uint sm_rx,
     return &s->port;
 }
 
-/* ── UART3 (INAV) → PIO1 SM0 (TX) + SM1 (RX) ───────────────────────────── */
+/* ── UART3 (INAV) → PIO1, IRQ0 ─────────────────────────────────────────── */
 
 #ifdef USE_UART3
 
@@ -354,11 +377,13 @@ static void pio1Irq0Handler(void)
 uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *p = piouartInit(&piouart0Device,
-                                0 /* sm_tx */, 1 /* sm_rx */,
                                 ioTagToGpioNum(IO_TAG(UART3_TX_PIN)),
                                 ioTagToGpioNum(IO_TAG(UART3_RX_PIN)),
                                 0 /* irq_index = PIO1_IRQ0 */,
                                 baudRate, mode, options);
+    if (!p) {
+        return NULL;
+    }
 
     irq_set_exclusive_handler(PIO1_IRQ_0, pio1Irq0Handler);
     irq_set_enabled(PIO1_IRQ_0, true);
@@ -366,7 +391,7 @@ uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t option
     /* Enable RX interrupt; TX is enabled on demand in pioUartWrite() */
     if (mode & MODE_RX) {
         pio_set_irqn_source_enabled(pio1, 0,
-            pio_get_rx_fifo_not_empty_interrupt_source(1 /* sm_rx */), true);
+            pio_get_rx_fifo_not_empty_interrupt_source(piouart0Device.sm_rx), true);
     }
 
     return p;
@@ -374,7 +399,7 @@ uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t option
 
 #endif /* USE_UART3 */
 
-/* ── UART4 (INAV) → PIO1 SM2 (TX) + SM3 (RX) ───────────────────────────── */
+/* ── UART4 (INAV) → PIO1, IRQ1 ─────────────────────────────────────────── */
 
 #ifdef USE_UART4
 
@@ -388,18 +413,20 @@ static void pio1Irq1Handler(void)
 uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
     uartPort_t *p = piouartInit(&piouart1Device,
-                                2 /* sm_tx */, 3 /* sm_rx */,
                                 ioTagToGpioNum(IO_TAG(UART4_TX_PIN)),
                                 ioTagToGpioNum(IO_TAG(UART4_RX_PIN)),
                                 1 /* irq_index = PIO1_IRQ1 */,
                                 baudRate, mode, options);
+    if (!p) {
+        return NULL;
+    }
 
     irq_set_exclusive_handler(PIO1_IRQ_1, pio1Irq1Handler);
     irq_set_enabled(PIO1_IRQ_1, true);
 
     if (mode & MODE_RX) {
         pio_set_irqn_source_enabled(pio1, 1,
-            pio_get_rx_fifo_not_empty_interrupt_source(3 /* sm_rx */), true);
+            pio_get_rx_fifo_not_empty_interrupt_source(piouart1Device.sm_rx), true);
     }
 
     return p;
