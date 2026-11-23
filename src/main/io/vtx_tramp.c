@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "platform.h"
 
@@ -41,6 +42,7 @@
 #include "io/vtx_tramp.h"
 #include "io/vtx_control.h"
 #include "io/vtx.h"
+#include "fc/runtime_config.h"
 #include "io/vtx_string.h"
 
 #define VTX_PKT_SIZE                16
@@ -51,6 +53,11 @@
 #define VTX_UPDATE_REQ_FREQUENCY    0x01
 #define VTX_UPDATE_REQ_POWER        0x02
 #define VTX_UPDATE_REQ_PITMODE      0x04
+
+// A Tramp-compatible device that will not enter pit mode must not be asked
+// forever: an unbounded requeue keeps the highest-priority request set and
+// starves every pending channel and power change.
+#define VTX_PITMODE_MAX_RETRIES     3
 
 typedef enum {
     VTX_STATE_RESET         = 0,
@@ -74,6 +81,7 @@ typedef struct {
     timeMs_t        lastStatusQueryMs;
     int             protoTimeoutCount;
     unsigned        updateReqMask;
+    unsigned        nextUpdateBit;
 
     // VTX capabilities
     struct {
@@ -92,6 +100,9 @@ typedef struct {
         // Actual settings to send to the VTX
         unsigned freq;
         unsigned power;
+        bool pitMode;
+        bool pitModeRequested; // do not override hardware-button state before a request
+        uint8_t pitModeRetries;
     } request;
 
     // Actual VTX state: updated from actual VTX
@@ -256,7 +267,8 @@ static vtxProtoResponseType_e vtxProtoProcessResponse(void)
 
 static void vtxProtoSetPitMode(uint16_t mode)
 {
-    vtxProtoSend(0x73, mode);
+    // IRC Tramp 'I': 0 enters pit mode, 1 exits (same polarity as Betaflight).
+    vtxProtoSend('I', mode ? 0 : 1);
 }
 
 static void vtxProtoSetPower(uint16_t power)
@@ -279,10 +291,21 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
         return;
     }
 
+    // Arming can occur after the AUX scheduler queued an enter request. Cancel
+    // it before either dispatch or mismatch retries can transmit it in flight.
+    if (ARMING_FLAG(ARMED) && vtxState.request.pitMode) {
+        vtxState.request.pitMode = false;
+        vtxState.request.pitModeRequested = true;
+        vtxState.request.pitModeRetries = 0;
+        vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
+    }
+
     switch((int)vtxState.protoState) {
         case VTX_STATE_RESET:
             vtxState.protoTimeoutCount = 0;
+            vtxState.request.pitModeRetries = 0;
             vtxState.updateReqMask = VTX_UPDATE_REQ_NONE;
+            vtxState.nextUpdateBit = VTX_UPDATE_REQ_FREQUENCY;
             vtxProtoSetState(VTX_STATE_OFFILE);
             break;
 
@@ -314,21 +337,29 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
         // Send requests to update freqnecy and power, periodically poll device for liveness
         case VTX_STATE_IDLE:
             if (vtxState.updateReqMask != VTX_UPDATE_REQ_NONE) {
-                // Updates pending. Send an appropriate command
-                if (vtxState.updateReqMask & VTX_UPDATE_REQ_PITMODE) {
-                    // Only disabling PIT mode supported
-                    vtxState.updateReqMask &= ~VTX_UPDATE_REQ_PITMODE;
-                    vtxProtoSetPitMode(0);
-                    vtxProtoSetState(VTX_STATE_QUERY_DELAY);
+                // Rotate through pending updates so a rejected value cannot
+                // starve another setting, including a request to leave pit mode.
+                unsigned updateBit = VTX_UPDATE_REQ_NONE;
+                for (unsigned i = 0; i < 3; i++) {
+                    const unsigned candidate = vtxState.nextUpdateBit;
+                    vtxState.nextUpdateBit = candidate == VTX_UPDATE_REQ_PITMODE
+                        ? VTX_UPDATE_REQ_FREQUENCY : candidate << 1;
+                    if (vtxState.updateReqMask & candidate) {
+                        updateBit = candidate;
+                        break;
+                    }
                 }
-                else if (vtxState.updateReqMask & VTX_UPDATE_REQ_FREQUENCY) {
-                    vtxState.updateReqMask &= ~VTX_UPDATE_REQ_FREQUENCY;
+                vtxState.updateReqMask &= ~updateBit;
+                if (updateBit == VTX_UPDATE_REQ_FREQUENCY) {
                     vtxProtoSetFrequency(vtxState.request.freq);
                     vtxProtoSetState(VTX_STATE_QUERY_DELAY);
                 }
-                else if (vtxState.updateReqMask & VTX_UPDATE_REQ_POWER) {
-                    vtxState.updateReqMask &= ~VTX_UPDATE_REQ_POWER;
+                else if (updateBit == VTX_UPDATE_REQ_POWER) {
                     vtxProtoSetPower(vtxState.request.power);
+                    vtxProtoSetState(VTX_STATE_QUERY_DELAY);
+                }
+                else if (updateBit == VTX_UPDATE_REQ_PITMODE) {
+                    vtxProtoSetPitMode(vtxState.request.pitMode);
                     vtxProtoSetState(VTX_STATE_QUERY_DELAY);
                 }
             }
@@ -365,6 +396,17 @@ static void impl_Process(vtxDevice_t *vtxDevice, timeUs_t currentTimeUs)
 
                     if (!(vtxState.updateReqMask & VTX_UPDATE_REQ_POWER) && (vtxState.state.power != vtxState.request.power)) {
                         vtxState.updateReqMask |= VTX_UPDATE_REQ_POWER;
+                    }
+
+                    if (vtxState.request.pitModeRequested && vtxState.state.pitMode != vtxState.request.pitMode) {
+                        if (!(vtxState.updateReqMask & VTX_UPDATE_REQ_PITMODE)
+                            && vtxState.request.pitModeRetries < VTX_PITMODE_MAX_RETRIES) {
+                            vtxState.request.pitModeRetries++;
+                            vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
+                        }
+                    }
+                    else {
+                        vtxState.request.pitModeRetries = 0;
                     }
 
                     // We got the status response - proceed to IDLE
@@ -446,7 +488,14 @@ static void impl_SetPitMode(vtxDevice_t *vtxDevice, uint8_t onoff)
 {
     UNUSED(vtxDevice);
 
-    if (onoff == 0) {
+    const bool newPitMode = onoff != 0 && !ARMING_FLAG(ARMED);
+
+    // io/vtx.c re-issues the same request about twice a second, so the retry
+    // budget may only be refilled when the pilot actually flips the switch.
+    if (!vtxState.request.pitModeRequested || vtxState.request.pitMode != newPitMode) {
+        vtxState.request.pitMode = newPitMode;
+        vtxState.request.pitModeRequested = true;
+        vtxState.request.pitModeRetries = 0;
         vtxState.updateReqMask |= VTX_UPDATE_REQ_PITMODE;
     }
 }
@@ -555,6 +604,7 @@ static vtxDevice_t impl_vtxDevice = {
     .capability.bandCount = VTX_TRAMP_5G8_BAND_COUNT,
     .capability.channelCount = VTX_TRAMP_5G8_CHANNEL_COUNT,
     .capability.powerCount = VTX_TRAMP_5G8_MAX_POWER_COUNT,
+    .capability.supportsPitMode = true,
     .capability.bandNames = (char **)vtx58BandNames,
     .capability.channelNames = (char **)vtx58ChannelNames,
     .capability.powerNames = NULL,
@@ -577,6 +627,55 @@ const char * const trampPowerNames_1G3_800[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = 
 
 const uint16_t trampPowerTable_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT]         = { 25, 200, 2000 };
 const char * const trampPowerNames_1G3_2000[VTX_TRAMP_1G3_MAX_POWER_COUNT + 1] = { "---", "25 ", "200", "2000" };
+
+static uint16_t customPowerLevels[VTX_TRAMP_5G8_MAX_POWER_COUNT];
+static char customPowerNames[VTX_TRAMP_5G8_MAX_POWER_COUNT][6];
+static char *customPowerNamePointers[VTX_TRAMP_5G8_MAX_POWER_COUNT + 1];
+
+static bool vtxProtoUseCustomPowerTable(void)
+{
+    // Keep the startup table until the device supplies a usable power limit.
+    if (!vtxState.capabilities.powerMax) {
+        return false;
+    }
+
+    const uint16_t *levels = vtxSettingsConfig()->trampPowerLevels;
+    unsigned count = 0;
+    bool ended = false;
+    for (unsigned i = 0; i < VTX_TRAMP_5G8_MAX_POWER_COUNT; i++) {
+        if (levels[i] == 0) {
+            ended = true;
+        } else {
+            // Reject holes, duplicate/decreasing powers and out-of-range EEPROM values.
+            if (ended || levels[i] > 10000 || (i > 0 && levels[i] <= levels[i - 1])) {
+                return false;
+            }
+            count++;
+        }
+    }
+    if (!count) {
+        return false;
+    }
+
+    const unsigned configuredCount = count;
+    count = 0;
+    customPowerNamePointers[0] = "---";
+    for (unsigned i = 0; i < configuredCount; i++) {
+        const uint16_t effectivePower = MIN(levels[i], vtxState.capabilities.powerMax);
+        if (count && effectivePower == customPowerLevels[count - 1]) {
+            continue;
+        }
+        customPowerLevels[count] = effectivePower;
+        snprintf(customPowerNames[count], sizeof(customPowerNames[count]), "%u", (unsigned)effectivePower);
+        customPowerNamePointers[count + 1] = customPowerNames[count];
+        count++;
+    }
+    vtxState.metadata.powerTablePtr = customPowerLevels;
+    vtxState.metadata.powerTableCount = count;
+    impl_vtxDevice.capability.powerCount = count;
+    impl_vtxDevice.capability.powerNames = customPowerNamePointers;
+    return true;
+}
 
 static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
 {
@@ -644,10 +743,12 @@ static void vtxProtoUpdatePowerMetadata(uint16_t maxPower)
             }
             break;
     }
+    vtxProtoUseCustomPowerTable();
 }
 
 bool vtxTrampInit(void)
 {
+    memset(&vtxState, 0, sizeof(vtxState));
     serialPortConfig_t *portConfig = findSerialPortConfig(FUNCTION_VTX_TRAMP);
 
     if (portConfig) {

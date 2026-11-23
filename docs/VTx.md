@@ -31,3 +31,68 @@ If you have problems getting SmartAudio working. There are a couple of CLI param
 - If you are using softserial, you can try using the alternate method by setting [`vtx_smartaudio_alternate_softserial_method`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_alternate_softserial_method) to OFF.
 
 - If you are using TBS Sixty9 VTX you may consider to set count of stop bits to 1, using [`set vtx_smartaudio_stopbits = 1`](https://github.com/iNavFlight/inav/blob/master/docs/Settings.md#vtx_smartaudio_stopbits)
+
+### Custom IRC Tramp power levels
+
+Tramp normally selects a built-in power table from the maximum power reported by
+its device. For devices with different levels, configure up to five ascending
+power values in milliwatts with `vtx_tramp_power_a` through `vtx_tramp_power_e`.
+Use consecutive entries followed by zeros. All zeros retain automatic selection;
+an invalid table (gaps, duplicates, descending values) also falls back to automatic
+selection. Reboot after changing the table.
+
+For a BLITZ Whoop 2.5W:
+
+```
+set vtx_tramp_power_a = 25
+set vtx_tramp_power_b = 400
+set vtx_tramp_power_c = 1000
+set vtx_tramp_power_d = 2500
+set vtx_tramp_power_e = 0
+set vtx_power = 1
+save
+```
+
+This changes the power values and their labels, not the VTX's reported maximum.
+The advertised custom table caps entries at that maximum and removes duplicate
+capped levels, so each label matches the transmitted power value. Only if the hardware's
+maximum is independently confirmed and the device reports it incorrectly, use
+`vtx_max_power_override` to provide the correct maximum. It does not unlock the
+VTX or verify actual RF power. Power selection remains one-based: this example
+maps levels 1–4 to 25, 400, 1000 and 2500 mW when the effective maximum is
+at least 2500 mW. A reported 400 mW maximum instead exposes only 25 and 400 mW.
+
+The VTX settings parameter-group version changes from 2 to 3. Version-2 settings
+are migrated with band, channel, power, low-power behavior, pit frequency, maximum
+power override and frequency group preserved. The new table starts in automatic
+selection mode.
+
+### Tramp pit mode on an AUX switch
+
+Assign **VTX PIT MODE** in Modes (permanent mode ID 73). For example, with the
+first two mode-condition slots already in use, this assigns AUX5 / channel 9:
+
+```
+aux 2 73 4 1800 2100
+save
+```
+
+The assigned range requests pit mode while disarmed. Arming exits pit mode and
+prevents entering it in flight. The switch is ignored without a valid receiver
+signal. Without a mode assignment, existing hardware-button/MSP control is left
+alone. Pit mode changes use the Tramp `I` command (0 = enter, 1 = exit), and the
+driver retries if subsequent status reports do not match the request. Retries are
+bounded so an unsupported command cannot block channel or power changes, and a
+reconnection renews the retry budget. Pending frequency, power and pit commands
+are served in rotation so a rejected setting cannot starve another request.
+Queued enter requests are cancelled on arming. The CMS power selection follows
+the detected table and is clamped to its available levels before display or save.
+Blackbox records the AUX switch in `flightModeFlags3` (bit 0). Verify the
+VTX's own pit indicator before relying on it; driver support is not a guarantee
+that every Tramp-compatible device implements the command.
+
+The AUX pit-mode assignment is advertised only by drivers with functional pit-mode
+read/write support (currently Tramp). Unsupported drivers do not receive AUX pit
+commands. If a saved Tramp power index exceeds a shortened custom power table,
+the runtime request uses its highest level, still capped by the device maximum;
+the saved index is left unchanged.
