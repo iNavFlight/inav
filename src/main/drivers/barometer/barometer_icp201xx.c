@@ -212,30 +212,31 @@ static bool bootSequence(busDevice_t *busDev)
     }
 
     // Power mode on to activate the OTP power domain, unlock main registers
-    modeSelect(busDev, MODE_POWER_ACTIVE);
+    bool ok = modeSelect(busDev, MODE_POWER_ACTIVE);
     delay(4);
-    writeReg(busDev, REG_MASTER_LOCK, 0x1F);
+    ok = ok && writeReg(busDev, REG_MASTER_LOCK, 0x1F);
 
     // Enable OTP and write switch, toggle OTP reset
-    updateBits(busDev, REG_OTP_MTP_OTP_CFG1, 0x03, 0x03);
+    ok = ok && updateBits(busDev, REG_OTP_MTP_OTP_CFG1, 0x03, 0x03);
     delayMicroseconds(10);
-    updateBits(busDev, REG_OTP_DEBUG2, 0x80, 0x80);
+    ok = ok && updateBits(busDev, REG_OTP_DEBUG2, 0x80, 0x80);
     delayMicroseconds(10);
-    updateBits(busDev, REG_OTP_DEBUG2, 0x80, 0x00);
+    ok = ok && updateBits(busDev, REG_OTP_DEBUG2, 0x80, 0x00);
     delayMicroseconds(10);
 
     // Program redundant read
-    writeReg(busDev, REG_OTP_MTP_MRA_LSB, 0x04);
-    writeReg(busDev, REG_OTP_MTP_MRA_MSB, 0x04);
-    writeReg(busDev, REG_OTP_MTP_MRB_LSB, 0x21);
-    writeReg(busDev, REG_OTP_MTP_MRB_MSB, 0x20);
-    writeReg(busDev, REG_OTP_MTP_MR_LSB, 0x10);
-    writeReg(busDev, REG_OTP_MTP_MR_MSB, 0x80);
+    ok = ok && writeReg(busDev, REG_OTP_MTP_MRA_LSB, 0x04);
+    ok = ok && writeReg(busDev, REG_OTP_MTP_MRA_MSB, 0x04);
+    ok = ok && writeReg(busDev, REG_OTP_MTP_MRB_LSB, 0x21);
+    ok = ok && writeReg(busDev, REG_OTP_MTP_MRB_MSB, 0x20);
+    ok = ok && writeReg(busDev, REG_OTP_MTP_MR_LSB, 0x10);
+    ok = ok && writeReg(busDev, REG_OTP_MTP_MR_MSB, 0x80);
 
+    // Read the trim values only if OTP access was set up completely
     uint8_t offset = 0, gain = 0, hfosc = 0;
-    bool ok = readOtp(busDev, 0xF8, &offset) &&
-              readOtp(busDev, 0xF9, &gain) &&
-              readOtp(busDev, 0xFA, &hfosc);
+    ok = ok && readOtp(busDev, 0xF8, &offset) &&
+               readOtp(busDev, 0xF9, &gain) &&
+               readOtp(busDev, 0xFA, &hfosc);
     delayMicroseconds(10);
 
     // Copy trim values into the main registers
@@ -249,12 +250,13 @@ static bool bootSequence(busDevice_t *busDev)
         ok = updateBits(busDev, REG_OTP_MTP_OTP_STATUS2, 0x01, 0x01);
     }
 
-    // Disable OTP and write switch, lock main registers, back to standby
-    updateBits(busDev, REG_OTP_MTP_OTP_CFG1, 0x03, 0x00);
-    writeReg(busDev, REG_MASTER_LOCK, 0x00);
-    modeSelect(busDev, MODE_STANDBY);
+    // Disable OTP and write switch, lock main registers, back to standby.
+    // Always attempt all three steps, but fail if any of them fails.
+    const bool otpOff = updateBits(busDev, REG_OTP_MTP_OTP_CFG1, 0x03, 0x00);
+    const bool locked = writeReg(busDev, REG_MASTER_LOCK, 0x00);
+    const bool standby = modeSelect(busDev, MODE_STANDBY);
 
-    return ok;
+    return ok && otpOff && locked && standby;
 }
 
 static uint8_t fifoFill(busDevice_t *busDev)
@@ -384,7 +386,9 @@ static bool deviceConfigure(busDevice_t *busDev)
         return false;
     }
 
-    flushFifo(busDev);
+    if (!flushFifo(busDev)) {
+        return false;
+    }
 
     return waitFifo(busDev, 1, 100);
 }
@@ -401,7 +405,14 @@ bool baroICP201XXDetect(baroDev_t *baro)
         return false;
     }
 
+    // Read the first measurement now, so the barometer task never
+    // publishes an uninitialised value. If a later FIFO read fails, the
+    // last valid measurement is kept (same as the other baro drivers).
     memset(&icpState, 0, sizeof(icpState));
+    if (!deviceReadMeasurement(baro)) {
+        busDeviceDeInit(baro->busDev);
+        return false;
+    }
 
     // 120 Hz ODR - read the FIFO at ~60 Hz and average 2 samples
     baro->ut_delay = 0;
