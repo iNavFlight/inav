@@ -357,9 +357,245 @@ static uartDevice_t* uartHardwareMap[] = {
 #endif
     };
  
+#if defined(USE_UART_RX_DMA) || defined(USE_UART_TX_DMA)
+static UARTDevice_e uartDeviceOf(const uartPort_t *s)
+{
+    for (int device = 0; device < UARTDEV_MAX; device++) {
+        if (uartHardwareMap[device] && &uartHardwareMap[device]->port == s) {
+            return device;
+        }
+    }
+    return UARTDEV_MAX;
+}
+
+#endif
+
+#ifdef USE_UART_RX_DMA
+typedef struct {
+    dmaTag_t tag;
+    uint32_t request;               // this UART's receiver on the DMAMUX
+} uartRxDmaConfig_t;
+
+static const uartRxDmaConfig_t uartRxDmaConfig[UARTDEV_MAX] = {
+#ifdef UART1_RX_DMA
+    [UARTDEV_1] = { UART1_RX_DMA, DMAMUX_DMAREQ_ID_USART1_RX },
+#endif
+#ifdef UART2_RX_DMA
+    [UARTDEV_2] = { UART2_RX_DMA, DMAMUX_DMAREQ_ID_USART2_RX },
+#endif
+#ifdef UART3_RX_DMA
+    [UARTDEV_3] = { UART3_RX_DMA, DMAMUX_DMAREQ_ID_USART3_RX },
+#endif
+#ifdef UART4_RX_DMA
+    [UARTDEV_4] = { UART4_RX_DMA, DMAMUX_DMAREQ_ID_UART4_RX },
+#endif
+#ifdef UART5_RX_DMA
+    [UARTDEV_5] = { UART5_RX_DMA, DMAMUX_DMAREQ_ID_UART5_RX },
+#endif
+#ifdef UART6_RX_DMA
+    [UARTDEV_6] = { UART6_RX_DMA, DMAMUX_DMAREQ_ID_USART6_RX },
+#endif
+#ifdef UART7_RX_DMA
+    [UARTDEV_7] = { UART7_RX_DMA, DMAMUX_DMAREQ_ID_UART7_RX },
+#endif
+#ifdef UART8_RX_DMA
+    [UARTDEV_8] = { UART8_RX_DMA, DMAMUX_DMAREQ_ID_UART8_RX },
+#endif
+};
+
+static void uartRxDmaStop(uartPort_t *s)
+{
+    if (s->rxDma) {
+        usart_dma_receiver_enable(s->USARTx, FALSE);
+        dma_channel_enable(s->rxDma->ref, FALSE);
+        s->rxDma = NULL;
+    }
+}
+
+bool uartRxDmaStart(uartPort_t *s)
+{
+    uartRxDmaStop(s);
+
+    const UARTDevice_e device = uartDeviceOf(s);
+    if (device == UARTDEV_MAX || uartRxDmaConfig[device].tag == DMA_NONE || !(s->port.mode & MODE_RX) || s->port.rxCallback) {
+        return false;
+    }
+
+    const DMA_t dma = dmaGetByTag(uartRxDmaConfig[device].tag);
+    if (!dma || !uartDmaStreamAvailable(dma, device)) {
+        return false;
+    }
+
+    dmaInit(dma, OWNER_SERIAL, RESOURCE_INDEX(device));
+    dma_reset(dma->ref);
+
+    dma_init_type init;
+    dma_default_para_init(&init);
+    init.peripheral_base_addr = (uint32_t)&s->USARTx->dt;
+    init.memory_base_addr = (uint32_t)s->port.rxBuffer;
+    init.direction = DMA_DIR_PERIPHERAL_TO_MEMORY;
+    init.buffer_size = s->port.rxBufferSize;
+    init.peripheral_inc_enable = FALSE;
+    init.memory_inc_enable = TRUE;
+    init.peripheral_data_width = DMA_PERIPHERAL_DATA_WIDTH_BYTE;
+    init.memory_data_width = DMA_MEMORY_DATA_WIDTH_BYTE;
+    init.loop_mode_enable = TRUE;
+    init.priority = DMA_PRIORITY_MEDIUM;
+    dma_init(dma->ref, &init);
+    dmaMuxEnable(dma, uartRxDmaConfig[device].request);
+    dma_channel_enable(dma->ref, TRUE);
+
+    s->port.rxBufferHead = s->port.rxBufferTail = 0;
+    s->rxDma = dma;
+
+    usart_interrupt_enable(s->USARTx, USART_RDBF_INT, FALSE);
+    usart_dma_receiver_enable(s->USARTx, TRUE);
+    return true;
+}
+#endif
+
+#ifdef USE_UART_TX_DMA
+typedef struct {
+    dmaTag_t tag;
+    uint32_t request;               // this UART's transmitter on the DMAMUX
+} uartTxDmaConfig_t;
+
+static const uartTxDmaConfig_t uartTxDmaConfig[UARTDEV_MAX] = {
+#ifdef UART1_TX_DMA
+    [UARTDEV_1] = { UART1_TX_DMA, DMAMUX_DMAREQ_ID_USART1_TX },
+#endif
+#ifdef UART2_TX_DMA
+    [UARTDEV_2] = { UART2_TX_DMA, DMAMUX_DMAREQ_ID_USART2_TX },
+#endif
+#ifdef UART3_TX_DMA
+    [UARTDEV_3] = { UART3_TX_DMA, DMAMUX_DMAREQ_ID_USART3_TX },
+#endif
+#ifdef UART4_TX_DMA
+    [UARTDEV_4] = { UART4_TX_DMA, DMAMUX_DMAREQ_ID_UART4_TX },
+#endif
+#ifdef UART5_TX_DMA
+    [UARTDEV_5] = { UART5_TX_DMA, DMAMUX_DMAREQ_ID_UART5_TX },
+#endif
+#ifdef UART6_TX_DMA
+    [UARTDEV_6] = { UART6_TX_DMA, DMAMUX_DMAREQ_ID_USART6_TX },
+#endif
+#ifdef UART7_TX_DMA
+    [UARTDEV_7] = { UART7_TX_DMA, DMAMUX_DMAREQ_ID_UART7_TX },
+#endif
+#ifdef UART8_TX_DMA
+    [UARTDEV_8] = { UART8_TX_DMA, DMAMUX_DMAREQ_ID_UART8_TX },
+#endif
+};
+
+// Full, half transfer and error flags; the interrupt enables sit at the same bits
+#define UART_TX_DMA_FLAGS   (DMA_IT_TCIF | DMA_IT_HTIF | DMA_IT_DMEIF)
+#define UART_TX_DMA_ENDED   (DMA_IT_TCIF | DMA_IT_DMEIF)
+
+void uartTxDmaStop(uartPort_t *s)
+{
+    if (s->txDma) {
+        usart_dma_transmitter_enable(s->USARTx, FALSE);
+        dma_interrupt_enable(s->txDma->ref, UART_TX_DMA_ENDED, FALSE);
+        dma_channel_enable(s->txDma->ref, FALSE);
+        DMA_CLEAR_FLAG(s->txDma, UART_TX_DMA_FLAGS);
+        s->txDma = NULL;
+        s->txDmaCount = 0;
+    }
+}
+
+void uartStartTxDMA(uartPort_t *s)
+{
+    // Masked: the end-of-transfer interrupt also starts the next one
+    ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {
+        const uint32_t head = s->port.txBufferHead;
+        const uint32_t tail = s->port.txBufferTail;
+
+        if (s->txDma && !s->txDmaCount && head != tail) {
+            // Up to the head, or to the end of the ring if the queue wraps: the rest follows
+            const uint32_t count = (head > tail) ? head - tail : s->port.txBufferSize - tail;
+
+            s->txDmaCount = count;
+            // Unlike an STM32 stream, a channel stays enabled after its transfer, and
+            // takes a new count and address only while disabled
+            dma_channel_enable(s->txDma->ref, FALSE);
+            s->txDma->ref->maddr = (uint32_t)&s->port.txBuffer[tail];
+            dma_data_number_set(s->txDma->ref, count);
+            dma_channel_enable(s->txDma->ref, TRUE);
+        }
+    }
+}
+
+// An error ends the transfer too, or the port would wait for it forever
+static void uartTxDmaHandler(DMA_t dma)
+{
+    uartPort_t *s = (uartPort_t *)dma->userParam;
+
+    // Clear every flag: one left set re-raises the interrupt, starving USB at this priority
+    const bool ended = DMA_GET_FLAG_STATUS(dma, UART_TX_DMA_ENDED);
+    DMA_CLEAR_FLAG(dma, UART_TX_DMA_FLAGS);
+
+    if (ended) {
+        // After an error the rest goes again, unless nothing went: that error would only repeat
+        const uint32_t sent = s->txDmaCount - dma_data_number_get(dma->ref);
+        s->port.txBufferTail = (s->port.txBufferTail + (sent ? sent : s->txDmaCount)) % s->port.txBufferSize;
+        s->txDmaCount = 0;
+        uartStartTxDMA(s);
+    }
+}
+
+bool uartTxDmaStart(uartPort_t *s)
+{
+    uartTxDmaStop(s);
+
+    const UARTDevice_e device = uartDeviceOf(s);
+    if (device == UARTDEV_MAX || uartTxDmaConfig[device].tag == DMA_NONE || !(s->port.mode & MODE_TX)) {
+        return false;
+    }
+
+    const DMA_t dma = dmaGetByTag(uartTxDmaConfig[device].tag);
+    if (!dma || !uartDmaStreamAvailable(dma, device)) {
+        return false;
+    }
+#ifdef USE_UART_RX_DMA
+    // The channel this port receives on is this UART's too, so it looks free to it
+    if (dma == s->rxDma) {
+        return false;
+    }
+#endif
+
+    dmaInit(dma, OWNER_SERIAL, RESOURCE_INDEX(device));
+    dmaSetHandler(dma, uartTxDmaHandler, NVIC_PRIO_SERIALUART, (uint32_t)s);
+    dma_reset(dma->ref);
+
+    dma_init_type init;
+    dma_default_para_init(&init);
+    init.peripheral_base_addr = (uint32_t)&s->USARTx->dt;
+    init.memory_base_addr = (uint32_t)s->port.txBuffer;
+    init.direction = DMA_DIR_MEMORY_TO_PERIPHERAL;
+    init.peripheral_inc_enable = FALSE;
+    init.memory_inc_enable = TRUE;
+    init.peripheral_data_width = DMA_PERIPHERAL_DATA_WIDTH_BYTE;
+    init.memory_data_width = DMA_MEMORY_DATA_WIDTH_BYTE;
+    init.loop_mode_enable = FALSE;
+    init.priority = DMA_PRIORITY_MEDIUM;
+    dma_init(dma->ref, &init);
+    dmaMuxEnable(dma, uartTxDmaConfig[device].request);
+    DMA_CLEAR_FLAG(dma, UART_TX_DMA_FLAGS);
+    dma_interrupt_enable(dma->ref, UART_TX_DMA_ENDED, TRUE);
+
+    s->txDmaCount = 0;
+    s->txDma = dma;
+
+    usart_interrupt_enable(s->USARTx, USART_TDBE_INT, FALSE);
+    usart_dma_transmitter_enable(s->USARTx, TRUE);
+    return true;
+}
+#endif
+
 void uartIrqHandler(uartPort_t *s)
 {
-    if (usart_flag_get(s->USARTx, USART_RDBF_FLAG) == SET) {
+    // With RX on DMA the interrupt still fires for TX: an RX byte is the stream's to take
+    if (usart_flag_get(s->USARTx, USART_RDBF_FLAG) == SET && !uartRxDmaRunning(s)) {
         if (s->port.rxCallback) {
             s->port.rxCallback(s->USARTx->dt, s->port.rxCallbackData);
         } else {
@@ -368,7 +604,8 @@ void uartIrqHandler(uartPort_t *s)
         }
     }
 
-    if (usart_flag_get(s->USARTx, USART_TDBE_FLAG) == SET) {
+    // With TX on DMA the ring is the stream's to empty
+    if (usart_flag_get(s->USARTx, USART_TDBE_FLAG) == SET && !uartTxDmaRunning(s)) {
         if (s->port.txBufferTail != s->port.txBufferHead) {
             usart_data_transmit(s->USARTx, s->port.txBuffer[s->port.txBufferTail]);
             s->port.txBufferTail = (s->port.txBufferTail + 1) % s->port.txBufferSize;

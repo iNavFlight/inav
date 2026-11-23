@@ -103,5 +103,7 @@ pwmInitError_e getPwmInitError(void);
 const char * getPwmInitErrorMessage(void);
 #ifndef SITL_BUILD
 const timMotorServoHardware_t *pwmGetOutputAssignment(void);
+// A stream a timer output will claim later in init; one it already owns is not counted
+bool pwmIsDmaStreamReserved(DMA_t dma);
 void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes);
 #endif // SITL_BUILD
