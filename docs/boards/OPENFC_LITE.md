@@ -56,9 +56,32 @@ INAV target: `OPENFC_LITE`
 | UART3 | TP0 / RP0 | PIO | GPS (enable the GPS feature) |
 | UART4 | TP1 / RP1, ESC connector | PIO | ESC telemetry |
 
-UART3 and UART4 are software (PIO) UARTs. None of the ports can work in
-single-wire half-duplex mode, so SmartPort, FPort and similar protocols are
-not available. Inverted signals (SBUS) need no external inverter.
+None of the ports can work in single-wire half-duplex mode, so SmartPort, FPort
+and similar protocols are not available. Inverted signals need no external
+inverter on any port.
+
+UART3 and UART4 are software (PIO) UARTs and less capable than UART1 and UART2:
+
+* 8N1 only, no parity and no second stop bit. SBUS (8E2) works on UART1 and
+  UART2 only, a PIO UART does not open for it.
+* Each bit is sampled once, and a byte with a framing error is dropped without
+  a trace.
+* One interrupt per received byte and a short hardware FIFO.
+
+They are fine for GPS, ESC telemetry and MSP. Keep the receiver on UART2.
+
+UART3, UART4 and the LED strip share the four state machines of PIO1. The LED
+strip takes one and each PIO UART one per direction it uses, so the defaults
+(GPS on UART3, receive-only ESC telemetry on UART4, LED strip) fit exactly. With
+functions that both send and receive on UART3 and on UART4, whichever of the
+two ports or the LED strip starts last does not work.
+
+## Beeper and LED strip
+
+* Beeper: an active 5 V beeper between the B+ and B- pads. A passive beeper
+  does not work, `beeper_pwm_mode` has to stay `OFF`.
+* LED strip: WS2812 on the LED pads, the signal is level-shifted to 5 V on the
+  board.
 
 ## Defaults
 

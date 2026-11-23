@@ -57,6 +57,7 @@
 
 #include "common/color.h"
 #include "common/colorconversion.h"
+#include "common/log.h"
 #include "common/maths.h"
 #include "common/utils.h"
 
@@ -156,10 +157,6 @@ bool isWS2811LedStripReady(void)
 
 /* ─── Hardware init ──────────────────────────────────────────────────────── */
 
-#if PIO_LEDSTRIP_INDEX == 1 && defined(USE_UART4)
-#error "LED strip on PIO1 needs a free state machine: UART3 and UART4 claim all four"
-#endif
-
 void ws2811LedStripInit(void)
 {
     /* WS2811_PIN is defined in target.h (e.g. PB6 = GP22).
@@ -170,21 +167,34 @@ void ws2811LedStripInit(void)
 
     ledStripPio = PIO_INSTANCE(PIO_LEDSTRIP_INDEX);
 
-    /* For pins 32..47 the GPIO base must be shifted (RP2350B only).
-     * GP22 is < 32 so this is a no-op on Pico 2, but keep it for portability. */
-    if (gpio >= 32) {
-        pio_set_gpio_base(ledStripPio, 16u);
+    /* A PIO block reaches 32 GPIOs from its base: 0..31, or 16..47 (RP2350B
+     * only). The base belongs to the whole block, so it is only moved while no
+     * other driver has a state machine on it. */
+    const uint gpioBase = pio_get_gpio_base(ledStripPio);
+    if (gpio < gpioBase || gpio >= gpioBase + 32) {
+        bool blockInUse = false;
+        for (uint i = 0; i < NUM_PIO_STATE_MACHINES; i++) {
+            blockInUse = blockInUse || pio_sm_is_claimed(ledStripPio, i);
+        }
+        if (blockInUse || pio_set_gpio_base(ledStripPio, gpio >= 32 ? 16u : 0u) != PICO_OK) {
+            LOG_ERROR(SYSTEM, "LED strip: pin outside the GPIO range of PIO%d", PIO_LEDSTRIP_INDEX);
+            return;
+        }
     }
 
+    /* State machine first: without one the program must not stay loaded in a
+     * PIO block that is shared with other drivers. */
+    const int sm = pio_claim_unused_sm(ledStripPio, false);
+    if (sm < 0) {
+        LOG_ERROR(SYSTEM, "LED strip: no free PIO%d state machine", PIO_LEDSTRIP_INDEX);
+        return;
+    }
     if (!pio_can_add_program(ledStripPio, &ws2812_program)) {
+        pio_sm_unclaim(ledStripPio, (uint)sm);
+        LOG_ERROR(SYSTEM, "LED strip: no room for the program in PIO%d", PIO_LEDSTRIP_INDEX);
         return;
     }
     const uint offset = (uint)pio_add_program(ledStripPio, &ws2812_program);
-
-    const int sm = pio_claim_unused_sm(ledStripPio, false);
-    if (sm < 0) {
-        return;
-    }
     ledStripSm = (uint)sm;
 
     pio_gpio_init(ledStripPio, gpio);
@@ -211,6 +221,11 @@ void ws2811LedStripInit(void)
 
     const int dma_ch = dma_claim_unused_channel(false);
     if (dma_ch < 0) {
+        /* Give the PIO back: the block may be shared */
+        pio_sm_set_enabled(ledStripPio, ledStripSm, false);
+        pio_remove_program(ledStripPio, &ws2812_program, offset);
+        pio_sm_unclaim(ledStripPio, ledStripSm);
+        LOG_ERROR(SYSTEM, "LED strip: no free DMA channel");
         return;
     }
     ledStripDmaCh = dma_ch;
