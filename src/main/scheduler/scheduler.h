@@ -67,6 +67,9 @@ typedef enum {
 #ifdef USE_MAG
     TASK_COMPASS,
 #endif
+#ifdef USE_GSF_YAW
+    TASK_GSF_YAW,
+#endif
 #ifdef USE_BARO
     TASK_BARO,
 #endif
