@@ -4406,6 +4406,7 @@ void applyWaypointNavigationAndAltitudeHold(void)
 
     /* Process controllers */
     navigationFSMStateFlags_t navStateFlags = navGetStateFlags(posControl.navState);
+    // Platform split is mirrored by navigationUsesFixedWingPidBank()
     if (STATE(ROVER) || STATE(BOAT)) {
         applyRoverBoatNavigationController(navStateFlags, currentTimeUs);
     } else if (STATE(FIXED_WING_LEGACY)) {
@@ -4953,6 +4954,13 @@ void updateWaypointsAndNavigationMode(void)
 /*-----------------------------------------------------------
  * NAV main control functions
  *-----------------------------------------------------------*/
+
+// Keep in sync with the controller dispatch in applyWaypointNavigationAndAltitudeHold()
+bool navigationUsesFixedWingPidBank(void)
+{
+    return STATE(ROVER) || STATE(BOAT) || STATE(FIXED_WING_LEGACY);
+}
+
 void navigationUsePIDs(void)
 {
     /** Multicopter PIDs */

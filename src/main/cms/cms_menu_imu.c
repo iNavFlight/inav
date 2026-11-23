@@ -74,12 +74,12 @@ static char profileIndexString[] = " p";
 
 static void cmsx_ReadPidToArray(pid8_t *dst, int pidIndex)
 {
-    memcpy(dst, &pidBank()->pid[pidIndex], sizeof(*dst));
+    memcpy(dst, pidItem(pidIndex), sizeof(*dst));
 }
 
 static void cmsx_WritebackPidFromArray(const pid8_t *src, int pidIndex)
 {
-    memcpy(&pidBankMutable()->pid[pidIndex], src, sizeof(*src));
+    memcpy(pidItemMutable(pidIndex), src, sizeof(*src));
 }
 
 static long cmsx_menuImu_onEnter(const OSD_Entry *from)

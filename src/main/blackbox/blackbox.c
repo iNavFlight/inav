@@ -1956,22 +1956,22 @@ static bool blackboxWriteSysinfo(void)
                                                                             pidBank()->pid[PID_YAW].I,
                                                                             pidBank()->pid[PID_YAW].D,
                                                                             pidBank()->pid[PID_YAW].FF);
-        BLACKBOX_PRINT_HEADER_LINE("altPID", "%d,%d,%d",                    pidBank()->pid[PID_POS_Z].P,
-                                                                            pidBank()->pid[PID_POS_Z].I,
-                                                                            pidBank()->pid[PID_POS_Z].D);
-        BLACKBOX_PRINT_HEADER_LINE("posPID", "%d,%d,%d",                    pidBank()->pid[PID_POS_XY].P,
-                                                                            pidBank()->pid[PID_POS_XY].I,
-                                                                            pidBank()->pid[PID_POS_XY].D);
-        BLACKBOX_PRINT_HEADER_LINE("posrPID", "%d,%d,%d",                   pidBank()->pid[PID_VEL_XY].P,
-                                                                            pidBank()->pid[PID_VEL_XY].I,
-                                                                            pidBank()->pid[PID_VEL_XY].D);
+        BLACKBOX_PRINT_HEADER_LINE("altPID", "%d,%d,%d",                    pidItem(PID_POS_Z)->P,
+                                                                            pidItem(PID_POS_Z)->I,
+                                                                            pidItem(PID_POS_Z)->D);
+        BLACKBOX_PRINT_HEADER_LINE("posPID", "%d,%d,%d",                    pidItem(PID_POS_XY)->P,
+                                                                            pidItem(PID_POS_XY)->I,
+                                                                            pidItem(PID_POS_XY)->D);
+        BLACKBOX_PRINT_HEADER_LINE("posrPID", "%d,%d,%d",                   pidItem(PID_VEL_XY)->P,
+                                                                            pidItem(PID_VEL_XY)->I,
+                                                                            pidItem(PID_VEL_XY)->D);
         BLACKBOX_PRINT_HEADER_LINE("levelPID", "%d,%d,%d",                  pidBank()->pid[PID_LEVEL].P,
                                                                             pidBank()->pid[PID_LEVEL].I,
                                                                             pidBank()->pid[PID_LEVEL].D);
         BLACKBOX_PRINT_HEADER_LINE("magPID", "%d",                          pidBank()->pid[PID_HEADING].P);
-        BLACKBOX_PRINT_HEADER_LINE("velPID", "%d,%d,%d",                    pidBank()->pid[PID_VEL_Z].P,
-                                                                            pidBank()->pid[PID_VEL_Z].I,
-                                                                            pidBank()->pid[PID_VEL_Z].D);
+        BLACKBOX_PRINT_HEADER_LINE("velPID", "%d,%d,%d",                    pidItem(PID_VEL_Z)->P,
+                                                                            pidItem(PID_VEL_Z)->I,
+                                                                            pidItem(PID_VEL_Z)->D);
         BLACKBOX_PRINT_HEADER_LINE("yaw_lpf_hz", "%d",                      pidProfile()->yaw_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_hz", "%d",                    pidProfile()->dterm_lpf_hz);
         BLACKBOX_PRINT_HEADER_LINE("dterm_lpf_type", "%d",                  pidProfile()->dterm_lpf_type);

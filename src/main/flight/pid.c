@@ -1437,6 +1437,27 @@ pidBank_t * pidBankMutable(void) {
     return usedPidControllerType == PID_TYPE_PIFF ? &pidProfileMutable()->bank_fw : &pidProfileMutable()->bank_mc;
 }
 
+static bool pidItemIsNavigation(pidIndex_e item)
+{
+    return item == PID_POS_Z || item == PID_POS_XY || item == PID_VEL_XY || item == PID_VEL_Z || item == PID_POS_HEADING;
+}
+
+const pid8_t * pidItem(pidIndex_e item)
+{
+    if (pidItemIsNavigation(item)) {
+        return navigationUsesFixedWingPidBank() ? &pidProfile()->bank_fw.pid[item] : &pidProfile()->bank_mc.pid[item];
+    }
+    return &pidBank()->pid[item];
+}
+
+pid8_t * pidItemMutable(pidIndex_e item)
+{
+    if (pidItemIsNavigation(item)) {
+        return navigationUsesFixedWingPidBank() ? &pidProfileMutable()->bank_fw.pid[item] : &pidProfileMutable()->bank_mc.pid[item];
+    }
+    return &pidBankMutable()->pid[item];
+}
+
 bool isFixedWingLevelTrimActive(void)
 {
     return isFwAutoModeActive(BOXAUTOLEVEL) && !areSticksDeflected() &&
