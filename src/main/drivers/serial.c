@@ -145,11 +145,23 @@ void serialSetRxBuffer(serialPort_t *instance, volatile uint8_t *buffer, uint32_
         return;
     }
 
+    if (instance->vTable->setRxBuffer) {
+        instance->vTable->setRxBuffer(instance, buffer, size);
+        return;
+    }
+
     // The receive interrupt must never see the new buffer with the old size or indices
     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
         instance->rxBuffer = buffer;
         instance->rxBufferSize = size;
         instance->rxBufferHead = 0;
         instance->rxBufferTail = 0;
+    }
+}
+
+void serialRelease(serialPort_t *instance)
+{
+    if (instance->vTable->release) {
+        instance->vTable->release(instance);
     }
 }
