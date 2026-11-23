@@ -664,6 +664,12 @@ groups:
         field: yawDeciDegrees
         min: -1800
         max: 3600
+      - name: mag_learn
+        description: "Refits the compass offsets (magzero; maggain is kept) from the readings of each flight and saves them after disarm, when the flight turned through at least 270 degrees and the fit agrees with the stored calibration. Needs a calibrated compass; airplanes and multirotors only. The blackbox logs the estimate as magBias. Not on targets with 512 KB of flash or less."
+        condition: USE_MAG_LEARN
+        default_value: OFF
+        field: magLearn
+        type: bool
 
   - name: PG_BAROMETER_CONFIG
     type: barometerConfig_t
@@ -1687,6 +1693,12 @@ groups:
         field: gps_yaw_weight
         min: 0
         max: 500
+      - name: ahrs_gsf_yaw
+        description: "Airplanes only. Uses the heading the GSF estimator learns in flight from GPS velocity and the IMU, without the compass, once it has settled: it replaces the GPS course as the AHRS's GPS heading (sharing with the compass as set by ahrs_gps_yaw_weight), the compass is left out while it disagrees with it, and a heading far from it with no compass to hold it is reset to it, at most twice a flight. Off, the estimator still runs and the blackbox logs it (GSF). Not on targets with 512 KB of flash or less."
+        condition: USE_GSF_YAW
+        default_value: OFF
+        field: gsf_yaw
+        type: bool
 
   - name: PG_ARMING_CONFIG
     type: armingConfig_t
