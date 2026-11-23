@@ -396,17 +396,9 @@ void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t bearing, int32_t d
 bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBearing);
 bool isWaypointAltitudeReached(void);
 static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
-static navigationFSMEvent_t nextForNonGeoStates(void);
-static bool isWaypointMissionValid(void);
 #ifdef USE_AUTO_TRANSITION
 static void clearMissionVTOLTransitionState(void);
-static navMissionVtolTransitionDisposition_e prepareMissionVTOLTransition(const navWaypoint_t *waypoint);
-static void updateMissionTransitionGuidance(void);
 static bool isTransitionRetryToFixedWingRequest(const mixerProfileATRequest_e request);
-static bool hasAirspeedSensorForTransitionRetry(void);
-static bool canRetryTransitionAfterAirspeedTimeout(const mixerProfileATRequest_e request);
-static void beginMissionTransitionRetryScan(const mixerProfileATRequest_e request);
-static navMixerATRetryScanResult_e updateMissionTransitionRetryScan(void);
 #endif
 void missionPlannerSetWaypoint(void);
 
@@ -2370,7 +2362,7 @@ static bool missionVTOLTransitionPointReady(const bool transitionToFixedWing, co
 bool hasUsableTransitionAirspeed(float *airspeedCmS)
 {
 #ifdef USE_PITOT
-    if (pitotIsValidForAirspeed(false)) {
+    if (pitotIsValidForAirspeed(true)) {
         const float measuredAirspeedCmS = getAirspeedEstimate();
 
         if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {  // why ??
