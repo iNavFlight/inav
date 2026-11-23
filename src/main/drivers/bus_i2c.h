@@ -70,4 +70,28 @@ bool i2cWrite(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t data, bool a
 bool i2cRead(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t* buf, bool allowRawAccess);
 bool i2cBusy(I2CDevice device, bool *error);
 
+// One read per bus at a time; a blocking transfer on the same bus lets it end first. All
+// transfers start from the main loop
+#if defined(USE_I2C) && !defined(SOFT_I2C) && (defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x))
+#define USE_I2C_ASYNC
+#endif
+
+typedef enum {
+    I2C_ASYNC_IDLE = 0,     // nothing started for this address, or another transfer took the bus since
+    I2C_ASYNC_BUSY,         // on its way
+    I2C_ASYNC_OK,           // ended: what was read is in the buffer
+    I2C_ASYNC_FAILED,       // NACK, bus error or timeout: the buffer holds nothing valid
+} i2cAsyncState_e;
+
+#ifdef USE_I2C_ASYNC
+bool i2cReadAsync(I2CDevice device, uint8_t addr_, uint8_t reg, uint8_t len, uint8_t *buf, bool allowRawAccess);
+i2cAsyncState_e i2cAsyncState(I2CDevice device, uint8_t addr_);
+#ifdef USE_HAL_DRIVER
+// HAL interrupts carry a read to its end and the reader notices it, so F7 and H7 have nothing to step
+static inline void i2cAsyncPoll(void) {}
+#else
+void i2cAsyncPoll(void);
+#endif
+#endif
+
 uint16_t i2cGetErrorCounter(void);

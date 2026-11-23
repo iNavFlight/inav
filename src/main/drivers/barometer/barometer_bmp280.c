@@ -76,14 +76,26 @@ static bool bmp280_start_up(baroDev_t * baro)
 
 static bool bmp280_get_up(baroDev_t * baro)
 {
-    uint8_t data[BMP280_DATA_FRAME_SIZE];
+    static uint8_t data[BMP280_DATA_FRAME_SIZE];
+    static bool reading;
 
     //error free measurements
     static int32_t bmp280_up_valid;
     static int32_t bmp280_ut_valid;
 
     //read data from sensor
-    bool ack = busReadBuf(baro->busDev, BMP280_PRESSURE_MSB_REG, data, BMP280_DATA_FRAME_SIZE);
+    bool ack = false;
+    if (!reading) {
+        reading = busReadBufAsync(baro->busDev, BMP280_PRESSURE_MSB_REG, data, BMP280_DATA_FRAME_SIZE);
+    }
+    if (reading) {
+        const i2cAsyncState_e state = busAsyncState(baro->busDev);
+        if (state == I2C_ASYNC_BUSY) {
+            return false;
+        }
+        reading = false;
+        ack = state == I2C_ASYNC_OK;
+    }
 
     //check if pressure and temperature readings are valid, otherwise use previous measurements from the moment
     if (ack) {
@@ -98,7 +110,7 @@ static bool bmp280_get_up(baroDev_t * baro)
         bmp280_ut = bmp280_ut_valid;
     }
 
-    return ack;
+    return true;
 }
 
 // Returns temperature in DegC, resolution is 0.01 DegC. Output value of "5123" equals 51.23 DegC
@@ -204,6 +216,7 @@ bool bmp280Detect(baroDev_t *baro)
     baro->up_delay = ((T_INIT_MAX + T_MEASURE_PER_OSRS_MAX * (((1 << BMP280_TEMPERATURE_OSR) >> 1) + ((1 << BMP280_PRESSURE_OSR) >> 1)) + (BMP280_PRESSURE_OSR ? T_SETUP_PRESSURE_MAX : 0) + 15) / 16) * 1000;
     baro->start_up = bmp280_start_up;
     baro->get_up = bmp280_get_up;
+    baro->asyncRead = true;
 
     baro->calculate = bmp280_calculate;
 

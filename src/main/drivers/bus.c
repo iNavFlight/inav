@@ -396,6 +396,30 @@ bool busRead(const busDevice_t * dev, uint8_t reg, uint8_t * data)
     }
 }
 
+// On an I2C bus that can (USE_I2C_ASYNC) this only starts the read, and busAsyncState() says
+// when it has ended; elsewhere it runs to the end at once. The buffer must outlive the read
+bool busReadBufAsync(const busDevice_t * dev, uint8_t reg, uint8_t * data, uint8_t length)
+{
+#ifdef USE_I2C
+    if (dev->busType == BUSTYPE_I2C) {
+        return i2cBusReadBufferAsync(dev, reg, data, length);
+    }
+#endif
+    return busReadBuf(dev, reg, data, length);
+}
+
+i2cAsyncState_e busAsyncState(const busDevice_t * dev)
+{
+#ifdef USE_I2C
+    if (dev->busType == BUSTYPE_I2C) {
+        return i2cBusAsyncState(dev);
+    }
+#else
+    UNUSED(dev);
+#endif
+    return I2C_ASYNC_OK;
+}
+
 void busSelectDevice(const busDevice_t * dev)
 {
 #ifdef USE_SPI
