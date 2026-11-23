@@ -97,6 +97,9 @@ typedef struct systemConfig_s {
 #endif
     char craftName[MAX_NAME_LENGTH + 1];
     char pilotName[MAX_NAME_LENGTH + 1];
+#ifdef USE_CPU_OVERCLOCK
+    uint8_t cpuOverclock;                   // cpuOverclock_e
+#endif
 } systemConfig_t;
 
 PG_DECLARE(systemConfig_t, systemConfig);

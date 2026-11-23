@@ -14,6 +14,7 @@
 #include <platform.h>
 
 #include "arm_math.h"
+#include "common/printf.h"
 #include "common/time.h"
 #include "common/utils.h"
 #include "drivers/system.h"
@@ -23,7 +24,9 @@
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/timer.h"
+#include "hardware/vreg.h"
 #include "hardware/watchdog.h"
+#include "hardware/structs/qmi.h"
 #include "hardware/structs/m33.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
@@ -85,6 +88,132 @@ void SystemInit(void)
     DWT_CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
 
+#define RP2350_RATED_CLOCK_MHZ   150
+
+#ifdef USE_CPU_OVERCLOCK
+
+// Multiples of 24 MHz keep the DSHOT PIO dividers integer (DSHOT600: 8, 10).
+// Only 150 MHz at 1.10 V is characterised by Raspberry Pi; the voltages are
+// chosen with margin and stay below the 1.30 V the regulator allows without
+// unlocking its limit.
+static const struct {
+    uint16_t mhz;
+    enum vreg_voltage voltage;
+} overclockSteps[] = {
+    [CPU_OVERCLOCK_192MHZ] = { 192, VREG_VOLTAGE_1_15 },
+    [CPU_OVERCLOCK_240MHZ] = { 240, VREG_VOLTAGE_1_20 },
+};
+
+// Not a persistentObject: those are wiped after a watchdog timeout, and this
+// marker has to survive exactly that. scratch[4..7] belong to the SDK.
+#define OVERCLOCK_SCRATCH_INDEX     3
+#define OVERCLOCK_PENDING_MAGIC     0x4F434C4B  // "OCLK"
+#define OVERCLOCK_WATCHDOG_MS       500
+// The flash read mode and divider are whatever the bootrom found while
+// scanning the flash. A W25Q takes the plain 03h read up to 50 MHz only; the
+// fast read commands go to 133 MHz, kept well below that here.
+#define OVERCLOCK_FLASH_SCK_MAX_03H_HZ   50000000
+#define OVERCLOCK_FLASH_SCK_MAX_FAST_HZ  100000000
+#define OVERCLOCK_SELFTEST_BYTES    (64 * 1024)
+
+static const char *cpuOverclockFailure;
+static char flashFailureText[40];
+
+// NULL when the requested clock is running
+const char *systemCpuOverclockFailure(void)
+{
+    return cpuOverclockFailure;
+}
+
+// Reads the code through the XIP path, so it covers flash timing as well
+static uint32_t overclockSelfTestSum(void)
+{
+    const volatile uint32_t *word = (const volatile uint32_t *)XIP_BASE;
+    uint32_t sum = 0;
+    for (unsigned i = 0; i < OVERCLOCK_SELFTEST_BYTES / sizeof(uint32_t); i++) {
+        sum = (sum << 1 | sum >> 31) ^ word[i];
+    }
+    return sum;
+}
+
+static bool overclockFlashClockOk(uint32_t sysHz)
+{
+    uint32_t clkdiv = (qmi_hw->m[0].timing & QMI_M0_TIMING_CLKDIV_BITS) >> QMI_M0_TIMING_CLKDIV_LSB;
+    if (clkdiv == 0) {
+        clkdiv = 256;
+    }
+    const uint32_t readCmd = (qmi_hw->m[0].rcmd & QMI_M0_RCMD_PREFIX_BITS) >> QMI_M0_RCMD_PREFIX_LSB;
+    const bool hasCmd = qmi_hw->m[0].rfmt & QMI_M0_RFMT_PREFIX_LEN_BITS;
+    const uint32_t maxHz = (hasCmd && readCmd == 0x03) ? OVERCLOCK_FLASH_SCK_MAX_03H_HZ : OVERCLOCK_FLASH_SCK_MAX_FAST_HZ;
+
+    if (sysHz / clkdiv <= maxHz) {
+        return true;
+    }
+    tfp_sprintf(flashFailureText, "flash clkdiv=%d cmd=0x%02x", (int)clkdiv, (int)readCmd);
+    return false;
+}
+
+/*
+ * Has to run before any driver derives a divider from clk_sys (PIO, PWM, I2C).
+ *
+ * A clock the chip cannot hold would otherwise leave a board that never
+ * reaches the CLI to take the setting back, so the switch is made under the
+ * watchdog: if it bites, the marker in the scratch register makes the next
+ * boot stay at the rated clock. `status` then reports the failure.
+ */
+void systemApplyCpuOverclock(cpuOverclock_e overclock)
+{
+    volatile uint32_t *marker = &watchdog_hw->scratch[OVERCLOCK_SCRATCH_INDEX];
+
+    if (overclock == CPU_OVERCLOCK_OFF || overclock >= ARRAYLEN(overclockSteps)) {
+        // A warm reboot out of an overclocked session keeps the raised voltage
+        vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
+        return;
+    }
+
+    if (*marker == OVERCLOCK_PENDING_MAGIC) {
+        // The previous boot died in here. A watchdog reset keeps the regulator setting.
+        *marker = 0;
+        vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
+        cpuOverclockFailure = "watchdog reset during the switch";
+        return;
+    }
+
+    const uint32_t mhz = overclockSteps[overclock].mhz;
+
+    uint vco, postDiv1, postDiv2;
+    if (!check_sys_clock_khz(mhz * 1000, &vco, &postDiv1, &postDiv2)) {
+        cpuOverclockFailure = "PLL";
+        return;
+    }
+    if (!overclockFlashClockOk(mhz * 1000000)) {
+        cpuOverclockFailure = flashFailureText;
+        return;
+    }
+
+    const uint32_t expectedSum = overclockSelfTestSum();
+
+    *marker = OVERCLOCK_PENDING_MAGIC;
+    watchdog_enable(OVERCLOCK_WATCHDOG_MS, true);
+
+    vreg_set_voltage(overclockSteps[overclock].voltage);
+    busy_wait_ms(2);    // let the core supply settle before it is needed
+    set_sys_clock_pll(vco, postDiv1, postDiv2);
+
+    if (overclockSelfTestSum() != expectedSum) {
+        set_sys_clock_khz(RP2350_RATED_CLOCK_MHZ * 1000, true);
+        vreg_set_voltage(VREG_VOLTAGE_DEFAULT);
+        cpuOverclockFailure = "self-test";
+    }
+
+    watchdog_disable();
+    *marker = 0;
+
+    SystemCoreClock = clock_get_hz(clk_sys);
+}
+
+#endif // USE_CPU_OVERCLOCK
+
 static bool usb_task_timer_cb(repeating_timer_t *rt)
 {
     (void)rt;
@@ -102,14 +231,12 @@ void systemInit(void)
 {
     persistentObjectInit();
 
-    // Sys clock at the rated 150 MHz. It was 192 MHz, lowered while a freeze
-    // on the OPENFC_LITE_MINI is being hunted.
+    // Sys clock at the rated 150 MHz, cpu_overclock raises it later in
+    // systemApplyCpuOverclock() once the config is loaded.
     // The USB PLL is independent (clk_usb stays at 48 MHz from pll_usb) so
     // TinyUSB CDC is unaffected. The hardware timer (clk_timer, derived from
     // clk_ref at 12 MHz) is also unaffected, so micros() stays accurate.
-    // Must be called before tusb_init() / stdio_init_all() so those see the
-    // final clock rate.
-    set_sys_clock_khz(150000, true);
+    set_sys_clock_khz(RP2350_RATED_CLOCK_MHZ * 1000, true);
 
     // SDK runtime already initialized clocks, GPIO, etc. via crt0 → runtime_init
     SystemCoreClock = clock_get_hz(clk_sys);

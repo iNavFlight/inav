@@ -81,6 +81,21 @@ and the card stayed dead until the board was powered off. Blackbox logging
 worked on the same card. If deleting or copying files to the card fails, use another card,
 or take the logs off with a card reader.
 
+## CPU clock
+
+The MCU runs at its rated 150 MHz. `set cpu_overclock = 192MHZ` or
+`240MHZ`, `save` overclocks it and raises the core voltage from 1.10 V to
+1.15 V or 1.20 V.
+
+This is outside the manufacturer's specification. The limit is timing, not
+heat: a chip that does not hold the clock freezes or computes wrong results,
+and the margin differs from chip to chip and shrinks with temperature. Test
+on the bench, hot, before flying an overclocked board.
+
+If the self-test at boot fails, the board starts at 150 MHz and `status`
+shows `cpu_overclock failed` with the reason. The self-test only catches a clock that fails
+right away, not a marginal one.
+
 ## Not supported yet
 
 * Analog OSD (GPIO 4, 5, 6)

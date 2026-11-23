@@ -198,6 +198,9 @@
 #undef USE_GYRO_KALMAN
 #undef USE_DYNAMIC_FILTERS
 
+// cpu_overclock setting, see systemApplyCpuOverclock()
+#define USE_CPU_OVERCLOCK
+
 // Hot functions run from RAM instead of the XIP flash, see RP2350_PICO/target.h
 #undef FAST_CODE
 #define FAST_CODE __attribute__((section(".time_critical.inav")))

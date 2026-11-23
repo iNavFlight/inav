@@ -261,6 +261,10 @@ void init(void)
     readEEPROM();
     resumeRxSignal();
 
+#ifdef USE_CPU_OVERCLOCK
+    systemApplyCpuOverclock(systemConfig()->cpuOverclock);
+#endif
+
 #ifdef USE_I2C
     i2cSetSpeed(systemConfig()->i2c_speed);
 #endif

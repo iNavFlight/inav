@@ -80,6 +80,17 @@ static inline void usbBusyLeave(void)
     rp2350UsbBusy = 0;
 }
 
+// The FIFO is full and only tud_task() can start the next packet. Waiting for
+// the 1 ms timer to do it does not work from a loop that holds the busy flag
+// nearly all the time: the timer has to land in the few cycles where the flag
+// is clear, and since it runs off the same crystal as the CPU it can miss them
+// on every tick (seen at 192 MHz: CLI output stopped for good). Called with
+// the busy flag set, so the timer keeps out.
+static void usbTxPump(void)
+{
+    tud_task();
+}
+
 static void usbVcpSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
     UNUSED(instance);
@@ -146,6 +157,9 @@ static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
             p += written;
         }
         tud_cdc_write_flush();
+        if (count > 0) {
+            usbTxPump();
+        }
         usbBusyLeave();
         if (millis() - start > USB_TIMEOUT) {
             break;
@@ -176,6 +190,9 @@ static bool usbVcpFlush(vcpPort_t *port)
             p += written;
         }
         tud_cdc_write_flush();
+        if (count > 0) {
+            usbTxPump();
+        }
         usbBusyLeave();
         if (millis() - start > USB_TIMEOUT) {
             break;

@@ -105,9 +105,9 @@ PG_RESET_TEMPLATE(featureConfig_t, featureConfig,
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored layout only on >512 KB targets.
 #ifdef USE_AUTO_TRANSITION
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 12);
 #else
-PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 7);
+PG_REGISTER_WITH_RESET_TEMPLATE(systemConfig_t, systemConfig, PG_SYSTEM_CONFIG, 8);
 #endif
 
 PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
@@ -134,7 +134,10 @@ PG_RESET_TEMPLATE(systemConfig_t, systemConfig,
     .vtolMcThrReservePercent = SETTING_VTOL_MC_THR_RESERVE_PERCENT_DEFAULT,
 #endif
     .craftName = SETTING_NAME_DEFAULT,
-    .pilotName = SETTING_NAME_DEFAULT
+    .pilotName = SETTING_NAME_DEFAULT,
+#ifdef USE_CPU_OVERCLOCK
+    .cpuOverclock = SETTING_CPU_OVERCLOCK_DEFAULT,
+#endif
 );
 
 PG_REGISTER_WITH_RESET_TEMPLATE(beeperConfig_t, beeperConfig, PG_BEEPER_CONFIG, 2);
