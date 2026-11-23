@@ -945,9 +945,11 @@ static void cliSerial(char *cmdline)
     }
 
     const uint32_t duplicatedFunctions = serialGetDuplicatedSinglePortFunctions(&portConfig);
+    // Warn rather than reject: a backup restore replays ports one at a time, so a port
+    // may briefly duplicate a function that a later line removes from its old port.
     if (duplicatedFunctions) {
-        cliPrintErrorLinef("Function %d is already assigned to another port", (int)duplicatedFunctions);
-        return;
+        cliPrintLinef("# Warning: function %d is also assigned to another port, only the first one listed by 'serial' uses it",
+            __builtin_ctz(duplicatedFunctions));
     }
 
     memcpy(currentConfig, &portConfig, sizeof(portConfig));
