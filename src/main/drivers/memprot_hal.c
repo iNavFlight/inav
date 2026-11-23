@@ -57,22 +57,15 @@ void memProtConfigure(mpuRegion_t *regions, unsigned regionCount)
         if (region->size) {
             MPU_InitStruct.Size = region->size;
         } else {
-            // Adjust start of the region to align with cache line size.
-            uint32_t start = region->start & ~0x1F;
-            uint32_t length = region->end - start;
-
-            if (length < 32) {
-                // This will also prevent flsl from returning negative (case length == 0)
-                length = 32;
+            // Smallest region that covers the section from a base aligned to its size, as the MPU requires
+            uint8_t size = MPU_REGION_SIZE_32B;
+            uint32_t base = region->start & ~0x1FU;
+            while (size < MPU_REGION_SIZE_2GB && region->end - base > (1U << (size + 1))) {
+                size++;
+                base = region->start & ~((1U << (size + 1)) - 1);
             }
-
-            int msbpos = flsl(length) - 1;
-
-            if (length == (1U << msbpos)) {
-                msbpos += 1;
-            }
-
-            MPU_InitStruct.Size = msbpos;
+            MPU_InitStruct.BaseAddress = base;
+            MPU_InitStruct.Size = size;
         }
 
         // Copy per region attributes
