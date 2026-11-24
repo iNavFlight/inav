@@ -130,6 +130,7 @@
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
 #include "sensors/battery.h"
+#include "sensors/bec.h"
 #include "sensors/rangefinder.h"
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
@@ -812,6 +813,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU32(dst, getBatteryRemainingCapacity());
         sbufWriteU8(dst, calculateBatteryPercentage());
         sbufWriteU16(dst, getRSSI());
+#ifdef USE_BEC_VOLTAGE
+        sbufWriteU16(dst, becIsConfigured() ? becGetVoltage() : 0xFFFF);
+#else
+        sbufWriteU16(dst, 0xFFFF);
+#endif
         break;
 
     case MSP2_INAV_GET_LINK_STATS:
