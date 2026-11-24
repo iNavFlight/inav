@@ -2883,6 +2883,7 @@ Selection of mag hardware. See Wiki Sensor auto detect and hardware failure dete
 | MLX90393 |  |
 | LIS2MDL |  |
 | FAKE |  |
+| DRONECAN |  |
 
 ---
 

@@ -173,6 +173,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_mlx90393.h
     drivers/compass/compass_msp.c
     drivers/compass/compass_msp.h
+    drivers/compass/compass_dronecan.c
+    drivers/compass/compass_dronecan.h
 
     drivers/dronecan/libcanard/canard.c
     drivers/dronecan/libcanard/canard.h

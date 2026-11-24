@@ -46,7 +46,8 @@ typedef enum {
     MAG_MLX90393,
     MAG_LIS2MDL,
     MAG_FAKE,
-    MAG_MAX = MAG_FAKE
+    MAG_DRONECAN,
+    MAG_MAX = MAG_DRONECAN
 } magSensor_e;
 
 typedef struct mag_s {
