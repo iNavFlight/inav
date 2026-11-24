@@ -32,7 +32,7 @@
  *
  * A port takes one state machine per direction it uses (MODE_RX, MODE_TX), with
  * pio_claim_unused_sm(), so a receive-only port (ESC telemetry) costs one and
- * PIO1 can be shared with another driver (LED strip). A port that cannot get
+ * PIO1 can be shared with another driver. A port that cannot get
  * the state machines for its mode fails to open. A direction added later with
  * serialSetMode() claims its state machine then, or is dropped from the mode.
  * A re-open gives back the state machine of a direction the new mode has not.

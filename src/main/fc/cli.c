@@ -4279,6 +4279,12 @@ static void cliStatus(char *cmdline)
     }
 #endif
 
+#if defined(RP2350) && defined(USE_LED_STRIP)
+    if (ws2811LedStripFailure()) {
+        cliPrintLinef("LED strip not started: %s", ws2811LedStripFailure());
+    }
+#endif
+
     cliPrintf("System load: %d", averageSystemLoadPercent);
     const timeDelta_t pidTaskDeltaTime = getTaskDeltaTime(TASK_PID);
     const int pidRate = pidTaskDeltaTime == 0 ? 0 : (int)(1000000.0f / ((float)pidTaskDeltaTime));

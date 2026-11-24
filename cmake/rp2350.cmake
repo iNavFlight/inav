@@ -28,7 +28,7 @@ main_sources(RP2350_COMMON_SRC_EXCLUDES
     drivers/accgyro/accgyro_mpu.c
     drivers/display_ug2864hsweg01.c
     io/displayport_oled.c
-    # LED strip: replaced by light_ws2811strip_rp2350.c (PIO2+DMA, no timer/DMA abstraction)
+    # LED strip: replaced by light_ws2811strip_rp2350.c (PWM slice + DMA)
     drivers/light_ws2811strip.c
     # I2C: replaced by bus_i2c_rp2350.c (Pico SDK blocking API; HAL version needs STM32 HAL)
     drivers/bus_i2c_hal.c

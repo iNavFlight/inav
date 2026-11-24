@@ -156,10 +156,7 @@
 #define MAX_PWM_OUTPUT_PORTS        4
 
 #define USE_LED_STRIP
-#define WS2811_PIN                  PB7     // GPIO23, non-inverting level shifter
-// On PIO1 with UART3/UART4, keeps PIO2 free. PIO1 has four state machines: the
-// strip takes one, a PIO UART one per direction, so both UARTs in RX+TX do not fit.
-#define PIO_LEDSTRIP_INDEX          1
+#define WS2811_PIN                  PB7     // GPIO23, PWM slice 3, non-inverting level shifter
 
 // 10 V VTX rail enable, active high. Inverted, so that the rail is on from
 // boot and the USER1 box switches it off.

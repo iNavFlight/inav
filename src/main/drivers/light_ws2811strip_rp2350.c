@@ -23,28 +23,22 @@
  */
 
 /*
- * RP2350 WS2812 LED strip driver — PIO + DMA.
- *
- * Replaces the STM32 timer/DMA implementation in light_ws2811strip.c for
- * RP2350 targets.  Uses the PIO block picked by PIO_LEDSTRIP_INDEX with a 4-instruction
- * WS2812 program and a DMA channel to stream GRB words to the PIO TX FIFO.
+ * RP2350 WS2812 LED strip driver — hardware PWM + DMA.
  *
  * Replaces the generic light_ws2811strip.c (excluded from RP2350 builds in
  * cmake/rp2350.cmake) and provides all functions declared in
  * drivers/light_ws2811strip.h.
  *
- * Pin: WS2811_PIN (GP22 = PB6 in target.h) — free from flash/I2C/UART/SPI.
- * PIO: any free state machine of that block, loaded once at ws2811LedStripInit().
- * DMA: one channel, polled for completion — no IRQ needed.
+ * Same principle as the STM32 driver: the PWM slice of WS2811_PIN runs at
+ * 800 kHz and a DMA channel, paced by the wrap of that slice, writes the
+ * compare value of every bit. It takes no PIO state machine, so the PIO blocks
+ * stay free for DSHOT, the PIO UARTs and the OSD.
  *
- * GRB word layout in led_data[] (WS2812 native order, left-shift OSR, 24-bit
- * autopull):
- *   bits 31:24 = G[7:0]   — transmitted first
- *   bits 23:16 = R[7:0]
- *   bits 15: 8 = B[7:0]   — transmitted last
- *   bits  7: 0 = 0x00     — discarded after 24-bit autopull fires
+ * The slice is shared by two GPIOs (and by the GPIO 16 above/below). When a
+ * motor or servo output already runs on it, the strip is not started.
  *
- * Reference: Betaflight src/platform/PICO/light_ws2811strip_pico.c
+ * The compare register is latched at the wrap, so a value written after wrap
+ * N is on the pin from wrap N+1.
  */
 
 #include <stdbool.h>
@@ -59,55 +53,41 @@
 #include "common/colorconversion.h"
 #include "common/log.h"
 #include "common/maths.h"
+#include "common/time.h"
 #include "common/utils.h"
 
 #include "drivers/io.h"
 #include "drivers/light_ws2811strip.h"
+#include "drivers/time.h"
 
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
-#include "hardware/pio.h"
+#include "hardware/gpio.h"
+#include "hardware/pwm.h"
 
-/* ─── PIO program ─────────────────────────────────────────────────────────── */
-/*
- * 4-instruction WS2812 program.  Timing (10 cycles/bit at 800 kHz):
- *   T1=3, T2=3, T3=4  → period = 10 cycles
- *   0-bit: high=3, low=7  1-bit: high=6, low=4
- * Identical to BF's light_ws2811strip_pico.c.
- */
-#define WS2812_WRAP_TARGET  0
-#define WS2812_WRAP         3
-#define WS2812_PIO_VERSION  0
-#define WS2812_T1 3
-#define WS2812_T2 3
-#define WS2812_T3 4
+// One leading slot with the line low: a wrap request that was pending when the
+// DMA channel starts must not eat the first data bit. One trailing slot leaves
+// the compare value at zero, the line stays low after the frame.
+#define WS2811_LEAD_SLOTS       1
+#define WS2811_TAIL_SLOTS       1
+#define WS2811_BUFFER_SIZE      (WS2811_LEAD_SLOTS + WS2811_LED_STRIP_LENGTH * WS2811_BITS_PER_LED + WS2811_TAIL_SLOTS)
 
-static const uint16_t ws2812_program_instructions[] = {
-    //                .wrap_target
-    0x6321,  /* 0: out  x, 1           side 0 [3] */
-    0x1223,  /* 1: jmp  !x, 3          side 1 [2] */
-    0x1200,  /* 2: jmp  0              side 1 [2] */
-    0xa242,  /* 3: nop                 side 0 [2] */
-    //                .wrap
-};
-
-static const struct pio_program ws2812_program = {
-    .instructions  = ws2812_program_instructions,
-    .length        = 4,
-    .origin        = -1,
-    .pio_version   = WS2812_PIO_VERSION,
-    .used_gpio_ranges = 0x0,
-};
+// Low time that latches the frame. 50 us for the first WS2812, 280 us for the current WS2812B.
+#define WS2811_RESET_US         300
 
 /* ─── State ───────────────────────────────────────────────────────────────── */
 
 static hsvColor_t   ledColorBuffer[WS2811_LED_STRIP_LENGTH];
-static uint32_t     led_data[WS2811_LED_STRIP_LENGTH];   /* GRB words for PIO */
+static uint32_t     ledPwmBuffer[WS2811_BUFFER_SIZE];   // compare register value per bit
 
-static PIO          ledStripPio   = NULL;
-static uint         ledStripSm    = 0;
 static int          ledStripDmaCh = -1;
 static bool         ledStripInitialised = false;
+static uint16_t     ledBitPeriod;       // PWM counts per bit
+static uint32_t     ledCompareBit0;     // compare register values: the level sits in the half of the strip channel
+static uint32_t     ledCompareBit1;
+static uint32_t     ledPwmClockHz;
+static const char   *ledStripFailure;
+static timeUs_t     ledStripReadyAtUs;  // end of the last frame including the reset time
 
 /* ─── Color buffer helpers (identical to generic light_ws2811strip.c) ─────── */
 
@@ -147,107 +127,96 @@ void setStripColors(const hsvColor_t *colors)
 
 /* ─── Status ─────────────────────────────────────────────────────────────── */
 
+// Why the strip was not started, for the status command. NULL when it runs or was never enabled.
+const char *ws2811LedStripFailure(void)
+{
+    return ledStripFailure;
+}
+
 bool isWS2811LedStripReady(void)
 {
-    if (!ledStripInitialised || ledStripDmaCh < 0) {
+    if (!ledStripInitialised) {
         return false;
     }
-    return !dma_channel_is_busy((uint)ledStripDmaCh);
+    return !dma_channel_is_busy((uint)ledStripDmaCh) && cmpTimeUs(micros(), ledStripReadyAtUs) >= 0;
 }
 
 /* ─── Hardware init ──────────────────────────────────────────────────────── */
 
 void ws2811LedStripInit(void)
 {
-    /* WS2811_PIN is defined in target.h (e.g. PB6 = GP22).
-     * DEFIO_TAG_GPIOID gives the port index (0=PA,1=PB); DEFIO_TAG_PIN
-     * gives the bit within the port.  GPIO number = gpioid*16 + pin. */
+    if (ledStripInitialised) {
+        return;
+    }
+
+    /* DEFIO_TAG_GPIOID gives the port index (0=PA, 1=PB, ...), DEFIO_TAG_PIN
+     * the bit within the port. GPIO number = gpioid*16 + pin. */
     const ioTag_t tag = IO_TAG(WS2811_PIN);
     const uint gpio   = (uint)(DEFIO_TAG_GPIOID(tag) * 16 + DEFIO_TAG_PIN(tag));
+    const uint slice  = pwm_gpio_to_slice_num(gpio);
+    const uint chan   = pwm_gpio_to_channel(gpio);
 
-    ledStripPio = PIO_INSTANCE(PIO_LEDSTRIP_INDEX);
-
-    /* A PIO block reaches 32 GPIOs from its base: 0..31, or 16..47 (RP2350B
-     * only). The base belongs to the whole block, so it is only moved while no
-     * other driver has a state machine on it. */
-    const uint gpioBase = pio_get_gpio_base(ledStripPio);
-    if (gpio < gpioBase || gpio >= gpioBase + 32) {
-        bool blockInUse = false;
-        for (uint i = 0; i < NUM_PIO_STATE_MACHINES; i++) {
-            blockInUse = blockInUse || pio_sm_is_claimed(ledStripPio, i);
-        }
-        if (blockInUse || pio_set_gpio_base(ledStripPio, gpio >= 32 ? 16u : 0u) != PICO_OK) {
-            LOG_ERROR(SYSTEM, "LED strip: pin outside the GPIO range of PIO%d", PIO_LEDSTRIP_INDEX);
-            return;
-        }
-    }
-
-    /* State machine first: without one the program must not stay loaded in a
-     * PIO block that is shared with other drivers. */
-    const int sm = pio_claim_unused_sm(ledStripPio, false);
-    if (sm < 0) {
-        LOG_ERROR(SYSTEM, "LED strip: no free PIO%d state machine", PIO_LEDSTRIP_INDEX);
+    /* The strip needs the whole slice: its period, and the DMA writes the
+     * compare values of both channels. Motor and servo outputs are set up
+     * earlier in init() (pwmMotorAndServoInit), so a slice that already runs
+     * belongs to one of them. */
+    if (pwm_hw->slice[slice].csr & PWM_CH0_CSR_EN_BITS) {
+        ledStripFailure = "PWM slice used by a motor or servo output";
+        LOG_ERROR(SYSTEM, "LED strip: PWM slice %u is used by a motor or servo output", slice);
         return;
     }
-    if (!pio_can_add_program(ledStripPio, &ws2812_program)) {
-        pio_sm_unclaim(ledStripPio, (uint)sm);
-        LOG_ERROR(SYSTEM, "LED strip: no room for the program in PIO%d", PIO_LEDSTRIP_INDEX);
-        return;
-    }
-    const uint offset = (uint)pio_add_program(ledStripPio, &ws2812_program);
-    ledStripSm = (uint)sm;
 
-    pio_gpio_init(ledStripPio, gpio);
-#ifdef WS2811_PIN_INVERTED
-    // For boards whose level shifter inverts. After pio_gpio_init(), which resets the override.
-    gpio_set_outover(gpio, GPIO_OVERRIDE_INVERT);
-#endif
-    pio_sm_set_consecutive_pindirs(ledStripPio, ledStripSm, gpio, 1, true);
-
-    pio_sm_config c = pio_get_default_sm_config();
-    sm_config_set_wrap(&c, offset + WS2812_WRAP_TARGET, offset + WS2812_WRAP);
-    sm_config_set_sideset(&c, 1, false, false);
-    sm_config_set_sideset_pins(&c, gpio);
-    /* Left shift (MSB first), autopull after 24 bits (RGB; not RGBW) */
-    sm_config_set_out_shift(&c, false, true, 24);
-    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
-
-    const int cycles_per_bit = WS2812_T1 + WS2812_T2 + WS2812_T3;
-    const float div = (float)clock_get_hz(clk_sys) / ((float)WS2811_CARRIER_HZ * (float)cycles_per_bit);
-    sm_config_set_clkdiv(&c, div);
-
-    pio_sm_init(ledStripPio, ledStripSm, offset, &c);
-    pio_sm_set_enabled(ledStripPio, ledStripSm, true);
-
-    const int dma_ch = dma_claim_unused_channel(false);
-    if (dma_ch < 0) {
-        /* Give the PIO back: the block may be shared */
-        pio_sm_set_enabled(ledStripPio, ledStripSm, false);
-        pio_remove_program(ledStripPio, &ws2812_program, offset);
-        pio_sm_unclaim(ledStripPio, ledStripSm);
+    const int dmaCh = dma_claim_unused_channel(false);
+    if (dmaCh < 0) {
+        ledStripFailure = "no free DMA channel";
         LOG_ERROR(SYSTEM, "LED strip: no free DMA channel");
         return;
     }
-    ledStripDmaCh = dma_ch;
+    ledStripDmaCh = dmaCh;
 
+    /* clk_sys is 150, 192 or 240 MHz (cpu_overclock): 188, 240 or 300 counts per bit */
+    ledPwmClockHz  = clock_get_hz(clk_sys);
+    ledBitPeriod   = (uint16_t)((ledPwmClockHz + WS2811_CARRIER_HZ / 2) / WS2811_CARRIER_HZ);
+    /* Channel A is the low half of the compare register, channel B the high
+     * half. The other channel is written as zero. */
+    const uint shift = (chan == PWM_CHAN_B) ? PWM_CH0_CC_B_LSB : PWM_CH0_CC_A_LSB;
+    ledCompareBit0 = (uint32_t)(ledBitPeriod * 8 / 25) << shift;    // 0.4 us high
+    ledCompareBit1 = (uint32_t)(ledBitPeriod * 16 / 25) << shift;   // 0.8 us high
+
+    pwm_config cfg = pwm_get_default_config();
+    pwm_config_set_clkdiv_int(&cfg, 1);
+    pwm_config_set_wrap(&cfg, (uint16_t)(ledBitPeriod - 1));
+    pwm_init(slice, &cfg, false);
+    pwm_set_both_levels(slice, 0, 0);
+    pwm_set_enabled(slice, true);
+
+    gpio_set_function(gpio, GPIO_FUNC_PWM);
+#ifdef WS2811_PIN_INVERTED
+    // For boards whose level shifter inverts. After gpio_set_function(), which resets the override.
+    gpio_set_outover(gpio, GPIO_OVERRIDE_INVERT);
+#endif
+
+    /* Whole-register writes: a narrow write would be repeated in both halves
+     * of the register and put the strip data on the other channel too. */
     dma_channel_config dc = dma_channel_get_default_config((uint)ledStripDmaCh);
     channel_config_set_transfer_data_size(&dc, DMA_SIZE_32);
     channel_config_set_read_increment(&dc, true);
     channel_config_set_write_increment(&dc, false);
-    channel_config_set_dreq(&dc, pio_get_dreq(ledStripPio, ledStripSm, true));
+    channel_config_set_dreq(&dc, pwm_get_dreq(slice));
 
     dma_channel_configure(
         (uint)ledStripDmaCh,
         &dc,
-        &ledStripPio->txf[ledStripSm],  /* write: PIO TX FIFO      */
+        &pwm_hw->slice[slice].cc,
         NULL,                            /* read: set at start time */
-        WS2811_LED_STRIP_LENGTH,
+        WS2811_BUFFER_SIZE,
         false
     );
 
     memset(ledColorBuffer, 0, sizeof(ledColorBuffer));
-    memset(led_data, 0, sizeof(led_data));
+    memset(ledPwmBuffer, 0, sizeof(ledPwmBuffer));
 
+    ledStripReadyAtUs = micros();
     ledStripInitialised = true;
 
     /* Send an all-zeros frame to reset any previously lit strip */
@@ -258,11 +227,9 @@ void ws2811LedStripInit(void)
 
 void ws2811UpdateStrip(uint16_t usedLedCount)
 {
-    if (!ledStripInitialised || ledStripDmaCh < 0) {
-        return;
-    }
-    /* Don't start a new frame while the previous one is still in flight */
-    if (dma_channel_is_busy((uint)ledStripDmaCh)) {
+    /* Don't start a new frame while the previous one is still in flight or
+     * the strip has not latched it yet */
+    if (!isWS2811LedStripReady()) {
         return;
     }
 
@@ -273,28 +240,36 @@ void ws2811UpdateStrip(uint16_t usedLedCount)
         return;
     }
 
-    /* Convert HSV → GRB.  WS2812 bit order: G[7:0] R[7:0] B[7:0], MSB first.
-     * Pack into bits 31:8 of the 32-bit word; the PIO left-shifts 24 bits out
-     * then autopulls the next word (bottom 8 bits are discarded). */
+    /* WS2812 bit order: G[7:0] R[7:0] B[7:0], MSB first */
+    uint32_t *slot = &ledPwmBuffer[WS2811_LEAD_SLOTS];
     for (uint16_t i = 0; i < ledCount; i++) {
         const rgbColor24bpp_t *rgb = hsvToRgb24(&ledColorBuffer[i]);
-        led_data[i] = ((uint32_t)rgb->rgb.g << 24)
-                    | ((uint32_t)rgb->rgb.r << 16)
-                    | ((uint32_t)rgb->rgb.b <<  8);
+        const uint32_t grb = ((uint32_t)rgb->rgb.g << 16) | ((uint32_t)rgb->rgb.r << 8) | rgb->rgb.b;
+        for (uint32_t mask = 1u << (WS2811_BITS_PER_LED - 1); mask; mask >>= 1) {
+            *slot++ = (grb & mask) ? ledCompareBit1 : ledCompareBit0;
+        }
+    }
+    for (unsigned i = 0; i < WS2811_TAIL_SLOTS; i++) {
+        *slot++ = 0;
     }
 
-    dma_channel_set_read_addr((uint)ledStripDmaCh, led_data, false);
-    dma_channel_set_trans_count((uint)ledStripDmaCh, ledCount, false);
+    const uint32_t slots = (uint32_t)(slot - ledPwmBuffer);
+    /* One more period until the last value is on the pin */
+    const uint32_t frameUs = (uint32_t)((uint64_t)(slots + 1) * ledBitPeriod * 1000000u / ledPwmClockHz) + 1;
+    ledStripReadyAtUs = micros() + frameUs + WS2811_RESET_US;
+
+    dma_channel_set_read_addr((uint)ledStripDmaCh, ledPwmBuffer, false);
+    dma_channel_set_trans_count((uint)ledStripDmaCh, slots, false);
     dma_channel_start((uint)ledStripDmaCh);
 }
 
 /* ─── Stubs for BF-only / timer-based API ────────────────────────────────── */
 
 /* Called only when a plain-LED (non-WS2812) PWM pin mode is selected.
- * PIO-based WS2812 does not support this mode; leave as no-ops. */
+ * This driver does not support that mode; leave as no-ops. */
 void ledPinStartPWM(uint16_t value) { UNUSED(value); }
 void ledPinStopPWM(void) { }
-// PINIO channel 0 (the LED pad as an on/off output) is not available: the pad belongs to the PIO program
+// PINIO channel 0 (the LED pad as an on/off output) is not available: the pad belongs to the PWM slice
 void ws2811SetIdleHigh(bool high) { UNUSED(high); }
 
 /* Declared in the header for completeness; not called by INAV at runtime. */

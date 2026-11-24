@@ -69,15 +69,15 @@ UART3 is a software (PIO) UART and less capable than UART1 and UART2:
 
 It is fine for GPS, ESC telemetry and MSP. Keep the receiver on UART2.
 
-UART3 and the LED strip share the four state machines of PIO1. The LED strip
-takes one and UART3 one per direction it uses, so both always fit.
-
 ## Beeper and LED strip
 
 * Beeper: an active 5 V beeper between the B+ and B- pads. A passive beeper
   does not work, `beeper_pwm_mode` has to stay `OFF`.
 * LED strip: WS2812 on the LED pad, the signal is level-shifted to 5 V on the
-  board.
+  board. All LED pads carry the same signal. The strip needs a DSHOT motor
+  protocol: with a PWM protocol (Standard, OneShot, Multishot) motors 1 and 2
+  use the same PWM slice and the strip stays dark, `status` then shows
+  `LED strip not started`.
 
 ## Defaults
 

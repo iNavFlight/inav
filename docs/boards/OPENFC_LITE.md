@@ -70,18 +70,15 @@ UART3 and UART4 are software (PIO) UARTs and less capable than UART1 and UART2:
 
 They are fine for GPS, ESC telemetry and MSP. Keep the receiver on UART2.
 
-UART3, UART4 and the LED strip share the four state machines of PIO1. The LED
-strip takes one and each PIO UART one per direction it uses, so the defaults
-(GPS on UART3, receive-only ESC telemetry on UART4, LED strip) fit exactly. With
-functions that both send and receive on UART3 and on UART4, whichever of the
-two ports or the LED strip starts last does not work.
+UART3 and UART4 share the four state machines of PIO1, one per direction a
+port uses, so both ports can send and receive at the same time.
 
 ## Beeper and LED strip
 
 * Beeper: an active 5 V beeper between the B+ and B- pads. A passive beeper
   does not work, `beeper_pwm_mode` has to stay `OFF`.
 * LED strip: WS2812 on the LED pads, the signal is level-shifted to 5 V on the
-  board.
+  board. All LED pads carry the same signal.
 
 ## Defaults
 
