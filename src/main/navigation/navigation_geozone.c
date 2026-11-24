@@ -1442,6 +1442,17 @@ static void updateZoneInfos(void)
     geozone.nearestHorZoneHasAction = nearestHorZone && nearestHorZone->config.fenceAction != GEOFENCE_ACTION_NONE;
 }
 
+// AVOID is only valid on airplanes. Choose at action time so a VTOL
+// mixer-profile switch is honoured; geoZoneInit() only runs once.
+static fenceAction_e geoZoneEffectiveFenceAction(const geoZoneRuntimeConfig_t *zone)
+{
+    if (!STATE(AIRPLANE) && zone->config.fenceAction == GEOFENCE_ACTION_AVOID) {
+        return GEOFENCE_ACTION_POS_HOLD;
+    }
+
+    return zone->config.fenceAction;
+}
+
 void performeFenceAction(geoZoneRuntimeConfig_t *zone, fpVector3_t *intersection)
 {
     // Actions only for assisted modes now
@@ -1456,8 +1467,10 @@ void performeFenceAction(geoZoneRuntimeConfig_t *zone, fpVector3_t *intersection
 
     fpVector3_t prevPoint;
     calcPreviewPoint(&prevPoint, geoZoneConfig()->fenceDetectionDistance);
-    
-    if (zone->config.fenceAction == GEOFENCE_ACTION_AVOID) {     
+
+    const fenceAction_e fenceAction = geoZoneEffectiveFenceAction(zone);
+
+    if (fenceAction == GEOFENCE_ACTION_AVOID) {
         bool avoidFzStep = false;
         float fzStepAlt = 0;
         if (zone->config.type == GEOZONE_TYPE_INCLUSIVE) {
@@ -1525,7 +1538,7 @@ void performeFenceAction(geoZoneRuntimeConfig_t *zone, fpVector3_t *intersection
             avoidingPoint = *intersection;
             activateSendTo();
         }
-    } else if (zone->config.fenceAction == GEOFENCE_ACTION_POS_HOLD) {
+    } else if (fenceAction == GEOFENCE_ACTION_POS_HOLD) {
         actionState = GEOZONE_ACTION_STATE_POSHOLD;
         
         if (STATE(AIRPLANE)) {
@@ -1550,7 +1563,7 @@ void performeFenceAction(geoZoneRuntimeConfig_t *zone, fpVector3_t *intersection
         geozone.sticksLocked = true;
         activateForcedPosHold();
         actionStartTime = millis();
-    } else if (zone->config.fenceAction == GEOFENCE_ACTION_RTH) {
+    } else if (fenceAction == GEOFENCE_ACTION_RTH) {
         actionState = GEOZONE_ACTION_STATE_RTH;
         geozone.sticksLocked = true;
         activateForcedRTH();
@@ -1621,10 +1634,6 @@ static void geoZoneInit(void)
             }
 
             zone->isInfZone = zone->config.maxAltitude == INT32_MAX && zone->config.minAltitude == 0;
-
-            if (!STATE(AIRPLANE) && zone->config.fenceAction == GEOFENCE_ACTION_AVOID) {
-                zone->config.fenceAction = GEOFENCE_ACTION_POS_HOLD;
-            }
 
             zone->enable = true;
             activeGeoZonesCount++;
