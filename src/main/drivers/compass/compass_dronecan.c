@@ -21,10 +21,11 @@
  * (uavcan.equipment.ahrs.MagneticFieldStrength / MagneticFieldStrength2).
  *
  * The data is handled exactly like the MSP compass: the peripheral sends the
- *  field in the vehicle body frame (front, right, down). Only the first sensor
- * that reports is used.
+ * field in the vehicle body frame (front, right, down). Only the first sensor
+ * that reports is used, identified by its CAN node ID and sensor ID.
  */
 
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -56,23 +57,30 @@ static bool dronecanMagInit(magDev_t *magDev)
     return true;
 }
 
-void dronecanMagReceiveNewData(uint8_t sensorId, const float fieldGauss[3])
+void dronecanMagReceiveNewData(uint8_t nodeId, uint8_t sensorId, const float fieldGauss[3])
 {
-    // Lock onto the first sensor that reports
-    static int16_t lockedSensorId = -1;
+    // Lock onto the first sensor that reports (CAN node ID + sensor ID)
+    static int32_t lockedSensor = -1;
+    const int32_t sensor = ((int32_t)nodeId << 8) | sensorId;
 
-    if (lockedSensorId < 0) {
-        lockedSensorId = sensorId;
-    } else if (sensorId != lockedSensorId) {
+    if (lockedSensor < 0) {
+        lockedSensor = sensor;
+    } else if (sensor != lockedSensor) {
         return;
     }
 
-    // Gauss -> milliGauss, same units and frame as the MSP compass
-    dronecanMagData[X] = fieldGauss[0] * 1000.0f;
-    dronecanMagData[Y] = fieldGauss[1] * 1000.0f;
-    dronecanMagData[Z] = fieldGauss[2] * 1000.0f;
+    // Gauss -> milliGauss, same units and frame as the MSP compass.
+    // Drop the sample if a value is not finite or does not fit magADCRaw (int16).
+    float field[XYZ_AXIS_COUNT];
 
-    applySensorAlignment(dronecanMagData, dronecanMagData, CW90_DEG_FLIP);
+    for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
+        field[axis] = fieldGauss[axis] * 1000.0f;
+        if (!isfinite(field[axis]) || fabsf(field[axis]) > INT16_MAX) {
+            return;
+        }
+    }
+
+    applySensorAlignment(dronecanMagData, field, CW90_DEG_FLIP);
 
     dronecanMagLastUpdateMs = millis();
 }

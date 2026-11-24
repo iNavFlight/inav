@@ -24,4 +24,4 @@
 bool dronecanMagDetect(magDev_t *mag);
 
 // Magnetic field in Gauss, body frame (front, right, down)
-void dronecanMagReceiveNewData(uint8_t sensorId, const float fieldGauss[3]);
+void dronecanMagReceiveNewData(uint8_t nodeId, uint8_t sensorId, const float fieldGauss[3]);

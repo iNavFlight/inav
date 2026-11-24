@@ -510,7 +510,7 @@ static void handle_MagneticFieldStrength(CanardInstance *ins, CanardRxTransfer *
         LOG_WARNING(CAN, "MagneticFieldStrength decode failed");
         return;
     }
-    dronecanMagReceiveNewData(0, msg.magnetic_field_ga);
+    dronecanMagReceiveNewData(transfer->source_node_id, 0, msg.magnetic_field_ga);
 }
 
 static void handle_MagneticFieldStrength2(CanardInstance *ins, CanardRxTransfer *transfer) {
@@ -522,7 +522,7 @@ static void handle_MagneticFieldStrength2(CanardInstance *ins, CanardRxTransfer 
         LOG_WARNING(CAN, "MagneticFieldStrength2 decode failed");
         return;
     }
-    dronecanMagReceiveNewData(msg.sensor_id, msg.magnetic_field_ga);
+    dronecanMagReceiveNewData(transfer->source_node_id, msg.sensor_id, msg.magnetic_field_ga);
 }
 #endif
 

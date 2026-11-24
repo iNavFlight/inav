@@ -106,6 +106,8 @@ set_property(SOURCE dronecan_application_unittest.cc PROPERTY extra_sources
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Fix.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.Auxiliary.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.power.BatteryInfo.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.ahrs.MagneticFieldStrength.c"
+    "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.ahrs.MagneticFieldStrength2.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.RTCMStream.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.Timestamp.c"
     "../../lib/main/Dronecan/dsdlc_generated/src/uavcan.equipment.gnss.ECEFPositionVelocity.c"
