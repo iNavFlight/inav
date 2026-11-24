@@ -214,18 +214,28 @@ void systemApplyCpuOverclock(cpuOverclock_e overclock)
 
 #endif // USE_CPU_OVERCLOCK
 
-static bool usb_task_timer_cb(repeating_timer_t *rt)
-{
-    (void)rt;
-    // The main loop is inside TinyUSB and may hold a mutex tud_task() needs
-    if (rp2350UsbBusy) {
-        return true;
-    }
-    tud_task();
-    return true;
-}
+#define USB_TASK_PERIOD_US  1000
 
-static repeating_timer_t usb_task_timer;
+/*
+ * Own hardware alarm, not a repeating timer of the SDK alarm pool: the pool
+ * loses a timer whose callback returns within the microsecond the alarm fired
+ * in. ta_set_timeout() then reads "alarm == now" as an alarm that is still to
+ * come and does not arm the next one, and nothing ever does. The callback is
+ * that short whenever it only finds the busy flag set, and the CPU fast enough
+ * from about 190 MHz: USB then stopped for good as soon as the host read the
+ * CLI output slower than it was written (cpu_overclock, slow terminal).
+ * Here the next alarm is always written.
+ */
+static void usbTaskAlarm(uint alarmNum)
+{
+    // The main loop is inside TinyUSB and may hold a mutex tud_task() needs
+    if (!rp2350UsbBusy) {
+        tud_task();
+    }
+    // true = the target is already over, only after a long stall in here
+    while (hardware_alarm_set_target(alarmNum, make_timeout_time_us(USB_TASK_PERIOD_US))) {
+    }
+}
 
 void systemInit(void)
 {
@@ -256,14 +266,17 @@ void systemInit(void)
     }
 #endif
 
-    // Drive USB CDC from a dedicated 1ms hardware alarm so tud_task() runs even
+    // Drive USB CDC from a dedicated 1 ms hardware alarm so tud_task() runs even
     // when the cooperative scheduler is busy (e.g. during long tasks or CLI mode).
-    // Only ONE caller of tud_task() exists: this timer.  pico_stdio_usb is disabled
-    // (LIB_PICO_STDIO_USB=0) so stdio_usb_init() registers no competing IRQ/alarm.
-    if (!add_repeating_timer_ms(-1, usb_task_timer_cb, NULL, &usb_task_timer)) {
-        // Alarm pool exhausted — USB CDC will not receive background servicing.
-        // Nothing useful to do here; continue boot without functional USB.
+    // pico_stdio_usb is disabled (LIB_PICO_STDIO_USB=0) so stdio_usb_init()
+    // registers no competing IRQ/alarm.
+    const int usbAlarm = hardware_alarm_claim_unused(false);
+    if (usbAlarm >= 0) {
+        hardware_alarm_set_callback((uint)usbAlarm, usbTaskAlarm);
+        hardware_alarm_set_target((uint)usbAlarm, make_timeout_time_us(USB_TASK_PERIOD_US));
     }
+    // No free alarm: USB CDC gets no background servicing. Nothing useful to
+    // do here; continue boot without functional USB.
 
     // stdio_init_all() is a no-op for USB (LIB_PICO_STDIO_USB=0 skips stdio_usb_init).
     // Kept here in case UART stdio is re-enabled in the future.

@@ -27,10 +27,10 @@
  *
  * Implements INAV's serialPort_t vtable using TinyUSB CDC class.
  * TinyUSB is initialized in systemInit() via tusb_init(); USB event processing
- * is driven exclusively by a 1ms repeating hardware alarm in systemInit().
- * tud_task() must only be called from that single timer callback — calling it
- * from foreground code while the timer IRQ can preempt creates re-entrancy
- * that corrupts TinyUSB shared state.
+ * is driven by a 1 ms hardware alarm in systemInit(). Foreground code calls
+ * into TinyUSB only with rp2350UsbBusy set, which keeps that alarm out:
+ * tud_task() from the alarm on top of a foreground call is re-entrancy that
+ * corrupts TinyUSB shared state or waits for a mutex forever.
  *
  * This file also provides the three mandatory TinyUSB descriptor callbacks
  * (tud_descriptor_device_cb, tud_descriptor_configuration_cb,
@@ -80,12 +80,9 @@ static inline void usbBusyLeave(void)
     rp2350UsbBusy = 0;
 }
 
-// The FIFO is full and only tud_task() can start the next packet. Waiting for
-// the 1 ms timer to do it does not work from a loop that holds the busy flag
-// nearly all the time: the timer has to land in the few cycles where the flag
-// is clear, and since it runs off the same crystal as the CPU it can miss them
-// on every tick (seen at 192 MHz: CLI output stopped for good). Called with
-// the busy flag set, so the timer keeps out.
+// The FIFO is full and only tud_task() can start the next packet. The 1 ms
+// alarm skips it while the busy flag is set, which in this loop is nearly all
+// the time, so it is called here. With the busy flag set: the alarm keeps out.
 static void usbTxPump(void)
 {
     tud_task();
@@ -251,7 +248,7 @@ static const struct serialPortVTable usbVTable[] = {
 void usbVcpInitHardware(void)
 {
     // tusb_init() is called in systemInit() before fc_init(); tud_task() is
-    // driven only by systemInit()'s 1ms repeating timer (usb_task_timer_cb).
+    // driven by the 1 ms hardware alarm of systemInit() (usbTaskAlarm).
     // Nothing additional needed here.
 }
 
