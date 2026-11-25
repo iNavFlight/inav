@@ -271,3 +271,38 @@ TEST(MathsUnittest, TestPowfApprox)
     EXPECT_FLOAT_EQ(powf_approx(NAN, 1.5f), 0.0f);
     EXPECT_FLOAT_EQ(powf_approx(2.0f, NAN), 0.0f);
 }
+
+// The conversion macros must bracket their argument, so that an expression passed
+// to them is converted as a whole and not only its last operand.
+TEST(MathsUnittest, TestMacrosBracketArgument)
+{
+    const int high = 300;
+    const int low = 100;
+    const bool yes = true;
+
+    EXPECT_FLOAT_EQ(MILLIMETERS_TO_CENTIMETERS(high - low), MILLIMETERS_TO_CENTIMETERS(200));
+    EXPECT_FLOAT_EQ(CENTIMETERS_TO_CENTIFEET(high - low), CENTIMETERS_TO_CENTIFEET(200));
+    EXPECT_FLOAT_EQ(CENTIMETERS_TO_FEET(high - low), CENTIMETERS_TO_FEET(200));
+    EXPECT_FLOAT_EQ(CENTIMETERS_TO_METERS(high - low), CENTIMETERS_TO_METERS(200));
+    EXPECT_FLOAT_EQ(CENTIMETERS_TO_METERS(yes ? high : low), CENTIMETERS_TO_METERS(300));
+    EXPECT_EQ(METERS_TO_CENTIMETERS(high - low), METERS_TO_CENTIMETERS(200));
+    EXPECT_FLOAT_EQ(METERS_TO_KILOMETERS(high - low), METERS_TO_KILOMETERS(200));
+    EXPECT_FLOAT_EQ(METERS_TO_MILES(high - low), METERS_TO_MILES(200));
+    EXPECT_FLOAT_EQ(METERS_TO_NAUTICALMILES(high - low), METERS_TO_NAUTICALMILES(200));
+    EXPECT_FLOAT_EQ(MWH_TO_WH(high - low), MWH_TO_WH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_CENTIMPH(high - low), CMSEC_TO_CENTIMPH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_CENTIKPH(high - low), CMSEC_TO_CENTIKPH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_CENTIKNOTS(high - low), CMSEC_TO_CENTIKNOTS(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_MPH(high - low), CMSEC_TO_MPH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_KPH(high - low), CMSEC_TO_KPH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_KNOTS(high - low), CMSEC_TO_KNOTS(200));
+    EXPECT_FLOAT_EQ(KMH_TO_MS(high - low), KMH_TO_MS(200));
+    EXPECT_FLOAT_EQ(C_TO_KELVIN(yes ? 20.0f : 0.0f), C_TO_KELVIN(20.0f));
+
+    EXPECT_EQ(SIGN(low & 0xFF), 1);
+
+    const uint8_t buf[] = { 0x12, 0x34, 0x56, 0x78 };
+    const int first = 0;
+    EXPECT_EQ(int16_val_big_endian(buf, first + 1), 0x5678);
+    EXPECT_EQ(int16_val_little_endian(buf, first + 1), 0x7856);
+}
