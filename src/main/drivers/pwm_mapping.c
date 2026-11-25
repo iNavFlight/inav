@@ -97,6 +97,15 @@ static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 {
     serialPortPins_t uartPins;
 
+#if defined(USE_UART1)
+    // MSP is UART1's default next to the VCP and has always given these pins up to the outputs
+    const serialPortConfig_t *uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
+    uartGetPortPins(UARTDEV_1, &uartPins);
+    if (uart1Config && (uart1Config->functionMask & ~FUNCTION_MSP) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
+        return true;
+    }
+#endif
+
 #if defined(USE_UART2)
     uartGetPortPins(UARTDEV_2, &uartPins);
     if (doesConfigurationUsePort(SERIAL_PORT_USART2) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
@@ -321,12 +330,18 @@ static void pwmAssignOutput(timMotorServoHardware_t *timOutputs, timerHardware_t
     }
 }
 
+static bool motorsUseHardwareTimers(void)
+{
+    return getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer;
+}
+
 void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
 {
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
-    const uint8_t motorCount = getMotorCount();
+    // A motor driven over a serial bus has no pad: reserving one would only take a servo's timer
+    const uint8_t motorCount = motorsUseHardwareTimers() ? getMotorCount() : 0;
 
     // Count servo outputs needed across all mixer profiles, matching
     // computeServoCount() / getServoCount() which also walk all profiles.
@@ -408,11 +423,6 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
             }
         }
     }
-}
-
-static bool motorsUseHardwareTimers(void)
-{
-    return getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer;
 }
 
 static bool servosUseHardwareTimers(void)

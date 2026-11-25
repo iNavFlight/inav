@@ -57,6 +57,8 @@ set_property(SOURCE telemetry_msp_shared_unittest.cc PROPERTY depends
 
 set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
+set_property(SOURCE uvarint_unittest.cc PROPERTY depends "common/uvarint.c")
+
 set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")
 
 # DroneCAN tests - headers in separate include/ dir, no auto .h transform needed
@@ -178,6 +180,11 @@ set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY depends
 # pid.c is #included by the access shim so the test can see its file-static state
 set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY extra_sources
     "../test/unit/pid_apa_iterm_update_access.c")
+
+set_property(SOURCE pid_fw_iterm_lock_fade_unittest.cc PROPERTY depends
+    "common/maths.c" "common/filter.c" "common/lulu.c")
+set_property(SOURCE pid_fw_iterm_lock_fade_unittest.cc PROPERTY extra_sources
+    "../test/unit/pid_fw_iterm_lock_fade_access.c")
 
 set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)

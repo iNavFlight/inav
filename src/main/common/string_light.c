@@ -82,3 +82,29 @@ int sl_strncasecmp(const char * s1, const char * s2, int n)
 
     return d;
 }
+
+const char * sl_strnstr(const char * haystack, const char * needle, int n)
+{
+    if (*needle == '\0') {
+        return haystack;
+    }
+    for (; n > 0 && *haystack != '\0'; haystack++, n--) {
+        const char * h = haystack;
+        const char * nd = needle;
+        int left = n;
+        while (left > 0 && *h != '\0' && *h == *nd) {
+            h++;
+            nd++;
+            left--;
+        }
+        if (*nd == '\0') {
+            return haystack;
+        }
+    }
+    return NULL;
+}
+
+const char * sl_strstr(const char * haystack, const char * needle)
+{
+    return sl_strnstr(haystack, needle, INT_MAX);
+}
