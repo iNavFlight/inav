@@ -149,6 +149,10 @@
 #include "hardware_revision.h"
 #endif
 
+#if defined(SITL_BUILD)
+#include "target/SITL/stepped_clock.h"
+#endif
+
 extern timeDelta_t cycleTime; // FIXME dependency on mw.c
 
 static const char * const flightControllerIdentifier = INAV_IDENTIFIER; // 4 UPPER CASE alpha numeric characters that identify the flight controller.
@@ -4742,8 +4746,24 @@ static mspResult_e mspProcessSimulatorCommand(sbuf_t *dst, sbuf_t *src, const in
             }
         } else {
             readMspSimulatorValues(src, remainingPayload, simMspVersion);
+#if defined(SITL_BUILD)
+            // The step closes a format 3 frame. It runs on the sensor values
+            // just read, and the reply below reports the state at its end.
+            if (simMspVersion == SIMULATOR_MSP_VERSION_3 && SIMULATOR_HAS_OPTION(HITL_STEPPED_CLOCK)) {
+                if (sbufBytesRemaining(src) < (int)sizeof(uint32_t) || !sitlRunStep(sbufReadU32(src))) {
+                    return MSP_RESULT_ERROR;
+                }
+            }
+#endif
         }
     }
+#if defined(SITL_BUILD)
+    else if (simMspVersion == SIMULATOR_MSP_VERSION_3 && SIMULATOR_HAS_OPTION(HITL_STEPPED_CLOCK)) {
+        // SITL mode frames carry no sensors: SITL's sensors come from a
+        // simulator that runs on its own wall clock, so there is no step to run
+        return MSP_RESULT_ERROR;
+    }
+#endif
 
     sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_ROLL]);
     sbufWriteU16(dst, (uint16_t)simulatorData.input[INPUT_STABILIZED_PITCH]);
@@ -4759,7 +4779,11 @@ static mspResult_e mspProcessSimulatorCommand(sbuf_t *dst, sbuf_t *src, const in
         ((mixerConfig()->platformType == PLATFORM_AIRPLANE) ? 128 : 0) |
         (ARMING_FLAG(ARMED) ? 64 : 0) |
         (!feature(FEATURE_OSD) ? 32: 0) |
-        (!isOSDTypeSupportedBySimulator() ? 16 : 0);
+        (!isOSDTypeSupportedBySimulator() ? 16 : 0)
+#if defined(SITL_BUILD)
+        | (sitlSteppedClockActive() ? 8 : 0)
+#endif
+        ;
 
     sbufWriteU8(dst, debugIndex);
     sbufWriteU32(dst, debug[simulatorData.debugIndex]);

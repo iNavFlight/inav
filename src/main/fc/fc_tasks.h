@@ -27,5 +27,6 @@ void taskUpdateRxMain(timeUs_t currentTimeUs);
 
 void taskMainPidLoop(timeUs_t currentTimeUs);
 void taskGyro(timeUs_t currentTimeUs);
+void taskHandleSerial(timeUs_t currentTimeUs);
 
 void fcTasksInit(void);

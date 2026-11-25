@@ -121,16 +121,19 @@ static tcpPort_t *tcpReConfigure(tcpPort_t *port, uint32_t id)
 }
 
 void tcpReceiveBytes( tcpPort_t *port, const uint8_t* buffer, ssize_t recvSize ) {
-    for (ssize_t i = 0; i < recvSize; i++) {
-        if (port->serialPort.rxCallback) {
+    if (port->serialPort.rxCallback) {
+        for (ssize_t i = 0; i < recvSize; i++) {
             port->serialPort.rxCallback((uint16_t)buffer[i], port->serialPort.rxCallbackData);
-        } else {
-            pthread_mutex_lock(&port->receiveMutex);
-            port->serialPort.rxBuffer[port->serialPort.rxBufferHead] = buffer[i];
-            port->serialPort.rxBufferHead = (port->serialPort.rxBufferHead + 1) % port->serialPort.rxBufferSize;
-            pthread_mutex_unlock(&port->receiveMutex);
         }
+        return;
     }
+
+    pthread_mutex_lock(&port->receiveMutex);
+    for (ssize_t i = 0; i < recvSize; i++) {
+        port->serialPort.rxBuffer[port->serialPort.rxBufferHead] = buffer[i];
+        port->serialPort.rxBufferHead = (port->serialPort.rxBufferHead + 1) % port->serialPort.rxBufferSize;
+    }
+    pthread_mutex_unlock(&port->receiveMutex);
 }
 
 void tcpReceiveBytesEx( int portIndex, const uint8_t* buffer, ssize_t recvSize ) {
@@ -238,6 +241,45 @@ uint8_t tcpRead(serialPort_t *instance)
     return ch;
 }
 
+// send() can take less than asked: send the rest, after a signal (EINTR)
+// retry, and when the socket buffer is full (EAGAIN, the client socket is
+// non-blocking on some systems) wait up to 100 ms for room before dropping
+// the rest. A dropped tail is a client that stopped reading.
+static void tcpSendAll(tcpPort_t *port, const void *data, int count)
+{
+    const uint8_t *next = data;
+
+    while (count > 0 && port->isClientConnected) {
+        const ssize_t sent = send(port->clientSocketFd, next, count, 0);
+        if (sent > 0) {
+            next += sent;
+            count -= sent;
+            continue;
+        }
+        if (sent < 0 && errno == EINTR) {
+            continue;
+        }
+        if (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            fd_set writable;
+            FD_ZERO(&writable);
+            FD_SET(port->clientSocketFd, &writable);
+            struct timeval timeout = { .tv_sec = 0, .tv_usec = 100000 };
+            if (select(port->clientSocketFd + 1, NULL, &writable, NULL, &timeout) > 0) {
+                continue;
+            }
+        }
+        return;
+    }
+}
+
+static void tcpSendStaged(tcpPort_t *port)
+{
+    if (port->txStaged > 0) {
+        tcpSendAll(port, port->txStage, port->txStaged);
+    }
+    port->txStaged = 0;
+}
+
 void tcpWritBuf(serialPort_t *instance, const void *data, int count)
 {
     tcpPort_t *port = (tcpPort_t*)instance;
@@ -246,7 +288,31 @@ void tcpWritBuf(serialPort_t *instance, const void *data, int count)
         return;
     }
 
-    send(port->clientSocketFd, data, count, 0);
+    // Between beginWrite and endWrite a frame is collected and sent whole: with TCP_NODELAY every
+    // send() is a packet, and an MSP reply is written as header, payload and checksum.
+    if (port->txStaging && count <= TCP_TX_STAGE_SIZE) {
+        if (port->txStaged + count > TCP_TX_STAGE_SIZE) {
+            tcpSendStaged(port);
+        }
+        memcpy(port->txStage + port->txStaged, data, count);
+        port->txStaged += count;
+        return;
+    }
+
+    tcpSendStaged(port);
+    tcpSendAll(port, data, count);
+}
+
+static void tcpBeginWrite(serialPort_t *instance)
+{
+    ((tcpPort_t *)instance)->txStaging = true;
+}
+
+static void tcpEndWrite(serialPort_t *instance)
+{
+    tcpPort_t *port = (tcpPort_t *)instance;
+    port->txStaging = false;
+    tcpSendStaged(port);
 }
 
 int getTcpPortIndex(const serialPort_t *instance) {
@@ -336,8 +402,8 @@ static const struct serialPortVTable tcpVTable[] = {
         .setOptions = tcpSetOptions,
         .isConnected = tcpIsConnected,
         .writeBuf = tcpWritBuf,
-        .beginWrite = NULL,
-        .endWrite = NULL,
+        .beginWrite = tcpBeginWrite,
+        .endWrite = tcpEndWrite,
         .isIdle = NULL,
     }
 };

@@ -29,6 +29,7 @@
 
 #if defined(SITL_BUILD)
 #include "target/SITL/serial_proxy.h"
+#include "target/SITL/stepped_clock.h"
 #endif
 
 
@@ -72,6 +73,12 @@ int main(void)
     while (true) {
 #if defined(SITL_BUILD)
         serialProxyProcess();
+        if (sitlSteppedClockActive()) {
+            // Sim time stands still between steps: only MSP is serviced, and
+            // the next MSP_SIMULATOR frame runs the next step.
+            sitlServiceBetweenSteps();
+            continue;
+        }
 #endif
         scheduler();
         processLoopback();
