@@ -57,6 +57,8 @@ set_property(SOURCE telemetry_msp_shared_unittest.cc PROPERTY depends
 
 set_property(SOURCE time_unittest.cc PROPERTY depends "drivers/time.c")
 
+set_property(SOURCE uvarint_unittest.cc PROPERTY depends "common/uvarint.c")
+
 set_property(SOURCE circular_queue_unittest.cc PROPERTY depends "common/circular_queue.c")
 
 # DroneCAN tests - headers in separate include/ dir, no auto .h transform needed
