@@ -20,6 +20,8 @@
 
 #include "platform.h"
 
+#include "common/utils.h"
+
 #include "drivers/time.h"
 #include "drivers/io.h"
 #include "rcc.h"
@@ -296,6 +298,101 @@ void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)
         pins->rxPin = IO_TAG(NONE);
     }
 }
+
+#ifdef USE_SERIAL_PADS
+static const uartAltPin_t uartAltPins[] = {
+#ifdef USE_UART1
+    UART_ALT_RX(1, PA10, GPIO_AF7_USART1),
+    UART_ALT_RX(1, PB7,  GPIO_AF7_USART1),
+    UART_ALT_RX(1, PB15, GPIO_AF4_USART1),
+    UART_ALT_TX(1, PA9,  GPIO_AF7_USART1),
+    UART_ALT_TX(1, PB6,  GPIO_AF7_USART1),
+    UART_ALT_TX(1, PB14, GPIO_AF4_USART1),
+#endif
+#ifdef USE_UART2
+    UART_ALT_RX(2, PA3,  GPIO_AF7_USART2),
+    UART_ALT_RX(2, PD6,  GPIO_AF7_USART2),
+    UART_ALT_TX(2, PA2,  GPIO_AF7_USART2),
+    UART_ALT_TX(2, PD5,  GPIO_AF7_USART2),
+#endif
+#ifdef USE_UART3
+    UART_ALT_RX(3, PB11, GPIO_AF7_USART3),
+    UART_ALT_RX(3, PC11, GPIO_AF7_USART3),
+    UART_ALT_RX(3, PD9,  GPIO_AF7_USART3),
+    UART_ALT_TX(3, PB10, GPIO_AF7_USART3),
+    UART_ALT_TX(3, PC10, GPIO_AF7_USART3),
+    UART_ALT_TX(3, PD8,  GPIO_AF7_USART3),
+#endif
+#ifdef USE_UART4
+    UART_ALT_RX(4, PA1,  GPIO_AF8_UART4),
+    UART_ALT_RX(4, PA11, GPIO_AF6_UART4),
+    UART_ALT_RX(4, PB8,  GPIO_AF8_UART4),
+    UART_ALT_RX(4, PC11, GPIO_AF8_UART4),
+    UART_ALT_RX(4, PD0,  GPIO_AF8_UART4),
+    UART_ALT_RX(4, PH14, GPIO_AF8_UART4),
+    UART_ALT_TX(4, PA0,  GPIO_AF8_UART4),
+    UART_ALT_TX(4, PA12, GPIO_AF6_UART4),
+    UART_ALT_TX(4, PB9,  GPIO_AF8_UART4),
+    UART_ALT_TX(4, PC10, GPIO_AF8_UART4),
+    UART_ALT_TX(4, PD1,  GPIO_AF8_UART4),
+    UART_ALT_TX(4, PH13, GPIO_AF8_UART4),
+#endif
+#ifdef USE_UART5
+    UART_ALT_RX(5, PB5,  GPIO_AF14_UART5),
+    UART_ALT_RX(5, PB12, GPIO_AF14_UART5),
+    UART_ALT_RX(5, PD2,  GPIO_AF8_UART5),
+    UART_ALT_TX(5, PB6,  GPIO_AF14_UART5),
+    UART_ALT_TX(5, PB13, GPIO_AF14_UART5),
+    UART_ALT_TX(5, PC12, GPIO_AF8_UART5),
+#endif
+#ifdef USE_UART6
+    UART_ALT_RX(6, PC7,  GPIO_AF7_USART6),
+    UART_ALT_RX(6, PG9,  GPIO_AF7_USART6),
+    UART_ALT_TX(6, PC6,  GPIO_AF7_USART6),
+    UART_ALT_TX(6, PG14, GPIO_AF7_USART6),
+#endif
+#ifdef USE_UART7
+    UART_ALT_RX(7, PA8,  GPIO_AF11_UART7),
+    UART_ALT_RX(7, PB3,  GPIO_AF11_UART7),
+    UART_ALT_RX(7, PE7,  GPIO_AF7_UART7),
+    UART_ALT_RX(7, PF6,  GPIO_AF7_UART7),
+    UART_ALT_TX(7, PA15, GPIO_AF11_UART7),
+    UART_ALT_TX(7, PB4,  GPIO_AF11_UART7),
+    UART_ALT_TX(7, PE8,  GPIO_AF7_UART7),
+    UART_ALT_TX(7, PF7,  GPIO_AF7_UART7),
+#endif
+#ifdef USE_UART8
+    UART_ALT_RX(8, PE0,  GPIO_AF8_UART8),
+    UART_ALT_TX(8, PE1,  GPIO_AF8_UART8),
+#endif
+};
+
+bool uartRoutePin(UARTDevice_e device, bool tx, ioTag_t pin, bool apply)
+{
+    uartDevice_t *uart = uartHardwareMap[device];
+
+    // a swapped port has its TX on the RX pin, which the table cannot express
+    if (!uart || uart->pinSwap || !pin) {
+        return false;
+    }
+
+    for (unsigned i = 0; i < ARRAYLEN(uartAltPins); i++) {
+        const uartAltPin_t *alt = &uartAltPins[i];
+        if (alt->device == device && alt->tx == tx && alt->pin == pin) {
+            if (apply && tx) {
+                uart->tx = pin;
+                uart->af_tx = alt->af;
+            } else if (apply) {
+                uart->rx = pin;
+                uart->af_rx = alt->af;
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+#endif
 
 void uartIrqHandler(uartPort_t *s)
 {

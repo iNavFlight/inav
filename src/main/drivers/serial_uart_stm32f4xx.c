@@ -20,6 +20,8 @@
 
 #include "platform.h"
 
+#include "common/utils.h"
+
 #include "drivers/time.h"
 #include "drivers/io.h"
 #include "rcc.h"
@@ -252,6 +254,79 @@ void uartGetPortPins(UARTDevice_e device, serialPortPins_t * pins)
         pins->rxPin = IO_TAG(NONE);
     }
 }
+
+#ifdef USE_SERIAL_PADS
+static const uartAltPin_t uartAltPins[] = {
+#ifdef USE_UART1
+    UART_ALT_RX(1, PA10, GPIO_AF_USART1),
+    UART_ALT_RX(1, PB7,  GPIO_AF_USART1),
+    UART_ALT_TX(1, PA9,  GPIO_AF_USART1),
+    UART_ALT_TX(1, PB6,  GPIO_AF_USART1),
+#ifdef STM32F411xE
+    UART_ALT_RX(1, PB3,  GPIO_AF_USART1),
+    UART_ALT_TX(1, PA15, GPIO_AF_USART1),
+#endif
+#endif
+#ifdef USE_UART2
+    UART_ALT_RX(2, PA3,  GPIO_AF_USART2),
+    UART_ALT_RX(2, PD6,  GPIO_AF_USART2),
+    UART_ALT_TX(2, PA2,  GPIO_AF_USART2),
+    UART_ALT_TX(2, PD5,  GPIO_AF_USART2),
+#endif
+#ifdef USE_UART3
+    UART_ALT_RX(3, PB11, GPIO_AF_USART3),
+    UART_ALT_RX(3, PC11, GPIO_AF_USART3),
+    UART_ALT_RX(3, PD9,  GPIO_AF_USART3),
+    UART_ALT_TX(3, PB10, GPIO_AF_USART3),
+    UART_ALT_TX(3, PC10, GPIO_AF_USART3),
+    UART_ALT_TX(3, PD8,  GPIO_AF_USART3),
+#endif
+#ifdef USE_UART4
+    UART_ALT_RX(4, PA1,  GPIO_AF_UART4),
+    UART_ALT_RX(4, PC11, GPIO_AF_UART4),
+    UART_ALT_TX(4, PA0,  GPIO_AF_UART4),
+    UART_ALT_TX(4, PC10, GPIO_AF_UART4),
+#endif
+#ifdef USE_UART5
+    UART_ALT_RX(5, PD2,  GPIO_AF_UART5),
+    UART_ALT_TX(5, PC12, GPIO_AF_UART5),
+#endif
+#ifdef USE_UART6
+    UART_ALT_RX(6, PC7,  GPIO_AF_USART6),
+    UART_ALT_TX(6, PC6,  GPIO_AF_USART6),
+#ifdef STM32F411xE
+    UART_ALT_RX(6, PA12, GPIO_AF_USART6),
+    UART_ALT_TX(6, PA11, GPIO_AF_USART6),
+#else
+    UART_ALT_RX(6, PG9,  GPIO_AF_USART6),
+    UART_ALT_TX(6, PG14, GPIO_AF_USART6),
+#endif
+#endif
+};
+
+bool uartRoutePin(UARTDevice_e device, bool tx, ioTag_t pin, bool apply)
+{
+    uartDevice_t *uart = uartHardwareMap[device];
+
+    if (!uart || !pin) {
+        return false;
+    }
+
+    for (unsigned i = 0; i < ARRAYLEN(uartAltPins); i++) {
+        const uartAltPin_t *alt = &uartAltPins[i];
+        if (alt->device == device && alt->tx == tx && alt->pin == pin) {
+            if (apply && tx) {
+                uart->tx = pin;
+            } else if (apply) {
+                uart->rx = pin;
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+#endif
 
 void uartClearIdleFlag(uartPort_t *s)
 {

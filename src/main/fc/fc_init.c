@@ -119,6 +119,7 @@
 #include "io/rcdevice_cam.h"
 #include "io/motor_srxl2.h"
 #include "io/serial.h"
+#include "io/serial_pads.h"
 #include "io/displayport_msp.h"
 #include "io/smartport_master.h"
 #include "io/crsf_sensor.h"
@@ -297,6 +298,10 @@ void init(void)
 
     timerInit();  // timer must be initialized before any channel is allocated
 
+#ifdef USE_SERIAL_PADS
+    // before any port opens and before the outputs are assigned
+    serialPadsInit();
+#endif
     serialInit(feature(FEATURE_SOFTSERIAL));
 
 #if defined(USE_MOTOR_SRXL2) && !defined(SITL_BUILD) && !defined(BRUSHED_MOTORS)
