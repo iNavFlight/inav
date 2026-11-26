@@ -17,7 +17,7 @@
 
 #pragma once
 
-#define TARGET_BOARD_IDENTIFIER "CW4WM2"
+#define TARGET_BOARD_IDENTIFIER "CW4M"
 #define USBD_PRODUCT_STRING  "CoreWing F405 Wing Mini V2"
 
 // LEDs
