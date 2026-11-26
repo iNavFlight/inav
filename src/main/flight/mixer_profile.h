@@ -129,6 +129,11 @@ typedef struct mixerProfileAT_s {
     bool hotSwitchDone;
     bool usedAirspeed;
     bool tailSitterManualTransition;
+    bool tailSitterAuthorityEnabled;
+    bool tailSitterAuthorityRecovering;
+    uint16_t tailSitterAuthorityRampMs;
+    float tailSitterAuthorityStartScale;
+    timeMs_t tailSitterAuthorityStartTime;
     mixerProfileATWaitReason_e waitReason;
     bool transitionStartAirspeedCaptured;
     float progress;
@@ -190,6 +195,8 @@ float mixerATGetFwAuthorityScale(void);
 float mixerATGetBlendToFw(void);
 int16_t mixerATGetTransitionServoInput(void);
 #ifdef USE_AUTO_TRANSITION
+void mixerATUpdateOutputs(void);
+float mixerATGetTailSitterMcAuthorityScale(void);
 bool mixerATGetOsdStatus(mixerProfileATOsdStatus_t *status);
 bool mixerATManualFwToMcProtectionIsLatched(void);
 bool mixerATFwToMcProtectionAirspeedConfirmed(void);

@@ -42,6 +42,7 @@
 #ifdef USE_AUTO_TRANSITION
 #define MIXER_TRANSITION_OSD_EVENT_DISPLAY_MS 3000
 #define MIXER_TRANSITION_MC_SPEED_HIGH_MARGIN_CM_S 100.0f
+#define MIXER_TRANSITION_OUTPUT_SAMPLE_INTERVAL_MS 10
 #endif
 
 mixerConfig_t currentMixerConfig;
@@ -67,6 +68,9 @@ static bool navigationProfileHandbackPending;
 static bool manualProfileSwitchAutoTransitionActive;
 static bool isTailSitterProfilePairConfigured(void);
 static bool isTailSitterManualToMcCapture(void);
+static void abortTransition(bool byAirspeedTimeout, bool directSwitchAbort);
+static void resetTransitionScales(void);
+static timeMs_t transitionOutputSampleTime;
 #endif
 
 // Keep PG version split because USE_AUTO_TRANSITION changes the stored mixer profile layout only on >512 KB targets.
@@ -168,6 +172,12 @@ void setMixerProfileAT(void)
     mixerProfileAT.hotSwitchDone = false;
     mixerProfileAT.usedAirspeed = false;
     mixerProfileAT.tailSitterManualTransition = false;
+    mixerProfileAT.tailSitterAuthorityEnabled = false;
+    mixerProfileAT.tailSitterAuthorityRecovering = false;
+    mixerProfileAT.tailSitterAuthorityRampMs = 0;
+    mixerProfileAT.tailSitterAuthorityStartScale = 1.0f;
+    mixerProfileAT.tailSitterAuthorityStartTime = now;
+    transitionOutputSampleTime = now;
     mixerProfileAT.waitReason = MIXERAT_WAIT_REASON_NONE;
     mixerProfileAT.transitionStartAirspeedCaptured = false;
     mixerProfileAT.progress = 0.0f;
@@ -485,7 +495,6 @@ static void startTransitionEntryServoHandoffFade(void)
 
 static bool outputProfileDirectSwitch(const int profileIndex, const bool immediateServoResponse)
 {
-    clearServoHandoffFade();
     if (immediateServoResponse) {
         // VTOL direct switches must not inherit speed-limited servo carryover
         // from the old profile; the target profile should take over immediately.
@@ -493,7 +502,22 @@ static bool outputProfileDirectSwitch(const int profileIndex, const bool immedia
     }
     const bool switched = outputProfileHotSwitch(profileIndex);
     servoMixerSetCarryoverOnNextLoad(true);
-    clearServoHandoffFade();
+    if (switched && immediateServoResponse) {
+        // Only an authorized direct switch reaches here. Do not carry either
+        // propulsion fade or tailsitter authority recovery into its new profile.
+        if (mixerATIsActive()) {
+            abortTransition(false, true);
+        }
+        mixerProfileAT.tailSitterAuthorityEnabled = false;
+        mixerProfileAT.tailSitterAuthorityRecovering = false;
+        isMixerTransitionMixing_requested = false;
+        isMixerTransitionMixing = false;
+        mixerTransitionServoInput = 0;
+        resetTransitionScales();
+    }
+    if (switched) {
+        clearServoHandoffFade();
+    }
     return switched;
 }
 
@@ -613,7 +637,8 @@ static void preparePostSwitchFade(const int targetProfileIndex)
     mixerProfileAT.postSwitchFadeStartTime = 0;
     memset(mixerProfileAT.postSwitchFadeMotorOutput, 0, sizeof(mixerProfileAT.postSwitchFadeMotorOutput));
 
-    if (!currentMixerConfig.vtolTransitionDynamicMixer ||
+    if (mixerProfileAT.tailSitterManualTransition ||
+        !currentMixerConfig.vtolTransitionDynamicMixer ||
         currentMixerConfig.vtolTransitionScaleRampTimeMs == 0 ||
         mixerProfileAT.direction == MIXERAT_DIRECTION_NONE ||
         targetProfileIndex < 0 ||
@@ -671,12 +696,8 @@ static bool startPostSwitchFade(void)
     return true;
 }
 
-static bool updatePostSwitchFade(void)
+static void updatePostSwitchFadeScales(void)
 {
-    if (mixerProfileAT.phase != MIXERAT_PHASE_POST_SWITCH_FADE) {
-        return true;
-    }
-
     if (mixerProfileAT.postSwitchFadeDurationMs == 0) {
         mixerProfileAT.postSwitchFadeProgress = 1.0f;
     } else {
@@ -698,6 +719,14 @@ static bool updatePostSwitchFade(void)
         mixerProfileAT.fwAuthorityScale = 0.0f;
         mixerProfileAT.blendToFw = 0.0f;
     }
+}
+
+static bool updatePostSwitchFade(void)
+{
+    if (mixerProfileAT.phase != MIXERAT_PHASE_POST_SWITCH_FADE) {
+        return true;
+    }
+    updatePostSwitchFadeScales();
 
     if (mixerProfileAT.postSwitchFadeProgress < 1.0f) {
         return false;
@@ -772,6 +801,17 @@ static bool updateFwToMcProtectionAirspeedConfirmation(const bool transitionActi
 
 static void updateTransitionScales(void)
 {
+    if (mixerProfileAT.tailSitterManualTransition) {
+        // Tailsitters share propulsion between frames: never apply quadplane
+        // lift/pusher fading or blend two controllers in different frames.
+        mixerProfileAT.pusherScale = 1.0f;
+        mixerProfileAT.liftScale = 1.0f;
+        mixerProfileAT.fwAuthorityScale = 1.0f;
+        mixerProfileAT.blendToFw = mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW ?
+            mixerProfileAT.handoffScalingProgress : 1.0f - mixerProfileAT.handoffScalingProgress;
+        mixerProfileAT.mcAuthorityScale = mixerATGetTailSitterMcAuthorityScale();
+        return;
+    }
     const mixerTransitionScaleState_t scales = mixerTransitionComputeScales(
         currentMixerConfig.vtolTransitionDynamicMixer,
         mixerProfileAT.direction,
@@ -792,7 +832,10 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
 {
     const bool wasActive = mixerProfileAT.phase != MIXERAT_PHASE_IDLE;
     const bool hotSwitchAlreadyDone = mixerProfileAT.hotSwitchDone;
-    const uint32_t servoHandoffMask = (wasActive && !hotSwitchAlreadyDone && !directSwitchAbort) ?
+    const float tailSitterAuthority = mixerATGetTailSitterMcAuthorityScale();
+    const bool recoverTailSitterAuthority = ARMING_FLAG(ARMED) && tailSitterAuthority < 1.0f;
+    const uint32_t servoHandoffMask = (wasActive && !hotSwitchAlreadyDone && !directSwitchAbort &&
+        !mixerProfileAT.tailSitterManualTransition) ?
         collectServoHandoffMask(nextMixerProfileIndex, false) :
         0;
 
@@ -821,6 +864,10 @@ static void abortTransition(const bool byAirspeedTimeout, const bool directSwitc
     mixerProfileAT.tailSitterManualTransition = false;
     mixerProfileAT.tailSitterCaptureStableSince = 0;
     resetTransitionScales();
+    mixerProfileAT.tailSitterAuthorityEnabled = false;
+    mixerProfileAT.tailSitterAuthorityRecovering = recoverTailSitterAuthority;
+    mixerProfileAT.tailSitterAuthorityStartScale = tailSitterAuthority;
+    mixerProfileAT.tailSitterAuthorityStartTime = millis();
 
     if (servoHandoffMask != 0) {
         startServoHandoffFade();
@@ -890,6 +937,37 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
         mixerTransitionAirspeedProgressEndpointConfirmed(&mixerProfileAT.airspeedProgressFilter) :
         hotSwitchProgress.readyForHotSwitch;
 }
+
+float NOINLINE mixerATGetTailSitterMcAuthorityScale(void)
+{
+    return mixerTransitionTailSitterAuthorityScale(
+        &mixerProfileAT,
+        isMultirotorTypePlatform(currentMixerConfig.platformType) && currentMixerConfig.tailsitterOrientationOffset,
+        systemConfig()->vtolTransitionMcAuthorityMinPercent,
+        millis());
+}
+
+void NOINLINE mixerATUpdateOutputs(void)
+{
+    if (mixerProfileAT.phase == MIXERAT_PHASE_TRANSITIONING) {
+        const timeMs_t now = millis();
+        // Sample progress at the same cadence regardless of navigation ownership.
+        // This evaluates readiness but cannot switch profiles or finish/abort a transition.
+        if (now - transitionOutputSampleTime >= MIXER_TRANSITION_OUTPUT_SAMPLE_INTERVAL_MS) {
+            transitionOutputSampleTime = now;
+            (void)mixerATReadyForHotSwitch(mixerProfileAT.request);
+        }
+        updateTransitionScales();
+    } else if (mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE) {
+        updatePostSwitchFadeScales();
+    } else if (mixerProfileAT.phase == MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE ||
+               mixerProfileAT.tailSitterAuthorityRecovering) {
+        mixerProfileAT.mcAuthorityScale = mixerATGetTailSitterMcAuthorityScale();
+        if (mixerProfileAT.mcAuthorityScale >= 1.0f || !ARMING_FLAG(ARMED)) {
+            mixerProfileAT.tailSitterAuthorityRecovering = false;
+        }
+    }
+}
 #endif
 
 bool platformTypeConfigured(flyingPlatformType_e platformType)
@@ -939,7 +1017,8 @@ static bool isTailSitterTransitionRequestSupported(const mixerProfileATRequest_e
         requiredAction,
         isTailSitterProfilePairConfigured(),
         currentMixerConfig.vtolTransitionDynamicMixer,
-        mixerConfigByIndex(nextMixerProfileIndex)->vtolTransitionDynamicMixer);
+        mixerConfigByIndex(nextMixerProfileIndex)->vtolTransitionDynamicMixer,
+        systemConfig()->vtolTransitionMcAuthorityMinPercent);
 }
 
 static bool isTailSitterManualToMcCapture(void)
@@ -959,8 +1038,13 @@ static void completeTransition(void)
     mixerProfileAT.postSwitchFadeMotorMask = 0;
     mixerProfileAT.postSwitchFadeToCurrentMotorMask = 0;
     mixerProfileAT.postSwitchFadeFastToCurrentMotorMask = 0;
+    if (mixerProfileAT.tailSitterManualTransition) {
+        mixerProfileAT.mcAuthorityScale = 1.0f;
+    }
     mixerProfileAT.tailSitterManualTransition = false;
     mixerProfileAT.tailSitterCaptureStableSince = 0;
+    mixerProfileAT.tailSitterAuthorityEnabled = false;
+    mixerProfileAT.tailSitterAuthorityRecovering = false;
     isMixerTransitionMixing_requested = false;
     manualProfileSwitchAutoTransitionActive = false;
     manualFwToMcProtectionTransitionActive = false;
@@ -983,6 +1067,10 @@ static bool updateTailSitterToMcCapture(void)
     }
 
     if ((currentTimeMs - mixerProfileAT.tailSitterCaptureStableSince) < MIXER_TRANSITION_TAILSITTER_CAPTURE_CONFIRM_MS) {
+        return false;
+    }
+
+    if (mixerATGetTailSitterMcAuthorityScale() < 1.0f) {
         return false;
     }
 
@@ -1029,6 +1117,8 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
 {
 #ifdef USE_AUTO_TRANSITION
     //return true if mixerAT is done or not required
+    const float entryAuthority = mixerATGetTailSitterMcAuthorityScale();
+    const uint16_t entryAuthorityRampMs = mixerProfileAT.tailSitterAuthorityRampMs;
     bool reprocessState;
     do
     {
@@ -1057,17 +1147,31 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                 resetTransitionScales();
             }
             break;
-        case MIXERAT_PHASE_TRANSITION_INITIALIZE:
+        case MIXERAT_PHASE_TRANSITION_INITIALIZE: {
             mixerProfileAT.request = required_action;
             mixerProfileAT.direction = directionForRequest(required_action);
             setMixerProfileAT();
             mixerProfileAT.tailSitterManualTransition =
                 isTailSitterProfilePairConfigured() &&
                 isTailSitterTransitionRequestSupported(required_action);
-            startTransitionEntryServoHandoffFade();
+            mixerProfileAT.tailSitterAuthorityEnabled = mixerProfileAT.tailSitterManualTransition &&
+                currentMixerConfig.vtolTransitionDynamicMixer;
+            mixerProfileAT.tailSitterAuthorityStartScale = entryAuthority;
+            // Capture the source profile's ramp before a hot-switch changes it.
+            mixerProfileAT.tailSitterAuthorityRampMs = currentMixerConfig.vtolTransitionScaleRampTimeMs;
+            if (mixerProfileAT.tailSitterManualTransition && !mixerProfileAT.tailSitterAuthorityEnabled && entryAuthority < 1.0f) {
+                // Reversing into a profile with scaling OFF must still finish
+                // the previous authority recovery rather than jump to full PID.
+                mixerProfileAT.tailSitterAuthorityRecovering = true;
+                mixerProfileAT.tailSitterAuthorityRampMs = entryAuthorityRampMs;
+            }
+            if (!mixerProfileAT.tailSitterManualTransition) {
+                startTransitionEntryServoHandoffFade();
+            }
             mixerProfileAT.phase = MIXERAT_PHASE_TRANSITIONING;
             reprocessState = true;
             break;
+        }
         case MIXERAT_PHASE_TRANSITIONING:
             isMixerTransitionMixing_requested = true;
             if (required_action != MIXERAT_REQUEST_NONE && required_action != mixerProfileAT.request) {
@@ -1082,7 +1186,9 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                 }
                 mixerProfileAT.progress = 1.0f;
                 updateTransitionScales();
-                prepareServoHandoffFade(collectServoHandoffMask(nextMixerProfileIndex, true));
+                if (!mixerProfileAT.tailSitterManualTransition) {
+                    prepareServoHandoffFade(collectServoHandoffMask(nextMixerProfileIndex, true));
+                }
                 preparePostSwitchFade(nextMixerProfileIndex);
                 if (!outputProfileHotSwitch(nextMixerProfileIndex)) {
                     abortTransition(false, false);
@@ -1092,7 +1198,9 @@ bool mixerATUpdateState(mixerProfileATRequest_e required_action)
                 startServoHandoffFade();
                 if (tailSitterToMcCapture) {
                     mixerProfileAT.tailSitterCaptureStableSince = 0;
+                    mixerProfileAT.tailSitterAuthorityStartTime = millis();
                     mixerProfileAT.phase = MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE;
+                    mixerProfileAT.mcAuthorityScale = mixerATGetTailSitterMcAuthorityScale();
                     return false;
                 }
                 if (!startPostSwitchFade()) {
@@ -1305,6 +1413,7 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     }
 
     if (!ARMING_FLAG(ARMED)) {
+        mixerProfileAT.tailSitterAuthorityRecovering = false;
         navigationProfileSwitchWasOwned = false;
         navigationProfileHandbackPending = false;
     } else if (mixerTransitionNavigationHandbackShouldClear(
@@ -1510,10 +1619,11 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
         (IS_RC_MODE_ACTIVE(BOXMIXERPROFILE) ? 1U << 19 : 0U) |
         (manualTransitionSessionMode != MIXER_TRANSITION_MANUAL_SESSION_NONE ? 1U << 20 : 0U) |
         (isLegacyManualTransitionSessionActive() ? 1U << 30 : 0U) |
-        (mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE ? 1U << 29 : 0U);
+        (mixerProfileAT.phase == MIXERAT_PHASE_POST_SWITCH_FADE ? 1U << 29 : 0U) |
+        (mixerProfileAT.tailSitterAuthorityRecovering ? 1U << 31 : 0U);
 
     uint8_t targetInputMode = 0U;
-    if (isMixerTransitionMixing && mixerATIsActive()) {
+    if (isMixerTransitionMixing && mixerATIsActive() && !mixerProfileAT.tailSitterManualTransition) {
         if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW) {
             targetInputMode = FLIGHT_MODE(MANUAL_MODE) ? 1U : 2U;
         } else if (mixerProfileAT.direction == MIXERAT_DIRECTION_TO_MC) {
@@ -1545,10 +1655,11 @@ void outputProfileUpdateTask(timeUs_t currentTimeUs)
     // [4] pusherScale x1000
     // [5] liftScale x1000
     // [6] active: mcAuthorityScale x1000 | (fwAuthorityScale x1000 << 16)
-    //     idle:   servo debug slot 0, see servoMixerGetVtolTransitionDebug()
+    //     idle without tailsitter authority recovery (flags bit 31): servo debug slot 0
     // [7] active: handoffProgress 10-bit | motorRampProgress 10-bit | postSwitchFadeProgress 10-bit
-    //     idle:   servo debug slot 1, see servoMixerGetVtolTransitionDebug()
-    const bool useIdleServoDebug = !mixerATIsActive() && mixerProfileAT.phase == MIXERAT_PHASE_IDLE;
+    //     idle without tailsitter authority recovery: servo debug slot 1
+    const bool useIdleServoDebug = !mixerATIsActive() && mixerProfileAT.phase == MIXERAT_PHASE_IDLE &&
+        !mixerProfileAT.tailSitterAuthorityRecovering;
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 0, mixerProfileAT.phase);
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 1, (int32_t)(((uint32_t)mixerProfileAT.request & 0xFFU) | (((uint32_t)mixerProfileAT.direction & 0xFFU) << 8) | (((uint32_t)mixerProfileAT.waitReason & 0xFFU) << 16)));
     DEBUG_SET(DEBUG_VTOL_TRANSITION, 2, (int32_t)transitionDebugFlags);
@@ -1709,7 +1820,7 @@ int16_t NOINLINE mixerATGetTransitionServoInput(void)
         isMixerTransitionMixing,
         mixerATIsActive(),
         postSwitchFadeToFwActive,
-        currentMixerConfig.vtolTransitionDynamicMixer,
+        currentMixerConfig.vtolTransitionDynamicMixer && !mixerProfileAT.tailSitterManualTransition,
         mixerProfileAT.direction,
         currentMixerConfig.vtolTransitionScaleRampTimeMs,
         elapsedMs);

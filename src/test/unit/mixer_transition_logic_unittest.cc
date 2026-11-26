@@ -62,25 +62,81 @@ TEST(MixerTransitionLogicTest, TailsitterPairRequiresTheOrientationOffsetOnlyInM
         false, true, true));
 }
 
-TEST(MixerTransitionLogicTest, TailsitterFirstVersionAllowsOnlyManualNonDynamicRequests)
+TEST(MixerTransitionLogicTest, TailsitterAuthorityAllowsOnlyManualRequestsWithNonzeroFloor)
 {
     EXPECT_TRUE(mixerTransitionTailSitterRequestIsSupported(
-        MIXERAT_REQUEST_MANUAL_TO_FW, true, false, false));
+        MIXERAT_REQUEST_MANUAL_TO_FW, true, false, false, 0));
     EXPECT_TRUE(mixerTransitionTailSitterRequestIsSupported(
-        MIXERAT_REQUEST_MANUAL_TO_MC, true, false, false));
+        MIXERAT_REQUEST_MANUAL_TO_MC, true, false, false, 0));
 
     EXPECT_FALSE(mixerTransitionTailSitterRequestIsSupported(
-        MIXERAT_REQUEST_MISSION_TO_FW, true, false, false));
+        MIXERAT_REQUEST_MISSION_TO_FW, true, false, false, 100));
     EXPECT_FALSE(mixerTransitionTailSitterRequestIsSupported(
-        MIXERAT_REQUEST_RTH, true, false, false));
+        MIXERAT_REQUEST_RTH, true, false, false, 100));
+    EXPECT_TRUE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_MANUAL_TO_FW, true, true, false, 40));
+    EXPECT_TRUE(mixerTransitionTailSitterRequestIsSupported(
+        MIXERAT_REQUEST_MANUAL_TO_MC, true, false, true, 40));
     EXPECT_FALSE(mixerTransitionTailSitterRequestIsSupported(
-        MIXERAT_REQUEST_MANUAL_TO_FW, true, true, false));
+        MIXERAT_REQUEST_MANUAL_TO_FW, true, true, false, 0));
     EXPECT_FALSE(mixerTransitionTailSitterRequestIsSupported(
-        MIXERAT_REQUEST_MANUAL_TO_MC, true, false, true));
+        MIXERAT_REQUEST_MANUAL_TO_MC, true, false, true, 0));
 
     // Non-tailsitter profile pairs preserve their existing request policy.
     EXPECT_TRUE(mixerTransitionTailSitterRequestIsSupported(
-        MIXERAT_REQUEST_MISSION_TO_FW, false, true, true));
+        MIXERAT_REQUEST_MISSION_TO_FW, false, true, true, 0));
+}
+
+TEST(MixerTransitionLogicTest, TailsitterScalesOnlyTheActiveMcFrame)
+{
+    mixerProfileAT_t state = {};
+    state.tailSitterManualTransition = true;
+    state.tailSitterAuthorityEnabled = true;
+    state.tailSitterAuthorityStartScale = 1.0f;
+    state.phase = MIXERAT_PHASE_TRANSITIONING;
+    state.direction = MIXERAT_DIRECTION_TO_FW;
+    state.handoffScalingProgress = 0.5f;
+    EXPECT_FLOAT_EQ(0.7f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 1000));
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionTailSitterAuthorityScale(&state, false, 40, 1000));
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionTailSitterAuthorityScale(&state, true, 100, 1000));
+    state.tailSitterAuthorityEnabled = false;
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 1000));
+}
+
+TEST(MixerTransitionLogicTest, TailsitterCaptureRestoresAuthorityUsingCapturedSourceRamp)
+{
+    mixerProfileAT_t state = {};
+    state.tailSitterManualTransition = true;
+    state.tailSitterAuthorityEnabled = true;
+    state.phase = MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE;
+    state.tailSitterAuthorityStartTime = 1000;
+    state.tailSitterAuthorityRampMs = 700;
+    EXPECT_FLOAT_EQ(0.4f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 1000));
+    EXPECT_FLOAT_EQ(0.7f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 1350));
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 1700));
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 2000));
+    state.tailSitterAuthorityRampMs = 0;
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 1000));
+}
+
+TEST(MixerTransitionLogicTest, TailsitterAbortRecoveryAndReversalPreserveCurrentAuthority)
+{
+    mixerProfileAT_t state = {};
+    state.tailSitterAuthorityRecovering = true;
+    state.tailSitterAuthorityStartScale = 0.4f;
+    state.tailSitterAuthorityStartTime = UINT32_MAX - 99;
+    state.tailSitterAuthorityRampMs = 700;
+    EXPECT_FLOAT_EQ(0.7f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 250));
+    EXPECT_FLOAT_EQ(1.0f, mixerTransitionTailSitterAuthorityScale(&state, false, 40, 250));
+    state.tailSitterAuthorityStartScale = mixerTransitionTailSitterAuthorityScale(&state, true, 40, 250);
+    state.tailSitterAuthorityRecovering = false;
+    state.tailSitterAuthorityEnabled = true;
+    state.tailSitterManualTransition = true;
+    state.phase = MIXERAT_PHASE_TRANSITIONING;
+    state.direction = MIXERAT_DIRECTION_TO_FW;
+    EXPECT_FLOAT_EQ(0.7f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 250));
+    state.handoffScalingProgress = 1.0f;
+    EXPECT_FLOAT_EQ(0.4f, mixerTransitionTailSitterAuthorityScale(&state, true, 40, 950));
 }
 
 TEST(MixerTransitionLogicTest, TailsitterMcCaptureUsesTheExistingFortyFiveDegreeTarget)

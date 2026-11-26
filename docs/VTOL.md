@@ -181,7 +181,7 @@ Use the normal two-profile arrangement:
 - **FW profile:** `platform_type = AIRPLANE`, with `tailsitter_orientation_offset = OFF`.
 - **MC profile:** a multirotor platform type, with `tailsitter_orientation_offset = ON`.
 - Enable `mixer_vtol_manualswitch_autotransition_controller = ON` in both profiles.
-- Keep `mixer_vtol_transition_dynamic_mixer = OFF` in both profiles. Dynamic motor/authority blending is not validated for a tailsitter yet.
+- Leave `mixer_vtol_transition_dynamic_mixer = OFF` in both profiles for the original manual tailsitter behavior. The optional authority-only path described below is experimental; it does not enable quadplane propulsion blending.
 
 Tailsitters use the same airspeed/timer selection as tilt-motor and pusher configurations in **both directions**:
 
@@ -206,6 +206,20 @@ save
 `mixer_switch_trans_timer` uses deciseconds: `50` means 5 seconds; `0` allows an immediate profile switch when using the timer path. This timer decides when to change the mixer profile, not whether the physical rotation has completed.
 
 After the FW -> MC speed or timer condition is met, INAV switches to the MC profile and keeps the existing 45 degree tailsitter transition pitch target. OSD shows `VTOL TAILSITTER CAPTURE` until the MC-orientation pitch estimate stays within 35 to 55 degrees for 300 ms. It then clears the transition and reports completion. Capture has no automatic timeout: while the angle is not confirmed, the transition pitch offset remains active. If the pilot moves the switch back to the FW endpoint during this capture phase, INAV starts the ordinary MC-to-FW transition instead of direct-switching the profile. During the bench check, verify the profile switches after its timer and that moving the airframe through the expected capture attitude releases this phase; do not interpret a timer expiry alone as a successful physical transition.
+
+#### Optional tailsitter authority scaling
+
+No additional CLI settings are needed. For transitions starting from a profile with `mixer_vtol_transition_dynamic_mixer = ON`, the canonical tailsitter pair uses an **authority-only** path:
+
+- **MC -> FW:** the active MC roll/pitch/yaw corrections decrease from full authority toward `vtol_transition_mc_authority_min_percent`, following the same confirmed airspeed/timer progress as the transition controller.
+- **FW -> MC:** the active FW controller is not attenuated by this option before the profile switch. After the switch, MC corrections start at the configured minimum and recover to full authority over `mixer_vtol_transition_scale_ramp_time_ms` captured from the **FW/source profile**. Capture completes only after both the attitude confirmation above and this authority recovery finish. A zero ramp time gives full MC authority immediately.
+- The common scale affects MC motor PID corrections and stabilized roll/pitch/yaw servo inputs, including their positive/negative variants. It does **not** scale collective throttle, servo centers, `INPUT_MAX`, RC passthrough inputs, or the 45 degree transition attitude target. Existing servo limits and rule speeds still apply.
+- `transition_pid_mmix_multiplier_roll/pitch/yaw` remain separate, signed, **motor-only** factors applied once. They do not change servo authority. Existing PID integration and anti-windup remain in place; the new scale attenuates the combined PID correction, including I, without resetting it. This is not an aerodynamic guarantee against saturation.
+- `vtol_transition_mc_authority_min_percent = 100` keeps full authority. With either profile's dynamic mixer enabled, a zero minimum is rejected for tailsitter auto-transition requests: it would disable the only active MC controller. Start bench testing at `100`; any reduction requires airframe-specific validation.
+- No target-profile PID preview, quadplane lift/pusher scaling, or cross-profile servo handoff is applied during a tailsitter auto-transition. The reference-frame change remains a real profile switch, not a blend of MC and FW PID outputs. `vtol_transition_lift_min_percent` and `vtol_transition_fw_authority_min_percent` do not control this tailsitter path.
+- Reversing during capture starts MC -> FW from the current authority, rather than jumping to full authority first. Aborting back into the active MC profile restores reduced authority over the captured ramp time; it does not retain a reduced scale indefinitely. Disarming clears recovery. An authorized direct profile switch clears it immediately. Existing signed motor transition multipliers still end with transition mixing, as before.
+
+Enable the dynamic option in both source profiles to use this behavior in both directions. This does not provide low-throttle recovery, an automatic throttle boost, or an emergency forced FW switch. Those would require a separate, explicitly enabled and validated policy.
 
 This first version intentionally does not support tailsitter auto-transition from missions, RTH, landing, failsafe, low-FW-airspeed protection, or VTOL MC protection. Those paths are rejected for the canonical tailsitter profile pair rather than running the unvalidated generic auto-transition sequence. Test without propellers first, verify the orientation change in the Configurator, and inspect a `DEBUG_VTOL_TRANSITION` log before attempting a flight.
 
@@ -693,7 +707,9 @@ This separation is intentional. Tilt servos should not wait for airspeed to buil
 
 ### How the transition timers work together
 
-Several transition-related movements can happen during one transition. They are not all controlled by the same setting.
+Several transition-related movements can happen during one transition. They are not all controlled by the same setting. Time-based motor ramp and post-switch fade outputs are refreshed in the control loop, independently of the 10 Hz manual switch/Programming Framework task. Transition progress is also sampled at 100 Hz, whether the request is manual or navigation-owned. The switch decision, timeout/abort handling, and navigation ownership remain in their existing tasks; smoother outputs do not shorten the configured transition time.
+
+A true direct VTOL profile switch (when allowed by `vtol_autotransition_always` and navigation ownership) does not inherit transition ramp, motor fade, or servo handoff. The target profile's own servo rule speed and output limits still apply. With `vtol_autotransition_always = ON` while armed, changing the profile switch is an automatic transition request, **not** an emergency direct switch.
 
 `mixer_switch_trans_timer`
 
@@ -721,7 +737,7 @@ Several transition-related movements can happen during one transition. They are 
 - In FW -> MC it moves the forward motor down, and brings target MC lift power and MC motor stabilisation back over this time.
 - In FW -> MC, if a lift motor exists only in the target MC profile, its real output starts from the current motor output and moves toward the target MC lift output over this time.
 - `INPUT_MIXER_TRANSITION` uses this time when `mixer_vtol_transition_dynamic_mixer = ON`.
-- After a profile switch or direct switch changes a transition-linked servo output, the servo continues from its current output toward the new output over a fresh window of this length.
+- After an automatic tilt/pusher profile switch changes a transition-linked servo output, the servo continues from its current output toward the new output over a fresh window of this length. An authorized direct VTOL switch clears this handoff instead.
 - After a profile switch changes which motors exist in the active mixer, old propulsion outputs that must go to idle are moved toward idle over this time.
 
 Servo mixer `Speed`
@@ -1343,18 +1359,18 @@ Useful debug modes:
 
 `VTOL_TRANSITION` debug channels:
 
-- `debug[0]`: transition phase (`0=IDLE`, `1=TRANSITION_INITIALIZE`, `2=TRANSITIONING`, `3=after-switch smoothing`).
+- `debug[0]`: transition phase (`0=IDLE`, `1=TRANSITION_INITIALIZE`, `2=TRANSITIONING`, `3=after-switch smoothing`, `4=tailsitter MC capture`).
 - `debug[1]`: active transition request, with direction packed in bits `8..15` and wait reason packed in bits `16..23`.
   - wait reason `0`: none.
   - wait reason `1`: FW -> MC is close to the MC speed threshold, but is still waiting.
   - wait reason `2`: no usable transition airspeed source is available, so timer-based completion is being used.
   - wait reason `3`: FW -> MC is waiting because the usable airspeed source is still clearly above `vtol_transition_to_mc_max_airspeed_cm_s`.
-- `debug[2]`: packed flags. Important bits include direction, controller active, transition input active, airspeed path active, profile switch done, abort state, current/next profile index, mission active, failsafe active, direct profile switch active, target preview mode, after-switch smoothing active, and legacy manual session active.
+- `debug[2]`: packed flags. Important bits include direction, controller active, transition input active, airspeed path active, profile switch done, abort state, current/next profile index, mission active, failsafe active, direct profile switch active, target preview mode, after-switch smoothing active, and legacy manual session active. Bit `31` indicates tailsitter authority recovery after abort or reversal into a source profile with dynamic scaling OFF.
 - `debug[3]`: main transition progress x1000 (`0..1000`).
 - `debug[4]`: pusher/forward motor scale x1000 (`0..1000`).
 - `debug[5]`: lift motor scale x1000 (`0..1000`).
-- `debug[6]`: while transition is active, packed MC/FW stabilisation scales. Low 16 bits are MC stabilisation scale x1000, high 16 bits are FW control scale x1000. When the transition controller is idle, this becomes servo diagnostic slot 0.
-- `debug[7]`: while transition is active, packed progress values. Bits `0..9` are airspeed-linked scaling progress, bits `10..19` are motor ramp progress, and bits `20..29` are after-switch smoothing progress. When the transition controller is idle, this becomes servo diagnostic slot 1.
+- `debug[6]`: while transition or tailsitter authority recovery is active, packed MC/FW stabilisation scales. Low 16 bits are MC stabilisation scale x1000, high 16 bits are FW control scale x1000. When the transition controller is idle and `debug[2]` bit `31` is clear, this becomes servo diagnostic slot 0.
+- `debug[7]`: while transition or tailsitter authority recovery is active, packed progress values. Bits `0..9` are airspeed-linked scaling progress, bits `10..19` are motor ramp progress, and bits `20..29` are after-switch smoothing progress. When the transition controller is idle and `debug[2]` bit `31` is clear, this becomes servo diagnostic slot 1.
 
 When dynamic scaling and airspeed are used, `debug[3]` is the immediate raw progress and the low 10 bits of `debug[7]` are the confirmed progress actually used for airspeed-linked scaling. A short pitot step can therefore appear in `debug[3]` without moving lift or authority in `debug[5]`/`debug[6]`. A real sustained airspeed decrease can move the confirmed progress back after the confirmation window.
 
@@ -1507,7 +1523,7 @@ Forward motor power increase, transition servo movement, and airspeed-linked con
 For MC->FW, forward motor power uses `mixer_vtol_transition_scale_ramp_time_ms`; if this is `0`, the motor goes to full power immediately.
 For FW->MC, the same timer ramps the forward motor down to idle while lift power and MC stabilisation rise back from their configured minimums; if this is `0`, those changes happen immediately.
 For `INPUT_MIXER_TRANSITION`, the same timer is used only when `mixer_vtol_transition_dynamic_mixer = ON`. With dynamic mixer OFF, source 38 keeps the older fixed transition endpoint behavior.
-If a profile switch or direct switch affects servos that use transition-linked inputs, INAV captures the current servo output and moves from that captured output toward the new profile output using a fresh `mixer_vtol_transition_scale_ramp_time_ms` window.
+If an automatic tilt/pusher profile switch affects servos that use transition-linked inputs, INAV captures the current servo output and moves from that captured output toward the new profile output using a fresh `mixer_vtol_transition_scale_ramp_time_ms` window. A true direct VTOL switch clears this handoff; tailsitter auto-transition does not blend servo outputs across the two reference frames.
 This timer does not decide when the transition completes.
 In MC->FW, lift power reduction, MC stabilisation reduction, and FW control increase still prefer airspeed-based transition progress whenever a usable airspeed source is available.
 In FW->MC, FW control reduction still prefers airspeed-based transition progress, while forward motor removal, lift power return, and MC motor stabilisation return use the time-based motor ramp.

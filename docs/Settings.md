@@ -3513,7 +3513,7 @@ Maximum wait time [ms] for the required airspeed during an airspeed-controlled t
 
 ### mixer_vtol_transition_dynamic_mixer
 
-Turns on smooth VTOL transition power and control scaling. In MC->FW it smoothly brings the forward motor in while lift power and multicopter stabilisation are reduced and fixed-wing control is increased. In FW->MC it smoothly removes the forward motor while target MC lift power and target MC motor stabilisation come back in, and fixed-wing control is reduced. Used by both manual `MIXER TRANSITION` and mission-requested VTOL transitions. Available only on targets with more than 512 KB flash.
+Turns on smooth VTOL transition power and control scaling. In MC->FW it smoothly brings the forward motor in while lift power and multicopter stabilisation are reduced and fixed-wing control is increased. In FW->MC it smoothly removes the forward motor while target MC lift power and target MC motor stabilisation come back in, and fixed-wing control is reduced. Used by both manual `MIXER TRANSITION` and mission-requested VTOL transitions. Exception: experimental manual tailsitter transitions scale only active MC motor and servo stabilisation, without collective throttle scaling or target-controller preview. Tailsitter use requires a nonzero `vtol_transition_mc_authority_min_percent`; see VTOL.md. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3523,7 +3523,7 @@ Turns on smooth VTOL transition power and control scaling. In MC->FW it smoothly
 
 ### mixer_vtol_transition_scale_ramp_time_ms
 
-Controls time-based smooth VTOL motor, power, and transition-servo movement. In MC->FW it moves the forward motor from idle to the requested power. After the switch to FW, old lift motors that are no longer used by the FW profile are moved to idle over the same time. In FW->MC it moves the forward motor down to idle while target MC lift power plus target MC motor stabilisation come back in. `INPUT_MIXER_TRANSITION` also uses this time when `mixer_vtol_transition_dynamic_mixer` is ON. If a profile switch or direct switch changes a transition-linked servo output, INAV starts a fresh smooth movement from the servo's current output using this full time value. `0` applies these time-based changes immediately. This timer does not decide when transition completes; completion still uses a usable transition airspeed source or `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash.
+Controls time-based smooth VTOL motor, power, and transition-servo movement. In MC->FW it moves the forward motor from idle to the requested power. After the switch to FW, old lift motors that are no longer used by the FW profile are moved to idle over the same time. In FW->MC it moves the forward motor down to idle while target MC lift power plus target MC motor stabilisation come back in. `INPUT_MIXER_TRANSITION` also uses this time when `mixer_vtol_transition_dynamic_mixer` is ON. An automatic tilt/pusher profile switch starts a fresh servo handoff using this full time; a true direct VTOL switch clears the handoff. For experimental tailsitter authority scaling, the FW/source value restores MC motor and servo authority after the FW->MC switch; there is no collective throttle fade or cross-frame servo handoff. `0` applies these time-based changes immediately. This timer does not decide when to switch profiles; that still uses a usable transition airspeed source or `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -7536,7 +7536,7 @@ Lowest lift motor base throttle used during transition, in percent. This scales 
 
 ### vtol_transition_mc_authority_min_percent
 
-Lowest multicopter stabilisation authority used during transition, in percent. This scales the MC roll/pitch/yaw correction mixed into MC motors, not the lift motor base throttle. In MC->FW, active MC motor stabilisation correction is reduced to this value as the transition progresses. In FW->MC, target MC motor stabilisation correction starts from this value and rises back to full strength by the motor ramp timer. `100` keeps full multicopter stabilisation correction through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
+Lowest multicopter stabilisation authority used during transition, in percent. This scales the MC roll/pitch/yaw correction mixed into MC motors, not the lift motor base throttle. In MC->FW, active MC motor stabilisation correction is reduced to this value as the transition progresses. In FW->MC, target MC motor stabilisation correction starts from this value and rises back to full strength by the motor ramp timer. For experimental tailsitter transitions it scales active MC motor and stabilized servo corrections together; FW->MC recovery starts only after the profile switch and uses the FW/source ramp time. A tailsitter with dynamic scaling enabled must use a value greater than zero. `100` keeps full multicopter stabilisation correction through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
