@@ -132,7 +132,7 @@
 #define USE_MAG_ALL
 
 #define TEMPERATURE_I2C_BUS     BUS_I2C2
-#define PITOT_I2C_BUS           BUS_I2C2
+#define PITOT_I2C_BUS           BUS_I2C1
 
 #define USE_RANGEFINDER
 #define RANGEFINDER_I2C_BUS     BUS_I2C1

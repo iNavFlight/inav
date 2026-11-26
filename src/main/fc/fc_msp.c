@@ -4245,7 +4245,7 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 if (!sbufReadU8Safe(&val, src)) {
                     return false;
                 }
-                if (val > max) {
+                if (val < min || val > max) {
                     return false;
                 }
                 *((uint8_t*)ptr) = val;
@@ -4269,7 +4269,7 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 if (!sbufReadU16Safe(&val, src)) {
                     return false;
                 }
-                if (val > max) {
+                if (val < min || val > max) {
                     return false;
                 }
                 *((uint16_t*)ptr) = val;
@@ -4293,7 +4293,7 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 if (!sbufReadU32Safe(&val, src)) {
                     return false;
                 }
-                if (val > max) {
+                if (val < (uint32_t)min || val > max) {
                     return false;
                 }
                 *((uint32_t*)ptr) = val;
