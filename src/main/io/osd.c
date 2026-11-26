@@ -1261,8 +1261,9 @@ uint16_t osdGetRemainingGlideTime(void) {
     value = pt1FilterApply3(&glideTimeFilterState, isnormal(value) ? value : 0, MS2S(curTimeMs - glideTimeUpdatedMs));
     glideTimeUpdatedMs = curTimeMs;
 
-    if (value < 0) {
-        value = osdGetAltitude() / abs((int)value);
+    const int32_t altitude = osdGetAltitude();
+    if (value <= -1 && altitude > 0) {
+        value = altitude / abs((int)value);
     } else {
         value = 0;
     }
