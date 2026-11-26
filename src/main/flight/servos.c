@@ -416,6 +416,7 @@ static void updateTargetTransitionServoPreviewSession(void)
 {
     if (!isMixerTransitionMixing ||
         !mixerATIsActive() ||
+        mixerProfileAT.tailSitterManualTransition ||
         mixerProfileAT.phase != MIXERAT_PHASE_TRANSITIONING ||
         nextMixerProfileIndex < 0 ||
         nextMixerProfileIndex >= MAX_MIXER_PROFILE_COUNT) {
@@ -434,6 +435,7 @@ static void updateTargetTransitionServoPreviewSession(void)
 static bool servoNeedsTargetTransitionPreview(const uint8_t targetChannel)
 {
     if (!currentMixerConfig.vtolTransitionDynamicMixer ||
+        mixerProfileAT.tailSitterManualTransition ||
         currentMixerConfig.vtolTransitionScaleRampTimeMs == 0 ||
         !isMixerTransitionMixing ||
         !mixerATIsActive() ||
@@ -631,6 +633,7 @@ void servoMixer(float dT)
 #ifdef USE_AUTO_TRANSITION
     const bool autoTransitionInputsActive = isMixerTransitionMixing &&
                                             mixerATIsActive() &&
+                                            !mixerProfileAT.tailSitterManualTransition &&
                                             mixerProfileAT.direction != MIXERAT_DIRECTION_NONE;
     const bool autoTransitionTargetPreviewActive = autoTransitionInputsActive &&
                                                    mixerProfileAT.direction == MIXERAT_DIRECTION_TO_FW;
@@ -656,6 +659,13 @@ void servoMixer(float dT)
         input[INPUT_STABILIZED_ROLL] = axisPID[ROLL];
         input[INPUT_STABILIZED_PITCH] = axisPID[PITCH];
         input[INPUT_STABILIZED_YAW] = axisPID[YAW];
+
+#ifdef USE_AUTO_TRANSITION
+        const float tailSitterAuthority = mixerATGetTailSitterMcAuthorityScale();
+        input[INPUT_STABILIZED_ROLL] *= tailSitterAuthority;
+        input[INPUT_STABILIZED_PITCH] *= tailSitterAuthority;
+        input[INPUT_STABILIZED_YAW] *= tailSitterAuthority;
+#endif
 
         // Reverse yaw servo when inverted in 3D mode only for multirotor and tricopter
         if (feature(FEATURE_REVERSIBLE_MOTORS) && (rxGetChannelValue(THROTTLE) < PWM_RANGE_MIDDLE) &&

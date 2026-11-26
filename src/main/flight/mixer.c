@@ -357,6 +357,7 @@ static void NOINLINE prepareAutoTransitionMotorMixState(autoTransitionMotorMixSt
 {
     if (!(isMixerTransitionMixing &&
           mixerATIsActive() &&
+          !mixerProfileAT.tailSitterManualTransition &&
           mixerProfileAT.phase == MIXERAT_PHASE_TRANSITIONING &&
           mixerProfileAT.direction != MIXERAT_DIRECTION_NONE &&
           nextMixerProfileIndex >= 0 &&
@@ -693,9 +694,9 @@ void FAST_CODE mixTable(float dT)
         input[YAW] = axisPID[YAW];
         if (isMixerTransitionMixing) {
 #ifdef USE_AUTO_TRANSITION
-            const float activeAuthorityScale = isMultirotorTypePlatform(currentMixerConfig.platformType) ?
-                mixerATGetMcAuthorityScale() :
-                mixerATGetFwAuthorityScale();
+            const float activeAuthorityScale = mixerProfileAT.tailSitterManualTransition ? 1.0f :
+                (isMultirotorTypePlatform(currentMixerConfig.platformType) ?
+                    mixerATGetMcAuthorityScale() : mixerATGetFwAuthorityScale());
             input[ROLL] = input[ROLL] * (currentMixerConfig.transition_PID_mmix_multiplier_roll / 1000.0f) * activeAuthorityScale;
             input[PITCH] = input[PITCH] * (currentMixerConfig.transition_PID_mmix_multiplier_pitch / 1000.0f) * activeAuthorityScale;
             input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f) * activeAuthorityScale;
@@ -705,6 +706,13 @@ void FAST_CODE mixTable(float dT)
             input[YAW] = input[YAW] * (currentMixerConfig.transition_PID_mmix_multiplier_yaw / 1000.0f);
 #endif
         }
+#ifdef USE_AUTO_TRANSITION
+        // Tailsitter authority also recovers after an abort, outside transition mixing.
+        const float tailSitterAuthority = mixerATGetTailSitterMcAuthorityScale();
+        input[ROLL] *= tailSitterAuthority;
+        input[PITCH] *= tailSitterAuthority;
+        input[YAW] *= tailSitterAuthority;
+#endif
     }
 
 #ifdef USE_AUTO_TRANSITION
