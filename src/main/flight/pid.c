@@ -525,6 +525,7 @@ static bool isAutoTransitionTargetPidActive(void)
 {
     if (!(isMixerTransitionMixing &&
           mixerATIsActive() &&
+          !mixerProfileAT.tailSitterManualTransition &&
           nextMixerProfileIndex >= 0 &&
           nextMixerProfileIndex < MAX_MIXER_PROFILE_COUNT)) {
         return false;

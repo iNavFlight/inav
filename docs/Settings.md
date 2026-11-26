@@ -803,6 +803,7 @@ Defines debug values exposed in debug variables (developer / debugging setting)
 | ESC |  |
 | FW_TURN |  |
 | MAG |  |
+| MARKER_GUIDANCE |  |
 
 ---
 
@@ -3513,7 +3514,7 @@ Maximum wait time [ms] for the required airspeed during an airspeed-controlled t
 
 ### mixer_vtol_transition_dynamic_mixer
 
-Turns on smooth VTOL transition power and control scaling. In MC->FW it smoothly brings the forward motor in while lift power and multicopter stabilisation are reduced and fixed-wing control is increased. In FW->MC it smoothly removes the forward motor while target MC lift power and target MC motor stabilisation come back in, and fixed-wing control is reduced. Used by both manual `MIXER TRANSITION` and mission-requested VTOL transitions. Available only on targets with more than 512 KB flash.
+Turns on smooth VTOL transition power and control scaling. In MC->FW it smoothly brings the forward motor in while lift power and multicopter stabilisation are reduced and fixed-wing control is increased. In FW->MC it smoothly removes the forward motor while target MC lift power and target MC motor stabilisation come back in, and fixed-wing control is reduced. Used by both manual `MIXER TRANSITION` and mission-requested VTOL transitions. Exception: experimental manual tailsitter transitions scale only active MC motor and servo stabilisation, without collective throttle scaling or target-controller preview. Tailsitter use requires a nonzero `vtol_transition_mc_authority_min_percent`; see VTOL.md. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -3523,7 +3524,7 @@ Turns on smooth VTOL transition power and control scaling. In MC->FW it smoothly
 
 ### mixer_vtol_transition_scale_ramp_time_ms
 
-Controls time-based smooth VTOL motor, power, and transition-servo movement. In MC->FW it moves the forward motor from idle to the requested power. After the switch to FW, old lift motors that are no longer used by the FW profile are moved to idle over the same time. In FW->MC it moves the forward motor down to idle while target MC lift power plus target MC motor stabilisation come back in. `INPUT_MIXER_TRANSITION` also uses this time when `mixer_vtol_transition_dynamic_mixer` is ON. If a profile switch or direct switch changes a transition-linked servo output, INAV starts a fresh smooth movement from the servo's current output using this full time value. `0` applies these time-based changes immediately. This timer does not decide when transition completes; completion still uses a usable transition airspeed source or `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash.
+Controls time-based smooth VTOL motor, power, and transition-servo movement. In MC->FW it moves the forward motor from idle to the requested power. After the switch to FW, old lift motors that are no longer used by the FW profile are moved to idle over the same time. In FW->MC it moves the forward motor down to idle while target MC lift power plus target MC motor stabilisation come back in. `INPUT_MIXER_TRANSITION` also uses this time when `mixer_vtol_transition_dynamic_mixer` is ON. An automatic tilt/pusher profile switch starts a fresh servo handoff using this full time; a true direct VTOL switch clears the handoff. For experimental tailsitter authority scaling, the FW/source value restores MC motor and servo authority after the FW->MC switch; there is no collective throttle fade or cross-frame servo handoff. `0` applies these time-based changes immediately. This timer does not decide when to switch profiles; that still uses a usable transition airspeed source or `mixer_switch_trans_timer`. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4385,7 +4386,7 @@ Vertical descent velocity above nav_land_slowdown_maxalt during the RTH landing 
 
 ### nav_land_minalt_vspd
 
-Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. [cm/s]
+Vertical descent velocity under nav_land_slowdown_minalt during the RTH landing phase. Also caps vertical correction speed while marker guidance holds an altitude target during a landing pause; the normal automatic vertical-speed limit still applies. [cm/s]
 
 | Default | Min | Max |
 | --- | --- | --- |
@@ -4430,6 +4431,138 @@ Maximum speed allowed when processing pilot input for POSHOLD/CRUISE control mod
 | Default | Min | Max |
 | --- | --- | --- |
 | 750 | 10 | 2000 |
+
+---
+
+### nav_marker_containment_hold_east_cm
+
+Marker-relative hold target for vehicle East position [cm], relative to marker. Positive means vehicle should stay East of marker.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -5000 | 5000 |
+
+---
+
+### nav_marker_containment_hold_north_cm
+
+Marker-relative hold target for vehicle North position [cm], relative to marker. Positive means vehicle should stay North of marker.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | -5000 | 5000 |
+
+---
+
+### nav_marker_guidance_lost_hold_time_ms
+
+Minimum hold duration after target loss before a LAND retry can start or normal LAND fallback can continue [ms].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 100 | 10000 |
+
+---
+
+### nav_marker_guidance_low_alt_lock_xy
+
+Keep a confirmed PL landing marker XY target through target loss, including RTH before descent, instead of returning to GPS Home or the normal LAND target. The lost-hold time delays descent; it does not expire the held XY target. POSH uses marker hold only when loss occurs at or below nav_marker_guidance_retry_min_alt_cm. OFF keeps normal target-loss behavior.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| OFF | OFF | ON |
+
+---
+
+### nav_marker_guidance_max_offset_cm
+
+Maximum allowed horizontal target offset magnitude. Larger offsets are rejected [cm]. Set 0 to disable this check.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 1500 | 0 | 5000 |
+
+---
+
+### nav_marker_guidance_max_target_age_ms
+
+Maximum age of a confirmed marker sample [ms]. Without a fresh confirmed sample inside this window, marker-loss handling starts. Guidance may still hold the current position or a retained marker XY target according to mode and nav_marker_guidance_low_alt_lock_xy; this timeout does not immediately release all navigation control.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 500 | 50 | 5000 |
+
+---
+
+### nav_marker_guidance_mode
+
+Marker-guidance mode selector: OFF disables guidance, PL enables precision-centering for POSHOLD and landing, including RTH alignment before descent and retry-on-loss behavior after LAND starts; CONTAINMENT enables marker-relative POSHOLD containment using hold north/east and radius.
+
+| Allowed Values |  |
+| --- | --- |
+| OFF | Default |
+| PL |  |
+| CONTAINMENT |  |
+
+---
+
+### nav_marker_guidance_radius_cm
+
+Marker-guidance radius [cm]. In PL, this is the center-alignment deadband around marker center. In CONTAINMENT, this is the allowed radius around marker-containment hold target. Set 0 for continuous correction.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 80 | 0 | 5000 |
+
+---
+
+### nav_marker_guidance_retry_altitude_cm
+
+Climb distance for each retry attempt after target loss in PL mode LAND context [cm].
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 200 | 50 | 2000 |
+
+---
+
+### nav_marker_guidance_retry_count
+
+Maximum number of climb-and-retry attempts after target loss in PL mode LAND context.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 2 | 0 | 10 |
+
+---
+
+### nav_marker_guidance_retry_min_alt_cm
+
+Minimum AGL altitude for climb-and-retry after target loss in PL mode LAND context [cm]. At or below this altitude, trusted INAV AGL or the last fresh marker height skips retry and selects landing fallback. An untrusted AGL estimate derived from global altitude does not trigger this shortcut. The normal lost-target hold still applies above the threshold even with retry count zero. Set 0 to disable altitude-based retry suppression.
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 100 | 0 | 2000 |
+
+---
+
+### nav_marker_guidance_retry_timeout_ms
+
+Timeout for each climb-and-retry phase in PL mode LAND context [ms]. Set to 0 for AUTO mode (computed as 2 x nav_marker_guidance_lost_hold_time_ms).
+
+| Default | Min | Max |
+| --- | --- | --- |
+| 0 | 0 | 60000 |
+
+---
+
+### nav_marker_guidance_source
+
+Marker-guidance target source.
+
+| Allowed Values |  |
+| --- | --- |
+| MSP | Default |
 
 ---
 
@@ -7536,7 +7669,7 @@ Lowest lift motor base throttle used during transition, in percent. This scales 
 
 ### vtol_transition_mc_authority_min_percent
 
-Lowest multicopter stabilisation authority used during transition, in percent. This scales the MC roll/pitch/yaw correction mixed into MC motors, not the lift motor base throttle. In MC->FW, active MC motor stabilisation correction is reduced to this value as the transition progresses. In FW->MC, target MC motor stabilisation correction starts from this value and rises back to full strength by the motor ramp timer. `100` keeps full multicopter stabilisation correction through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
+Lowest multicopter stabilisation authority used during transition, in percent. This scales the MC roll/pitch/yaw correction mixed into MC motors, not the lift motor base throttle. In MC->FW, active MC motor stabilisation correction is reduced to this value as the transition progresses. In FW->MC, target MC motor stabilisation correction starts from this value and rises back to full strength by the motor ramp timer. For experimental tailsitter transitions it scales active MC motor and stabilized servo corrections together; FW->MC recovery starts only after the profile switch and uses the FW/source ramp time. A tailsitter with dynamic scaling enabled must use a value greater than zero. `100` keeps full multicopter stabilisation correction through the whole transition. Used only when `mixer_vtol_transition_dynamic_mixer` is ON. Available only on targets with more than 512 KB flash.
 
 | Default | Min | Max |
 | --- | --- | --- |

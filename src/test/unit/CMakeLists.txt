@@ -189,8 +189,19 @@ set_property(SOURCE pid_fw_iterm_lock_fade_unittest.cc PROPERTY extra_sources
 set_property(SOURCE mixer_transition_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_policy_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE mixer_transition_scenarios_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE mixer_transition_outputs_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE mixer_transition_outputs_unittest.cc PROPERTY depends "common/maths.c")
+set_property(SOURCE mixer_transition_outputs_unittest.cc PROPERTY extra_sources "../test/unit/mixer_transition_outputs_access.c")
 set_property(SOURCE navigation_vtol_mission_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
 set_property(SOURCE vtol_mc_protection_logic_unittest.cc PROPERTY definitions USE_AUTO_TRANSITION)
+set_property(SOURCE navigation_control_reserve_unittest.cc PROPERTY depends
+    "common/fp_pid.c" "common/filter.c" "common/lulu.c" "common/maths.c" "navigation/sqrt_controller.c")
+set_property(SOURCE marker_guidance_runtime_unittest.cc PROPERTY depends
+    "navigation/marker_guidance.c" "common/maths.c" "build/debug.c")
+set_property(SOURCE marker_guidance_runtime_unittest.cc PROPERTY definitions USE_MARKER_GUIDANCE USE_AUTO_TRANSITION)
+set_property(SOURCE marker_guidance_estimator_unittest.cc PROPERTY depends
+    "navigation/navigation_pos_estimator_pl.c" "common/maths.c" "build/debug.c")
+set_property(SOURCE marker_guidance_estimator_unittest.cc PROPERTY definitions USE_MARKER_GUIDANCE USE_OPFLOW USE_RANGEFINDER)
 
 set_property(SOURCE pid_apa_fallback_filter_unittest.cc PROPERTY depends
     "common/maths.c" "common/filter.c" "common/lulu.c")

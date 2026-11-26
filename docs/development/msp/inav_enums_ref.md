@@ -196,6 +196,16 @@
 - [ltm_modes_e](#enum-ltm_modes_e)
 - [ltmUpdateRate_e](#enum-ltmupdaterate_e)
 - [magSensor_e](#enum-magsensor_e)
+- [markerGuidanceAxisMask_e](#enum-markerguidanceaxismask_e)
+- [markerGuidanceCaptureStatus_e](#enum-markerguidancecapturestatus_e)
+- [markerGuidanceContext_e](#enum-markerguidancecontext_e)
+- [markerGuidanceDebugFlag_e](#enum-markerguidancedebugflag_e)
+- [markerGuidanceDebugReason_e](#enum-markerguidancedebugreason_e)
+- [markerGuidanceEstimatorReason_e](#enum-markerguidanceestimatorreason_e)
+- [markerGuidanceLandControlMode_e](#enum-markerguidancelandcontrolmode_e)
+- [markerGuidanceReason_e](#enum-markerguidancereason_e)
+- [markerGuidanceState_e](#enum-markerguidancestate_e)
+- [markerGuidanceVelocityReason_e](#enum-markerguidancevelocityreason_e)
 - [mavlinkAutopilotType_e](#enum-mavlinkautopilottype_e)
 - [mavlinkFcDispatchResult_e](#enum-mavlinkfcdispatchresult_e)
 - [mavlinkRadio_e](#enum-mavlinkradio_e)
@@ -227,12 +237,15 @@
 - [navDefaultAltitudeSensor_e](#enum-navdefaultaltitudesensor_e)
 - [navExtraArmingSafety_e](#enum-navextraarmingsafety_e)
 - [navFwLaunchStatus_e](#enum-navfwlaunchstatus_e)
+- [navFwWpTurnMode_e](#enum-navfwwpturnmode_e)
 - [navigationEstimateStatus_e](#enum-navigationestimatestatus_e)
 - [navigationFSMEvent_t](#enum-navigationfsmevent_t)
 - [navigationFSMState_t](#enum-navigationfsmstate_t)
 - [navigationFSMStateFlags_t](#enum-navigationfsmstateflags_t)
 - [navigationHomeFlags_t](#enum-navigationhomeflags_t)
 - [navigationPersistentId_e](#enum-navigationpersistentid_e)
+- [navMarkerGuidanceMode_e](#enum-navmarkerguidancemode_e)
+- [navMarkerGuidanceSource_e](#enum-navmarkerguidancesource_e)
 - [navMcAltHoldThrottle_e](#enum-navmcaltholdthrottle_e)
 - [navMissionRestart_e](#enum-navmissionrestart_e)
 - [navMissionUserAction_e](#enum-navmissionuseraction_e)
@@ -362,11 +375,16 @@
 - [SPIDevice](#enum-spidevice)
 - [Srxl2BindRequest](#enum-srxl2bindrequest)
 - [Srxl2BindType](#enum-srxl2bindtype)
+- [srxl2CalPhase_e](#enum-srxl2calphase_e)
+- [srxl2CalResult_e](#enum-srxl2calresult_e)
 - [Srxl2ControlDataCommand](#enum-srxl2controldatacommand)
 - [Srxl2DeviceId](#enum-srxl2deviceid)
 - [Srxl2DeviceType](#enum-srxl2devicetype)
 - [Srxl2PacketType](#enum-srxl2packettype)
 - [Srxl2State](#enum-srxl2state)
+- [srxl2State_e](#enum-srxl2state_e)
+- [srxl2TelemetryField_e](#enum-srxl2telemetryfield_e)
+- [srxl2TelemetryRate_e](#enum-srxl2telemetryrate_e)
 - [stateFlags_t](#enum-stateflags_t)
 - [stickPositions_e](#enum-stickpositions_e)
 - [systemState_e](#enum-systemstate_e)
@@ -407,7 +425,6 @@
 - [widgetAHIOptions_t](#enum-widgetahioptions_t)
 - [widgetAHIStyle_e](#enum-widgetahistyle_e)
 - [widgetSidebarOptions_t](#enum-widgetsidebaroptions_t)
-- [wpFwTurnSmoothing_e](#enum-wpfwturnsmoothing_e)
 - [wpMissionPlannerStatus_e](#enum-wpmissionplannerstatus_e)
 - [zeroCalibrationState_e](#enum-zerocalibrationstate_e)
 
@@ -1246,7 +1263,8 @@
 | `BOXAUTOSPEED` | 60 |  |
 | `BOXTERRAINAGLHOLD` | 61 |  |
 | `BOXINFLIGHTMENU` | 62 |  |
-| `CHECKBOX_ITEM_COUNT` | 63 |  |
+| `BOXTHRUSTREVERSE` | 63 |  |
+| `CHECKBOX_ITEM_COUNT` | 64 |  |
 
 ---
 ## <a id="enum-busindex_e"></a>`busIndex_e`
@@ -2239,10 +2257,11 @@
 | `FLIGHT_LOG_FIELD_CONDITION_RC_DATA` | 56 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_RC_COMMAND` | 57 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_GYRO_RAW` | 58 |  |
-| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL` | 59 |  |
-| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH` | 60 |  |
-| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW` | 61 |  |
-| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 62 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_SECONDARY` | (59) | USE_DUAL_GYRO |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_ROLL` | 60 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_PITCH` | 61 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_GYRO_PEAKS_YAW` | 62 |  |
+| `FLIGHT_LOG_FIELD_CONDITION_NEVER` | 63 |  |
 | `FLIGHT_LOG_FIELD_CONDITION_FIRST` | FLIGHT_LOG_FIELD_CONDITION_ALWAYS |  |
 | `FLIGHT_LOG_FIELD_CONDITION_LAST` | FLIGHT_LOG_FIELD_CONDITION_NEVER |  |
 
@@ -3369,6 +3388,7 @@
 | `LED_OVERLAY_INDICATOR` | 4 |  |
 | `LED_OVERLAY_WARNING` | 5 |  |
 | `LED_OVERLAY_STROBE` | 6 |  |
+| `LED_OVERLAY_RAINBOW` | 7 |  |
 
 ---
 ## <a id="enum-ledspecialcolorids_e"></a>`ledSpecialColorIds_e`
@@ -3832,6 +3852,199 @@
 | `MAG_MAX` | MAG_FAKE |  |
 
 ---
+## <a id="enum-markerguidanceaxismask_e"></a>`markerGuidanceAxisMask_e`
+
+> Source: src/main/navigation/marker_guidance_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_GUIDANCE_AXIS_NONE` | 0 |  |
+| `MARKER_GUIDANCE_AXIS_NORTH` | 1 << 0 |  |
+| `MARKER_GUIDANCE_AXIS_EAST` | 1 << 1 |  |
+| `MARKER_GUIDANCE_AXIS_BOTH` | MARKER_GUIDANCE_AXIS_NORTH | MARKER_GUIDANCE_AXIS_EAST |  |
+
+---
+## <a id="enum-markerguidancecapturestatus_e"></a>`markerGuidanceCaptureStatus_e`
+
+> Source: src/main/navigation/marker_guidance_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_CAPTURE_NONE` | 0 |  |
+| `MARKER_CAPTURE_FIRST` | 1 |  |
+| `MARKER_CAPTURE_CONTINUOUS` | 2 |  |
+| `MARKER_CAPTURE_DUPLICATE` | 3 |  |
+| `MARKER_CAPTURE_OUT_OF_ORDER` | 4 |  |
+| `MARKER_CAPTURE_TOO_OLD` | 5 |  |
+| `MARKER_CAPTURE_GAP` | 6 |  |
+| `MARKER_CAPTURE_REFERENCE_RESET` | 7 |  |
+| `MARKER_CAPTURE_CLOCK_RESET` | 8 |  |
+| `MARKER_CAPTURE_TOO_SHORT` | 9 |  |
+| `MARKER_CAPTURE_INVALID_TIME` | 10 |  |
+
+---
+## <a id="enum-markerguidancecontext_e"></a>`markerGuidanceContext_e`
+
+> Source: src/main/navigation/marker_guidance_logic.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_GUIDANCE_CONTEXT_NONE` | 0 |  |
+| `MARKER_GUIDANCE_CONTEXT_POSHOLD` | 1 |  |
+| `MARKER_GUIDANCE_CONTEXT_LAND` | 2 |  |
+
+---
+## <a id="enum-markerguidancedebugflag_e"></a>`markerGuidanceDebugFlag_e`
+
+> Source: src/main/navigation/marker_guidance.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_GUIDANCE_DEBUG_FLAG_ENABLED` | 1U << 0 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_ARMED` | 1U << 1 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_MC_PROFILE` | 1U << 2 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_TARGET_VALID` | 1U << 3 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_TARGET_FRESH` | 1U << 4 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_TARGET_ACQUIRED` | 1U << 5 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_PL_MODE` | 1U << 6 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_CONTAINMENT_MODE` | 1U << 7 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_POSHOLD_CONTEXT` | 1U << 8 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_LAND_CONTEXT` | 1U << 9 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_MANUAL_TAKEOVER` | 1U << 10 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_FAILSAFE` | 1U << 11 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_CALIBRATING` | 1U << 12 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_LANDING_DETECTED` | 1U << 13 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_CORRECTION_APPLIED` | 1U << 14 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_HEADING_APPLIED` | 1U << 15 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_VELOCITY_TRUSTED` | 1U << 16 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_RETRY_SPEED_OK` | 1U << 17 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_RETRY_ATTITUDE_OK` | 1U << 18 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_SETTLE_ACTIVE` | 1U << 19 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_SETTLE_READY` | 1U << 20 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_DEADLINE_REACHED` | 1U << 21 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_LOW_ALT_SUPPRESSED` | 1U << 22 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_LOST_HOLD_XY_ACTIVE` | 1U << 23 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_RETRY_ALT_USABLE` | 1U << 24 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_LOW_ALT_XY_LOCK` | 1U << 25 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_POSITION_TRUSTED` | 1U << 26 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_ALTITUDE_USABLE` | 1U << 27 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_AGL_USABLE` | 1U << 28 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_POSITION_TARGET_OWNED` | 1U << 29 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_HEADING_LATCHED` | 1U << 30 |  |
+| `MARKER_GUIDANCE_DEBUG_FLAG_HEADING_SAMPLE_REJECTED` | 1U << 31 |  |
+
+---
+## <a id="enum-markerguidancedebugreason_e"></a>`markerGuidanceDebugReason_e`
+
+> Source: src/main/navigation/marker_guidance.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_GUIDANCE_DEBUG_REASON_OK` | 0 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_DISABLED` | 1 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_INVALID_TARGET` | 2 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_STALE_TARGET` | 3 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_OFFSET_TOO_LARGE` | 4 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_DISARMED` | 5 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_FAILSAFE` | 6 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_NOT_MC` | 7 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_NO_CONTEXT` | 8 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_CALIBRATING` | 9 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_LANDING_DETECTED` | 10 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_MANUAL_TAKEOVER` | 11 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_LOW_ALTITUDE` | 12 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_LOST_HOLD_TIME` | 13 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_VELOCITY_UNTRUSTED` | 14 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_HORIZONTAL_SPEED` | 15 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_ATTITUDE` | 16 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_SETTLE_TIME` | 17 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_RETRY_CLIMB` | 18 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_FALLBACK` | 19 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_VTOL_CAPTURE` | 20 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_VTOL_RECOVERY` | 21 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_POSITION_UNAVAILABLE` | 22 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_WAIT_NEW_TARGET` | 23 |  |
+| `MARKER_GUIDANCE_DEBUG_REASON_TARGET_CONFIRMATION` | 24 |  |
+
+---
+## <a id="enum-markerguidanceestimatorreason_e"></a>`markerGuidanceEstimatorReason_e`
+
+> Source: src/main/navigation/marker_guidance.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_ESTIMATOR_FLOW_SELECTED` | 0 |  |
+| `MARKER_ESTIMATOR_INACTIVE` | 1 |  |
+| `MARKER_ESTIMATOR_UNAVAILABLE` | 2 |  |
+| `MARKER_ESTIMATOR_FLOW_INVALID` | 3 |  |
+| `MARKER_ESTIMATOR_RANGE_INVALID` | 4 |  |
+| `MARKER_ESTIMATOR_TILT` | 5 |  |
+| `MARKER_ESTIMATOR_REFERENCE_INVALID` | 6 |  |
+| `MARKER_ESTIMATOR_SAMPLE_GAP` | 7 |  |
+| `MARKER_ESTIMATOR_INNOVATION` | 8 |  |
+| `MARKER_ESTIMATOR_GAIN_DISABLED` | 9 |  |
+
+---
+## <a id="enum-markerguidancelandcontrolmode_e"></a>`markerGuidanceLandControlMode_e`
+
+> Source: src/main/navigation/marker_guidance.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_GUIDANCE_LAND_CTRL_NONE` | 0 |  |
+| `MARKER_GUIDANCE_LAND_CTRL_HOLD` | 1 |  |
+| `MARKER_GUIDANCE_LAND_CTRL_CLIMB` | 2 |  |
+
+---
+## <a id="enum-markerguidancereason_e"></a>`markerGuidanceReason_e`
+
+> Source: src/main/navigation/marker_guidance.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_GUIDANCE_REASON_OK` | 0 |  |
+| `MARKER_GUIDANCE_REASON_NOT_ENABLED` | 1 |  |
+| `MARKER_GUIDANCE_REASON_STALE` | 2 |  |
+| `MARKER_GUIDANCE_REASON_OFFSET_TOO_LARGE` | 3 |  |
+| `MARKER_GUIDANCE_REASON_NOT_MC_PROFILE` | 4 |  |
+| `MARKER_GUIDANCE_REASON_NOT_IN_POSHOLD_OR_LAND` | 5 |  |
+| `MARKER_GUIDANCE_REASON_FAILSAFE` | 6 |  |
+| `MARKER_GUIDANCE_REASON_INVALID_TARGET` | 7 |  |
+| `MARKER_GUIDANCE_REASON_NOT_ARMED` | 8 |  |
+| `MARKER_GUIDANCE_REASON_POSITION_UNAVAILABLE` | 9 |  |
+
+---
+## <a id="enum-markerguidancestate_e"></a>`markerGuidanceState_e`
+
+> Source: src/main/navigation/marker_guidance.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_GUIDANCE_IDLE` | 0 |  |
+| `MARKER_GUIDANCE_STANDBY` | 1 |  |
+| `MARKER_GUIDANCE_POSHOLD_CORRECTION` | 2 |  |
+| `MARKER_GUIDANCE_LAND_CORRECTION` | 3 |  |
+| `MARKER_GUIDANCE_TARGET_LOST_HOLD` | 4 |  |
+| `MARKER_GUIDANCE_CLIMB_AND_RETRY` | 5 |  |
+| `MARKER_GUIDANCE_FALLBACK_NORMAL_LAND` | 6 |  |
+| `MARKER_GUIDANCE_DONE` | 7 |  |
+
+---
+## <a id="enum-markerguidancevelocityreason_e"></a>`markerGuidanceVelocityReason_e`
+
+> Source: src/main/navigation/marker_guidance.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `MARKER_VELOCITY_INACTIVE` | 0 |  |
+| `MARKER_VELOCITY_WARMUP` | 1 |  |
+| `MARKER_VELOCITY_NO_SAMPLE` | 2 |  |
+| `MARKER_VELOCITY_NO_HISTORY` | 3 |  |
+| `MARKER_VELOCITY_INNOVATION` | 4 |  |
+| `MARKER_VELOCITY_READY` | 5 |  |
+| `MARKER_VELOCITY_SELECTED` | 6 |  |
+
+---
 ## <a id="enum-mavlinkautopilottype_e"></a>`mavlinkAutopilotType_e`
 
 > Source: src/main/telemetry/telemetry.h
@@ -3980,6 +4193,7 @@
 | `PWM_TYPE_DSHOT150` | 4 |  |
 | `PWM_TYPE_DSHOT300` | 5 |  |
 | `PWM_TYPE_DSHOT600` | 6 |  |
+| `PWM_TYPE_SRXL2` | 7 |  |
 
 ---
 ## <a id="enum-motorstatus_e"></a>`motorStatus_e`
@@ -4198,6 +4412,18 @@
 | `FW_LAUNCH_FLYING` | 11 |  |
 
 ---
+## <a id="enum-navfwwpturnmode_e"></a>`navFwWpTurnMode_e`
+
+> Source: src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_FW_WP_TURN_DIRECT` | 0 |  |
+| `NAV_FW_WP_TURN_COORD_FLY_BY` | 1 |  |
+| `NAV_FW_WP_TURN_COORD_FLY_OVER` | 2 |  |
+| `NAV_FW_WP_TURN_COORD_FLY_INTO` | 3 |  |
+
+---
 ## <a id="enum-navigationestimatestatus_e"></a>`navigationEstimateStatus_e`
 
 > Source: src/main/navigation/navigation_private.h
@@ -4412,6 +4638,26 @@
 | `NAV_PERSISTENT_ID_SEND_TO_IN_PROGRES` | 50 |  |
 | `NAV_PERSISTENT_ID_SEND_TO_FINISHED` | 51 |  |
 | `NAV_PERSISTENT_ID_MIXERAT_MISSION_CAPTURE` | 52 |  |
+
+---
+## <a id="enum-navmarkerguidancemode_e"></a>`navMarkerGuidanceMode_e`
+
+> Source: src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_MARKER_GUIDANCE_MODE_OFF` | 0 |  |
+| `NAV_MARKER_GUIDANCE_MODE_PL` | 1 |  |
+| `NAV_MARKER_GUIDANCE_MODE_CONTAINMENT` | 2 |  |
+
+---
+## <a id="enum-navmarkerguidancesource_e"></a>`navMarkerGuidanceSource_e`
+
+> Source: src/main/navigation/navigation.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `NAV_MARKER_GUIDANCE_SOURCE_MSP` | 0 |  |
 
 ---
 ## <a id="enum-navmcaltholdthrottle_e"></a>`navMcAltHoldThrottle_e`
@@ -4635,6 +4881,12 @@
 | `MW_NAV_STATE_HOVER_ABOVE_HOME` | 13 |  |
 | `MW_NAV_STATE_EMERGENCY_LANDING` | 14 |  |
 | `MW_NAV_STATE_RTH_CLIMB` | 15 |  |
+| `MW_NAV_STATE_MARKER_GUIDANCE_STANDBY` | (16) | USE_MARKER_GUIDANCE |
+| `MW_NAV_STATE_MARKER_GUIDANCE_POSHOLD_CORRECTION` | (17) | USE_MARKER_GUIDANCE |
+| `MW_NAV_STATE_MARKER_GUIDANCE_LAND_CORRECTION` | (18) | USE_MARKER_GUIDANCE |
+| `MW_NAV_STATE_MARKER_GUIDANCE_TARGET_LOST_HOLD` | (19) | USE_MARKER_GUIDANCE |
+| `MW_NAV_STATE_MARKER_GUIDANCE_CLIMB_AND_RETRY` | (20) | USE_MARKER_GUIDANCE |
+| `MW_NAV_STATE_MARKER_GUIDANCE_FALLBACK_NORMAL_LAND` | (21) | USE_MARKER_GUIDANCE |
 
 ---
 ## <a id="enum-navvtolmixeratmode_e"></a>`navVtolMixerATMode_e`
@@ -6178,6 +6430,7 @@
 | `FUNCTION_MSP_OSD` | (1 << 25) |  |
 | `FUNCTION_GIMBAL` | (1 << 26) |  |
 | `FUNCTION_GIMBAL_HEADTRACKER` | (1 << 27) |  |
+| `FUNCTION_ESC_SRXL2` | (1 << 29) |  |
 
 ---
 ## <a id="enum-serialportidentifier_e"></a>`serialPortIdentifier_e`
@@ -6490,6 +6743,33 @@
 | `DSMR_5_5ms` | 228 |  |
 
 ---
+## <a id="enum-srxl2calphase_e"></a>`srxl2CalPhase_e`
+
+> Source: src/main/io/motor_srxl2.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_CAL_OFF` | 0 |  |
+| `SRXL2_CAL_WAIT_BATTERY` | 1 |  |
+| `SRXL2_CAL_SETTLE` | 2 |  |
+| `SRXL2_CAL_LOW` | 3 |  |
+| `SRXL2_CAL_HIGH_MANUAL` | 4 |  |
+| `SRXL2_CAL_LOW_MANUAL` | 5 |  |
+
+---
+## <a id="enum-srxl2calresult_e"></a>`srxl2CalResult_e`
+
+> Source: src/main/io/motor_srxl2.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_CAL_ACCEPTED` | 0 |  |
+| `SRXL2_CAL_REJECT_ARMED` | 1 |  |
+| `SRXL2_CAL_REJECT_NO_PORT` | 2 |  |
+| `SRXL2_CAL_REJECT_BATTERY_PRESENT` | 3 |  |
+| `SRXL2_CAL_REJECT_NO_VOLTAGE_SENSOR` | 4 |  |
+
+---
 ## <a id="enum-srxl2controldatacommand"></a>`Srxl2ControlDataCommand`
 
 > Source: src/main/rx/srxl2_types.h
@@ -6554,6 +6834,43 @@
 | `SendHandshake` | 2 |  |
 | `ListenForHandshake` | 3 |  |
 | `Running` | 4 |  |
+
+---
+## <a id="enum-srxl2state_e"></a>`srxl2State_e`
+
+> Source: src/main/io/motor_srxl2.c
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_DISABLED` | 0 |  |
+| `SRXL2_LISTENING` | 1 |  |
+| `SRXL2_POLLING` | 2 |  |
+| `SRXL2_FINALISING` | 3 |  |
+| `SRXL2_RUNNING` | 4 |  |
+
+---
+## <a id="enum-srxl2telemetryfield_e"></a>`srxl2TelemetryField_e`
+
+> Source: src/main/io/motor_srxl2.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_TELEM_FIELD_RPM` | (1 << 0) |  |
+| `SRXL2_TELEM_FIELD_VOLTAGE` | (1 << 1) |  |
+| `SRXL2_TELEM_FIELD_CURRENT` | (1 << 2) |  |
+| `SRXL2_TELEM_FIELD_TEMP_FET` | (1 << 3) |  |
+| `SRXL2_TELEM_FIELD_TEMP_BEC` | (1 << 4) |  |
+
+---
+## <a id="enum-srxl2telemetryrate_e"></a>`srxl2TelemetryRate_e`
+
+> Source: src/main/io/motor_srxl2.h
+
+| Enumerator | Value | Condition |
+|---|---:|---|
+| `SRXL2_TELEM_1HZ` | 0 |  |
+| `SRXL2_TELEM_3HZ` | 1 |  |
+| `SRXL2_TELEM_2HZ` | 2 |  |
 
 ---
 ## <a id="enum-stateflags_t"></a>`stateFlags_t`
@@ -6717,16 +7034,17 @@
 
 | Enumerator | Value | Condition |
 |---|---:|---|
-| `timBlink` | 0 |  |
-| `timLarson` | 1 |  |
-| `timBattery` | 2 |  |
-| `timRssi` | 3 |  |
-| `timGps` | (4) | USE_GPS |
-| `timWarning` | 5 |  |
-| `timIndicator` | 6 |  |
-| `timAnimation` | (7) | USE_LED_ANIMATION |
-| `timRing` | 8 |  |
-| `timTimerCount` | 9 |  |
+| `timRainbow` | 0 |  |
+| `timBlink` | 1 |  |
+| `timLarson` | 2 |  |
+| `timBattery` | 3 |  |
+| `timRssi` | 4 |  |
+| `timGps` | (5) | USE_GPS |
+| `timWarning` | 6 |  |
+| `timIndicator` | 7 |  |
+| `timAnimation` | (8) | USE_LED_ANIMATION |
+| `timRing` | 9 |  |
+| `timTimerCount` | 10 |  |
 
 ---
 ## <a id="enum-tristate_e"></a>`tristate_e`
@@ -6980,6 +7298,8 @@
 | `VTOL_MC_PROTECT_FLAG_SOFT_ALTITUDE` | 1 << 8 |  |
 | `VTOL_MC_PROTECT_FLAG_COMMAND_SHAPED` | 1 << 9 |  |
 | `VTOL_MC_PROTECT_FLAG_VELOCITY_FALLBACK` | 1 << 10 |  |
+| `VTOL_MC_PROTECT_FLAG_GUIDANCE_RECOVERY` | 1 << 11 |  |
+| `VTOL_MC_PROTECT_FLAG_RTH_YAW_BLOCKED` | 1 << 12 |  |
 
 ---
 ## <a id="enum-vtolmcprotectionmode_e"></a>`vtolMcProtectionMode_e`
@@ -7120,17 +7440,6 @@
 | `DISPLAY_WIDGET_SIDEBAR_OPTION_REVERSE` | 1 << 1 |  |
 | `DISPLAY_WIDGET_SIDEBAR_OPTION_UNLABELED` | 1 << 2 |  |
 | `DISPLAY_WIDGET_SIDEBAR_OPTION_STATIC` | 1 << 3 |  |
-
----
-## <a id="enum-wpfwturnsmoothing_e"></a>`wpFwTurnSmoothing_e`
-
-> Source: src/main/navigation/navigation.h
-
-| Enumerator | Value | Condition |
-|---|---:|---|
-| `WP_TURN_SMOOTHING_OFF` | 0 |  |
-| `WP_TURN_SMOOTHING_ON` | 1 |  |
-| `WP_TURN_SMOOTHING_CUT` | 2 |  |
 
 ---
 ## <a id="enum-wpmissionplannerstatus_e"></a>`wpMissionPlannerStatus_e`

@@ -163,6 +163,78 @@ TEST(VtolMcProtectionLogicTest, LandingCaptureRadiusCapsLargeWaypointRadius)
     EXPECT_EQ(80, vtolMcProtectionLandingCaptureRadiusCm(80));
 }
 
+TEST(VtolMcProtectionLogicTest, RthPostSwitchFacesHomeUntilInsideLandingCaptureRadius)
+{
+    EXPECT_EQ(12345, vtolMcProtectionRthPostSwitchHeading(2500, 100, 12345, 27000));
+    EXPECT_EQ(27000, vtolMcProtectionRthPostSwitchHeading(100, 100, 12345, 27000));
+    EXPECT_EQ(27000, vtolMcProtectionRthPostSwitchHeading(0, 100, 12345, 27000));
+}
+
+TEST(VtolMcProtectionLogicTest, RthTransitionTimeBudgetIncludesTimerAndDynamicOutputRamp)
+{
+    EXPECT_EQ(6200U, vtolMcProtectionRthTransitionTimeBudgetMs(50, true, 1200));
+    EXPECT_EQ(5000U, vtolMcProtectionRthTransitionTimeBudgetMs(50, false, 1200));
+    EXPECT_EQ(1200U, vtolMcProtectionRthTransitionTimeBudgetMs(0, true, 1200));
+    EXPECT_EQ(0U, vtolMcProtectionRthTransitionTimeBudgetMs(-1, false, 1200));
+}
+
+TEST(VtolMcProtectionLogicTest, RthTransitionStartDistanceUsesClosingSpeedOrLoiterFallback)
+{
+    EXPECT_EQ(12400U, vtolMcProtectionRthTransitionStartDistanceCm(2000, 6200, 7500));
+    EXPECT_EQ(7500U, vtolMcProtectionRthTransitionStartDistanceCm(800, 6200, 7500));
+    EXPECT_EQ(7500U, vtolMcProtectionRthTransitionStartDistanceCm(0, 6200, 7500));
+    EXPECT_EQ(1U, vtolMcProtectionRthTransitionStartDistanceCm(1, 1, 0));
+    EXPECT_EQ(0U, vtolMcProtectionRthTransitionStartDistanceCm(2000, 0, 0));
+    EXPECT_EQ(UINT32_MAX, vtolMcProtectionRthTransitionStartDistanceCm(UINT32_MAX, UINT32_MAX, 0));
+}
+
+TEST(VtolMcProtectionLogicTest, RthClosingSpeedProjectsVelocityTowardHome)
+{
+    EXPECT_EQ(2000U, vtolMcProtectionRthClosingSpeedCmS(true, 10000, 0, 2000, 500));
+    EXPECT_EQ(2000U, vtolMcProtectionRthClosingSpeedCmS(true, 0, -10000, 500, -2000));
+    EXPECT_EQ(0U, vtolMcProtectionRthClosingSpeedCmS(true, 10000, 0, -2000, 0));
+    EXPECT_EQ(0U, vtolMcProtectionRthClosingSpeedCmS(true, 10000, 0, 0, 2000));
+    EXPECT_EQ(1400U, vtolMcProtectionRthClosingSpeedCmS(true, -3000, -4000, -1000, -1000));
+}
+
+TEST(VtolMcProtectionLogicTest, RthClosingSpeedFallsBackForUnusableEstimates)
+{
+    EXPECT_EQ(0U, vtolMcProtectionRthClosingSpeedCmS(false, 10000, 0, 2000, 0));
+    EXPECT_EQ(0U, vtolMcProtectionRthClosingSpeedCmS(true, 0, 0, 2000, 0));
+    EXPECT_EQ(0U, vtolMcProtectionRthClosingSpeedCmS(true, NAN, 0, 2000, 0));
+    EXPECT_EQ(0U, vtolMcProtectionRthClosingSpeedCmS(true, 10000, 0, INFINITY, 0));
+    EXPECT_EQ(0U, vtolMcProtectionRthClosingSpeedCmS(true, 10000, 0, NAN, 0));
+    EXPECT_EQ(0U, vtolMcProtectionRthClosingSpeedCmS(true, INFINITY, 0, 2000, 0));
+}
+
+TEST(VtolMcProtectionLogicTest, RthPredictionRejectsShortSpeedSpikeAndRestartsConfirmation)
+{
+    vtolMcProtectionSettleState_t state = {};
+    const auto update = [&](uint32_t speed, timeMs_t now) {
+        const uint32_t startDistance = vtolMcProtectionRthTransitionStartDistanceCm(speed, 6200, 7500);
+        return vtolMcProtectionUpdateSettleState(&state, 10000U <= startDistance,
+            VTOL_MC_RTH_TRANSITION_TRIGGER_CONFIRM_MS, now);
+    };
+    EXPECT_FALSE(update(2000, 100));
+    EXPECT_FALSE(update(2000, 300));
+    EXPECT_FALSE(update(800, 350));
+    EXPECT_FALSE(update(2000, 400));
+    EXPECT_FALSE(update(2000, 699));
+    EXPECT_TRUE(update(2000, 700));
+    // The production FSM clears this state on mode changes / a blocked route.
+    state = {};
+    EXPECT_FALSE(update(2000, 10000));
+    EXPECT_TRUE(update(2000, 10300));
+}
+
+TEST(VtolMcProtectionLogicTest, RthConfirmationHandlesMillisecondRollover)
+{
+    vtolMcProtectionSettleState_t state = {};
+    EXPECT_FALSE(vtolMcProtectionUpdateSettleState(&state, true, 300, UINT32_MAX - 100));
+    EXPECT_FALSE(vtolMcProtectionUpdateSettleState(&state, true, 300, 198));
+    EXPECT_TRUE(vtolMcProtectionUpdateSettleState(&state, true, 300, 199));
+}
+
 TEST(VtolMcProtectionLogicTest, PositionCaptureDoesNotOverrideNavigationOrPilotTarget)
 {
     EXPECT_TRUE(vtolMcProtectionPositionCaptureAllowed(true, true, false, false));
@@ -178,6 +250,23 @@ TEST(VtolMcProtectionLogicTest, PositionCaptureSetsBrakingTargetOnlyOnEntry)
     EXPECT_TRUE(vtolMcProtectionCaptureShouldSetTarget(false, true));
     EXPECT_FALSE(vtolMcProtectionCaptureShouldSetTarget(true, true));
     EXPECT_FALSE(vtolMcProtectionCaptureShouldSetTarget(true, false));
+}
+
+TEST(VtolMcProtectionLogicTest, PositionCaptureRemainsPendingUntilContinuousSettleCompletes)
+{
+    EXPECT_FALSE(vtolMcProtectionPositionCapturePending(false, false, 0, 1000, 5000));
+    EXPECT_TRUE(vtolMcProtectionPositionCapturePending(true, false, 4000, 1000, 5000));
+    EXPECT_TRUE(vtolMcProtectionPositionCapturePending(true, true, 0, 1000, 5000));
+    EXPECT_TRUE(vtolMcProtectionPositionCapturePending(true, true, 4500, 1000, 5000));
+    EXPECT_FALSE(vtolMcProtectionPositionCapturePending(true, true, 4000, 1000, 5000));
+    EXPECT_FALSE(vtolMcProtectionPositionCapturePending(true, true, 0, 0, 5000));
+}
+
+TEST(VtolMcProtectionLogicTest, PositionCapturePendingHandlesMillisWrap)
+{
+    const timeMs_t stableSinceMs = UINT32_MAX - 499;
+    EXPECT_TRUE(vtolMcProtectionPositionCapturePending(true, true, stableSinceMs, 1000, 499));
+    EXPECT_FALSE(vtolMcProtectionPositionCapturePending(true, true, stableSinceMs, 1000, 500));
 }
 
 TEST(VtolMcProtectionLogicTest, LandingDescentDoesNotInvalidateApprovedSettle)
@@ -200,6 +289,16 @@ TEST(VtolMcProtectionLogicTest, LandingResettleRequiresProtectionAndPriorApprova
         false, true, true, 300.0f, 300, 75, 200));
     EXPECT_FALSE(vtolMcProtectionLandingDescentNeedsResettle(
         true, false, true, 300.0f, 300, 75, 200));
+}
+
+TEST(VtolMcProtectionLogicTest, LandingGuidanceRecoveryRequiresUnsafeAttitudeBeyondNormalCommandRange)
+{
+    EXPECT_EQ(250, vtolMcProtectionLandingGuidanceRecoveryAngleLimitDeciDeg(150, 150, 450));
+    EXPECT_EQ(400, vtolMcProtectionLandingGuidanceRecoveryAngleLimitDeciDeg(200, 300, 450));
+    EXPECT_EQ(450, vtolMcProtectionLandingGuidanceRecoveryAngleLimitDeciDeg(200, 400, 450));
+    EXPECT_FALSE(vtolMcProtectionLandingGuidanceRecoveryNeeded(false, 201, 200));
+    EXPECT_FALSE(vtolMcProtectionLandingGuidanceRecoveryNeeded(true, 200, 200));
+    EXPECT_TRUE(vtolMcProtectionLandingGuidanceRecoveryNeeded(true, 201, 200));
 }
 
 TEST(VtolMcProtectionLogicTest, SoftAltitudeRelaxationOnlyAppliesDuringCaptureOrTransition)
@@ -421,6 +520,15 @@ TEST(VtolMcProtectionLogicTest, BailoutAngleLimitUsesBankAngleWithSafeClamps)
     EXPECT_EQ(600, vtolMcProtectionBailoutAngleLimitDeciDeg(80));
 }
 
+TEST(VtolMcProtectionLogicTest, GuidanceRecoveryRequiresActiveProtectedAutoThrottle)
+{
+    EXPECT_FALSE(vtolMcProtectionGuidanceRecoveryActive(false, true, true, 0, 450));
+    EXPECT_FALSE(vtolMcProtectionGuidanceRecoveryActive(true, false, true, 0, 450));
+    EXPECT_FALSE(vtolMcProtectionGuidanceRecoveryActive(true, true, false, 449, 450));
+    EXPECT_TRUE(vtolMcProtectionGuidanceRecoveryActive(true, true, false, 450, 450));
+    EXPECT_TRUE(vtolMcProtectionGuidanceRecoveryActive(true, true, true, 0, 450));
+}
+
 TEST(VtolMcProtectionLogicTest, ActiveProtectionSuppressesMulticopterBrakingMode)
 {
     EXPECT_FALSE(vtolMcProtectionSuppressesMulticopterBrakingMode(false));
@@ -481,6 +589,40 @@ TEST(VtolMcProtectionLogicTest, RthLandingYawSettleAssistRequiresSettledVtolMcLa
         true,
         false,
         true));
+}
+
+TEST(VtolMcProtectionLogicTest, RthYawBlockedRequiresSustainedMissingHeadingProgress)
+{
+    vtolMcProtectionYawResponseState_t state = {};
+
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 4500, 1000));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 4500, 2999));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 4500, 3000));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 3900, 3500));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 3900, 5400));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 3900, 5500));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 19000, 1400, 5600));
+}
+
+TEST(VtolMcProtectionLogicTest, RthYawResponseResetsOnNewTargetOrInactiveMode)
+{
+    vtolMcProtectionYawResponseState_t state = {};
+
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 35000, 4500, 1000));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 35000, 4500, 3000));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 100, 4500, 3100));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, false, 100, 4500, 5100));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 100, 4500, 5200));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 100, 4500, 7200));
+}
+
+TEST(VtolMcProtectionLogicTest, RthYawResponseHandlesMillisWrap)
+{
+    vtolMcProtectionYawResponseState_t state = {};
+
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 9000, 3000, UINT32_MAX - 999U));
+    EXPECT_FALSE(vtolMcProtectionUpdateYawResponse(&state, true, 9000, 3000, 999U));
+    EXPECT_TRUE(vtolMcProtectionUpdateYawResponse(&state, true, 9000, 3000, 1000U));
 }
 
 TEST(VtolMcProtectionLogicTest, CommandShapingIsContinuousAndPreservesSign)

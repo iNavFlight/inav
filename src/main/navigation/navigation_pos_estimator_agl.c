@@ -59,6 +59,7 @@ void updatePositionEstimator_SurfaceTopic(timeUs_t currentTimeUs, float newSurfa
         surfaceMeasurementWithinRange = true;
         posEstimator.surface.alt = newSurfaceAlt;
     }
+    posEstimator.surface.sampleValid = surfaceMeasurementWithinRange;
 
     /* Reliability is a measure of confidence of rangefinder measurement. It's increased with each valid sample and decreased with each invalid sample */
     if (surfaceDtUs > MS2US(INAV_SURFACE_TIMEOUT_MS)) {

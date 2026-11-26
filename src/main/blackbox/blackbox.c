@@ -1204,7 +1204,7 @@ static void writeInterframe(void)
      */
     blackboxWriteSignedVB((int32_t) (blackboxHistory[0]->time - 2 * blackboxHistory[1]->time + blackboxHistory[2]->time));
 
-    // Up to 9 optional fields below: vbat, amperage, mag x3, baro, pitot, surface, rssi
+    // All optional fields can coexist: VBAT, current, mag[3], baro, pitot, rangefinder and RSSI.
     int32_t deltas[9];
     arraySubInt32(deltas, blackboxCurrent->axisPID_Setpoint, blackboxLast->axisPID_Setpoint, XYZ_AXIS_COUNT);
     blackboxWriteSignedVBArray(deltas, XYZ_AXIS_COUNT);
@@ -1472,13 +1472,12 @@ static void writeSlowFrame(void)
     blackboxWriteUnsignedVB(slowHistory.escRPM);
     blackboxWriteSignedVB(slowHistory.escTemperature);
 #endif
+#ifdef USE_DRONECAN
+    blackboxWriteUnsignedVB(slowHistory.droneCANBusOffCount);
+#endif
 #ifdef USE_TERRAIN
     blackboxWriteSignedVB(slowHistory.terrainAGL);
     blackboxWriteSignedVB(slowHistory.terrainAMSL);
-#endif
-
-#ifdef USE_DRONECAN
-    blackboxWriteUnsignedVB(slowHistory.droneCANBusOffCount);
 #endif
 
     blackboxSlowFrameIterationTimer = 0;

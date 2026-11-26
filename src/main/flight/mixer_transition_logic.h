@@ -109,18 +109,18 @@ static inline bool mixerTransitionTailSitterRequestIsSupported(
     mixerProfileATRequest_e requiredAction,
     bool tailSitterProfilePair,
     bool currentDynamicMixerEnabled,
-    bool targetDynamicMixerEnabled)
+    bool targetDynamicMixerEnabled,
+    uint8_t mcAuthorityMinPercent)
 {
     if (!tailSitterProfilePair) {
         return true;
     }
 
-    // The first tailsitter implementation deliberately keeps automatic
-    // navigation and dynamic mixer paths out of the unvalidated airframe.
+    // Autonomous requests remain unsupported. Zero authority cannot safely
+    // mean turning off the only active tailsitter controller.
     return (requiredAction == MIXERAT_REQUEST_MANUAL_TO_FW ||
             requiredAction == MIXERAT_REQUEST_MANUAL_TO_MC) &&
-           !currentDynamicMixerEnabled &&
-           !targetDynamicMixerEnabled;
+           (!(currentDynamicMixerEnabled || targetDynamicMixerEnabled) || mcAuthorityMinPercent > 0);
 }
 
 static inline bool mixerTransitionTailSitterNeedsMcCapture(
@@ -239,15 +239,15 @@ static inline bool mixerTransitionNavigationHandbackShouldHoldProfile(
     bool navigationOwnedProfileSwitchPreviousUpdate,
     bool navigationOwnsProfileSwitch,
     bool mixerProfileModePresent,
-    bool autoTransitionActive,
     bool transitionModeActive,
     int currentProfileIndex,
     int requestedProfileIndex)
 {
+    // Capture the ownership edge even if transition outputs are still finishing.
+    // Waiting for an idle transition would lose this edge on the next update.
     return navigationOwnedProfileSwitchPreviousUpdate &&
            !navigationOwnsProfileSwitch &&
            mixerProfileModePresent &&
-           !autoTransitionActive &&
            (transitionModeActive || currentProfileIndex != requestedProfileIndex);
 }
 
@@ -532,6 +532,34 @@ static inline float mixerTransitionComputeMotorRampProgress(
     }
 
     return mixerTransitionClamp((float)elapsedMs / (float)scaleRampTimeMs, 0.0f, 1.0f);
+}
+
+static inline float mixerTransitionTailSitterAuthorityScale(
+    const mixerProfileAT_t *transition,
+    bool activeMcTailSitter,
+    uint8_t minimumPercent,
+    timeMs_t now)
+{
+    if (!activeMcTailSitter) {
+        return 1.0f;
+    }
+    const float ramp = mixerTransitionComputeMotorRampProgress(
+        true, transition->tailSitterAuthorityRampMs, now - transition->tailSitterAuthorityStartTime);
+    if (transition->tailSitterAuthorityRecovering) {
+        return transition->tailSitterAuthorityStartScale + (1.0f - transition->tailSitterAuthorityStartScale) * ramp;
+    }
+    if (!transition->tailSitterManualTransition || !transition->tailSitterAuthorityEnabled) {
+        return 1.0f;
+    }
+    const float minimum = minimumPercent / 100.0f;
+    if (transition->phase == MIXERAT_PHASE_TAILSITTER_TO_MC_CAPTURE) {
+        return minimum + (1.0f - minimum) * ramp;
+    }
+    if (transition->direction == MIXERAT_DIRECTION_TO_FW) {
+        const float progress = mixerTransitionClamp(transition->handoffScalingProgress, 0.0f, 1.0f);
+        return transition->tailSitterAuthorityStartScale + (minimum - transition->tailSitterAuthorityStartScale) * progress;
+    }
+    return 1.0f;
 }
 
 static inline uint16_t mixerTransitionComputeServoHandoffDurationMs(

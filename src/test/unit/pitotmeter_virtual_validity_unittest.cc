@@ -119,6 +119,20 @@ TEST_F(VirtualPitotValidity, NotValidWithoutWindEstimate) {
     EXPECT_FALSE(airspeedValid());
 }
 
+TEST_F(VirtualPitotValidity, DegradedAirspeedDoesNotSatisfyTransitionAccuracyRequirement) {
+    windValid = false;
+    pitotUpdate();
+    EXPECT_TRUE(pitotIsValidForAirspeed(false));
+    EXPECT_FALSE(pitotIsValidForAirspeed(true));
+
+    windValid = true;
+    EXPECT_TRUE(airspeedValid());
+    gpsSol.flags.validVelNE = false;
+    pitotUpdate();
+    EXPECT_FALSE(pitotIsValidForAirspeed(false));
+    EXPECT_FALSE(pitotIsValidForAirspeed(true));
+}
+
 TEST_F(VirtualPitotValidity, NotValidWhenHorizontalVelocityLost) {
     ASSERT_TRUE(airspeedValid());
     gpsSol.flags.validVelNE = false;

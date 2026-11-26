@@ -19,16 +19,20 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "common/time.h"
 
 #define VTOL_MC_LANDING_CAPTURE_RADIUS_CAP_CM      100
+#define VTOL_MC_RTH_APPROACH_HEADING_TOLERANCE_CD 1500
+#define VTOL_MC_RTH_TRANSITION_TRIGGER_CONFIRM_MS   300
 #define VTOL_MC_LANDING_RESETTLE_SPEED_MULTIPLIER   2
 #define VTOL_MC_VERTICAL_SETTLE_SPEED_CAP_CM_S     100
 #define VTOL_MC_SETTLE_ATTITUDE_CAP_DEG            20
 #define VTOL_MC_BAILOUT_ANGLE_EXTRA_DEG            15
 #define VTOL_MC_BAILOUT_ANGLE_MIN_DEG              45
 #define VTOL_MC_BAILOUT_ANGLE_MAX_DEG              60
+#define VTOL_MC_LANDING_GUIDANCE_RECOVERY_MARGIN_DEG 10
 #define VTOL_MC_COMMAND_SHAPE_START_CM_S           300
 #define VTOL_MC_COMMAND_SHAPE_FULL_CM_S            800
 #define VTOL_MC_COMMAND_SHAPE_MIN_SCALE            0.5f
@@ -46,6 +50,53 @@
 #define VTOL_MC_LANDING_PROBE_VEL_DELTA_CM_S       20.0f
 #define VTOL_MC_LANDING_PROBE_VEL_ABS_CM_S         80.0f
 #define VTOL_MC_LANDING_PROBE_LOW_G_THRESHOLD      0.85f
+#define VTOL_MC_RTH_YAW_RESPONSE_WINDOW_MS         2000U
+#define VTOL_MC_RTH_YAW_MIN_PROGRESS_CD            500U
+#define VTOL_MC_RTH_YAW_TARGET_CHANGE_CD           500U
+#define VTOL_MC_RTH_YAW_GATE_CD                    1500U
+
+typedef struct vtolMcProtectionYawResponseState_s {
+    timeMs_t startMs;
+    int32_t targetHeadingCd;
+    uint16_t initialErrorCd;
+    bool observing;
+    bool blocked;
+} vtolMcProtectionYawResponseState_t;
+
+static inline bool vtolMcProtectionUpdateYawResponse(
+    vtolMcProtectionYawResponseState_t *state,
+    bool active,
+    int32_t targetHeadingCd,
+    uint16_t headingErrorCd,
+    timeMs_t nowMs)
+{
+    if (!active || headingErrorCd < VTOL_MC_RTH_YAW_GATE_CD) {
+        state->observing = false;
+        state->blocked = false;
+        return false;
+    }
+
+    int32_t targetChangeCd = targetHeadingCd - state->targetHeadingCd;
+    if (targetChangeCd > 18000) {
+        targetChangeCd -= 36000;
+    } else if (targetChangeCd < -18000) {
+        targetChangeCd += 36000;
+    }
+
+    if (!state->observing || targetChangeCd > (int32_t)VTOL_MC_RTH_YAW_TARGET_CHANGE_CD ||
+        targetChangeCd < -(int32_t)VTOL_MC_RTH_YAW_TARGET_CHANGE_CD ||
+        state->initialErrorCd >= headingErrorCd + VTOL_MC_RTH_YAW_MIN_PROGRESS_CD) {
+        state->startMs = nowMs;
+        state->targetHeadingCd = targetHeadingCd;
+        state->initialErrorCd = headingErrorCd;
+        state->observing = true;
+        state->blocked = false;
+    } else if ((timeMs_t)(nowMs - state->startMs) >= VTOL_MC_RTH_YAW_RESPONSE_WINDOW_MS) {
+        state->blocked = true;
+    }
+
+    return state->blocked;
+}
 
 typedef struct vtolMcProtectionThrottleBounds_s {
     int16_t min;
@@ -69,6 +120,68 @@ static inline bool vtolMcProtectionDetectVtolMcMode(
 static inline uint16_t vtolMcProtectionLandingCaptureRadiusCm(const uint16_t navWpRadiusCm)
 {
     return navWpRadiusCm < VTOL_MC_LANDING_CAPTURE_RADIUS_CAP_CM ? navWpRadiusCm : VTOL_MC_LANDING_CAPTURE_RADIUS_CAP_CM;
+}
+
+static inline int32_t vtolMcProtectionRthPostSwitchHeading(
+    const uint32_t distanceToHomeCm,
+    const uint16_t landingCaptureRadiusCm,
+    const int32_t bearingToHomeCd,
+    const int32_t landingHeadingCd)
+{
+    // Close to Home the bearing becomes noisy, so use the configured landing
+    // heading. Farther away, face Home before allowing the approach to resume.
+    return distanceToHomeCm > landingCaptureRadiusCm ? bearingToHomeCd : landingHeadingCd;
+}
+
+static inline uint32_t vtolMcProtectionRthTransitionTimeBudgetMs(
+    const int16_t switchTransitionTimerDeciseconds,
+    const bool dynamicMixerEnabled,
+    const uint16_t scaleRampTimeMs)
+{
+    const uint32_t switchTimeMs = switchTransitionTimerDeciseconds > 0 ?
+        (uint32_t)switchTransitionTimerDeciseconds * 100U : 0U;
+    const uint32_t outputRampTimeMs = dynamicMixerEnabled ? scaleRampTimeMs : 0U;
+
+    return switchTimeMs + outputRampTimeMs;
+}
+
+static inline uint32_t vtolMcProtectionRthClosingSpeedCmS(
+    const bool velocityTrusted,
+    const float deltaX,
+    const float deltaY,
+    const float velocityX,
+    const float velocityY)
+{
+    if (!velocityTrusted) {
+        return 0;
+    }
+
+    const float distance = sqrtf(deltaX * deltaX + deltaY * deltaY);
+    if (!isfinite(distance) || distance <= 0.0f) {
+        return 0;
+    }
+
+    const float closingSpeed = (velocityX * deltaX + velocityY * deltaY) / distance;
+    // Reject invalid estimates before converting to an integer (lrintf uses a
+    // signed 32-bit long on flight targets). Receding/tangential flight uses staging.
+    return isfinite(closingSpeed) && closingSpeed > 0.0f && closingSpeed < (float)INT32_MAX ?
+        (uint32_t)lrintf(closingSpeed) : 0;
+}
+
+static inline uint32_t vtolMcProtectionRthTransitionStartDistanceCm(
+    const uint32_t closingSpeedCmS,
+    const uint32_t transitionTimeBudgetMs,
+    const uint16_t fallbackRadiusCm)
+{
+    const uint64_t predictedDistanceCm =
+        ((uint64_t)closingSpeedCmS * transitionTimeBudgetMs + 999U) / 1000U;
+
+    if (predictedDistanceCm > UINT32_MAX) {
+        return UINT32_MAX;
+    }
+
+    const uint32_t predictedDistance = (uint32_t)predictedDistanceCm;
+    return predictedDistance > fallbackRadiusCm ? predictedDistance : fallbackRadiusCm;
 }
 
 static inline uint16_t vtolMcProtectionHorizontalSettleSpeedCmS(const uint16_t brakingDisengageSpeedCmS)
@@ -130,6 +243,28 @@ static inline bool vtolMcProtectionCaptureShouldSetTarget(
     return !captureWasActive && captureIsActive;
 }
 
+static inline bool vtolMcProtectionPositionCapturePending(
+    const bool captureAllowed,
+    const bool settleConditionsMet,
+    const timeMs_t stableSinceMs,
+    const uint16_t settleTimeMs,
+    const timeMs_t nowMs)
+{
+    if (!captureAllowed) {
+        return false;
+    }
+
+    if (!settleConditionsMet) {
+        return true;
+    }
+
+    if (settleTimeMs == 0) {
+        return false;
+    }
+
+    return stableSinceMs == 0 || (nowMs - stableSinceMs) < settleTimeMs;
+}
+
 static inline bool vtolMcProtectionLandingDescentNeedsResettle(
     const bool protectionActive,
     const bool landingSettleApproved,
@@ -148,6 +283,28 @@ static inline bool vtolMcProtectionLandingDescentNeedsResettle(
     return (horizontalVelocityUsable &&
             horizontalSpeedCmS > (float)horizontalSettleLimitCmS * VTOL_MC_LANDING_RESETTLE_SPEED_MULTIPLIER) ||
            maxAbsAttitudeDeciDeg > attitudeSettleLimitDeciDeg;
+}
+
+static inline bool vtolMcProtectionLandingGuidanceRecoveryNeeded(
+    const bool protectionActive,
+    const uint16_t maxAbsAttitudeDeciDeg,
+    const uint16_t attitudeSettleLimitDeciDeg)
+{
+    return protectionActive &&
+           maxAbsAttitudeDeciDeg > attitudeSettleLimitDeciDeg;
+}
+
+static inline uint16_t vtolMcProtectionLandingGuidanceRecoveryAngleLimitDeciDeg(
+    const uint16_t landingSettleAngleLimitDeciDeg,
+    const uint16_t configuredBankAngleLimitDeciDeg,
+    const uint16_t bailoutAngleLimitDeciDeg)
+{
+    const uint16_t normalCommandLimitDeciDeg =
+        landingSettleAngleLimitDeciDeg > configuredBankAngleLimitDeciDeg ?
+        landingSettleAngleLimitDeciDeg : configuredBankAngleLimitDeciDeg;
+    const uint16_t recoveryLimitDeciDeg = normalCommandLimitDeciDeg +
+        (VTOL_MC_LANDING_GUIDANCE_RECOVERY_MARGIN_DEG * 10U);
+    return recoveryLimitDeciDeg < bailoutAngleLimitDeciDeg ? recoveryLimitDeciDeg : bailoutAngleLimitDeciDeg;
 }
 
 static inline bool vtolMcProtectionRthLandingYawSettleAssistActive(
@@ -175,6 +332,18 @@ static inline uint16_t vtolMcProtectionBailoutAngleLimitDeciDeg(const uint8_t na
     }
 
     return (uint16_t)bailoutAngleDeg * 10U;
+}
+
+static inline bool vtolMcProtectionGuidanceRecoveryActive(
+    const bool protectionActive,
+    const bool automaticThrottleActive,
+    const bool bailoutActive,
+    const uint16_t maxAbsAttitudeDeciDeg,
+    const uint16_t bailoutAngleLimitDeciDeg)
+{
+    return protectionActive &&
+           automaticThrottleActive &&
+           (bailoutActive || maxAbsAttitudeDeciDeg >= bailoutAngleLimitDeciDeg);
 }
 
 static inline vtolMcProtectionThrottleBounds_t vtolMcProtectionComputeThrottleBounds(
@@ -206,6 +375,40 @@ static inline vtolMcProtectionThrottleBounds_t vtolMcProtectionComputeThrottleBo
     bounds.reserveShrunk = lowReserve != requestedReserve || highReserve != requestedReserve;
 
     return bounds;
+}
+
+static inline int16_t vtolMcProtectionThrottleBeforeTilt(
+    const int16_t throttle, const int16_t idleThrottle, const float tiltFactor)
+{
+    if (!(tiltFactor > 1.0f) || !isfinite(tiltFactor)) {
+        return throttle;
+    }
+    return idleThrottle + (int16_t)floorf((throttle - idleThrottle) / tiltFactor);
+}
+
+static inline vtolMcProtectionThrottleBounds_t vtolMcProtectionBoundsBeforeTilt(
+    vtolMcProtectionThrottleBounds_t bounds, const int16_t idleThrottle, const float tiltFactor)
+{
+    if (!(tiltFactor > 1.0f) || !isfinite(tiltFactor)) {
+        return bounds;
+    }
+
+    // PID output is before tilt compensation, whereas reserve is defined in
+    // final throttle units. Round inward so compensation cannot exceed max.
+    bounds.max = vtolMcProtectionThrottleBeforeTilt(bounds.max, idleThrottle, tiltFactor);
+    bounds.min = idleThrottle + (int16_t)ceilf((bounds.min - idleThrottle) / tiltFactor);
+    if (bounds.min > bounds.max) {
+        bounds.min = bounds.max;
+    }
+    return bounds;
+}
+
+static inline int16_t vtolMcProtectionLimitCompensatedThrottle(
+    const bool active, const int16_t throttle, const vtolMcProtectionThrottleBounds_t *bounds)
+{
+    // Do not impose the lower reserve here: landing probe intentionally goes
+    // below it to confirm touchdown, and power reduction must remain possible.
+    return active && throttle > bounds->max ? bounds->max : throttle;
 }
 
 static inline bool vtolMcProtectionSettleConditionsMet(

@@ -181,11 +181,45 @@ Use the normal two-profile arrangement:
 - **FW profile:** `platform_type = AIRPLANE`, with `tailsitter_orientation_offset = OFF`.
 - **MC profile:** a multirotor platform type, with `tailsitter_orientation_offset = ON`.
 - Enable `mixer_vtol_manualswitch_autotransition_controller = ON` in both profiles.
-- Keep `mixer_vtol_transition_dynamic_mixer = OFF` in both profiles. Dynamic motor/authority blending is not validated for a tailsitter yet.
+- Leave `mixer_vtol_transition_dynamic_mixer = OFF` in both profiles for the original manual tailsitter behavior. The optional authority-only path described below is experimental; it does not enable quadplane propulsion blending.
 
-For a FW-to-MC request, configure a non-zero `vtol_transition_to_mc_max_airspeed_cm_s` and use a valid airspeed source. Real pitot and a valid virtual pitot are accepted. The controller does **not** use `mixer_switch_trans_timer` as a FW-to-MC fallback for tailsitters: changing a tailsitter into MC orientation at unknown airspeed is unsafe. If valid airspeed is not available, OSD shows `VTOL NO SPEED`; after `mixer_vtol_transition_airspeed_timeout_ms`, the transition aborts and the aircraft remains in FW.
+Tailsitters use the same airspeed/timer selection as tilt-motor and pusher configurations in **both directions**:
 
-When measured airspeed is at or below the configured MC limit, INAV switches to the MC profile and keeps the existing 45 degree tailsitter transition pitch target. OSD shows `VTOL TAILSITTER CAPTURE` until the MC-orientation pitch estimate stays within 35 to 55 degrees for 300 ms. It then clears the transition and reports completion. If the pilot moves the switch back to the FW endpoint during this capture phase, INAV starts the ordinary MC-to-FW transition instead of direct-switching the profile.
+- **MC -> FW:** `vtol_transition_to_fw_min_airspeed_cm_s = 0` explicitly selects timer-based profile switching. The timer comes from `mixer_switch_trans_timer` in the **MC/source profile**.
+- **FW -> MC:** `vtol_transition_to_mc_max_airspeed_cm_s = 0` explicitly selects timer-based profile switching. The timer comes from `mixer_switch_trans_timer` in the **FW/source profile**.
+- With a non-zero threshold and a usable real or virtual pitot, the configured airspeed condition controls switching instead. A virtual pitot without a valid estimate, including before its first valid wind estimate, is treated as unavailable and does not block timer fallback. Firmware validity does not guarantee that a pitot reading is physically accurate while the airframe rotates relative to the airflow.
+- If no usable airspeed is available, the source profile's timer is used. A brief airspeed dropout is held for the existing 300 ms confirmation window; a persistent loss allows timer fallback. The timer is measured from the start of the transition, not restarted when airspeed is lost, so it may already have elapsed. Set the threshold for that direction to `0` if you want timer-only behavior even when airspeed is available or later becomes valid.
+- `mixer_vtol_transition_airspeed_timeout_ms` only aborts an airspeed-controlled attempt that has not reached its speed condition; it does not abort a timer-only attempt. A manual airspeed timeout does not execute the navigation `FORCE_SWITCH` fail action.
+
+For a propeller-free bench check, the following example selects timer-only switching in both directions. It assumes profile 1 is MC and profile 2 is FW; reverse the profile numbers if your setup is different. The five-second values are for observing bench behavior, **not recommended flight timings**:
+
+```text
+set vtol_transition_to_fw_min_airspeed_cm_s = 0
+set vtol_transition_to_mc_max_airspeed_cm_s = 0
+mixer_profile 1
+set mixer_switch_trans_timer = 50
+mixer_profile 2
+set mixer_switch_trans_timer = 50
+save
+```
+
+`mixer_switch_trans_timer` uses deciseconds: `50` means 5 seconds; `0` allows an immediate profile switch when using the timer path. This timer decides when to change the mixer profile, not whether the physical rotation has completed.
+
+After the FW -> MC speed or timer condition is met, INAV switches to the MC profile and keeps the existing 45 degree tailsitter transition pitch target. OSD shows `VTOL TAILSITTER CAPTURE` until the MC-orientation pitch estimate stays within 35 to 55 degrees for 300 ms. It then clears the transition and reports completion. Capture has no automatic timeout: while the angle is not confirmed, the transition pitch offset remains active. If the pilot moves the switch back to the FW endpoint during this capture phase, INAV starts the ordinary MC-to-FW transition instead of direct-switching the profile. During the bench check, verify the profile switches after its timer and that moving the airframe through the expected capture attitude releases this phase; do not interpret a timer expiry alone as a successful physical transition.
+
+#### Optional tailsitter authority scaling
+
+No additional CLI settings are needed. For transitions starting from a profile with `mixer_vtol_transition_dynamic_mixer = ON`, the canonical tailsitter pair uses an **authority-only** path:
+
+- **MC -> FW:** the active MC roll/pitch/yaw corrections decrease from full authority toward `vtol_transition_mc_authority_min_percent`, following the same confirmed airspeed/timer progress as the transition controller.
+- **FW -> MC:** the active FW controller is not attenuated by this option before the profile switch. After the switch, MC corrections start at the configured minimum and recover to full authority over `mixer_vtol_transition_scale_ramp_time_ms` captured from the **FW/source profile**. Capture completes only after both the attitude confirmation above and this authority recovery finish. A zero ramp time gives full MC authority immediately.
+- The common scale affects MC motor PID corrections and stabilized roll/pitch/yaw servo inputs, including their positive/negative variants. It does **not** scale collective throttle, servo centers, `INPUT_MAX`, RC passthrough inputs, or the 45 degree transition attitude target. Existing servo limits and rule speeds still apply.
+- `transition_pid_mmix_multiplier_roll/pitch/yaw` remain separate, signed, **motor-only** factors applied once. They do not change servo authority. Existing PID integration and anti-windup remain in place; the new scale attenuates the combined PID correction, including I, without resetting it. This is not an aerodynamic guarantee against saturation.
+- `vtol_transition_mc_authority_min_percent = 100` keeps full authority. With either profile's dynamic mixer enabled, a zero minimum is rejected for tailsitter auto-transition requests: it would disable the only active MC controller. Start bench testing at `100`; any reduction requires airframe-specific validation.
+- No target-profile PID preview, quadplane lift/pusher scaling, or cross-profile servo handoff is applied during a tailsitter auto-transition. The reference-frame change remains a real profile switch, not a blend of MC and FW PID outputs. `vtol_transition_lift_min_percent` and `vtol_transition_fw_authority_min_percent` do not control this tailsitter path.
+- Reversing during capture starts MC -> FW from the current authority, rather than jumping to full authority first. Aborting back into the active MC profile restores reduced authority over the captured ramp time; it does not retain a reduced scale indefinitely. Disarming clears recovery. An authorized direct profile switch clears it immediately. Existing signed motor transition multipliers still end with transition mixing, as before.
+
+Enable the dynamic option in both source profiles to use this behavior in both directions. This does not provide low-throttle recovery, an automatic throttle boost, or an emergency forced FW switch. Those would require a separate, explicitly enabled and validated policy.
 
 This first version intentionally does not support tailsitter auto-transition from missions, RTH, landing, failsafe, low-FW-airspeed protection, or VTOL MC protection. Those paths are rejected for the canonical tailsitter profile pair rather than running the unvalidated generic auto-transition sequence. Test without propellers first, verify the orientation change in the Configurator, and inspect a `DEBUG_VTOL_TRANSITION` log before attempting a flight.
 
@@ -407,6 +441,10 @@ With this global option enabled, an armed manual switch from one VTOL mixer prof
 
 Leave `vtol_autotransition_always = OFF` if you want the pilot to keep the explicit choice between a direct profile switch and a separate `MIXER TRANSITION` request.
 
+After leaving a mission, RTH, or automatic landing while armed, the physical switch may disagree with the actual mixer profile. INAV keeps the actual profile until you move the switch to its matching endpoint with `MIXER TRANSITION` OFF. Passing through the middle position does not start a transition or confirm the switch, even if the profile bit happens to match there. This also applies if you interrupt an automatic transition: match the profile that is actually active, not the one the transition intended to reach. Output completion still in progress does not bypass this protection.
+
+Once the endpoint matches, subsequent switch movements work normally, including `vtol_autotransition_always = ON`. Starting another mission/RTH gives control back to navigation; disarming releases the switch-matching requirement for preflight checks. Active Modes reports the actual mixer profile and actual transition/mixing activity, not simply the physical switch position.
+
 Optional two-position layout with instant FW -> MC:
 
 Some pilots want an automated MC -> FW transition, but want FW -> MC to switch almost immediately when they request multicopter mode. This can still be done with `vtol_autotransition_always = ON` by making the FW -> MC transition complete by timer with a zero timer.
@@ -499,7 +537,8 @@ Important pitot behavior:
 - The same `300ms` airspeed window validates the final speed condition before the profile switch, including when dynamic scaling is OFF. There is no second independent airspeed confirmation timer.
 - The airspeed confirmation does not delay the time-based forward-motor or tilt-servo movement. Those outputs still use `mixer_vtol_transition_scale_ramp_time_ms`, which avoids a tiltrotor waiting for airspeed before it starts tilting.
 - If `pitot_hardware = VIRTUAL` is selected but virtual airspeed is not valid, for example no usable GPS/estimate, INAV falls back to `mixer_switch_trans_timer`.
-- Raw ground speed is not used as an automatic pitot replacement for transition completion. If you want an estimated airspeed source, select `pitot_hardware = VIRTUAL`; then the Virtual Pitot logic owns the estimate.
+- Transition and low-speed protection keep the stricter trusted-source policy: virtual pitot requires a GPS fix, valid horizontal/vertical GPS velocity and a valid wind estimate. A hardware pitot rejected by its plausibility checks is not automatically replaced by GPS-based speed for these decisions. The normal source-loss handling and timer fallback still apply where supported.
+- Upstream also exposes a degraded airspeed estimate for consumers such as APA. Its availability alone does not authorize a VTOL profile switch. Even a validated virtual estimate has uncertainty in wind; the `300ms` confirmation rejects short spikes, not a sustained estimation bias.
 - `mixer_vtol_transition_airspeed_timeout_ms` does not complete a transition. It only stops an airspeed-controlled attempt that is taking too long.
 
 Optional low-speed protection:
@@ -518,6 +557,68 @@ It can be used in two contexts:
 - During mission, RTH, and failsafe RTH, it is a navigation-owned safety transition. It requires `mixer_automated_switch = ON` and a valid MC target profile. After it switches to MC, INAV keeps the current navigation task in MC and does not automatically start another MC -> FW transition for that navigation session, even if a later mission waypoint requests FW.
 
 This setting decides when the emergency FW -> MC fallback starts. `vtol_transition_to_mc_max_airspeed_cm_s` still decides when the FW -> MC profile switch is safe to complete during an airspeed-controlled FW -> MC transition.
+
+### Early FW -> MC start during RTH
+
+When RTH is allowed to land and the armed aircraft is approaching the active Home or SafeHome in FW mode, INAV can start FW -> MC before the aircraft reaches the landing point. No additional radius setting is required.
+
+INAV estimates the distance needed from information that is already available:
+
+1. It projects the current trusted GPS ground velocity toward Home. This produces the **closing speed**: only the part of the ground movement that is actually reducing the remaining distance. A crosswind therefore does not incorrectly count all sideways speed as approach speed.
+2. It builds a time budget from the FW/source profile. `mixer_switch_trans_timer` contributes its value in `100ms` units. If `mixer_vtol_transition_dynamic_mixer = ON`, `mixer_vtol_transition_scale_ramp_time_ms` is added because the target MC outputs can still be moving after the profile switch.
+3. It multiplies closing speed by that time budget. For example, `mixer_switch_trans_timer = 50`, `mixer_vtol_transition_scale_ramp_time_ms = 1200`, and dynamic scaling ON produce a `6.2s` planning budget. At a closing speed of `20m/s`, the predicted start distance is about `124m`.
+4. The result is never smaller than `nav_fw_loiter_radius`. If ground velocity is not trusted, the aircraft is moving sideways, or it is moving away from Home, `nav_fw_loiter_radius` becomes the conservative staging distance.
+5. The aircraft must remain inside the calculated start distance for `300ms` before INAV starts the transition. This prevents one noisy GPS velocity sample from starting FW -> MC far from Home.
+
+For the example above, with the global `nav_fw_loiter_radius = 7500` (`75m`):
+
+| Ground movement toward Home | Time budget | Start boundary |
+| --- | --- | --- |
+| `20m/s` | `6.2s` | `124m` |
+| `10m/s`, for example with more headwind | `6.2s` | `75m`, because the calculated `62m` is inside the staging boundary |
+| `25m/s`, for example with more tailwind | `6.2s` | `155m` |
+| No trusted velocity, purely sideways movement, or movement away from Home | Staging fallback | `75m` |
+
+The boundary is recalculated during the approach; the extra `300ms` confirmation means the actual start can be slightly inside it. Ground velocity already reflects the aircraft's movement in the prevailing wind, so this calculation does not require a separate wind estimate. It cannot predict a later gust.
+
+The mixer timers above belong to the **FW/source mixer profile**. A longer timer or a longer enabled output ramp moves the calculated boundary farther out; a shorter value moves it closer, down to the loiter-radius boundary. With dynamic scaling OFF, the output ramp is excluded from the calculation. With both times at zero, only `nav_fw_loiter_radius` is used. Setting that radius to zero also removes the minimum staging distance; the original arrival/landing path remains available if the early trigger has not fired.
+
+For an airspeed-controlled transition, this time budget is only a planning estimate. The configured backup timer does not measure how long this airframe actually needs to slow down. In particular, a zero backup timer with a valid pitot does not imply an immediate transition: the airspeed condition can still take several seconds to satisfy. The estimate does not include the later time needed to stop and turn in MC, and cannot guarantee that the aircraft will stop before Home.
+
+Ground speed only decides **when the procedure starts**. It does not bypass the configured transition safety condition. If `vtol_transition_to_mc_max_airspeed_cm_s` is non-zero and a usable real or virtual pitot source is available, airspeed still decides when the FW -> MC profile switch is safe. If no usable airspeed source is available, the normal `mixer_switch_trans_timer` fallback completes the transition. `mixer_vtol_transition_airspeed_timeout_ms` remains a failure timeout and is not treated as expected transition time.
+
+This early start is used only for an RTH that is allowed to land. It does not change mission waypoint transitions, manual transitions, RTH configured to loiter without landing, or the separate low-speed FW -> MC safety protection. The source FW profile must have `mixer_automated_switch = ON`, and the paired target profile must be a supported MC profile.
+
+It runs on the direct Home/SafeHome approach after the RTH climb/trackback stages. While following geozone avoidance waypoints, the early trigger is suspended. Loss of usable position, a route interruption, or a NAV state change clears its confirmation timer. Returning to the approach requires a fresh confirmation.
+
+Failsafe RTH uses the same approach when landing is allowed. `nav_rth_fs_landing_delay` still delays landing at Home; the earlier profile change can already have happened before this delay starts. Existing transition failure actions still apply if FW -> MC fails. Tailsitter autonomous-transition restrictions also remain in force.
+
+An RTH-owned transition, including its retry wait/scan, is still part of the same RTH procedure even when the OSD shows altitude hold during the transition. An already selected SafeHome is not replaced with the arming point just because the transition starts. The established RTH altitude plan is retained too: EXTRA altitude is not added again, and the linear-descent plan is not recalculated as though RTH had been switched off. Normal SafeHome permissions and trackback restrictions still apply.
+
+A brief loss of the position estimate does not by itself deselect an RTH-owned transition. If the existing navigation position-failure timeout expires, or the heading estimate becomes unavailable, INAV aborts the transition and enters its existing emergency-landing procedure. A disabled position-failure timeout keeps its existing meaning; this change adds no new timeout. Pilot cancellation and higher-priority emergency requests still take precedence.
+
+RC `HOME RESET` is blocked during navigation-owned RTH, mission and LAND transitions, including retry, just as it is blocked during normal RTH/mission flight. This does not block Home reset solely because a manual transition is active, and does not change the separate rules for changing Home through other interfaces.
+
+### RTH behavior after FW -> MC
+
+An airplane can pass Home or SafeHome while FW -> MC is still completing. INAV does not immediately command the new MC profile to fly backwards or sideways toward the landing point.
+
+After a navigation-owned FW -> MC switch during the RTH approach, INAV now performs these steps:
+
+1. It commands zero climb/descent and keeps the post-switch heading while the MC controller removes the remaining fixed-wing ground speed. The altitude target follows the current altitude during this step to avoid chasing a pre-transition height. The XY target follows the current position, so the aircraft is not pulled back toward the point where the profile switch happened.
+2. Once horizontal/vertical speed and roll/pitch remain stable, INAV holds that position and turns the nose toward Home. If already inside the stricter VTOL landing capture radius, it uses the configured Home landing heading instead.
+3. The heading and settle conditions must then remain acceptable continuously before normal RTH approach resumes.
+4. The aircraft approaches Home nose-first, enters the existing landing settle gate, and only then starts descent.
+
+During alignment, the direction toward Home is updated from the actual position. A substantial increase in horizontal speed or excessive roll/pitch returns the sequence to braking before attempting another turn. The existing RTH position-sensor timeout and `nav_rth_abort_threshold` checks remain active. There is no timer that forces the aircraft to approach Home while it still fails the settle/heading conditions.
+
+The braking/alignment stages pause ordinary RTH altitude targeting, including EXTRA climb or linear descent. After they finish, normal RTH altitude management resumes on the approach to Home. If the RTH safe altitude has not yet been reached, it may command a climb again. Changing to another navigation mode clears the old braking/alignment target.
+
+After RTH selects MC for the landing approach, it stays in MC for that RTH procedure rather than requesting FW again just because Home is still far away. Leaving RTH clears this normal landing choice: for example, RTH -> POSH -> mission can request FW again at a waypoint. This is separate from a genuine low-speed safety switch, whose existing protection continues to prevent automatic FW requests until navigation returns to idle. Changing to POSH alone does not clear that safety protection.
+
+This sequence uses the existing VTOL settle limits and does not add another CLI setting. It is applied after the successful navigation-owned profile switch even when `vtol_mc_protection_mode = OFF`. When VTOL MC protection is `NAV` or `NAV_AND_STABILIZED`, its throttle reserve, altitude anti-windup bounds, and bailout protection remain active throughout the MC braking, alignment, approach, and landing states.
+
+The early prediction is intended to reduce overshoot. This post-switch sequence handles an inaccurate prediction by stopping and facing Home before the return approach. Validate the chosen timer values and the resulting stopping distance on the actual airframe; these calculations are not a model of its braking performance.
 
 ## 2. Manual switch auto transition with dynamic scaling
 
@@ -606,7 +707,9 @@ This separation is intentional. Tilt servos should not wait for airspeed to buil
 
 ### How the transition timers work together
 
-Several transition-related movements can happen during one transition. They are not all controlled by the same setting.
+Several transition-related movements can happen during one transition. They are not all controlled by the same setting. Time-based motor ramp and post-switch fade outputs are refreshed in the control loop, independently of the 10 Hz manual switch/Programming Framework task. Transition progress is also sampled at 100 Hz, whether the request is manual or navigation-owned. The switch decision, timeout/abort handling, and navigation ownership remain in their existing tasks; smoother outputs do not shorten the configured transition time.
+
+A true direct VTOL profile switch (when allowed by `vtol_autotransition_always` and navigation ownership) does not inherit transition ramp, motor fade, or servo handoff. The target profile's own servo rule speed and output limits still apply. With `vtol_autotransition_always = ON` while armed, changing the profile switch is an automatic transition request, **not** an emergency direct switch.
 
 `mixer_switch_trans_timer`
 
@@ -634,7 +737,7 @@ Several transition-related movements can happen during one transition. They are 
 - In FW -> MC it moves the forward motor down, and brings target MC lift power and MC motor stabilisation back over this time.
 - In FW -> MC, if a lift motor exists only in the target MC profile, its real output starts from the current motor output and moves toward the target MC lift output over this time.
 - `INPUT_MIXER_TRANSITION` uses this time when `mixer_vtol_transition_dynamic_mixer = ON`.
-- After a profile switch or direct switch changes a transition-linked servo output, the servo continues from its current output toward the new output over a fresh window of this length.
+- After an automatic tilt/pusher profile switch changes a transition-linked servo output, the servo continues from its current output toward the new output over a fresh window of this length. An authorized direct VTOL switch clears this handoff instead.
 - After a profile switch changes which motors exist in the active mixer, old propulsion outputs that must go to idle are moved toward idle over this time.
 
 Servo mixer `Speed`
@@ -914,6 +1017,17 @@ In this example, WP1 must be within about `1m` of its requested altitude and the
 
 During mission MC -> FW, INAV pauses normal waypoint advancement and does not command the MC position controller to chase an XY point while the forward motor or tilt mechanism builds speed. Altitude control and ANGLE stabilisation remain active, and heading is aligned toward the following waypoint. The transition does not require the aircraft to have zero horizontal speed or to be perfectly level, so WP1 and WP2 should define a clear departure direction and should not require a sharp turn at the start of transition.
 
+A waypoint whose configured USER bit requests a different MC/FW platform does not
+anticipate a turn onto the following leg. This prevents the FW FLY_BY/FLY_INTO
+planner from declaring that transition point reached ahead of the normal waypoint
+arrival check. Ordinary same-platform waypoints retain the configured FW turn mode;
+the transition altitude checks and post-transition waypoint advancement still apply.
+If an explicit waypoint jump selects such a point during an existing FLY_INTO
+approach S-turn, the old preliminary arc is released into the normal bank-slewed
+capture of the current leg. Its stale pickup cannot mark the new point reached.
+The normal radius and passed-waypoint checks still apply; this is not a guarantee
+of crossing the exact waypoint coordinates or stopping there during transition.
+
 ### Holding in MC before MC -> FW
 
 If the aircraft must reach a location, remain there in MC with `HOLD_TIME`, and only then transition to FW, use two waypoint actions:
@@ -1076,6 +1190,10 @@ This is intended to reduce wing-driven surprises during fast MC-mode flight, not
 - Applies when VTOL MC protection is active.
 - The reserve is applied before altitude controller anti-windup bounds, not only as a final output clamp.
 - Hover throttle is kept inside the safe range. If the configured reserve would exclude hover throttle, INAV shrinks the reserve and sets a debug flag.
+
+The safe range describes collective throttle **after** compensation for aircraft tilt, before individual motor attitude corrections. The altitude PID uses the corresponding limits before compensation, so its anti-windup does not request unavailable headroom. A final upper limit also covers attitude changes between navigation updates. Recovery aims toward the protected hover throttle without multiplying that hover target by the tilt compensation again. This does not guarantee recovery from an inverted attitude or a failed motor.
+
+The final guard does not raise low throttle: the landing confirmation probe can still reduce lift below the normal reserve floor. These changes apply only while enabled VTOL MC protection and automatic altitude control own throttle, not to manual throttle, fixed-wing flight or protection OFF. `VTOL_MC_PROTECT` debug channel 3 reports the protected collective command after tilt compensation; later power limiting and per-motor mixing can still change the motor outputs.
 
 Example:
 
@@ -1245,18 +1363,18 @@ Useful debug modes:
 
 `VTOL_TRANSITION` debug channels:
 
-- `debug[0]`: transition phase (`0=IDLE`, `1=TRANSITION_INITIALIZE`, `2=TRANSITIONING`, `3=after-switch smoothing`).
+- `debug[0]`: transition phase (`0=IDLE`, `1=TRANSITION_INITIALIZE`, `2=TRANSITIONING`, `3=after-switch smoothing`, `4=tailsitter MC capture`).
 - `debug[1]`: active transition request, with direction packed in bits `8..15` and wait reason packed in bits `16..23`.
   - wait reason `0`: none.
   - wait reason `1`: FW -> MC is close to the MC speed threshold, but is still waiting.
   - wait reason `2`: no usable transition airspeed source is available, so timer-based completion is being used.
   - wait reason `3`: FW -> MC is waiting because the usable airspeed source is still clearly above `vtol_transition_to_mc_max_airspeed_cm_s`.
-- `debug[2]`: packed flags. Important bits include direction, controller active, transition input active, airspeed path active, profile switch done, abort state, current/next profile index, mission active, failsafe active, direct profile switch active, target preview mode, after-switch smoothing active, and legacy manual session active.
+- `debug[2]`: packed flags. Important bits include direction, controller active, transition input active, airspeed path active, profile switch done, abort state, current/next profile index, mission active, failsafe active, direct profile switch active, target preview mode, after-switch smoothing active, and legacy manual session active. Bit `31` indicates tailsitter authority recovery after abort or reversal into a source profile with dynamic scaling OFF.
 - `debug[3]`: main transition progress x1000 (`0..1000`).
 - `debug[4]`: pusher/forward motor scale x1000 (`0..1000`).
 - `debug[5]`: lift motor scale x1000 (`0..1000`).
-- `debug[6]`: while transition is active, packed MC/FW stabilisation scales. Low 16 bits are MC stabilisation scale x1000, high 16 bits are FW control scale x1000. When the transition controller is idle, this becomes servo diagnostic slot 0.
-- `debug[7]`: while transition is active, packed progress values. Bits `0..9` are airspeed-linked scaling progress, bits `10..19` are motor ramp progress, and bits `20..29` are after-switch smoothing progress. When the transition controller is idle, this becomes servo diagnostic slot 1.
+- `debug[6]`: while transition or tailsitter authority recovery is active, packed MC/FW stabilisation scales. Low 16 bits are MC stabilisation scale x1000, high 16 bits are FW control scale x1000. When the transition controller is idle and `debug[2]` bit `31` is clear, this becomes servo diagnostic slot 0.
+- `debug[7]`: while transition or tailsitter authority recovery is active, packed progress values. Bits `0..9` are airspeed-linked scaling progress, bits `10..19` are motor ramp progress, and bits `20..29` are after-switch smoothing progress. When the transition controller is idle and `debug[2]` bit `31` is clear, this becomes servo diagnostic slot 1.
 
 When dynamic scaling and airspeed are used, `debug[3]` is the immediate raw progress and the low 10 bits of `debug[7]` are the confirmed progress actually used for airspeed-linked scaling. A short pitot step can therefore appear in `debug[3]` without moving lift or authority in `debug[5]`/`debug[6]`. A real sustained airspeed decrease can move the confirmed progress back after the confirmation window.
 
@@ -1274,7 +1392,7 @@ Decode `debug[6]` or `debug[7]` in idle state as:
 
 `VTOL_MC_PROTECT` debug channels:
 
-- `debug[0]`: flags bitmask. Bits show protection configured, VTOL MC detected, NAV protection active, ANGLE/HORIZON protection active, NAV capture active, landing settle active, bailout active, throttle reserve shrunk, soft altitude capture active, roll/pitch/yaw command shaped, and velocity fallback used.
+- `debug[0]`: flags bitmask. Bits show protection configured, VTOL MC detected, NAV protection active, ANGLE/HORIZON protection active, NAV capture active, landing settle active, bailout active, throttle reserve shrunk, soft altitude capture active, roll/pitch/yaw command shaped, velocity fallback used, marker guidance paused for attitude recovery, and RTH yaw blocked (bit 12).
 - `debug[1]`: safe throttle minimum.
 - `debug[2]`: safe throttle maximum.
 - `debug[3]`: protected throttle.
@@ -1282,6 +1400,8 @@ Decode `debug[6]` or `debug[7]` in idle state as:
 - `debug[5]`: vertical speed [cm/s].
 - `debug[6]`: max absolute roll/pitch attitude [deci-degrees].
 - `debug[7]`: capture/landing/bailout settle elapsed time [ms], or command scale x1000 when command shaping is active, otherwise `1000`.
+
+During VTOL MC RTH before landing, INAV reports `RTH YAW BLOCKED` if the aircraft makes less than 5 degrees of progress toward a stable requested landing heading over 2 seconds while the heading error remains at least 15 degrees. A changed heading target restarts the observation. This does not force a landing or a mode change: the existing heading and landing-settle checks continue to prevent descent. Only when the aircraft is already settled over the landing point and yaw remains blocked does the horizontal velocity controller stop growing its stored correction; it can still reduce that correction naturally, and normal wind compensation resumes when yaw starts responding or the aircraft drifts outside the landing capture area. This warning is available on INAV OSD and in `VTOL_MC_PROTECT` bit 12; it is not yet a separate polled MSP status for a Remote application.
 
 OSD system messages:
 
@@ -1409,7 +1529,7 @@ Forward motor power increase, transition servo movement, and airspeed-linked con
 For MC->FW, forward motor power uses `mixer_vtol_transition_scale_ramp_time_ms`; if this is `0`, the motor goes to full power immediately.
 For FW->MC, the same timer ramps the forward motor down to idle while lift power and MC stabilisation rise back from their configured minimums; if this is `0`, those changes happen immediately.
 For `INPUT_MIXER_TRANSITION`, the same timer is used only when `mixer_vtol_transition_dynamic_mixer = ON`. With dynamic mixer OFF, source 38 keeps the older fixed transition endpoint behavior.
-If a profile switch or direct switch affects servos that use transition-linked inputs, INAV captures the current servo output and moves from that captured output toward the new profile output using a fresh `mixer_vtol_transition_scale_ramp_time_ms` window.
+If an automatic tilt/pusher profile switch affects servos that use transition-linked inputs, INAV captures the current servo output and moves from that captured output toward the new profile output using a fresh `mixer_vtol_transition_scale_ramp_time_ms` window. A true direct VTOL switch clears this handoff; tailsitter auto-transition does not blend servo outputs across the two reference frames.
 This timer does not decide when the transition completes.
 In MC->FW, lift power reduction, MC stabilisation reduction, and FW control increase still prefer airspeed-based transition progress whenever a usable airspeed source is available.
 In FW->MC, FW control reduction still prefers airspeed-based transition progress, while forward motor removal, lift power return, and MC motor stabilisation return use the time-based motor ramp.

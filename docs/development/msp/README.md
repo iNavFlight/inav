@@ -474,6 +474,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8754 - MSP2_INAV_MAG_UNALIGNED](#msp2_inav_mag_unaligned)  
 [8755 - MSP2_INAV_ESC_SRXL2_STATUS](#msp2_inav_esc_srxl2_status)  
 [8756 - MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)  
+[8757 - MSP2_INAV_SET_MARKER_GUIDANCE_TARGET](#msp2_inav_set_marker_guidance_target)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -5044,6 +5045,30 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
+
+## <a id="msp2_inav_set_marker_guidance_target"></a>`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET (8757 / 0x2235)`
+**Description:** Updates the complete marker-relative position, landing heading and marker AGL sample consumed by marker-guidance navigation.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `offset_north_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, North in INAV's local earth frame at measurement time. |
+| `offset_east_cm` | `int16_t` | 2 | cm | Levelled horizontal offset from vehicle body origin to the touchdown point, East in INAV's local earth frame at measurement time. |
+| `yaw_error_decideg` | `int16_t` | 2 | decidegrees | Signed shortest rotation from current vehicle heading to the requested landing heading. Valid range is -1800 to 1800. |
+| `marker_agl_cm` | `uint16_t` | 2 | cm | Positive vertical distance from vehicle body origin to the marker landing reference plane. |
+| `capture_time_us` | `uint64_t` | 8 | us | Nonzero original camera capture time on the producer monotonic clock. Preserve across forwarding; never replace with send/receive time. |
+| `capture_age_ms` | `uint32_t` | 4 | ms | Conservative capture age at receiver MSP transmission, including upstream processing, transport and queues. UINT32_MAX means unknown and is rejected. |
+  
+**Reply Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `accepted` | `uint8_t` | 1 | - | 1 when the complete pose passed wire/range/timing validation and entered the target confirmation path. |
+| `used_now` | `uint8_t` | 1 | - | 1 when the accepted target is currently influencing an allowed marker-guidance navigation context. |
+| `nav_guidance_state` | `uint8_t` | 1 | enum | Current internal marker-guidance state. |
+| `reason` | `uint8_t` | 1 | enum | Result code: 0 OK, 1 NOT_ENABLED, 2 STALE, 3 OFFSET_TOO_LARGE, 4 NOT_MC_PROFILE, 5 NOT_IN_POSHOLD_OR_LAND, 6 FAILSAFE, 7 INVALID_TARGET, 8 NOT_ARMED, 9 POSITION_UNAVAILABLE. |
+| `retry_count` | `uint8_t` | 1 | - | Current retry-attempt counter in PL LAND retry flow. |
+
+**Notes:** Command ID moved from 0x2232 to 0x2235 to avoid upstream compass-command collision; request and reply layouts unchanged. Hard break: exactly 20 little-endian bytes; no payload version or legacy fallback. North/East is the only XY frame. Capture time is uint64 producer time, not FC time. Zero capture time/unknown age returns INVALID_TARGET; duplicate, out-of-order or already stale captures return STALE without refreshing the target or confirmation. After a receive gap exceeding nav_marker_guidance_max_target_age_ms, a backward clock may re-seed a restarted producer without velocity across the restart. Publish only new frames and flush old queues. Receiver must account for upstream latency without subtracting unrelated clocks. Final UART/FC delay is not included in capture age. Marker-derived velocity uses capture intervals and IMU history for gated PL velocity correction when optical flow is unavailable. GPS remains the position reference and velocity fallback. Existing position/yaw conversion at receipt and confirmed-target receive-time lifetime remain unchanged. Three consistent distinct frames confirm PL targets; containment applies immediately. Available only with USE_MARKER_GUIDANCE and mode-gated to MC/VTOL-hover-capable POSHOLD, RTH pre-landing and LAND contexts. Reply remains five bytes. See docs/Navigation.md for the complete timing contract.
 
 ## <a id="msp2_betaflight_bind"></a>`MSP2_BETAFLIGHT_BIND (12288 / 0x3000)`
 **Description:** Initiates the receiver binding procedure for supported serial protocols (CRSF, SRXL2).  
