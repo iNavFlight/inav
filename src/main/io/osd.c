@@ -3161,23 +3161,22 @@ static bool osdDrawSingleElement(uint8_t item)
         }
     case OSD_CLIMB_EFFICIENCY:
         {
-            // amperage is in centi amps (10mA), vertical speed is in cms/s. We want
-            // Ah/dist only to show when vertical speed > 1m/s.
             static timeUs_t vEfficiencyUpdated = 0;
-            int32_t value = 0;
+            float value = 0.0f;
             timeUs_t currentTimeUs = micros();
             timeDelta_t vEfficiencyTimeDelta = cmpTimeUs(currentTimeUs, vEfficiencyUpdated);
-            if (getEstimatedActualVelocity(Z) > 0) {
+            const float climbRate = getEstimatedActualVelocity(Z);
+            if (climbRate > 0) {
                 if (vEfficiencyTimeDelta >= EFFICIENCY_UPDATE_INTERVAL) {
-                                                                  // Centiamps (kept for osdFormatCentiNumber) / m/s - Will appear as A / m/s in OSD
-                    value = pt1FilterApply3(&climbEffFilterState, (float)getAmperage() / (getEstimatedActualVelocity(Z) / 100.0f), US2S(vEfficiencyTimeDelta));
+                    const float rawEfficiency = osdCalculateClimbEfficiency(getAmperage(), climbRate);
+                    value = pt1FilterApply3(&climbEffFilterState, rawEfficiency, US2S(vEfficiencyTimeDelta));
 
                     vEfficiencyUpdated = currentTimeUs;
                 } else {
                     value = climbEffFilterState.state;
                 }
             }
-            bool efficiencyValid = (value > 0) && (getEstimatedActualVelocity(Z) > 100);
+            bool efficiencyValid = (value > 0) && (climbRate > 100);
             switch (osdConfig()->units) {
                 case OSD_UNIT_UK:
                     FALLTHROUGH;
@@ -3186,7 +3185,7 @@ static bool osdDrawSingleElement(uint8_t item)
                 case OSD_UNIT_IMPERIAL:
                     // mAh/foot
                     if (efficiencyValid) {
-                        osdFormatCentiNumber(buff, (value * METERS_PER_FOOT), 1, 2, 2, 3, false);
+                        osdFormatCentiNumber(buff, value / METERS_PER_FOOT, 1, 2, 2, 3, false);
                         osdWriteChar2(buff + strlen(buff), SYM_AH_V_FT_0, SYM_AH_V_FT_1);
                     } else {
                         buff[0] = buff[1] = buff[2] = '-';

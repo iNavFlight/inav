@@ -6,8 +6,15 @@
 
 extern "C" {
 #include "io/osd.h"
+#include "io/osd_utils.h"
 };
 
+
+TEST(OSDTest, TestClimbEfficiency)
+{
+    // 10.51 A at 2 m/s draws 1.45972 mAh per vertical meter.
+    EXPECT_NEAR(145.9722f, osdCalculateClimbEfficiency(1051, 200.0f), 0.001f);
+}
 
 TEST(OSDTest, TestCentiNumber)
 {
