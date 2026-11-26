@@ -190,6 +190,16 @@
     #endif
 #endif
 
+#if defined(USE_BARO_ICP201XX)
+    #if !defined(ICP201XX_I2C_BUS)
+        #define ICP201XX_I2C_BUS BARO_I2C_BUS
+    #endif
+    #if !defined(ICP201XX_I2C_ADDR)
+        #define ICP201XX_I2C_ADDR (0x63)
+    #endif
+    BUSDEV_REGISTER_I2C(busdev_icp201xx,   DEVHW_ICP201XX,      ICP201XX_I2C_BUS,   ICP201XX_I2C_ADDR,  NONE,           DEVFLAGS_NONE, 0);
+#endif
+
 #if defined(USE_BARO_B2SMPB)
     #if defined(B2SMPB_SPI_BUS)
     BUSDEV_REGISTER_SPI(busdev_b2smpb,     DEVHW_B2SMPB,        B2SMPB_SPI_BUS,     B2SMPB_CS_PIN,      NONE,           DEVFLAGS_NONE, 0);
