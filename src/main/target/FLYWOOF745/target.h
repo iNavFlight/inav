@@ -49,6 +49,7 @@
 #define USE_IMU_ICM42605
 #define IMU_ICM42605_ALIGN      CW270_DEG
 #define ICM42605_CS_PIN         SPI4_NSS_PIN
+#define ICM42605_EXTI_PIN       PE1
 #define ICM42605_SPI_BUS        BUS_SPI4
 
 #define USB_IO

@@ -63,7 +63,9 @@
 
 #define GYRO_SPI_BUS         BUS_SPI1
 #define GYRO1_CS_PIN          SPI1_NSS1_PIN
+#define GYRO1_EXTI_PIN          PC4
 #define GYRO2_CS_PIN          SPI1_NSS2_PIN
+#define GYRO2_EXTI_PIN          PB10
 
 // MPU6000
 #define USE_IMU_MPU6000
