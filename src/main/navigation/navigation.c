@@ -95,6 +95,9 @@
 #define FW_LAND_LOITER_MIN_TIME 30000000 // usec (30 sec)
 #define FW_LAND_LOITER_ALT_TOLERANCE 150
 
+#define FW_COURSE_LOCK_MAX_BANK_DECIDEG 100 // lock the cruise course only once rolled out below this bank angle (10 deg)
+#define FW_COURSE_LOCK_FORCE_TIMEOUT_MS 2500 // failsafe: force the lock this long after stick centre even if still banked
+
 #ifdef USE_AUTO_TRANSITION
 // One-shot MC->FW mission retry after airspeed-timeout: yaw scan, align to best pitot heading.
 #define NAV_MIXERAT_RETRY_SCAN_STEP_CD       DEGREES_TO_CENTIDEGREES(20)
@@ -142,13 +145,13 @@ PG_REGISTER_ARRAY(navWaypoint_t, NAV_MAX_WAYPOINTS, nonVolatileWaypointList, PG_
 #endif
 
 #if defined(USE_AUTO_TRANSITION) && defined(USE_MARKER_GUIDANCE)
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 12);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 14);
 #elif defined(USE_AUTO_TRANSITION)
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 11);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 13);
 #elif defined(USE_MARKER_GUIDANCE)
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 10);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 11);
 #else
-PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 8);
+PG_REGISTER_WITH_RESET_TEMPLATE(navConfig_t, navConfig, PG_NAV_CONFIG, 9);
 #endif
 
 PG_RESET_TEMPLATE(navConfig_t, navConfig,
@@ -229,6 +232,7 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .marker_guidance_retry_altitude_cm = SETTING_NAV_MARKER_GUIDANCE_RETRY_ALTITUDE_CM_DEFAULT,
         .marker_guidance_retry_timeout_ms = SETTING_NAV_MARKER_GUIDANCE_RETRY_TIMEOUT_MS_DEFAULT,
 #endif
+        .cruise_lock_on_level = SETTING_NAV_CRUISE_LOCK_ON_LEVEL_DEFAULT,
     },
 
     // MC-specific
@@ -298,7 +302,10 @@ PG_RESET_TEMPLATE(navConfig_t, navConfig,
         .soaring_pitch_deadband = SETTING_NAV_FW_SOARING_PITCH_DEADBAND_DEFAULT,            // pitch angle mode deadband when Saoring mode enabled
         .wp_tracking_accuracy = SETTING_NAV_FW_WP_TRACKING_ACCURACY_DEFAULT,                // 0, improves course tracking accuracy during FW WP missions
         .wp_tracking_max_angle = SETTING_NAV_FW_WP_TRACKING_MAX_ANGLE_DEFAULT,              // 60 degs
-        .wp_turn_smoothing = SETTING_NAV_FW_WP_TURN_SMOOTHING_DEFAULT,                      // 0, smooths turns during FW WP mode missions
+        .wp_turn_mode = SETTING_NAV_FW_WP_TURN_MODE_DEFAULT,                                // COORD_FLYBY, WP mission turn mode
+        .turn_ff_gain = SETTING_NAV_FW_TURN_FF_GAIN_DEFAULT,                                // 100, turn FF
+        .wp_turn_max_lead_time = SETTING_NAV_FW_WP_TURN_MAX_LEAD_TIME_DEFAULT,              // 3000 ms
+        .wp_turn_control_ease = SETTING_NAV_FW_WP_TURN_CONTROL_EASE_DEFAULT,                // 100 ms
     }
 );
 
@@ -430,9 +437,11 @@ bool abortLaunchAllowed(void);
 
 #ifdef USE_FW_AUTOLAND
 static float getLandAltitude(void);
+static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
+#ifdef USE_WIND_ESTIMATOR
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading);
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle);
-static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos);
+#endif
 #endif
 
 /*************************************************************************************************/
@@ -1574,6 +1583,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_POSHOLD_3D_IN_PROGRESS(
     return NAV_FSM_EVENT_NONE;
 }
 
+// FW course hold: the course lock is pending while a turn is still being rolled out (mode entry from
+// a banked turn or heading adjustment just released) - the course follows the actual COG until then.
+// Gated by nav_cruise_lock_on_level; when OFF the course locks as soon as the sticks are centered.
+static bool fwCruiseCourseLockPending = false;
+static bool fwCruiseHeadingAdjustActive = false; // yaw adjustment running: its sustained course lead winds up the nav PID
+static timeMs_t fwCruiseStickCentreTimeMs = 0;  // last time the roll/yaw sticks went to centre
+
 static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(navigationFSMState_t previousState)
 {
     UNUSED(previousState);
@@ -1592,6 +1608,11 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_INITIALIZE(
 
     if (STATE(AIRPLANE)) {
         posControl.cruise.course = posControl.actualState.cog;  // Store the course to follow
+        // Entering from a banked turn (e.g. mode switch out of RTH mid-turn): course hold means
+        // "fly straight from here", so follow the COG until the roll-out is complete, then lock.
+        fwCruiseCourseLockPending = navConfig()->general.cruise_lock_on_level && ABS(attitude.values.roll) > FW_COURSE_LOCK_MAX_BANK_DECIDEG;
+        fwCruiseHeadingAdjustActive = false;
+        fwCruiseStickCentreTimeMs = millis();
     } else {    // Multicopter
         posControl.cruise.course = posControl.actualState.yaw;
         posControl.cruise.multicopterSpeed = constrainf(posControl.actualState.velXY, 10.0f, navConfig()->general.max_manual_speed);
@@ -1622,7 +1643,6 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
     }
 
     const bool mcRollStickHeadingAdjustmentActive = STATE(MULTIROTOR) && ABS(rcCommand[ROLL]) > rcControlsConfig()->pos_hold_deadband;
-    static bool adjustmentWasActive = false;
 
     // User demanding yaw -> yaw stick on FW, yaw or roll sticks on MR
     // We record the desired course and change the desired target in the meanwhile
@@ -1643,13 +1663,25 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_IN_PROGRESS
         }
 
         posControl.cruise.lastCourseAdjustmentTime = currentTimeMs;
-        adjustmentWasActive = true;
+        fwCruiseCourseLockPending = true;
+        fwCruiseHeadingAdjustActive = true;
+        fwCruiseStickCentreTimeMs = currentTimeMs;
 
         DEBUG_SET(DEBUG_CRUISE, 1, CENTIDEGREES_TO_DEGREES(posControl.cruise.course));
-    } else if (STATE(AIRPLANE) && adjustmentWasActive) {
-        posControl.cruise.course = posControl.actualState.cog - DEGREES_TO_CENTIDEGREES(gyroRateDps(YAW));
-        resetPositionController();
-        adjustmentWasActive = false;
+    } else if (STATE(AIRPLANE) && fwCruiseCourseLockPending) {
+        // Locking while still banked overshoots the course; the timeout covers a roll-out that never completes
+        const bool rolledOut = !navConfig()->general.cruise_lock_on_level
+                               || ABS(attitude.values.roll) <= FW_COURSE_LOCK_MAX_BANK_DECIDEG
+                               || currentTimeMs - fwCruiseStickCentreTimeMs >= FW_COURSE_LOCK_FORCE_TIMEOUT_MS;
+        // Without the level gate the turn continues through the roll-out: keep the legacy yaw-rate lead
+        posControl.cruise.course = navConfig()->general.cruise_lock_on_level ? posControl.actualState.cog
+                                   : posControl.actualState.cog - DEGREES_TO_CENTIDEGREES(gyroRateDps(YAW));
+
+        if (fwCruiseHeadingAdjustActive || rolledOut) {
+            resetPositionController();      // the adjustment wound up the integrator; a zero error cannot unwind it
+            fwCruiseHeadingAdjustActive = false;
+        }
+        fwCruiseCourseLockPending = !rolledOut;
     } else if (currentTimeMs - posControl.cruise.lastCourseAdjustmentTime > 4000) {
         posControl.cruise.previousCourse = posControl.cruise.course;
     }
@@ -1664,9 +1696,18 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_COURSE_HOLD_ADJUSTING(n
     UNUSED(previousState);
     DEBUG_SET(DEBUG_CRUISE, 0, 3);
 
-    // User is rolling, changing manually direction. Wait until it is done and then restore CRUISE
+    // User is rolling, changing manually direction. Wait until it is done AND the roll-out is
+    // complete before locking the course and re-engaging: a course locked while still banked is
+    // overshot during the level-off (the turn continues), forcing a reverse correction.
     if (posControl.flags.isAdjustingPosition) {
         posControl.cruise.course = posControl.actualState.cog;  //store current course
+        posControl.cruise.lastCourseAdjustmentTime = millis();
+        fwCruiseStickCentreTimeMs = millis();
+        return NAV_FSM_EVENT_NONE;  // reprocess the state
+    }
+    if (STATE(AIRPLANE) && navConfig()->general.cruise_lock_on_level && ABS(attitude.values.roll) > FW_COURSE_LOCK_MAX_BANK_DECIDEG
+        && millis() - fwCruiseStickCentreTimeMs < FW_COURSE_LOCK_FORCE_TIMEOUT_MS) {
+        posControl.cruise.course = posControl.actualState.cog;
         posControl.cruise.lastCourseAdjustmentTime = millis();
         return NAV_FSM_EVENT_NONE;  // reprocess the state
     }
@@ -2408,35 +2449,28 @@ static bool missionVTOLTransitionPointReady(const bool transitionToFixedWing, co
     return true;
 }
 
+bool hasUsableTransitionAirspeed(float *airspeedCmS)
+{
 #ifdef USE_PITOT
-static bool hasUsableTransitionAirspeed(float *airspeedCmS)
-{
-    if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
-        return false;
+    // Keep transition/protection decisions on the pre-merge trusted-source policy.
+    // Degraded GPS-only airspeed may be usable for APA, but must not authorize a profile switch.
+    if (sensors(SENSOR_PITOT) && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_NONE &&
+        pitotIsValidForAirspeed(true) && !pitotHardwareHasFailed()) {
+        const float measuredAirspeedCmS = getAirspeedEstimate();
+
+        if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {
+            return false;
+        }
+
+        *airspeedCmS = MAX(measuredAirspeedCmS, 0.0f);
+        return true;
     }
-
-    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE) {
-        return false;
-    }
-
-    const float measuredAirspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
-        getAirspeedEstimate() :
-        pitot.airSpeed;
-
-    if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {
-        return false;
-    }
-
-    *airspeedCmS = MAX(measuredAirspeedCmS, 0.0f);
-    return true;
-}
+    return false;
 #else
-static bool hasUsableTransitionAirspeed(float *airspeedCmS)
-{
     UNUSED(airspeedCmS);
     return false;
-}
 #endif
+}
 
 static bool beginNavigationFwToMcProtectionTransition(void)
 {
@@ -3863,8 +3897,8 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
     }
 
     if (micros() - posControl.fwLandState.loiterStartTime > FW_LAND_LOITER_MIN_TIME) {
-       if (isEstimatedWindSpeedValid()) {
-
+#ifdef USE_WIND_ESTIMATOR
+        if (isEstimatedWindSpeedValid()) {
             uint16_t windAngle = 0;
             int32_t approachHeading = -1;
             float windSpeed = getEstimatedHorizontalWindSpeed(&windAngle);
@@ -3933,7 +3967,9 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_FW_LANDING_LOITER(navig
             } else {
                 posControl.fwLandState.loiterStartTime = micros();
             }
-        } else {
+        } else
+#endif  // USE_WIND_ESTIMATOR
+        {
             posControl.fwLandState.loiterStartTime = micros();
         }
     }
@@ -4128,6 +4164,7 @@ static navigationFSMState_t navSetNewFSMState(navigationFSMState_t newState)
     if (posControl.navState != newState) {
         posControl.navState = newState;
         posControl.navPersistentId = navFSM[newState].persistentId;
+        posControl.flags.wpTurnSmoothingActive = false;     // a turn's "WP reached" verdict is only valid in the state that produced it
     }
     return previousState;
 }
@@ -4573,21 +4610,29 @@ bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBe
     posControl.wpDistance = calculateDistanceToDestination(waypointPos);
 
     // Check if waypoint was missed based on bearing to waypoint exceeding given angular limit relative to initial waypoint bearing.
-    // Default angular limit = 100 degs with a reduced limit of 60 degs used if fixed wing waypoint turn smoothing option active
+    // Angular limit = 100 degs.
     uint16_t relativeBearingTargetAngle = 10000;
 
     if (STATE(AIRPLANE) && posControl.flags.wpTurnSmoothingActive) {
-        // If WP mode turn smoothing CUT option used waypoint is reached when start of turn is initiated
-        if (navConfig()->fw.wp_turn_smoothing == WP_TURN_SMOOTHING_CUT) {
-            posControl.flags.wpTurnSmoothingActive = false;
-            return true;
-        }
-        relativeBearingTargetAngle = 6000;
+        // The turn coordinator declared the WP reached (FLY_BY at turn start, FLY_INTO at the S pickup).
+        // Set once, consumed here only - it must survive until this check runs, so nothing clears it per tick.
+        posControl.flags.wpTurnSmoothingActive = false;
+        return true;
     }
 
 
     if (ABS(wrap_18000(calculateBearingToDestination(waypointPos) - *waypointBearing)) > relativeBearingTargetAngle) {
         return true;
+    }
+
+    /* Beyond a ~80 deg turn the bearing check above can only fire on the brief swing next to the WP,
+     * leaving the WP active behind the aircraft; the plane test cannot fire early (a leg length short). */
+    if (STATE(AIRPLANE) && FLIGHT_MODE(NAV_WP_MODE)) {
+        const fpVector3_t *pos = &navGetCurrentActualPositionAndVelocity()->pos;
+        const float legRad = CENTIDEGREES_TO_RADIANS((float)*waypointBearing);
+        if ((pos->x - waypointPos->x) * cos_approx(legRad) + (pos->y - waypointPos->y) * sin_approx(legRad) >= 0.0f) {
+            return true;
+        }
     }
 
     return posControl.wpDistance <= (navConfig()->general.waypoint_radius);
@@ -5561,6 +5606,11 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
             if (wpNumber == (posControl.waypointCount + 1) || wpNumber == 1) {
                 if (wpNumber == 1) {
                     resetWaypointList();
+                    nonGeoWaypointCount = 0;
+                }
+                // Reject the new mission after clearing the previous one, before copying or converting the target.
+                if (wpData->action == NAV_WP_ACTION_JUMP && (wpData->p1 < 1 || wpData->p1 > NAV_MAX_WAYPOINTS)) {
+                    return;
                 }
                 posControl.waypointList[wpNumber - 1] = *wpData;
                 if(wpData->action == NAV_WP_ACTION_SET_POI || wpData->action == NAV_WP_ACTION_SET_HEAD || wpData->action == NAV_WP_ACTION_JUMP) {
@@ -5830,7 +5880,16 @@ static void calculateAndSetActiveWaypoint(const navWaypoint_t * waypoint)
     mapWaypointToLocalPosition(&localPos, waypoint, waypointMissionAltConvMode(waypoint->p3));
     calculateAndSetActiveWaypointToLocalPosition(&localPos);
 
-    if (navConfig()->fw.wp_turn_smoothing) {
+#ifdef USE_AUTO_TRANSITION
+    const uint16_t transitionUserMask = missionUserActionMask(
+        (navMissionUserAction_e)navConfig()->general.vtol_mission_transition_user_action);
+    if (!navMissionWaypointAllowsTurnAnticipation(transitionUserMask, (uint16_t)waypoint->p3, STATE(AIRPLANE))) {
+        return;
+    }
+#endif
+
+    // Turn anticipation (nextTurnAngle) is needed for FLY_BY and FLY_INTO; FLY_OVER flies to the WP then turns.
+    if (navConfig()->fw.wp_turn_mode != NAV_FW_WP_TURN_COORD_FLY_OVER) {
         fpVector3_t posNextWp;
         if (getLocalPosNextWaypoint(&posNextWp)) {
             int32_t bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, &posNextWp);
@@ -6472,7 +6531,7 @@ navArmingBlocker_e navigationIsBlockingArming(bool *usedBypass)
     if (posControl.waypointCount) {
         for (uint8_t wp = posControl.startWpIndex; wp < posControl.waypointCount + posControl.startWpIndex; wp++){
             if (posControl.waypointList[wp].action == NAV_WP_ACTION_JUMP){
-                if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 >= posControl.waypointCount ||
+                if (wp == posControl.startWpIndex || posControl.waypointList[wp].p1 < 0 || posControl.waypointList[wp].p1 >= posControl.waypointCount ||
                 (posControl.waypointList[wp].p1 > (wp - posControl.startWpIndex - 2) && posControl.waypointList[wp].p1 < (wp - posControl.startWpIndex + 2)) || posControl.waypointList[wp].p2 < -1) {
                     return NAV_ARMING_BLOCKER_JUMP_WAYPOINT_ERROR;
                 }
@@ -7215,6 +7274,23 @@ static void resetFwAutoland(void)
     posControl.fwLandState.landWp = false;
 }
 
+static float getLandAltitude(void)
+{
+    float altitude = -1;
+#ifdef USE_RANGEFINDER
+    if (rangefinderIsHealthy() && rangefinderGetLatestAltitude() > RANGEFINDER_OUT_OF_RANGE) {
+        altitude = rangefinderGetLatestAltitude();
+    }
+    else
+#endif
+    if (posControl.flags.estAglStatus >= EST_USABLE) {
+        altitude = posControl.actualState.agl.pos.z;
+    } else {
+        altitude = posControl.actualState.abs.pos.z;
+    }
+    return altitude;
+}
+ #ifdef USE_WIND_ESTIMATOR
 static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAngle)
 {
     if (approachHeading == 0) {
@@ -7234,33 +7310,18 @@ static int32_t calcFinalApproachHeading(int32_t approachHeading, int32_t windAng
     return -1;
 }
 
-static float getLandAltitude(void)
-{
-    float altitude = -1;
-#ifdef USE_RANGEFINDER
-    if (rangefinderIsHealthy() && rangefinderGetLatestAltitude() > RANGEFINDER_OUT_OF_RANGE) {
-        altitude = rangefinderGetLatestAltitude();
-    }
-    else
-#endif
-    if (posControl.flags.estAglStatus >= EST_USABLE) {
-        altitude = posControl.actualState.agl.pos.z;
-    } else {
-        altitude = posControl.actualState.abs.pos.z;
-    }
-    return altitude;
-}
-
 static int32_t calcWindDiff(int32_t heading, int32_t windHeading)
 {
     return ABS(wrap_18000(windHeading - heading));
 }
-
+#endif
 static void setLandWaypoint(const fpVector3_t *pos, const fpVector3_t *nextWpPos)
 {
     calculateAndSetActiveWaypointToLocalPosition(pos);
 
-    if (navConfig()->fw.wp_turn_smoothing && nextWpPos != NULL) {
+    // Landing approach always uses FLY_BY turns (clean cut onto the next approach leg),
+    // so the turn angle is set whenever a following approach waypoint exists.
+    if (nextWpPos != NULL) {
         int32_t bearingToNextWp = calculateBearingBetweenLocalPositions(&posControl.activeWaypoint.pos, nextWpPos);
         posControl.activeWaypoint.nextTurnAngle = wrap_18000(bearingToNextWp - posControl.activeWaypoint.bearing);
     } else {

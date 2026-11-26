@@ -22,7 +22,7 @@
 
 #include "platform.h"
 
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
 #include "build/atomic.h"
 #endif
 

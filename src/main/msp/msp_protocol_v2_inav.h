@@ -156,4 +156,13 @@
 
 #define MSP2_INAV_SET_AUX_RC                    0x2230
 #define MSP2_INAV_WIND                          0x2231
-#define MSP2_INAV_SET_MARKER_GUIDANCE_TARGET    0x2232  //in message  NE pose, yaw error, AGL, capture time/age (20 bytes)
+
+#define MSP2_INAV_MAG_UNALIGNED                 0x2232  //out message  compass reading with zero/gain calibration applied but no alignment rotation; payload: 3x I16 (X,Y,Z)
+
+// 0x2232 was taken by MSP2_INAV_MAG_UNALIGNED upstream while this branch was
+// out of tree, so these moved up rather than the other way round: a released
+// command keeps its number, an unmerged one has no claim on it.
+#define MSP2_INAV_ESC_SRXL2_STATUS              0x2233
+#define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2234
+
+#define MSP2_INAV_SET_MARKER_GUIDANCE_TARGET    0x2235  //in message  NE pose, yaw error, AGL, capture time/age (20 bytes)

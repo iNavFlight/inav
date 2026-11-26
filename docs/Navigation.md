@@ -49,8 +49,22 @@ INAV can consume externally computed marker offsets over MSP and use them for:
 This feature is compiled only when `USE_MARKER_GUIDANCE` is enabled for the target.
 On flash-constrained targets, it can be excluded at build time to preserve headroom.
 
+### Updating from the earlier PL branch
+
+The maintenance-10.x merge changes the navigation configuration layout. Back up
+`diff all` before flashing, then restore and verify NAV/PL settings: the old
+navigation parameter group is reset rather than interpreted using the new layout.
+The former `nav_fw_wp_turn_smoothing` setting is replaced by `nav_fw_wp_turn_mode`;
+review it explicitly instead of replaying that obsolete CLI line. Re-select
+`set debug_mode = MARKER_GUIDANCE` by name because upstream added debug modes.
+The receiver also needs the command ID change described below.
+
 ### MSP payload
-`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` (`8754 / 0x2232`) has one fixed 20-byte little-endian request:
+`MSP2_INAV_SET_MARKER_GUIDANCE_TARGET` (`8757 / 0x2235`) has one fixed 20-byte little-endian request:
+
+After merging maintenance-10.x, update the receiver command ID from `0x2232` to
+`0x2235`. Upstream uses `0x2232` for `MSP2_INAV_MAG_UNALIGNED`; there is no legacy
+PL alias. The 20-byte request and five-byte reply layouts are unchanged.
 
 | Bytes | Type | Field | Meaning |
 |---|---|---|---|

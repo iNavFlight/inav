@@ -129,7 +129,9 @@ int flashReadBytes(uint32_t address, uint8_t *buffer, int length)
 
 void flashFlush(void)
 {
-    flash->flush();
+    if (flash && flash->flush) {
+        flash->flush();
+    }
 }
 
 const flashGeometry_t *flashGetGeometry(void)

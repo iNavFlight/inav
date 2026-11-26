@@ -71,8 +71,10 @@ float FAST_CODE NOINLINE pt1FilterApply3(pt1Filter_t *filter, float input, float
     return filter->state = filter->state + filter->alpha * (input - filter->state);
 }
 
-void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau) {
+void pt1FilterSetTimeConstant(pt1Filter_t *filter, float tau)
+{
     filter->RC = tau;
+    filter->alpha = filter->dT / (filter->RC + filter->dT);
 }
 
 void pt1FilterSetCutoff(pt1Filter_t *filter, float f_cut)
@@ -81,7 +83,8 @@ void pt1FilterSetCutoff(pt1Filter_t *filter, float f_cut)
     filter->alpha = filter->dT / (filter->RC + filter->dT);
 }
 
-float pt1FilterGetLastOutput(pt1Filter_t *filter) {
+float pt1FilterGetLastOutput(pt1Filter_t *filter)
+{
     return filter->state;
 }
 

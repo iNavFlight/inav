@@ -31,6 +31,7 @@ uint8_t mavlinkWaypointFrame(const navWaypoint_t *wp, bool useIntMessages);
 bool mavlinkFillMissionItemFromWaypoint(const navWaypoint_t *wp, bool useIntMessages, mavlinkMissionItemData_t *item);
 void mavlinkSendPendingMissionItemReached(void);
 void mavlinkMissionUpdate(timeMs_t currentTimeMs);
+void mavlinkSendMissionCurrent(void);
 bool mavlinkHandleIncomingMissionClearAll(void);
 bool mavlinkHandleIncomingMissionCount(void);
 bool mavlinkHandleIncomingMissionItem(void);

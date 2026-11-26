@@ -79,6 +79,51 @@ static uint8_t gpsMapFixType(uint8_t dronecanFixType)
     return GPS_NO_FIX;
 }
 
+
+/*
+ * Date and time from the GNSS timestamp. Only UTC timestamps (microseconds
+ * since the Unix epoch, as sent by ArduPilot-based GNSS nodes) are used, and
+ * only within the range that INAV's RTC (int32 seconds) can represent.
+ */
+#define DRONECAN_GNSS_TIME_STANDARD_UTC     2
+#define DRONECAN_GNSS_MIN_VALID_UNIX_SEC    1577836800LL    // 2020-01-01
+#define DRONECAN_GNSS_MAX_VALID_UNIX_SEC    2147483647LL    // 2038-01-19, RTC time is int32 seconds
+
+static void dronecanGPSSetTime(uint64_t usec, uint8_t timeStandard)
+{
+    const int64_t unixSec = (int64_t)(usec / 1000000ULL);
+
+    if (timeStandard != DRONECAN_GNSS_TIME_STANDARD_UTC ||
+        unixSec < DRONECAN_GNSS_MIN_VALID_UNIX_SEC || unixSec > DRONECAN_GNSS_MAX_VALID_UNIX_SEC) {
+        gpsSolDRV.flags.validTime = false;
+        return;
+    }
+
+    // Days since epoch -> civil date (H. Hinnant's algorithm)
+    const int64_t days = unixSec / 86400;
+    const int64_t secOfDay = unixSec % 86400;
+
+    const int64_t z = days + 719468;
+    const int64_t era = z / 146097;
+    const int64_t doe = z - era * 146097;
+    const int64_t yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    const int64_t doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    const int64_t mp = (5 * doy + 2) / 153;
+    const int64_t day = doy - (153 * mp + 2) / 5 + 1;
+    const int64_t month = mp < 10 ? mp + 3 : mp - 9;
+    const int64_t year = yoe + era * 400 + (month <= 2 ? 1 : 0);
+
+    gpsSolDRV.time.year    = (uint16_t)year;
+    gpsSolDRV.time.month   = (uint8_t)month;
+    gpsSolDRV.time.day     = (uint8_t)day;
+    gpsSolDRV.time.hours   = (uint8_t)(secOfDay / 3600);
+    gpsSolDRV.time.minutes = (uint8_t)((secOfDay % 3600) / 60);
+    gpsSolDRV.time.seconds = (uint8_t)(secOfDay % 60);
+    gpsSolDRV.time.millis  = (uint16_t)((usec / 1000ULL) % 1000ULL);
+
+    gpsSolDRV.flags.validTime = true;
+}
+
 void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix)
 {
     gpsSolDRV.fixType   = gpsMapFixType(pgnssFix->status);
@@ -115,16 +160,9 @@ void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix * pgnssFix
         gpsSolDRV.flags.validEPE = true;
     } 
 
-    // gpsSolDRV.time.year   = pkt->year;
-    // gpsSolDRV.time.month  = pkt->month;
-    // gpsSolDRV.time.day    = pkt->day;
-    // gpsSolDRV.time.hours  = pkt->hour;
-    // gpsSolDRV.time.minutes = pkt->min;
-    // gpsSolDRV.time.seconds = pkt->sec;
-    // gpsSolDRV.time.millis  = 0;
+    dronecanGPSSetTime(pgnssFix->gnss_timestamp.usec, pgnssFix->gnss_time_standard);
 
-    gpsSolDRV.flags.validTime = 0; //(pkt->fixType >= 3);
-
+    gpsStats.packetCount++;
     gpsProcessNewDriverData();
     newDataReady = true;
 }
@@ -164,16 +202,9 @@ void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 * pgnssF
         gpsSolDRV.epv = gpsConstrainEPE((uint32_t)(sqrtf(var_z) * 100));          // cm
         gpsSolDRV.flags.validEPE = true;
     } 
-    // gpsSolDRV.time.year   = pkt->year;
-    // gpsSolDRV.time.month  = pkt->month;
-    // gpsSolDRV.time.day    = pkt->day;
-    // gpsSolDRV.time.hours  = pkt->hour;
-    // gpsSolDRV.time.minutes = pkt->min;
-    // gpsSolDRV.time.seconds = pkt->sec;
-    // gpsSolDRV.time.millis  = 0;
+    dronecanGPSSetTime(pgnssFix2->gnss_timestamp.usec, pgnssFix2->gnss_time_standard);
 
-    gpsSolDRV.flags.validTime = 0; //(pkt->fixType >= 3);
-
+    gpsStats.packetCount++;
     gpsProcessNewDriverData();
     newDataReady = true;
 }

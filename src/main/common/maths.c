@@ -67,7 +67,7 @@ float cos_approx(float x)
 // http://http.developer.nvidia.com/Cg/atan2.html (not working correctly!)
 // Poly coefficients by @ledvinap (https://github.com/cleanflight/cleanflight/pull/1107)
 // Max absolute error 0,000027 degree
-float atan2_approx(float y, float x)
+float RP2350_FAST_CODE atan2_approx(float y, float x)
 {
     #define atanPolyCoef1  3.14551665884836e-07f
     #define atanPolyCoef2  0.99997356613987f
@@ -94,7 +94,7 @@ float atan2_approx(float y, float x)
 // Handbook of Mathematical Functions
 // M. Abramowitz and I.A. Stegun, Ed.
 // Absolute error <= 6.7e-5
-float acos_approx(float x)
+float RP2350_FAST_CODE acos_approx(float x)
 {
     float xa = fabsf(x);
     float result = fast_fsqrtf(1.0f - xa) * (1.5707288f + xa * (-0.2121144f + xa * (0.0742610f + (-0.0187293f * xa))));
@@ -104,6 +104,78 @@ float acos_approx(float x)
         return result;
 }
 #endif
+
+/**
+ * Fast power approximation for positive, finite base values.
+ * Uses bit manipulation via the identity: x^y = 2^(y * log2(x))
+ * Optimized for embedded systems - approximately 5-10x faster than powf().
+ * Worst-case error is in the ~10% range, not a couple percent - don't use
+ * where accuracy matters more than speed.
+ * NaN inputs return 0 rather than propagating, matching fast_fsqrtf(). Base
+ * <= 0, or non-finite base/exp, fall back to real powf() since the bit-trick
+ * doesn't handle them.
+ */
+float powf_approx(float base, float exp)
+{
+    // Handle common special cases for maximum speed
+    if (exp == 0.0f) {
+        return 1.0f;
+    }
+    if (exp == 1.0f) {
+        return base;
+    }
+    if (isnan(base) || isnan(exp)) {
+        return 0.0f;
+    }
+    if (base <= 0.0f || isinf(base) || isinf(exp)) {
+        return powf(base, exp);
+    }
+    if (exp == 2.0f) {
+        return base * base;
+    }
+    if (exp == 0.5f) {
+        return fast_fsqrtf(base);
+    }
+
+    // For general case, use bit manipulation approximation
+    // Based on: x^y = 2^(y * log2(x))
+    // Using IEEE 754 floating point representation
+    union {
+        float f;
+        int32_t i;
+    } u;
+    
+    u.f = base;
+    // Extract and compute: log2(x) ≈ (mantissa bits - 127) + normalized_mantissa
+    // IEEE 754: float = 2^(exponent-127) * (1 + mantissa/2^23)
+    // log2(x) ≈ (exponent - 127) + (mantissa / 2^23)
+    
+    // Fast approximation: just use the exponent bits for log2
+    // More accurate version includes mantissa contribution
+    int32_t exp_bits = (u.i >> 23) & 0xFF;
+    int32_t mant_bits = u.i & 0x7FFFFF;
+    
+    // log2(base) approximation with mantissa correction
+    float log2_base = (float)(exp_bits - 127) + (float)mant_bits / 8388608.0f;
+    
+    // Compute result exponent: y * log2(x)
+    float result_exp = exp * log2_base;
+    
+    // Convert back to float: 2^result_exp
+    // Use floorf to ensure fractional part is always in [0, 1) for the polynomial approximation.
+    // Simple (int32_t) cast truncates toward zero, giving a negative frac for negative result_exp.
+    int32_t result_exp_int = (int32_t)floorf(result_exp);
+    float result_exp_frac = result_exp - (float)result_exp_int;
+    
+    // Reconstruct float from exponent
+    u.i = (result_exp_int + 127) << 23;
+    
+    // Apply fractional part correction using polynomial approximation
+    // 2^x ≈ 1 + x*(0.69315 + x*(0.24023 + x*0.05550)) for x in [0,1]
+    float frac_mult = 1.0f + result_exp_frac * (0.69314718f + result_exp_frac * (0.24022650f + result_exp_frac * 0.05550410f));
+    
+    return u.f * frac_mult;
+}
 
 int gcd(int num, int denom)
 {

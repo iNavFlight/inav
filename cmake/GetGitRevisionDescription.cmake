@@ -59,17 +59,27 @@ function(get_git_head_revision _refspecvar _hashvar)
 		endif()
 		set(GIT_DIR "${GIT_PARENT_DIR}/.git")
 	endwhile()
-	# check if this is a submodule
-	if(NOT IS_DIRECTORY ${GIT_DIR})
-		file(READ ${GIT_DIR} submodule)
-		string(REGEX REPLACE "gitdir: (.*)\n$" "\\1" GIT_DIR_RELATIVE ${submodule})
-		get_filename_component(SUBMODULE_DIR ${GIT_DIR} PATH)
-		get_filename_component(GIT_DIR ${SUBMODULE_DIR}/${GIT_DIR_RELATIVE} ABSOLUTE)
+	# .git is a file rather than a directory when the checkout is a submodule or
+	# a linked worktree. It contains a "gitdir:" line pointing at the real git
+	# directory: the path is relative for a submodule and absolute for a worktree,
+	# so resolve it against the directory holding the file.
+	if(EXISTS "${GIT_DIR}" AND NOT IS_DIRECTORY "${GIT_DIR}")
+		file(READ "${GIT_DIR}" GIT_DIR_CONTENTS)
+		string(REGEX REPLACE "^gitdir:[ \t]*(.*)" "\\1" GIT_DIR_TARGET "${GIT_DIR_CONTENTS}")
+		string(STRIP "${GIT_DIR_TARGET}" GIT_DIR_TARGET)
+		get_filename_component(GIT_DIR_BASE "${GIT_DIR}" DIRECTORY)
+		get_filename_component(GIT_DIR "${GIT_DIR_TARGET}" ABSOLUTE BASE_DIR "${GIT_DIR_BASE}")
 	endif()
-	if(NOT IS_DIRECTORY "${GIT_DIR}")
-		file(READ ${GIT_DIR} worktree)
-                string(REGEX REPLACE "gitdir: (.*)worktrees(.*)\n$" "\\1" GIT_DIR ${worktree})
-        endif()
+	# The git directory of a linked worktree holds the worktree's own HEAD, while the refs
+	# and packed-refs live in the main repository, which commondir points at. Keep the two
+	# apart: reading HEAD through commondir would report the revision of whatever the main
+	# checkout happens to have checked out instead of the one being built.
+	set(GIT_COMMON_DIR "${GIT_DIR}")
+	if(EXISTS "${GIT_DIR}/commondir")
+		file(READ "${GIT_DIR}/commondir" GIT_DIR_COMMON)
+		string(STRIP "${GIT_DIR_COMMON}" GIT_DIR_COMMON)
+		get_filename_component(GIT_COMMON_DIR "${GIT_DIR_COMMON}" ABSOLUTE BASE_DIR "${GIT_DIR}")
+	endif()
 	set(GIT_DATA "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/git-data")
 	if(NOT EXISTS "${GIT_DATA}")
 		file(MAKE_DIRECTORY "${GIT_DATA}")

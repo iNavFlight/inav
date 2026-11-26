@@ -6,6 +6,7 @@ extern "C" {
 #include "fc/runtime_config.h"
 #include "flight/imu.h"
 #include "build/debug.h"
+#include "msp/msp_protocol_v2_inav.h"
 #define _Static_assert static_assert
 #include "navigation/marker_guidance.h"
 #undef _Static_assert
@@ -48,6 +49,14 @@ void setDesiredPosition(const fpVector3_t *position, int32_t yaw, navSetWaypoint
         posControl.desiredState.yaw = yaw;
     }
 }
+}
+
+TEST(MarkerGuidanceProtocolTest, CommandDoesNotAliasUpstreamCompassOrEscCommands)
+{
+    EXPECT_EQ(0x2235, MSP2_INAV_SET_MARKER_GUIDANCE_TARGET);
+    EXPECT_NE(MSP2_INAV_MAG_UNALIGNED, MSP2_INAV_SET_MARKER_GUIDANCE_TARGET);
+    EXPECT_NE(MSP2_INAV_ESC_SRXL2_STATUS, MSP2_INAV_SET_MARKER_GUIDANCE_TARGET);
+    EXPECT_NE(MSP2_INAV_ESC_SRXL2_CALIBRATE, MSP2_INAV_SET_MARKER_GUIDANCE_TARGET);
 }
 
 class MarkerGuidanceRuntimeTest : public ::testing::Test {

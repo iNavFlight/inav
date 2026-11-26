@@ -149,33 +149,33 @@ typedef struct __attribute__ ((__packed__)) mpuContextData_s {
     uint8_t     gyroRaw[6]; // MPU_RA_GYRO_XOUT_H
 } mpuContextData_t;
 
-enum gyro_fsr_e {
+typedef enum {
     INV_FSR_250DPS = 0,
     INV_FSR_500DPS,
     INV_FSR_1000DPS,
     INV_FSR_2000DPS,
     NUM_GYRO_FSR
-};
+} gyro_fsr_e;
 
-enum fchoice_b {
+typedef enum {
     FCB_DISABLED = 0,
     FCB_8800_32,
     FCB_3600_32
-};
+} fchoice_b;
 
-enum clock_sel_e {
+typedef enum {
     INV_CLK_INTERNAL = 0,
     INV_CLK_PLL,
     NUM_CLK
-};
+} clock_sel_e;
 
-enum accel_fsr_e {
+typedef enum {
     INV_FSR_2G = 0,
     INV_FSR_4G,
     INV_FSR_8G,
     INV_FSR_16G,
     NUM_ACCEL_FSR
-};
+} accel_fsr_e;
 
 struct gyroDev_s;
 struct accDev_s;

@@ -73,6 +73,15 @@ function(get_generated_files_dir output target_name)
     set(${output} ${CMAKE_CURRENT_BINARY_DIR}/${target_name} PARENT_SCOPE)
 endfunction()
 
+# Reads an environment variable and escapes it, so that it can be passed as an
+# argument to a custom command. CMake splits unescaped ';' into a list when it
+# generates a command line, which breaks PATH on Windows, where entries are
+# separated by ';'.
+function(escape_env var name)
+    string(REPLACE ";" "\\;" value "$ENV{${name}}")
+    set(${var} "${value}" PARENT_SCOPE)
+endfunction()
+
 function(setup_executable exe name)
     get_generated_files_dir(generated_dir ${name})
     target_compile_options(${exe} PRIVATE ${MAIN_COMPILE_OPTIONS})
@@ -114,6 +123,43 @@ function(exclude_from_all target)
         TARGET_MESSAGES OFF
         EXCLUDE_FROM_ALL ON
         EXCLUDE_FROM_DEFAULT_BUILD ON)
+endfunction()
+
+# Adds a clean_<name> target which removes the artefacts of the firmware
+# target <name>. Neither "make clean" nor "ninja clean" can be limited to a
+# single target, so the artefacts are removed explicitly by cmake, which
+# behaves the same for the Makefile and the Ninja generator.
+#
+# EXECUTABLES: executable targets of <name>. Their binary, map file and
+#              object files are removed.
+# FILES: additional artefacts of <name>, e.g. the .hex and .bin files.
+function(add_clean_target name)
+    cmake_parse_arguments(args "" "" "EXECUTABLES;FILES" ${ARGN})
+
+    get_generated_files_dir(generated_dir ${name})
+    set(paths ${args_FILES}
+        ${generated_dir}/${SETTINGS_GENERATED_H}
+        ${generated_dir}/${SETTINGS_GENERATED_C})
+    foreach(exe ${args_EXECUTABLES})
+        # Literal paths: a target generator expression here would make clean_<name> build ${exe} first
+        get_target_property(output_dir ${exe} RUNTIME_OUTPUT_DIRECTORY)
+        set(exe_file ${output_dir}/${exe}${CMAKE_EXECUTABLE_SUFFIX})
+        list(APPEND paths ${exe_file})
+        # Same name as the map file added by generate_map_file()
+        if(CMAKE_VERSION VERSION_LESS 3.15)
+            list(APPEND paths ${exe_file}.map)
+        else()
+            list(APPEND paths ${output_dir}/${exe}.map)
+        endif()
+        # Object directory used by both generators for ${exe}
+        list(APPEND paths ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${exe}.dir)
+    endforeach()
+
+    set(clean_target clean_${name})
+    add_custom_target(${clean_target}
+        COMMAND ${CMAKE_COMMAND} -P ${MAIN_DIR}/cmake/clean_target.cmake ${paths}
+        COMMENT "Removing intermediate files for ${name}")
+    exclude_from_all(${clean_target})
 endfunction()
 
 function(collect_targets)

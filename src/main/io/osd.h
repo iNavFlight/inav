@@ -148,6 +148,7 @@
 #define OSD_MSG_VTOL_WAIT_MC_SPEED  "WAIT MC SPEED"
 #define OSD_MSG_VTOL_NO_SPEED       "NO SPEED"
 #define OSD_MSG_VTOL_MC_SPEED_HIGH  "MC SPEED HIGH"
+#define OSD_MSG_MENU_NAV_REQ        "USE NAV MODES FOR MENU"
 
 #ifdef USE_DEV_TOOLS
 #define OSD_MSG_GRD_TEST_MODE       "GRD TEST > MOTORS DISABLED"
@@ -160,6 +161,7 @@
 
 #if defined(USE_GEOZONE)
 #define OSD_MSG_NFZ                 "NO FLY ZONE"
+#define OSD_MSG_GEOZONE_MISCONFIG   "GEOZONE MISCONFIGURED"
 #define OSD_MSG_LEAVING_FZ          "LEAVING FZ IN %s"
 #define OSD_MSG_OUTSIDE_FZ          "OUTSIDE FZ"
 #define OSD_MSG_ENTERING_NFZ        "ENTERING NFZ IN %s %s"
@@ -379,6 +381,7 @@ typedef enum {
     OSD_THROTTLE_GAUGE,
     OSD_GPS_EXTRA_STATS,
     OSD_AUTO_SPEED,  // 170
+    OSD_TERRAIN_AGL, // 171,
     OSD_ITEM_COUNT // MUST BE LAST
 } osd_items_e;
 
@@ -602,6 +605,7 @@ void osdStartFullRedraw(void);
 // the OSD after the given duration. Otherwise, the caller must
 // explicitely remove it.
 void osdOverrideLayout(int layout, timeMs_t duration);
+void osdSetLayoutOverrideOwnedByMenu(bool owned);
 // Returns the current current layout as well as wether its
 // set by the user configuration (modes, etc..) or by overriding it.
 int osdGetActiveLayout(bool *overridden);

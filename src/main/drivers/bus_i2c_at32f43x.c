@@ -345,7 +345,10 @@ void i2cInit(I2CDevice device)
     i2cUnstick(scl, sda);
 
     // Init pins
-    IOConfigGPIOAF(scl, IOCFG_I2C, hardware->af);
+    // PB13 routes I2C3_SCL through AF7; its AF4 function is I2C3_SMBA.
+    const uint8_t sclAf = (hardware->dev == I2C3 && hardware->scl == IO_TAG(PB13))
+        ? GPIO_MUX_7 : hardware->af;
+    IOConfigGPIOAF(scl, IOCFG_I2C, sclAf);
     IOConfigGPIOAF(sda, IOCFG_I2C, hardware->af);
 
     // Init I2C peripheral

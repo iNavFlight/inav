@@ -35,65 +35,68 @@
 
 const timerDef_t timerDefinitions[HARDWARE_TIMER_DEFINITION_COUNT] = {
 #if defined(TIM1)
-    [0] = { .tim = TIM1,  .rcc = RCC_APB2(TIM1),  .irq = TIM1_CC_IRQn, .secondIrq = TIM1_UP_TIM10_IRQn },
+    [TIMER_INDEX(1)] = { .tim = TIM1,  .rcc = RCC_APB2(TIM1),  .irq = TIM1_CC_IRQn, .secondIrq = TIM1_UP_TIM10_IRQn },
 #endif
 
 #if defined(TIM2)
-    [1] = { .tim = TIM2,  .rcc = RCC_APB1(TIM2),  .irq = TIM2_IRQn},
+    [TIMER_INDEX(2)] = { .tim = TIM2,  .rcc = RCC_APB1(TIM2),  .irq = TIM2_IRQn},
 #endif
 
 #if defined(TIM3)
-    [2] = { .tim = TIM3,  .rcc = RCC_APB1(TIM3),  .irq = TIM3_IRQn},
+    [TIMER_INDEX(3)] = { .tim = TIM3,  .rcc = RCC_APB1(TIM3),  .irq = TIM3_IRQn},
 #endif
 
 #if defined(TIM4)
-    [3] = { .tim = TIM4,  .rcc = RCC_APB1(TIM4),  .irq = TIM4_IRQn},
+    [TIMER_INDEX(4)] = { .tim = TIM4,  .rcc = RCC_APB1(TIM4),  .irq = TIM4_IRQn},
 #endif
 
 #if defined(TIM5)
-    [4] = { .tim = TIM5,  .rcc = RCC_APB1(TIM5),  .irq = TIM5_IRQn},
+    [TIMER_INDEX(5)] = { .tim = TIM5,  .rcc = RCC_APB1(TIM5),  .irq = TIM5_IRQn},
 #endif
 
 #if defined(TIM6)
-    [5] = { .tim = TIM6,  .rcc = RCC_APB1(TIM6),  .irq = 0},
+    [TIMER_INDEX(6)] = { .tim = TIM6,  .rcc = RCC_APB1(TIM6),  .irq = 0},
 #endif
 
 #if defined(TIM7)
-    [6] = { .tim = TIM7,  .rcc = RCC_APB1(TIM7),  .irq = 0},
+    [TIMER_INDEX(7)] = { .tim = TIM7,  .rcc = RCC_APB1(TIM7),  .irq = 0},
 #endif
 
 #if defined(TIM8) && !defined(STM32F411xE)
 #if defined(STM32F446xx)
-    [7] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = 0 },
+    [TIMER_INDEX(8)] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = 0 },
 #else
-    [7] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = TIM8_CC_IRQn, .secondIrq = TIM8_UP_TIM13_IRQn },
+    [TIMER_INDEX(8)] = { .tim = TIM8,  .rcc = RCC_APB2(TIM8),  .irq = TIM8_CC_IRQn, .secondIrq = TIM8_UP_TIM13_IRQn },
 #endif
 #endif
 
 #if defined(TIM9)
-    [8] = { .tim = TIM9,  .rcc = RCC_APB2(TIM9),  .irq = TIM1_BRK_TIM9_IRQn},
+    [TIMER_INDEX(9)] = { .tim = TIM9,  .rcc = RCC_APB2(TIM9),  .irq = TIM1_BRK_TIM9_IRQn},
 #endif
 
 #if defined(TIM10)
-    [9] = { .tim = TIM10, .rcc = RCC_APB2(TIM10), .irq = TIM1_UP_TIM10_IRQn},
+    [TIMER_INDEX(10)] = { .tim = TIM10, .rcc = RCC_APB2(TIM10), .irq = TIM1_UP_TIM10_IRQn},
 #endif
 
 #if defined(TIM11)
-    [10] = { .tim = TIM11, .rcc = RCC_APB2(TIM11), .irq = TIM1_TRG_COM_TIM11_IRQn},
+    [TIMER_INDEX(11)] = { .tim = TIM11, .rcc = RCC_APB2(TIM11), .irq = TIM1_TRG_COM_TIM11_IRQn},
 #endif
 
 #if defined(TIM12) && !defined(STM32F411xE)
-    [11] = { .tim = TIM12, .rcc = RCC_APB1(TIM12), .irq = TIM8_BRK_TIM12_IRQn},
+    [TIMER_INDEX(12)] = { .tim = TIM12, .rcc = RCC_APB1(TIM12), .irq = TIM8_BRK_TIM12_IRQn},
 #endif
 
 #if defined(TIM13) && !defined(STM32F411xE)
-    [12] = { .tim = TIM13, .rcc = RCC_APB1(TIM13), .irq = TIM8_UP_TIM13_IRQn},
+    [TIMER_INDEX(13)] = { .tim = TIM13, .rcc = RCC_APB1(TIM13), .irq = TIM8_UP_TIM13_IRQn},
 #endif
 
 #if defined(TIM14) && !defined(STM32F411xE)
-    [13] = { .tim = TIM14, .rcc = RCC_APB1(TIM14), .irq = TIM8_TRG_COM_TIM14_IRQn},
+    [TIMER_INDEX(14)] = { .tim = TIM14, .rcc = RCC_APB1(TIM14), .irq = TIM8_TRG_COM_TIM14_IRQn},
 #endif
 };
+
+// The timer table must cover every slot of timerCtx[] - see TIMER_INDEX() in timer.h
+STATIC_ASSERT(TIMER_INDEX(14) == HARDWARE_TIMER_DEFINITION_COUNT - 1, timer_definition_table_size_mismatch);
 
 uint32_t timerClock(TIM_TypeDef *tim)
 {
