@@ -94,15 +94,6 @@
 #define USE_FLASH_W25N01G          // 1Gb NAND flash support
 #define W25N01G_SPI_BUS BUS_SPI2
 #define W25N01G_CS_PIN   FLASH_CS_PIN
-#define USE_FLASH_W25M             // Stacked die support
-#define W25M_SPI_BUS    BUS_SPI2
-#define W25M_CS_PIN   FLASH_CS_PIN
-#define USE_FLASH_W25M512          // 512Kb (256Kb x 2 stacked) NOR flash support
-#define W25M512_SPI_BUS BUS_SPI2
-#define W25M512_CS_PIN   FLASH_CS_PIN
-#define USE_FLASH_W25M02G          // 2Gb (1Gb x 2 stacked) NAND flash support
-#define W25M02G_SPI_BUS BUS_SPI2
-#define W25M02G_CS_PIN FLASH_CS_PIN
 
 // *************** OSD *****************************
 #define USE_SPI_DEVICE_3
@@ -143,7 +134,6 @@
 #define UART3_TX_PIN            PB10
 #define USE_UART_INVERTER
 #define INVERTER_PIN_UART3_RX   PC9
-#define INVERTER_PIN_USART3_RX   PC9
 
 #define USE_UART4
 #define UART4_RX_PIN            PA1
@@ -167,9 +157,9 @@
 #define USE_ADC
 #define ADC_INSTANCE            ADC1
 #define ADC1_DMA_STREAM             DMA2_CHANNEL5
-#define ADC_CHANNEL1_PIN        PC2
-#define ADC_CHANNEL2_PIN        PC1
-#define ADC_CHANNEL3_PIN        PC0
+#define ADC_CHANNEL_1_PIN       PC2
+#define ADC_CHANNEL_2_PIN       PC1
+#define ADC_CHANNEL_3_PIN       PC0
 #define VBAT_ADC_CHANNEL            ADC_CHN_1
 #define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
 #define RSSI_ADC_CHANNEL        ADC_CHN_3

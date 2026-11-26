@@ -602,33 +602,6 @@ static float updateHandoffScalingProgress(const timeMs_t currentTimeMs)
     return mixerProfileAT.handoffScalingProgress;
 }
 
-static bool hasUsableTransitionAirspeed(float *airspeedCmS)
-{
-#ifdef USE_PITOT
-    if (!sensors(SENSOR_PITOT) || !pitotGetValidForAirspeed() || pitotHasFailed()) {
-        return false;
-    }
-
-    if (detectedSensors[SENSOR_INDEX_PITOT] == PITOT_NONE) {
-        return false;
-    }
-
-    const float measuredAirspeedCmS = detectedSensors[SENSOR_INDEX_PITOT] == PITOT_VIRTUAL ?
-        getAirspeedEstimate() :
-        pitot.airSpeed;
-
-    if (isnan(measuredAirspeedCmS) || isinf(measuredAirspeedCmS)) {
-        return false;
-    }
-
-    *airspeedCmS = MAX(measuredAirspeedCmS, 0.0f);
-    return true;
-#else
-    UNUSED(airspeedCmS);
-    return false;
-#endif
-}
-
 static void preparePostSwitchFade(const int targetProfileIndex)
 {
     mixerProfileAT.postSwitchFadeMotorMask = 0;
@@ -862,8 +835,7 @@ static bool mixerATReadyForHotSwitch(const mixerProfileATRequest_e required_acti
     const uint32_t elapsedMs = currentTimeMs - mixerProfileAT.transitionStartTime;
     const uint32_t transitionTimerMs = MAX(0, currentMixerConfig.switchTransitionTimer) * 100;
     float airspeedCmS = 0.0f;
-    const bool usableAirspeedAvailable =
-        airspeedThresholdCmS > 0 && hasUsableTransitionAirspeed(&airspeedCmS);
+    const bool usableAirspeedAvailable = airspeedThresholdCmS > 0 && hasUsableTransitionAirspeed(&airspeedCmS);
 
     const mixerTransitionHotSwitchProgress_t hotSwitchProgress = mixerTransitionEvaluateHotSwitch(
         direction,
@@ -1054,7 +1026,7 @@ bool checkMixerATRequired(mixerProfileATRequest_e required_action)
 }
 
 bool mixerATUpdateState(mixerProfileATRequest_e required_action)
-{   
+{
 #ifdef USE_AUTO_TRANSITION
     //return true if mixerAT is done or not required
     bool reprocessState;
@@ -1215,7 +1187,7 @@ bool checkMixerProfileHotSwitchAvalibility(void)
 }
 
 void outputProfileUpdateTask(timeUs_t currentTimeUs)
-{   
+{
     UNUSED(currentTimeUs);
     if (cliMode) {
         return;

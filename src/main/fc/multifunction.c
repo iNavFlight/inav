@@ -265,12 +265,14 @@ textAttributes_t osdGetMultiFunctionMessage(char *buff)
     bool warningCondition = false;
     uint8_t warningFlagID = 1;
 
+#ifdef USE_ADC
     // Low Battery Voltage
     const batteryState_e batteryVoltageState = checkBatteryVoltageState();
     warningCondition = batteryVoltageState == BATTERY_CRITICAL || batteryVoltageState == BATTERY_WARNING;
     if (osdCheckWarning(warningCondition, warningFlagID)) {
         messages[messageCount++] = batteryVoltageState == BATTERY_CRITICAL ? "VBATT LAND" : "VBATT LOW ";
     }
+#endif
 
     // Low Battery Capacity
     if (batteryUsesCapacityThresholds()) {
@@ -315,7 +317,7 @@ textAttributes_t osdGetMultiFunctionMessage(char *buff)
 #if defined(USE_PITOT)
     // Pitot sensor validation failure (blocked/failed pitot tube)
     if (sensors(SENSOR_PITOT) && detectedSensors[SENSOR_INDEX_PITOT] != PITOT_VIRTUAL) {
-        if (osdCheckWarning(pitotHasFailed(), warningFlagID <<= 1)) {
+        if (osdCheckWarning(pitotHardwareHasFailed(), warningFlagID <<= 1)) {
             messages[messageCount++] = "PITOT FAIL";
         }
     }

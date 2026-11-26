@@ -523,7 +523,8 @@ Important pitot behavior:
 - The same `300ms` airspeed window validates the final speed condition before the profile switch, including when dynamic scaling is OFF. There is no second independent airspeed confirmation timer.
 - The airspeed confirmation does not delay the time-based forward-motor or tilt-servo movement. Those outputs still use `mixer_vtol_transition_scale_ramp_time_ms`, which avoids a tiltrotor waiting for airspeed before it starts tilting.
 - If `pitot_hardware = VIRTUAL` is selected but virtual airspeed is not valid, for example no usable GPS/estimate, INAV falls back to `mixer_switch_trans_timer`.
-- Raw ground speed is not used as an automatic pitot replacement for transition completion. If you want an estimated airspeed source, select `pitot_hardware = VIRTUAL`; then the Virtual Pitot logic owns the estimate.
+- Transition and low-speed protection keep the stricter trusted-source policy: virtual pitot requires a GPS fix, valid horizontal/vertical GPS velocity and a valid wind estimate. A hardware pitot rejected by its plausibility checks is not automatically replaced by GPS-based speed for these decisions. The normal source-loss handling and timer fallback still apply where supported.
+- Upstream also exposes a degraded airspeed estimate for consumers such as APA. Its availability alone does not authorize a VTOL profile switch. Even a validated virtual estimate has uncertainty in wind; the `300ms` confirmation rejects short spikes, not a sustained estimation bias.
 - `mixer_vtol_transition_airspeed_timeout_ms` does not complete a transition. It only stops an airspeed-controlled attempt that is taking too long.
 
 Optional low-speed protection:
@@ -999,6 +1000,17 @@ save
 In this example, WP1 must be within about `1m` of its requested altitude and the aircraft must be at least `12m` above the navigation altitude reference before MC -> FW can start.
 
 During mission MC -> FW, INAV pauses normal waypoint advancement and does not command the MC position controller to chase an XY point while the forward motor or tilt mechanism builds speed. Altitude control and ANGLE stabilisation remain active, and heading is aligned toward the following waypoint. The transition does not require the aircraft to have zero horizontal speed or to be perfectly level, so WP1 and WP2 should define a clear departure direction and should not require a sharp turn at the start of transition.
+
+A waypoint whose configured USER bit requests a different MC/FW platform does not
+anticipate a turn onto the following leg. This prevents the FW FLY_BY/FLY_INTO
+planner from declaring that transition point reached ahead of the normal waypoint
+arrival check. Ordinary same-platform waypoints retain the configured FW turn mode;
+the transition altitude checks and post-transition waypoint advancement still apply.
+If an explicit waypoint jump selects such a point during an existing FLY_INTO
+approach S-turn, the old preliminary arc is released into the normal bank-slewed
+capture of the current leg. Its stale pickup cannot mark the new point reached.
+The normal radius and passed-waypoint checks still apply; this is not a guarantee
+of crossing the exact waypoint coordinates or stopping there during transition.
 
 ### Holding in MC before MC -> FW
 

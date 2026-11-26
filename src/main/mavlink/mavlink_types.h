@@ -25,8 +25,13 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 #ifndef MAVLINK_COMM_NUM_BUFFERS
 #define MAVLINK_COMM_NUM_BUFFERS MAX_MAVLINK_PORTS
+#endif
+/* Single external definition lives in mavlink/mavlink_helpers.c. */
+#ifndef MAVLINK_SEPARATE_HELPERS
+#define MAVLINK_SEPARATE_HELPERS
 #endif
 #include "storm32/mavlink.h"
 #pragma GCC diagnostic pop
@@ -41,7 +46,7 @@
 #define ARDUPILOT_VERSION_MAJOR 4
 #define ARDUPILOT_VERSION_MINOR 7
 #define ARDUPILOT_VERSION_PATCH 0
-#define MAVLINK_MAX_ROUTES 32
+#define MAVLINK_MAX_ROUTES 8 // GCS plus a few companions; INAV does not route fleets
 #define MAVLINK_PORT_MASK(portIndex) (1U << (portIndex))
 #define MAXSTREAMS MAVLINK_STREAM_COUNT
 
@@ -58,6 +63,7 @@ typedef enum {
     MAVLINK_PERIODIC_MESSAGE_BATTERY_STATUS,
     MAVLINK_PERIODIC_MESSAGE_SCALED_PRESSURE,
     MAVLINK_PERIODIC_MESSAGE_SYSTEM_TIME,
+    MAVLINK_PERIODIC_MESSAGE_MISSION_CURRENT,
     MAVLINK_PERIODIC_MESSAGE_COUNT
 } mavlinkPeriodicMessage_e;
 

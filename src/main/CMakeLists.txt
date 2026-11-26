@@ -153,6 +153,8 @@ main_sources(COMMON_SRC
     drivers/compass/compass_ist8308.h
     drivers/compass/compass_ist8310.c
     drivers/compass/compass_ist8310.h
+    drivers/compass/compass_lis2mdl.c
+    drivers/compass/compass_lis2mdl.h
     drivers/compass/compass_lis3mdl.c
     drivers/compass/compass_lis3mdl.h
     drivers/compass/compass_mag3110.c
@@ -178,6 +180,10 @@ main_sources(COMMON_SRC
     drivers/dronecan/dronecan.c
     drivers/dronecan/dronecan_async.c
     drivers/dronecan/dronecan_async.h
+    drivers/dronecan/dronecan_dna_server.c
+    drivers/dronecan/dronecan_dna_server.h
+    drivers/dronecan/dronecan_node_status.c
+    drivers/dronecan/dronecan_node_status.h
     drivers/dronecan/dronecan.h
 
     drivers/display.c
@@ -383,6 +389,8 @@ main_sources(COMMON_SRC
     io/adsb.h
     io/beeper.c
     io/beeper.h
+    io/motor_srxl2.c
+    io/motor_srxl2.h
     io/servo_sbus.c
     io/servo_sbus.h
     io/frsky_osd.c
@@ -418,6 +426,7 @@ main_sources(COMMON_SRC
     mavlink/mavlink_command.h
     mavlink/mavlink_guided.c
     mavlink/mavlink_guided.h
+    mavlink/mavlink_helpers.c
     mavlink/mavlink_internal.h
     mavlink/mavlink_mission.c
     mavlink/mavlink_mission.h
@@ -496,6 +505,8 @@ main_sources(COMMON_SRC
     sensors/boardalignment.h
     sensors/compass.c
     sensors/compass.h
+    sensors/compass_orientation.c
+    sensors/compass_orientation.h
     sensors/diagnostics.c
     sensors/diagnostics.h
     sensors/gyro.c
@@ -618,6 +629,8 @@ main_sources(COMMON_SRC
     navigation/navigation.c
     navigation/navigation.h
     navigation/navigation_fixedwing.c
+    navigation/navigation_fixedwing_turn_math.c
+    navigation/navigation_fixedwing_turn_math.h
     navigation/navigation_fw_launch.c
     navigation/navigation_geo.c
     navigation/navigation_multicopter.c

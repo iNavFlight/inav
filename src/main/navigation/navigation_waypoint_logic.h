@@ -20,6 +20,19 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+static inline bool navWaypointAllowsTurnAnticipation(const int32_t nextTurnAngle)
+{
+    return nextTurnAngle != -1;
+}
+
+static inline bool navWaypointShouldCancelTurnAnticipation(
+    const bool flyIntoMode, const bool awayArcActive, const int32_t nextTurnAngle)
+{
+    // FLY_OVER also uses an away arc, but it joins the current leg rather than
+    // anticipating passage of the active waypoint.
+    return flyIntoMode && awayArcActive && !navWaypointAllowsTurnAnticipation(nextTurnAngle);
+}
+
 static inline bool navMissionRelativeWaypointIndexToAbsolute(
     const int16_t relativeIndex,
     const int16_t missionStartIndex,

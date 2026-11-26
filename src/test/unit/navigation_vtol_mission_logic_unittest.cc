@@ -4,6 +4,22 @@ extern "C" {
 #include "navigation/navigation_vtol_mission_logic.h"
 }
 
+TEST(NavigationVtolMissionLogicTest, ProfileChangeWaypointsCannotBeCutByFwTurnAnticipation)
+{
+    // USER selection is a target platform, regardless of the mixer profile numbering.
+    for (unsigned bit = 0; bit < 16; bit++) {
+        const uint16_t mask = uint16_t(1U << bit);
+        EXPECT_FALSE(navMissionWaypointAllowsTurnAnticipation(mask, 0, true));
+        EXPECT_FALSE(navMissionWaypointAllowsTurnAnticipation(mask, mask, false));
+        EXPECT_TRUE(navMissionWaypointAllowsTurnAnticipation(mask, mask, true));
+        EXPECT_TRUE(navMissionWaypointAllowsTurnAnticipation(mask, 0, false));
+        EXPECT_FALSE(navMissionWaypointAllowsTurnAnticipation(mask, uint16_t(~mask), true));
+        EXPECT_TRUE(navMissionWaypointAllowsTurnAnticipation(mask, UINT16_MAX, true));
+    }
+    EXPECT_TRUE(navMissionWaypointAllowsTurnAnticipation(0, 0, true));
+    EXPECT_TRUE(navMissionWaypointAllowsTurnAnticipation(0, UINT16_MAX, false));
+}
+
 TEST(NavigationVtolMissionLogicTest, RthLandingSelectionSurvivesInternalStatesAndTransition)
 {
     EXPECT_TRUE(navVtolRthLandingMcSelectionRetained(true, true, true, NAV_VTOL_MIXERAT_MODE_NONE));

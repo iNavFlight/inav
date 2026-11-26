@@ -40,6 +40,9 @@ static void resetMAVLinkPortRuntimeState(uint8_t portIndex)
     memset(&state->mlrs, 0, sizeof(state->mlrs));
 #ifdef USE_MAVLINK_MSP_TUNNEL
     mavlinkResetTunnelPortState(portIndex);
+    if (mavTunnelPendingReply.portIndex == portIndex) {
+        memset(&mavTunnelPendingReply, 0, sizeof(mavTunnelPendingReply));
+    }
 #endif
 }
 

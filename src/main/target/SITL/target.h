@@ -54,6 +54,11 @@
 #define USE_UART8
 
 #define SERIAL_PORT_COUNT 8
+
+// Opted in explicitly, as any target outside the H7 and AT32 rule in common.h would. Worth
+// having here because SITL puts each UART on a TCP port, so a simulated ESC can be attached
+// to the real driver and the whole path exercised without hardware
+#define USE_MOTOR_SRXL2
 #define SITL_SERIAL_TASK_US (500)
 
 #define DEFAULT_RX_FEATURE      FEATURE_RX_MSP
@@ -215,7 +220,6 @@ typedef enum
 extern bool lockMainPID(void);
 extern void unlockMainPID(void);
 extern void parseArguments(int argc, char *argv[]);
-extern char *strnstr(const char *s, const char *find, size_t slen);
 extern int lookupAddress (char *, int, int, struct sockaddr *, socklen_t*);
 
 #define IPADDRESS_PRINT_BUFLEN (INET6_ADDRSTRLEN + 16)

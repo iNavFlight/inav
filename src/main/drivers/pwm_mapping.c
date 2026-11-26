@@ -21,7 +21,7 @@
 
 #include "platform.h"
 
-#if !defined(SITL_BUILD)
+#if !defined(SITL_BUILD) && !defined(RP2350)
 
 #include "build/debug.h"
 #include "common/log.h"
@@ -42,6 +42,7 @@
 #include "sensors/rangefinder.h"
 
 #include "io/serial.h"
+#include "io/motor_srxl2.h"
 #include "io/servo_sbus.h"
 
 enum {
@@ -70,6 +71,11 @@ static const motorProtocolProperties_t motorProtocolProperties[] = {
     [PWM_TYPE_DSHOT150]     = { .usesHwTimer = true,    .isDSHOT = true },
     [PWM_TYPE_DSHOT300]     = { .usesHwTimer = true,    .isDSHOT = true },
     [PWM_TYPE_DSHOT600]     = { .usesHwTimer = true,    .isDSHOT = true },
+    /* Not a timer waveform at all: the ESC hangs off a UART. The entry has to be
+     * here even on a target built without the protocol, because the value is
+     * stored in configuration and a diff restored from a board that does have it
+     * would otherwise index past the end of this array. */
+    [PWM_TYPE_SRXL2]        = { .usesHwTimer = false,   .isDSHOT = false },
 };
 
 pwmInitError_e getPwmInitError(void)
@@ -90,6 +96,15 @@ const motorProtocolProperties_t * getMotorProtocolProperties(motorPwmProtocolTyp
 static bool checkPwmTimerConflicts(const timerHardware_t *timHw)
 {
     serialPortPins_t uartPins;
+
+#if defined(USE_UART1)
+    // MSP is UART1's default next to the VCP and has always given these pins up to the outputs
+    const serialPortConfig_t *uart1Config = serialFindPortConfiguration(SERIAL_PORT_USART1);
+    uartGetPortPins(UARTDEV_1, &uartPins);
+    if (uart1Config && (uart1Config->functionMask & ~FUNCTION_MSP) && (timHw->tag == uartPins.txPin || timHw->tag == uartPins.rxPin)) {
+        return true;
+    }
+#endif
 
 #if defined(USE_UART2)
     uartGetPortPins(UARTDEV_2, &uartPins);
@@ -315,12 +330,18 @@ static void pwmAssignOutput(timMotorServoHardware_t *timOutputs, timerHardware_t
     }
 }
 
+static bool motorsUseHardwareTimers(void)
+{
+    return getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer;
+}
+
 void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
 {
     timOutputs->maxTimMotorCount = 0;
     timOutputs->maxTimServoCount = 0;
 
-    const uint8_t motorCount = getMotorCount();
+    // A motor driven over a serial bus has no pad: reserving one would only take a servo's timer
+    const uint8_t motorCount = motorsUseHardwareTimers() ? getMotorCount() : 0;
 
     // Count servo outputs needed across all mixer profiles, matching
     // computeServoCount() / getServoCount() which also walk all profiles.
@@ -404,11 +425,6 @@ void pwmBuildTimerOutputList(timMotorServoHardware_t *timOutputs)
     }
 }
 
-static bool motorsUseHardwareTimers(void)
-{
-    return getMotorProtocolProperties(motorConfig()->motorPwmProtocol)->usesHwTimer;
-}
-
 static bool servosUseHardwareTimers(void)
 {
     return servoConfig()->servo_protocol == SERVO_TYPE_PWM ||
@@ -428,6 +444,20 @@ static void pwmInitMotors(timMotorServoHardware_t * timOutputs)
 
     // Do the pre-configuration. For motors w/o hardware timers this should be sufficient
     pwmMotorPreconfigure();
+
+#ifdef USE_MOTOR_SRXL2
+    /*
+     * SRXL2 carries one ESC per port, so the mixer's motor count has to be met by
+     * that many assigned ports. A motor with no port has nowhere to send its
+     * command and no timer output to fall back on, and dropping it silently would
+     * mean arming a twin that can only drive one side.
+     */
+    if (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2 && srxl2MotorCount() < motorCount) {
+        pwmInitError = PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS;
+        LOG_ERROR(PWM, "Not enough SRXL2 ports. Mixer requested %d, ports %d", motorCount, srxl2MotorCount());
+        return;
+    }
+#endif
 
     // Now if we need to configure individual motor outputs - do that
     if (!motorsUseHardwareTimers()) {

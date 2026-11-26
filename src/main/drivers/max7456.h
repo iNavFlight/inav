@@ -38,7 +38,11 @@
 #define MAX7456_BUFFER_CHARS_NTSC   (MAX7456_LINES_NTSC * MAX7456_CHARS_PER_LINE)
 #define MAX7456_BUFFER_CHARS_PAL    (MAX7456_LINES_PAL * MAX7456_CHARS_PER_LINE)
 
-enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
+typedef enum {
+    AUTO = 0,
+    PAL,
+    NTSC
+} VIDEO_TYPES;
 
 #define MAX7456_MODE_INVERT   (1 << 3)
 #define MAX7456_MODE_BLINK    (1 << 4)
@@ -47,7 +51,7 @@ enum VIDEO_TYPES { AUTO = 0, PAL, NTSC };
 void max7456Init(const videoSystem_e videoSystem);
 void max7456Update(void);
 void max7456ReadNvm(uint16_t char_address, osdCharacter_t *chr);
-void max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr);
+bool max7456WriteNvm(uint16_t char_address, const osdCharacter_t *chr);
 uint16_t max7456GetScreenSize(void);
 uint8_t max7456GetRowsCount(void);
 void max7456Write(uint8_t x, uint8_t y, const char *buff, uint8_t mode);

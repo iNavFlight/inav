@@ -133,6 +133,8 @@ bool handleCrsfMspFrameBuffer(uint8_t payloadSize, mspResponseFnPtr responseFn)
             } else {
                 replyPending = true;
             }
+        } else {
+            replyPending = false; // handleMspFrame() has dropped any reply started earlier in this pass
         }
         pos += CRSF_MSP_LENGTH_OFFSET + mspFrameLength;
         ATOMIC_BLOCK(NVIC_PRIO_SERIALUART) {

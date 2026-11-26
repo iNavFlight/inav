@@ -50,6 +50,7 @@
 #include "usb_core.h"
 #include "usbd_int.h"
 #include "msc_class.h"
+#include "msc_bot_scsi.h"
 #include "msc_desc.h"
 #include "usb_io.h"
 
@@ -240,6 +241,9 @@ uint8_t mscStart(void)
             return 1;
         }
     */
+
+    // msc_struct lives in .fastram_bss, which the AT32 startup code does not zero
+    memset(msc_class_handler.pdata, 0, sizeof(msc_type));
 
     /* init usb */
     /* usb gpio config */

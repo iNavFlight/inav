@@ -20,6 +20,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+static inline bool navMissionWaypointAllowsTurnAnticipation(
+    const uint16_t configuredUserActionMask,
+    const uint16_t waypointFlags,
+    const bool isFixedWing)
+{
+    // A profile-change waypoint is an action point, not a corner to cut early.
+    return configuredUserActionMask == 0 ||
+        (((waypointFlags & configuredUserActionMask) != 0) == isFixedWing);
+}
+
 typedef enum {
     NAV_MISSION_VTOL_PRECONDITION_READY = 0,
     NAV_MISSION_VTOL_PRECONDITION_WAIT,

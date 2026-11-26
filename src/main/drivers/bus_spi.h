@@ -37,6 +37,10 @@
 #define SPI_IO_AF_SCK_CFG       IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_DOWN)
 #define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_UP)
 #define SPI_IO_CS_CFG           IO_CONFIG(GPIO_MODE_OUTPUT, GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_NONE)
+#elif defined(RP2350)
+/* RP2350 ioConfig_t: bit 0 = direction (1=output), bit 5 = pull-up, bit 6 = pull-down.
+ * CS is a plain push-pull output with no pull resistors. */
+#define SPI_IO_CS_CFG           0x01
 #endif
 
 /*
@@ -92,6 +96,7 @@ typedef struct SPIDevice_s {
     const uint32_t * divisorMap;
     volatile uint16_t errorCount;
     bool initDone;
+    bool leadingEdge;
 } spiDevice_t;
 
 bool spiInitDevice(SPIDevice device, bool leadingEdge);
@@ -113,6 +118,9 @@ bool spiInitDevice(SPIDevice device, bool leadingEdge);
     void spiSetSpeed(SPI_TypeDef *instance, SPIClockSpeed_e speed);
     uint8_t spiTransferByte(SPI_TypeDef *instance, uint8_t in);
     bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, int len);
+#if defined(STM32H7) || defined(STM32F7)
+    bool spiTransferRegister(SPI_TypeDef *instance, uint8_t reg, uint8_t *rxData, const uint8_t *txData, int len);
+#endif
 
     uint16_t spiGetErrorCounter(SPI_TypeDef *instance);
     void spiResetErrorCounter(SPI_TypeDef *instance);

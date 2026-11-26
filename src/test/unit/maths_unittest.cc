@@ -236,3 +236,73 @@ TEST(MathsUnittest, TestSensorScaleUnitTest)
 }
 */
 #endif
+
+TEST(MathsUnittest, TestPowfApprox)
+{
+    // Special cases handled exactly by short-circuit branches
+    EXPECT_FLOAT_EQ(powf_approx(2.0f, 0.0f), 1.0f);
+    EXPECT_FLOAT_EQ(powf_approx(2.0f, 1.0f), 2.0f);
+    EXPECT_FLOAT_EQ(powf_approx(3.0f, 2.0f), 9.0f);
+    EXPECT_NEAR(powf_approx(4.0f, 0.5f), 2.0f, 0.01f);
+
+    // General approximation via bit-manipulation: typical error is ~5-10%
+    // base < 1 with non-trivial exponent - the key regression case for base<1 where
+    // result_exp is negative and fractional (floorf fix ensures frac stays in [0,1))
+    EXPECT_NEAR(powf_approx(0.5f, 1.5f),  powf(0.5f, 1.5f),  powf(0.5f, 1.5f)  * 0.10f);
+    EXPECT_NEAR(powf_approx(0.7f, 1.5f),  powf(0.7f, 1.5f),  powf(0.7f, 1.5f)  * 0.10f);
+    EXPECT_NEAR(powf_approx(0.3f, 1.5f),  powf(0.3f, 1.5f),  powf(0.3f, 1.5f)  * 0.10f);
+
+    // base > 1 cases with non-trivial exponents
+    EXPECT_NEAR(powf_approx(2.0f, 1.5f),  powf(2.0f, 1.5f),  powf(2.0f, 1.5f)  * 0.10f);
+    EXPECT_NEAR(powf_approx(10.0f, 1.5f), powf(10.0f, 1.5f), powf(10.0f, 1.5f) * 0.10f);
+
+    // Short-circuit branches: exp==1.0f and exp==2.0f return exact values
+    EXPECT_FLOAT_EQ(powf_approx(0.015f, 1.0f), 0.015f);
+    EXPECT_FLOAT_EQ(powf_approx(60.0f, 2.0f),  3600.0f);
+    // Power-of-2 base with non-integer exponent: log2 is exact so result is close
+    EXPECT_NEAR(powf_approx(0.25f, 1.5f), powf(0.25f, 1.5f), powf(0.25f, 1.5f) * 0.01f);
+
+    // base <= 0 delegates to real powf()
+    EXPECT_FLOAT_EQ(powf_approx(0.0f, 2.0f), 0.0f);
+    EXPECT_FLOAT_EQ(powf_approx(-2.0f, 2.0f), 4.0f);
+    EXPECT_FLOAT_EQ(powf_approx(-2.0f, 3.0f), -8.0f);
+
+    // NaN inputs return 0 rather than propagating
+    EXPECT_FLOAT_EQ(powf_approx(NAN, 1.5f), 0.0f);
+    EXPECT_FLOAT_EQ(powf_approx(2.0f, NAN), 0.0f);
+}
+
+// The conversion macros must bracket their argument, so that an expression passed
+// to them is converted as a whole and not only its last operand.
+TEST(MathsUnittest, TestMacrosBracketArgument)
+{
+    const int high = 300;
+    const int low = 100;
+    const bool yes = true;
+
+    EXPECT_FLOAT_EQ(MILLIMETERS_TO_CENTIMETERS(high - low), MILLIMETERS_TO_CENTIMETERS(200));
+    EXPECT_FLOAT_EQ(CENTIMETERS_TO_CENTIFEET(high - low), CENTIMETERS_TO_CENTIFEET(200));
+    EXPECT_FLOAT_EQ(CENTIMETERS_TO_FEET(high - low), CENTIMETERS_TO_FEET(200));
+    EXPECT_FLOAT_EQ(CENTIMETERS_TO_METERS(high - low), CENTIMETERS_TO_METERS(200));
+    EXPECT_FLOAT_EQ(CENTIMETERS_TO_METERS(yes ? high : low), CENTIMETERS_TO_METERS(300));
+    EXPECT_EQ(METERS_TO_CENTIMETERS(high - low), METERS_TO_CENTIMETERS(200));
+    EXPECT_FLOAT_EQ(METERS_TO_KILOMETERS(high - low), METERS_TO_KILOMETERS(200));
+    EXPECT_FLOAT_EQ(METERS_TO_MILES(high - low), METERS_TO_MILES(200));
+    EXPECT_FLOAT_EQ(METERS_TO_NAUTICALMILES(high - low), METERS_TO_NAUTICALMILES(200));
+    EXPECT_FLOAT_EQ(MWH_TO_WH(high - low), MWH_TO_WH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_CENTIMPH(high - low), CMSEC_TO_CENTIMPH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_CENTIKPH(high - low), CMSEC_TO_CENTIKPH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_CENTIKNOTS(high - low), CMSEC_TO_CENTIKNOTS(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_MPH(high - low), CMSEC_TO_MPH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_KPH(high - low), CMSEC_TO_KPH(200));
+    EXPECT_FLOAT_EQ(CMSEC_TO_KNOTS(high - low), CMSEC_TO_KNOTS(200));
+    EXPECT_FLOAT_EQ(KMH_TO_MS(high - low), KMH_TO_MS(200));
+    EXPECT_FLOAT_EQ(C_TO_KELVIN(yes ? 20.0f : 0.0f), C_TO_KELVIN(20.0f));
+
+    EXPECT_EQ(SIGN(low & 0xFF), 1);
+
+    const uint8_t buf[] = { 0x12, 0x34, 0x56, 0x78 };
+    const int first = 0;
+    EXPECT_EQ(int16_val_big_endian(buf, first + 1), 0x5678);
+    EXPECT_EQ(int16_val_little_endian(buf, first + 1), 0x7856);
+}

@@ -35,9 +35,11 @@ def gh_json(*args):
 
 
 def list_releases():
+    # Oldest first: if the backlog ever exceeds the 1000-release limit, the
+    # newest (least stale) releases drop off rather than the oldest (most overdue).
     return gh_json(
         "release", "list", "--repo", PR_TEST_BUILDS_REPO,
-        "--json", "tagName,publishedAt", "--limit", "1000",
+        "--json", "tagName,publishedAt", "--limit", "1000", "--order", "asc",
     )
 
 
@@ -56,6 +58,18 @@ def delete_release(tag):
     )
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or "delete failed")
+
+
+def get_release_published_at(tag):
+    try:
+        return gh_json(
+            "release", "view", tag, "--repo", PR_TEST_BUILDS_REPO,
+            "--json", "publishedAt",
+        )["publishedAt"]
+    except RuntimeError as exc:
+        if "not found" in str(exc):
+            return None
+        raise
 
 
 def parse_args():
@@ -107,6 +121,20 @@ def main():
             continue
 
         if not args.dry_run:
+            # The publisher deletes and recreates a PR's release on every new
+            # build, so re-check the release wasn't replaced since listing.
+            try:
+                current_published_at = get_release_published_at(tag)
+            except RuntimeError as exc:
+                errors.append((tag, f"could not re-check release: {exc}"))
+                continue
+            if current_published_at is None:
+                skipped.append((tag, "release no longer exists, leaving alone"))
+                continue
+            if current_published_at != release["publishedAt"]:
+                skipped.append((tag, "release changed since listing, leaving alone"))
+                continue
+
             try:
                 delete_release(tag)
             except RuntimeError as exc:

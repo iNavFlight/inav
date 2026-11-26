@@ -37,10 +37,14 @@
 #include "drivers/time.h"
 #include "drivers/system.h"
 #include "drivers/pwm_output.h"
+#include "drivers/pwm_mapping.h"
 
 #include "sensors/sensors.h"
 #include "sensors/diagnostics.h"
 #include "sensors/boardalignment.h"
+#ifdef USE_CMS
+#include "cms/cms.h"
+#endif
 #include "sensors/acceleration.h"
 #include "sensors/barometer.h"
 #include "sensors/compass.h"
@@ -85,6 +89,8 @@
 
 #include "flight/mixer_profile.h"
 #include "flight/mixer.h"
+
+#include "io/motor_srxl2.h"
 #include "flight/servos.h"
 #include "flight/pid.h"
 #include "flight/imu.h"
@@ -121,7 +127,7 @@ int16_t headFreeModeHold;
 uint8_t motorControlEnable = false;
 
 static bool isRXDataNew;
-static disarmReason_t lastDisarmReason = DISARM_NONE;
+static disarmReason_e lastDisarmReason = DISARM_NONE;
 timeUs_t lastDisarmTimeUs = 0;
 timeMs_t emergRearmStabiliseTimeout = 0;
 
@@ -298,7 +304,29 @@ static void updateArmingStatus(void)
         }
 
         /* CHECK: */
-        if (!isHardwareHealthy()) {
+        bool escLinkMissing = false;
+#ifdef USE_MOTOR_SRXL2
+        /*
+         * An SRXL2 ESC left unanswered in the third of a second after it gains
+         * power never links, and the throttle reaches nothing. Arming meanwhile
+         * commands a motor that is not listening - the model looks armed, the
+         * telemetry looks sane, and the propeller does not turn.
+         *
+         * Refuse to arm until the link is up and the ESC obeys the throttle: 10 s
+         * after it powers up, or after the board's start-up where both share a
+         * battery (about 16 s after power on a Lucid H7). Where it never comes, it
+         * is the difference between finding out on the bench and finding out on
+         * the takeoff roll.
+         */
+        escLinkMissing = (motorConfig()->motorPwmProtocol == PWM_TYPE_SRXL2)
+                         && !srxl2MotorIsConnected();
+#ifdef USE_SIMULATOR
+        // Not while a simulator flies the aircraft: HITL disables the outputs itself, so
+        // there is no motor to command and nothing this would protect
+        escLinkMissing = escLinkMissing && !ARMING_FLAG(SIMULATOR_MODE_HITL);
+#endif
+#endif
+        if (!isHardwareHealthy() || escLinkMissing) {
             ENABLE_ARMING_FLAG(ARMING_DISABLED_HARDWARE_FAILURE);
         }
         else {
@@ -384,13 +412,31 @@ static bool emergencyArmingIsEnabled(void)
     return emergencyArmingUpdate(IS_RC_MODE_ACTIVE(BOXARM), false) && emergencyArmingCanOverrideArmingDisabled();
 }
 
-static void processPilotAndFailSafeActions(float dT)
+static RP2350_FAST_CODE void processPilotAndFailSafeActions(float dT)
 {
     if (failsafeShouldApplyControlInput()) {
         // Failsafe will apply rcCommand for us
         failsafeApplyControlInput();
     }
     else {
+#ifdef USE_CMS
+        // In-flight CMS menu: override stick commands with neutral values
+        // so the aircraft continues flying in its current nav mode.
+        // Throttle passes through since nav modes manage it automatically.
+        // IMPORTANT: Do not skip failsafeUpdateRcCommandValues() - the failsafe
+        // system must keep receiving updates to detect RC link loss.
+        if (cmsInMenu && ARMING_FLAG(ARMED)) {
+            rcCommand[ROLL]  = 0;
+            rcCommand[PITCH] = 0;
+            rcCommand[YAW]   = 0;
+            rcCommand[THROTTLE] = throttleStickMixedValue();
+
+            if (isRXDataNew) {
+                failsafeUpdateRcCommandValues();
+            }
+            return;
+        }
+#endif
         // Compute ROLL PITCH and YAW command.
         // Only recompute when the RX task has delivered new data (~50 Hz).
         {
@@ -453,7 +499,7 @@ static void processPilotAndFailSafeActions(float dT)
     }
 }
 
-void disarm(disarmReason_t disarmReason)
+void disarm(disarmReason_e disarmReason)
 {
     if (ARMING_FLAG(ARMED)) {
         lastDisarmReason = disarmReason;
@@ -483,7 +529,7 @@ timeUs_t getLastDisarmTimeUs(void) {
     return lastDisarmTimeUs;
 }
 
-disarmReason_t getDisarmReason(void)
+disarmReason_e getDisarmReason(void)
 {
     return lastDisarmReason;
 }
@@ -571,7 +617,9 @@ void tryArm(void)
 
 #ifdef USE_PROGRAMMING_FRAMEWORK
     if (emergInflightRearmEnabled() || !isArmingDisabled() || emergencyArmingIsEnabled() ||
-        LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY)) {
+        // The failsafe lockout must survive the override, or it re-arms right after a failsafe disarm
+        (LOGIC_CONDITION_GLOBAL_FLAG(LOGIC_CONDITION_GLOBAL_FLAG_OVERRIDE_ARMING_SAFETY) &&
+         !ARMING_FLAG(ARMING_DISABLED_FAILSAFE_SYSTEM))) {
 #else
     if (emergInflightRearmEnabled() || !isArmingDisabled() || emergencyArmingIsEnabled()) {
 #endif
@@ -632,7 +680,7 @@ bool fcSetArmState(bool arm)
         disarm(DISARM_SWITCH);
     }
 
-    return ARMING_FLAG(ARMED) == arm;
+    return (ARMING_FLAG(ARMED) != 0) == arm;
 }
 
 #define TELEMETRY_FUNCTION_MASK (FUNCTION_TELEMETRY_HOTT | FUNCTION_TELEMETRY_SMARTPORT | FUNCTION_TELEMETRY_LTM | FUNCTION_TELEMETRY_MAVLINK | FUNCTION_TELEMETRY_IBUS)

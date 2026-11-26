@@ -39,7 +39,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM2, CH1, PA15, TIM_USE_OUTPUT_AUTO, 0, 0),  // S5  
     DEF_TIM(TIM1, CH1, PA8,  TIM_USE_OUTPUT_AUTO, 0, 0),  // S6 
     
-    DEF_TIM(TIM4, CH1, PB8, TIM_USE_LED, 0, 0),  // LED STRIP(2,6)
+    DEF_TIM(TIM4, CH3, PB8, TIM_USE_LED, 0, 0),  // LED STRIP(2,6) -- PB8 is TIM4_CH3, not TIM4_CH1
     
     // DEF_TIM(TIM5, CH1, PA0, TIM_USE_PWM, 0, 0),  // PWM1
     // DEF_TIM(TIM5, CH2, PA1, TIM_USE_PWM, 0, 0),  // PWM2

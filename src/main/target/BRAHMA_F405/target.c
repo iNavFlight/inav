@@ -25,7 +25,7 @@
 
 timerHardware_t timerHardware[] = {
 
-    DEF_TIM(TIM1,   CH3N,  PB1,   TIM_USE_OUTPUT_AUTO,  0, 0 ),    
+    DEF_TIM(TIM1,   CH3N,  PB1,   TIM_USE_OUTPUT_AUTO,  0, 1 ),    
     DEF_TIM(TIM1,   CH2N,  PB0,   TIM_USE_OUTPUT_AUTO,  0, 1 ),  
     DEF_TIM(TIM2,   CH4,  PA3,   TIM_USE_OUTPUT_AUTO,  0, 0 ),     
     DEF_TIM(TIM2,   CH3,  PA2,   TIM_USE_OUTPUT_AUTO, 0, 0 ),    
@@ -35,7 +35,7 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM3,   CH2,  PB5,   TIM_USE_OUTPUT_AUTO,  0, 0 ),    
     DEF_TIM(TIM3,   CH4,  PC9,   TIM_USE_OUTPUT_AUTO,  0, 0 ),     
 
-    DEF_TIM(TIM8,   CH3,  PC8,   TIM_USE_LED,       0, 0 ),     
+    DEF_TIM(TIM8,   CH3,  PC8,   TIM_USE_LED,       0, 0 ),      // Clash with TIM1_CH2N's DMA stream; LED strip does not light
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);
