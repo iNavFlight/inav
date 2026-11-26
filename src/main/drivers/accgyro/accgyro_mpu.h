@@ -128,6 +128,7 @@
 
 // RF = Register Flag
 #define MPU_RF_DATA_RDY_EN (1 << 0)
+#define MPU_INT_ANYRD_2CLEAR (1 << 4)
 
 #define MPU_DLPF_10HZ           0x05
 #define MPU_DLPF_20HZ           0x04
@@ -185,3 +186,6 @@ bool mpuGyroRead(struct gyroDev_s *gyro);
 bool mpuGyroReadScratchpad(struct gyroDev_s *gyro);
 bool mpuAccReadScratchpad(struct accDev_s *acc);
 bool mpuTemperatureReadScratchpad(struct gyroDev_s *gyro, int16_t * data);
+#if defined(USE_SPI_DATA_READY)
+void mpuDataReadySetup(struct gyroDev_s *gyro);
+#endif

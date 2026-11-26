@@ -101,11 +101,13 @@
 #define IMU_MPU6000_ALIGN       CW270_DEG
 #define MPU6000_SPI_BUS         BUS_SPI4
 #define MPU6000_CS_PIN          PE4
+#define MPU6000_EXTI_PIN       PE1
 
 //BMI270
 #define USE_IMU_BMI270
 #define BMI270_SPI_BUS          BUS_SPI4
 #define BMI270_CS_PIN           PE4
+#define BMI270_EXTI_PIN         PE1
 
 #ifdef KAKUTEH7MINI
 #define IMU_BMI270_ALIGN        CW270_DEG

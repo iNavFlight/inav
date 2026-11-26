@@ -46,6 +46,7 @@
 
 // #define ICM42605_CS_PIN                              SPI3_NSS_PIN
 #define ICM42605_CS_PIN                                 PD2
+#define ICM42605_EXTI_PIN       PC13
 #define ICM42605_SPI_BUS                                BUS_SPI3
 
 #define USE_BEEPER

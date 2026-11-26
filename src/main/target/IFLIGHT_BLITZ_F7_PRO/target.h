@@ -47,6 +47,7 @@
 #define IMU_BMI270_ALIGN        CW0_DEG_FLIP
 #define BMI270_SPI_BUS          BUS_SPI1
 #define BMI270_CS_PIN           PA15
+#define BMI270_EXTI_PIN         PA8
 
 // *************** I2C/Baro/Mag *********************
 #define USE_I2C

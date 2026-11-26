@@ -37,7 +37,7 @@
 #define IMU_ICM42605_ALIGN       CW270_DEG
 #define ICM42605_SPI_BUS         BUS_SPI1
 #define ICM42605_CS_PIN          PA4
-#define ICM42605_EXTI_PIN        PB12
+#define ICM42605_EXTI_PIN        PB2
 
 // LSM6DSV16X / LSM6DSK320X as an alternative to ICM42688P (pin-to-pin compatible, same SPI1/CS/EXTI)
 #define USE_IMU_LSM6DXX

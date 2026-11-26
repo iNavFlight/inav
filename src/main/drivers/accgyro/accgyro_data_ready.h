@@ -45,6 +45,8 @@ typedef struct gyroDataReadyDriver_s {
 typedef struct gyroDataReady_s gyroDataReady_t;
 
 #if defined(USE_SPI_DATA_READY)
+// Whether gyroDataReadyStart() will try, for a driver whose rate depends on it
+bool gyroDataReadyWanted(const gyroDev_t *gyro);
 void gyroDataReadyStart(gyroDev_t *gyro);
 void gyroDataReadySuspend(void);
 // For the driver's acc and temperature reads: true when the last data-ready read brought them

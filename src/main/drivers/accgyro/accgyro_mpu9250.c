@@ -96,6 +96,10 @@ static void mpu9250AccAndGyroInit(gyroDev_t *gyro)
     busWrite(dev, MPU_RA_SMPLRT_DIV, config->gyroConfigValues[1]);
     delay(100);
 
+#if defined(USE_SPI_DATA_READY)
+    mpuDataReadySetup(gyro);
+#endif
+
     busSetSpeed(dev, BUS_SPEED_FAST);
 }
 

@@ -37,6 +37,9 @@
 #define USE_IMU_MPU6000
 #define IMU_MPU6000_ALIGN       CW180_DEG
 #define MPU6000_CS_PIN          PA4
+#if defined(MATEKF411SE)
+#define MPU6000_EXTI_PIN       PA14
+#endif
 #define MPU6000_SPI_BUS         BUS_SPI1
 
 // *************** SPI2 OSD *****************************

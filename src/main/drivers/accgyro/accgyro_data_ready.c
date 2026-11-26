@@ -179,12 +179,19 @@ void gyroDataReadySuspend(void)
     }
 }
 
+bool gyroDataReadyWanted(const gyroDev_t *gyro)
+{
+    const gyroDataReadyDriver_t *driver = gyro->dataReadyDriver;
+    const busDevice_t *dev = gyro->busDev;
+    return driver && dev && dev->irqPin && gyro->readOnDataReady != GYRO_DEV_DATA_READY_OFF &&
+        (gyro->readOnDataReady != GYRO_DEV_DATA_READY_WHERE_TESTED || driver->tested);
+}
+
 void gyroDataReadyStart(gyroDev_t *gyro)
 {
     const gyroDataReadyDriver_t *driver = gyro->dataReadyDriver;
     busDevice_t *dev = gyro->busDev;
-    if (!driver || !dev || !dev->irqPin || gyro->readOnDataReady == GYRO_DEV_DATA_READY_OFF ||
-        (gyro->readOnDataReady == GYRO_DEV_DATA_READY_WHERE_TESTED && !driver->tested)) {
+    if (!gyroDataReadyWanted(gyro)) {
         return;
     }
     // A pin already owned stays with its owner; a wrong but free pin only means polling as before
@@ -216,7 +223,11 @@ void gyroDataReadyStart(gyroDev_t *gyro)
 
     IOInit(dev->irqPin, OWNER_MPU, RESOURCE_EXTI, RESOURCE_INDEX(gyro->imuSensorToUse));
     EXTIHandlerInit(&d->exti, gyroDataReadyExti);
-    EXTIConfig(dev->irqPin, &d->exti, NVIC_PRIO_GYRO_DATA_READY, IOCFG_IN_FLOATING);
+#if defined(STM32F7) || defined(STM32H7)
+    EXTIConfig(dev->irqPin, &d->exti, NVIC_PRIO_GYRO_DATA_READY, IOCFG_IN_FLOATING);   // always on the rising edge
+#else
+    EXTIConfig(dev->irqPin, &d->exti, NVIC_PRIO_GYRO_DATA_READY, EXTI_Trigger_Rising);
+#endif
     EXTIEnable(dev->irqPin, true);
 
     gyro->dataReadyState = d;
