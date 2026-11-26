@@ -30,6 +30,8 @@ extern "C" {
 #include "uavcan.protocol.param.GetSet.h"
 #include "uavcan.protocol.param.ExecuteOpcode_res.h"
 #include "uavcan.protocol.RestartNode_res.h"
+#include "uavcan.equipment.ahrs.MagneticFieldStrength.h"
+#include "uavcan.equipment.ahrs.MagneticFieldStrength2.h"
 
 /* Canard core and STM32 driver declarations */
 #include "drivers/dronecan/libcanard/canard.h"
@@ -39,6 +41,8 @@ extern "C" {
    available when we define stub globals below. */
 #include "io/gps.h"
 #include "sensors/battery_sensor_dronecan.h"
+#include "sensors/compass.h"
+#include "drivers/compass/compass_dronecan.h"
 #include "fc/runtime_config.h"
 #include "sensors/diagnostics.h"
 #include "build/version.h"
@@ -99,6 +103,11 @@ void dronecanGPSReceiveGNSSFix(const struct uavcan_equipment_gnss_Fix *p) { (voi
 void dronecanGPSReceiveGNSSFix2(const struct uavcan_equipment_gnss_Fix2 *p) { (void)p; }
 void dronecanGPSReceiveGNSSAuxiliary(const struct uavcan_equipment_gnss_Auxiliary *p) { (void)p; }
 void dronecanBatterySensorReceiveInfo(struct uavcan_equipment_power_BatteryInfo *p) { (void)p; }
+
+/* Compass config and DroneCAN compass receive stub */
+compassConfig_t compassConfig_System;
+compassConfig_t compassConfig_Copy;
+void dronecanMagReceiveNewData(uint8_t nodeId, uint8_t sensorId, const float fieldGauss[3]) { (void)nodeId; (void)sensorId; (void)fieldGauss; }
 
 /* STM32 CAN driver stubs */
 int16_t canardSTM32CAN1_Init(uint32_t b) { (void)b; return CANARD_OK; }
@@ -396,6 +405,32 @@ TEST(DroneCANShouldAcceptTransfer, AcceptsNodeStatusBroadcast)
 
     EXPECT_TRUE(accept);
     EXPECT_EQ(signature, UAVCAN_PROTOCOL_NODESTATUS_SIGNATURE);
+}
+
+TEST(DroneCANShouldAcceptTransfer, AcceptsMagneticFieldStrengthBroadcast)
+{
+    uint64_t signature = 0;
+    bool accept = shouldAcceptTransfer(
+            nullptr, &signature,
+            UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH_ID,
+            CanardTransferTypeBroadcast,
+            42);
+
+    EXPECT_TRUE(accept);
+    EXPECT_EQ(signature, UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH_SIGNATURE);
+}
+
+TEST(DroneCANShouldAcceptTransfer, AcceptsMagneticFieldStrength2Broadcast)
+{
+    uint64_t signature = 0;
+    bool accept = shouldAcceptTransfer(
+            nullptr, &signature,
+            UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_ID,
+            CanardTransferTypeBroadcast,
+            42);
+
+    EXPECT_TRUE(accept);
+    EXPECT_EQ(signature, UAVCAN_EQUIPMENT_AHRS_MAGNETICFIELDSTRENGTH2_SIGNATURE);
 }
 
 TEST(DroneCANShouldAcceptTransfer, AcceptsGetNodeInfoRequest)

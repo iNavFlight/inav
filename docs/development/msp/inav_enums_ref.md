@@ -3829,7 +3829,8 @@
 | `MAG_MLX90393` | 15 |  |
 | `MAG_LIS2MDL` | 16 |  |
 | `MAG_FAKE` | 17 |  |
-| `MAG_MAX` | MAG_FAKE |  |
+| `MAG_DRONECAN` | 18 |  |
+| `MAG_MAX` | MAG_DRONECAN |  |
 
 ---
 ## <a id="enum-mavlinkautopilottype_e"></a>`mavlinkAutopilotType_e`

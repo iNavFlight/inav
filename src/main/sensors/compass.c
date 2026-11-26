@@ -46,6 +46,7 @@
 #include "drivers/compass/compass_vcm5883.h"
 #include "drivers/compass/compass_mlx90393.h"
 #include "drivers/compass/compass_msp.h"
+#include "drivers/compass/compass_dronecan.h"
 #include "drivers/io.h"
 #include "drivers/light_led.h"
 #include "drivers/time.h"
@@ -238,6 +239,20 @@ bool compassDetect(magDev_t *dev, magSensor_e magHardwareToUse)
         }
 #endif
 
+        /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
+        if (magHardwareToUse != MAG_AUTODETECT) {
+            break;
+        }
+        FALLTHROUGH;
+
+    case MAG_DRONECAN:
+#if defined(USE_DRONECAN)
+        // Skip autodetection for DroneCAN mag - data arrives asynchronously
+        if (magHardwareToUse != MAG_AUTODETECT && dronecanMagDetect(dev)) {
+            magHardware = MAG_DRONECAN;
+            break;
+        }
+#endif
         /* If we are asked for a specific sensor - break out, otherwise - fall through and continue */
         if (magHardwareToUse != MAG_AUTODETECT) {
             break;

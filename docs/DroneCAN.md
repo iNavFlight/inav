@@ -9,6 +9,7 @@ DroneCAN (formerly UAVCAN v0) is a lightweight protocol designed for reliable co
 | GPS | Supported | GNSS receivers via DroneCAN |
 | Battery Voltage | Supported | Voltage sensing from DroneCAN battery monitors |
 | Battery Current | Supported | Current sensing from DroneCAN battery monitors |
+| Compass | Supported | Magnetometers via DroneCAN (`set mag_hardware = DRONECAN`) |
 | Parameter Get/Set | Supported | Read/write DroneCAN peripheral parameters via the configurator's DroneCAN tab |
 | ESC Control | Planned | Motor control via DroneCAN ESCs |
 | Dynamic Node Assignment | Supported | Automatically assign CAN node IDs to plug-and-play DroneCAN peripherals |
