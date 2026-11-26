@@ -241,6 +241,40 @@ inav.override.vtx.power = inav.flight.homeDistance > 500 ? 4 : 2;
 
 **Use when:** You need conditional value assignment in a single expression.
 
+### Using an Action's Result
+
+Every logic condition has a result that other logic conditions can read, including actions. To use it, give the action a name with `const`:
+
+```javascript
+// Method form: the result differs from the value you set
+const changed = inav.override.vtx.setPower(3);
+inav.gvar[0] = changed;           // 3 on the cycle the power changed, otherwise 0
+
+// Assignment form: the result equals the assigned value
+const t = (inav.override.throttle = 1500);
+const g = (inav.gvar[1] += 2);    // the new value of gvar[1]
+
+// Add a condition with &&: the action only runs while it is true
+const c = inav.rc[5].high && inav.override.vtx.setPower(3);
+```
+
+`cond && action` follows normal JavaScript: when `cond` is false the result is 0, which is what an inactive logic condition returns. Chains like `a && b && action` work.
+
+| Action | How to name its result | Result |
+|---|---|---|
+| `gvar[n] = v`, `override.throttle`, `osd.layout` | `(target = value)` | the assigned value |
+| `gvar[n] += v`, `gvar[n] -= v` | `(gvar[n] += value)` | the new gvar value |
+| `override.vtx.setPower/setBand/setChannel()` | method call | the new value on the cycle it changed, otherwise 0 |
+| `override.setProfile()` | method call | 1 if the profile changed, otherwise 0 |
+| Other overrides (`invertRoll`, `rcChannel`, `disableGpsFix`, ...) | cannot be named | always 1 while active, so use the condition itself |
+
+Rules:
+- Declare the result with `const`, at the top level (not inside an `if`). To make it conditional, put the condition in the declaration with `&&`.
+- `const p = (inav.override.vtx.power = 3)` is an error: the assignment would read as 3, but the firmware result is different. Use `setPower(3)`.
+- A result can only be read by logic conditions that run after it. Declare it before it is used.
+- `+=`, `-=`, `*=`, `/=` and `%=` work on `gvar[n]`. Other targets give an error.
+- Decompiled code uses this syntax when a logic condition reads an action's result and the action is simple enough (no other logic condition as an input). Otherwise it still shows `logicCondition[N]` with a warning.
+
 ---
 
 ## Available Objects
