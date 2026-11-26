@@ -4156,6 +4156,13 @@ groups:
         condition: USE_DJI_HD_OSD
         default_value: OFF
         type: bool
+      - name: osd_msp_disarm_hold
+        field: msp_disarm_hold
+        description: "Seconds the MSP DisplayPort air unit is still told ARMED after a disarm, so goggles that record only while armed (DJI) also record the stats screen. Only the serial port set to MSP DisplayPort is affected: the flight controller disarms at once, and every other MSP port (mLRS, MSP over telemetry), MAVLink and the configurator see the real arm state. 0 = off."
+        condition: USE_MSP_OSD
+        default_value: 0
+        min: 0
+        max: 7
       - name: osd_switch_indicator_zero_name
         description: "Character to use for OSD switch incicator 0."
         field: osd_switch_indicator0_name
