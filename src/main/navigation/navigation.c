@@ -4617,7 +4617,9 @@ bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBe
         // The turn coordinator declared the WP reached (FLY_BY at turn start, FLY_INTO at the S pickup).
         // Set once, consumed here only - it must survive until this check runs, so nothing clears it per tick.
         posControl.flags.wpTurnSmoothingActive = false;
-        return true;
+        if (navWaypointAllowsTurnAnticipation(posControl.activeWaypoint.nextTurnAngle)) {
+            return true;
+        }
     }
 
 

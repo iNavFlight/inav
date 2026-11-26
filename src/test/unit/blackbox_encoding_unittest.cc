@@ -1,7 +1,10 @@
 #include <algorithm>
 #include <cstdarg>
 #include <cstdint>
+#include <fstream>
+#include <iterator>
 #include <limits>
+#include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -15,6 +18,42 @@ int tfp_format(void *, void (*)(void *, char), const char *, va_list);
 }
 
 static std::vector<uint8_t> encoded;
+
+TEST(BlackboxEncoding, SlowFrameTerrainAndDroneCanOrderMatchesHeader)
+{
+    // Source-level contract: these optional fields share a frame but have
+    // different signedness. A merge must preserve their declared wire order.
+    const std::string testPath = __FILE__;
+    const auto directoryEnd = testPath.find_last_of("/\\");
+    ASSERT_NE(std::string::npos, directoryEnd);
+    std::ifstream file(testPath.substr(0, directoryEnd) + "/../../main/blackbox/blackbox.c");
+    ASSERT_TRUE(file.is_open());
+    const std::string source((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    const auto headerStart = source.find("blackboxSlowFields[]");
+    ASSERT_NE(std::string::npos, headerStart);
+    const auto headerEnd = source.find("};", headerStart);
+    ASSERT_NE(std::string::npos, headerEnd);
+    const auto writerStart = source.find("static void writeSlowFrame(void)\n{");
+    ASSERT_NE(std::string::npos, writerStart);
+    const auto writerEnd = source.find("\n}", writerStart);
+    ASSERT_NE(std::string::npos, writerEnd);
+
+    const char *fields[] = {"droneCANBusOffCount", "terrainAGL", "terrainAMSL"};
+    std::vector<std::pair<size_t, std::string>> headerOrder, writerOrder;
+    for (const char *field : fields) {
+        const auto declared = source.find(std::string("\"") + field + "\"", headerStart);
+        const auto written = source.find(std::string("slowHistory.") + field, writerStart);
+        ASSERT_LT(declared, headerEnd) << field;
+        ASSERT_LT(written, writerEnd) << field;
+        headerOrder.emplace_back(declared, field);
+        writerOrder.emplace_back(written, field);
+    }
+    std::sort(headerOrder.begin(), headerOrder.end());
+    std::sort(writerOrder.begin(), writerOrder.end());
+    for (size_t i = 0; i < headerOrder.size(); i++) {
+        EXPECT_EQ(headerOrder[i].second, writerOrder[i].second) << "Slow-frame field " << i;
+    }
+}
 
 extern "C" void blackboxWrite(uint8_t value)
 {

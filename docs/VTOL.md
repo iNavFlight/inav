@@ -920,6 +920,11 @@ anticipate a turn onto the following leg. This prevents the FW FLY_BY/FLY_INTO
 planner from declaring that transition point reached ahead of the normal waypoint
 arrival check. Ordinary same-platform waypoints retain the configured FW turn mode;
 the transition altitude checks and post-transition waypoint advancement still apply.
+If an explicit waypoint jump selects such a point during an existing FLY_INTO
+approach S-turn, the old preliminary arc is released into the normal bank-slewed
+capture of the current leg. Its stale pickup cannot mark the new point reached.
+The normal radius and passed-waypoint checks still apply; this is not a guarantee
+of crossing the exact waypoint coordinates or stopping there during transition.
 
 ### Holding in MC before MC -> FW
 

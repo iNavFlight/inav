@@ -51,6 +51,7 @@
 #include "navigation/navigation_fixedwing_autospeed_logic.h"
 #include "navigation/navigation_fixedwing_turn_math.h"
 #include "navigation/navigation_private.h"
+#include "navigation/navigation_waypoint_logic.h"
 
 #include "programming/logic_condition.h"
 
@@ -1057,6 +1058,16 @@ static void fwArcRetargetOnLegChange(const fwArcCtx_t *c)
 // S sequencer while an arc is engaged: bound the away arc, then pick up the second one
 static void fwArcSequencerEngaged(const fwArcCtx_t *c)
 {
+    if (navWaypointShouldCancelTurnAnticipation(
+            c->turnMode == NAV_FW_WP_TURN_COORD_FLY_INTO,
+            fwTurn.s.stage == FW_INTO_AWAY,
+            posControl.activeWaypoint.nextTurnAngle)) {
+        // A WP jump can preserve the leg bearing, so the bearing-change check
+        // alone cannot invalidate an old S. Keep the bank slew, not its pickup.
+        fwTurn.s.stage = FW_INTO_DONE;
+        fwArcCaptureToLeg(c->legBearing);
+    }
+
     // Along-track distance to the tangency point, so a lateral residual cannot miss the pickup;
     // the heading gate blocks a trigger early in the first arc, where the point lies behind us
     float outUx, outUy;
