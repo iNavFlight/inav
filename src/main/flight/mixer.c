@@ -101,6 +101,8 @@ PG_RESET_TEMPLATE(motorConfig_t, motorConfig,
     .srxl2TelemetryRate = SETTING_ESC_SRXL2_TELEMETRY_RATE_DEFAULT,
     .srxl2Telemetry = SETTING_ESC_SRXL2_TELEMETRY_DEFAULT,
 #endif
+    .useDshotTelemetry = 0,                                   // must stay 0, see motorConfig_t
+    .useDshotEdt = 0,                                         // must stay 0, see motorConfig_t
 );
 PG_REGISTER_ARRAY_WITH_RESET_FN(timerOverride_t, HARDWARE_TIMER_DEFINITION_COUNT, timerOverrides, PG_TIMER_OVERRIDE_CONFIG, 0);
 
