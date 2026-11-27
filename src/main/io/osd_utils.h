@@ -26,6 +26,9 @@
 
 int digitCount(int32_t value);
 
+// Returns hundredths of a milliamp-hour per vertical meter at a positive climb rate.
+float osdCalculateClimbEfficiency(int32_t centiamps, float climbRateCms);
+
 /**
  * Formats a number given in cents, to support non integer values
  * without using floating point math. Value is always right aligned

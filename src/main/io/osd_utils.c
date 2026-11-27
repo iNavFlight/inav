@@ -37,6 +37,11 @@ int digitCount(int32_t value)
     return digits;
 }
 
+float osdCalculateClimbEfficiency(int32_t centiamps, float climbRateCms)
+{
+    // One mAh is 3.6 amp-seconds.
+    return centiamps / CENTIMETERS_TO_METERS(climbRateCms) / 3.6f;
+}
 
 bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length, bool leadingZeros)
 {
