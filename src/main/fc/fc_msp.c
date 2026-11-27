@@ -101,6 +101,7 @@
 #include "io/osd.h"
 #include "io/motor_srxl2.h"
 #include "io/serial.h"
+#include "io/serial_pads.h"
 #include "io/serial_4way.h"
 #include "io/vtx.h"
 #include "io/vtx_string.h"
@@ -1722,6 +1723,12 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
          * bytes are MAX_SUPPORTED_MOTORS and MAX_SUPPORTED_SERVOS, the ceilings. */
         sbufWriteU8(dst, srxl2MotorCount());
         sbufWriteU8(dst, getMotorCount());
+        break;
+#endif
+
+#ifdef USE_SERIAL_PADS
+    case MSP2_INAV_SERIAL_PADS:
+        serialPadsWriteList(dst);
         break;
 #endif
 
@@ -3891,6 +3898,22 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif
 
+#ifdef USE_SERIAL_PADS
+    case MSP2_INAV_SET_SERIAL_PAD:
+        if (dataSize >= 3) {
+            const uint8_t identifier = sbufReadU8(src);
+            const uint8_t direction = sbufReadU8(src);
+            const uint8_t pad = sbufReadU8(src);
+            if (!serialPadIsValid(identifier, direction, pad)) {
+                return MSP_RESULT_ERROR;
+            }
+            serialPadSet(identifier, direction, pad);
+        } else {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+#endif
+
     case MSP2_INAV_SELECT_MIXER_PROFILE:
         if (!ARMING_FLAG(ARMED) && sbufReadU8Safe(&tmp_u8, src)) {
                 setConfigMixerProfileAndWriteEEPROM(tmp_u8);
@@ -4246,7 +4269,7 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 if (!sbufReadU8Safe(&val, src)) {
                     return false;
                 }
-                if (val > max) {
+                if (val < min || val > max) {
                     return false;
                 }
                 *((uint8_t*)ptr) = val;
@@ -4270,7 +4293,7 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 if (!sbufReadU16Safe(&val, src)) {
                     return false;
                 }
-                if (val > max) {
+                if (val < min || val > max) {
                     return false;
                 }
                 *((uint16_t*)ptr) = val;
@@ -4294,7 +4317,7 @@ static bool mspSetSettingCommand(sbuf_t *dst, sbuf_t *src)
                 if (!sbufReadU32Safe(&val, src)) {
                     return false;
                 }
-                if (val > max) {
+                if (val < (uint32_t)min || val > max) {
                     return false;
                 }
                 *((uint32_t*)ptr) = val;

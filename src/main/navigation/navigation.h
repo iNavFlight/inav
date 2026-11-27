@@ -856,6 +856,7 @@ bool navigationRTHAllowsLanding(void);
 bool isWaypointMissionRTHActive(void);
 #ifdef USE_AUTO_TRANSITION
 navVtolTransitionOsdState_e navigationVtolTransitionOsdState(void);
+bool hasUsableTransitionAirspeed(float *airspeedCmS);
 #endif
 
 bool rthClimbStageActiveAndComplete(void);

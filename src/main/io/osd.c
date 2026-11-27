@@ -800,7 +800,7 @@ static void osdFormatCoordinate(char *buff, char sym, int32_t val)
         buff[1 + integerDigits] += SYM_ZERO_HALF_LEADING_DOT - '0';
     } else {
         // DJICOMPAT mode enabled
-        decimalDigits = tfp_sprintf(buff + 1 + integerDigits, ".%06d", (int)decimalPart);
+        decimalDigits = tfp_sprintf(buff + 1 + integerDigits, ".%07d", (int)decimalPart);
     }
     // Fill up to coordinateLength with zeros
     int total = 1 + integerDigits + decimalDigits;
@@ -1542,8 +1542,8 @@ static void osdDisplayTelemetry(void)
           trk_bearing += 360 + 180;
           trk_bearing %= 360;
           int32_t alt = CENTIMETERS_TO_METERS(osdGetAltitude());
-          float at = atan2(alt, GPS_distanceToHome);
-          trk_elevation = at * 57.2957795f; // 57.2957795 = 1 rad
+          float at = atan2_approx((float)alt, (float)GPS_distanceToHome);
+          trk_elevation = lrintf(at * 57.2957795f); // 57.2957795 = 1 rad
           trk_elevation += 37; // because elevation in telemetry should be from -37 to 90
           if (trk_elevation < 0) {
             trk_elevation = 0;
@@ -2855,6 +2855,12 @@ static bool osdDrawSingleElement(uint8_t item)
 
     case OSD_RX_POWER_DOWNLINK:
         {
+            // 0 means the link does not report receiver power (e.g. ExpressLRS over CRSF)
+            if (rxLinkStatistics.downlinkTXPower == 0) {
+                displayWrite(osdDisplayPort, elemPosX, elemPosY, "      ");
+                return true;
+            }
+
             if (!failsafeIsReceivingRxData())
                 tfp_sprintf(buff, "%s%c%c", "    ", SYM_MW, SYM_AH_DECORATION_DOWN);
             else
@@ -3506,8 +3512,7 @@ static bool osdDrawSingleElement(uint8_t item)
     case OSD_AIR_SPEED:
         {
         #ifdef USE_PITOT
-            if (pitotIsHealthy())
-            {
+            if (pitotIsHealthy()) {
                 const float airspeed_estimate = getAirspeedEstimate();
                 osdFormatVelocityStr(buff, airspeed_estimate, OSD_SPEED_TYPE_AIR, false);
                 if ((osdConfig()->airspeed_alarm_min != 0 && airspeed_estimate < osdConfig()->airspeed_alarm_min) ||

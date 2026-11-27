@@ -27,3 +27,6 @@ void sl_toupperptr(char * c);
 
 int sl_strcasecmp(const char * s1, const char * s2);
 int sl_strncasecmp(const char * s1, const char * s2, int n);
+// newlib's strstr/strnstr link the two-way search machinery (~2.8 KB); plain scans are enough here
+const char * sl_strstr(const char * haystack, const char * needle);
+const char * sl_strnstr(const char * haystack, const char * needle, int n);
