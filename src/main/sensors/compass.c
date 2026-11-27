@@ -430,13 +430,20 @@ static void compassApplyDetectedOrientation(int16_t rollDD, int16_t pitchDD, int
     compassRefreshAlignment();
 }
 
-void compassUpdate(timeUs_t currentTimeUs)
+// Delay before looking at a non-blocking bus transfer again
+#define COMPASS_READ_RETRY_US   1000
+
+/*
+ * Reads the magnetometer and processes the sample. Returns the delay until the next call: the regular period once
+ * a sample was handled, a short retry while a non-blocking read is in progress.
+ */
+uint32_t compassUpdate(timeUs_t currentTimeUs)
 {
 #ifdef USE_SIMULATOR
-	if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
-		magUpdatedAtLeastOnce = true;
-		return;
-	}
+    if (ARMING_FLAG(SIMULATOR_MODE_HITL)) {
+        magUpdatedAtLeastOnce = true;
+        return COMPASS_UPDATE_PERIOD_US;
+    }
 #endif
     static sensorCalibrationState_t calState;
     static int16_t magPrev[XYZ_AXIS_COUNT];
@@ -458,11 +465,45 @@ void compassUpdate(timeUs_t currentTimeUs)
     }
 #endif
 
+    // Non-blocking drivers deliver a sample over one or more bus transfers spread across calls
+    static bool transferPending = false;        // a transfer started by readStart() is on the bus
+    static bool lastTransferStarted = false;    // the transfer in flight is the last one of the sample
+
+    if (mag.dev.readStart) {
+        bool busError = false;
+
+        if (transferPending && mag.dev.busDev && busIsBusy(mag.dev.busDev, &busError) && !busError) {
+            return COMPASS_READ_RETRY_US;       // still on the bus
+        }
+
+        if (busError) {
+            transferPending = false;
+            lastTransferStarted = false;
+            mag.magADC[X] = 0;
+            mag.magADC[Y] = 0;
+            mag.magADC[Z] = 0;
+            return COMPASS_UPDATE_PERIOD_US;
+        }
+
+        if (!lastTransferStarted) {
+            const busReadStepResult_e result = mag.dev.readStart(&mag.dev, !transferPending);
+            if (result != BUS_READ_STEP_BUSY) {
+                transferPending = true;
+                lastTransferStarted = (result == BUS_READ_STEP_LAST);
+            }
+            return COMPASS_READ_RETRY_US;       // wait for the transfer, or for the bus to free up
+        }
+
+        // The last transfer of the sample is complete, read() only parses it
+        transferPending = false;
+        lastTransferStarted = false;
+    }
+
     if (!mag.dev.read(&mag.dev)) {
         mag.magADC[X] = 0;
         mag.magADC[Y] = 0;
         mag.magADC[Z] = 0;
-        return;
+        return COMPASS_UPDATE_PERIOD_US;
     }
 
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -590,6 +631,8 @@ void compassUpdate(timeUs_t currentTimeUs)
     }
 
     magUpdatedAtLeastOnce = true;
+
+    return COMPASS_UPDATE_PERIOD_US;
 }
 
 #endif
