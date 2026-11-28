@@ -111,14 +111,100 @@ bool settingNameIsExactMatch(const setting_t *val, char *buf, const char *cmdlin
 	return sl_strncasecmp(cmdline, buf, strlen(buf)) == 0 && var_name_length == strlen(buf);
 }
 
+// Index of a word in settingNamesWords, counted from 1 as in the encoded names. 0 if the
+// table has no such word.
+static uint16_t settingFindWord(const char *word, size_t length)
+{
+	if (length == 0) {
+		return 0;
+	}
+	const uint8_t *ptr = settingNamesWords;
+	const uint8_t *end = settingNamesWords + sizeof(settingNamesWords);
+	int used_bits = 0;
+	uint16_t idx = 1;
+	size_t pos = 0;
+	bool match = true;
+	while (ptr < end) {
+		int shift = 8 - SETTINGS_WORDS_BITS_PER_CHAR - used_bits;
+		char chr;
+		if (shift > 0) {
+			chr = (*ptr >> shift) & (0xff >> (8 - SETTINGS_WORDS_BITS_PER_CHAR));
+		} else {
+			chr = (*ptr & (0xff >> (8 - (SETTINGS_WORDS_BITS_PER_CHAR + shift)))) << -shift;
+			ptr++;
+			if (ptr < end) {
+				chr |= (*ptr) >> (8 + shift);
+			}
+		}
+		if (chr == 0) {
+			// Word end
+			if (match && pos == length) {
+				return idx;
+			}
+			idx++;
+			pos = 0;
+			match = true;
+		} else {
+			const char c = (chr < 27) ? 'a' + (chr - 1) : wordSymbols[chr - 27];
+			if (pos >= length || word[pos] != c) {
+				match = false;
+			}
+			pos++;
+		}
+		used_bits = (used_bits + SETTINGS_WORDS_BITS_PER_CHAR) % 8;
+	}
+	return 0;
+}
+
+// Encodes a name the way the generator does (src/utils/settings.rb): one index per word,
+// padded with zeros. A name is stored either split at the underscores or, when that takes
+// too many bytes, as a single word; 'split' selects which of the two is tried.
+static bool settingEncodeName(uint8_t *encoded, const char *name, bool split)
+{
+	uint8_t used = 0;
+	const char *wordEnd;
+	memset(encoded, 0, SETTING_ENCODED_NAME_MAX_BYTES);
+	do {
+		wordEnd = split ? strchr(name, '_') : NULL;
+		const size_t length = wordEnd ? (size_t)(wordEnd - name) : strlen(name);
+		uint16_t idx = settingFindWord(name, length);
+		if (idx == 0) {
+			return false;
+		}
+#ifndef SETTING_ENCODED_NAME_USES_BYTE_INDEXING
+		// Variable size uint
+		while (idx >= 0x80) {
+			if (used >= SETTING_ENCODED_NAME_MAX_BYTES) {
+				return false;
+			}
+			encoded[used++] = (idx & 0x7f) | 0x80;
+			idx >>= 7;
+		}
+#endif
+		if (used >= SETTING_ENCODED_NAME_MAX_BYTES) {
+			return false;
+		}
+		encoded[used++] = idx;
+		name = wordEnd ? wordEnd + 1 : name + length;
+	} while (*name || wordEnd);
+	return true;
+}
+
+// Decoding every name of the table to compare it took 200 ms on an RP2350, with the
+// main loop stalled, for a name that is not there (a configurator asking for a setting
+// this target does not have). So the name is encoded once and the encoded names are
+// compared instead.
 const setting_t *settingFind(const char *name)
 {
-	char buf[SETTING_MAX_NAME_LENGTH];
-	for (int ii = 0; ii < SETTINGS_TABLE_COUNT; ii++) {
-		const setting_t *setting = &settingsTable[ii];
-		settingGetName(setting, buf);
-		if (strcmp(buf, name) == 0) {
-			return setting;
+	uint8_t encoded[SETTING_ENCODED_NAME_MAX_BYTES];
+	for (int split = 1; split >= 0; split--) {
+		if (!settingEncodeName(encoded, name, split)) {
+			continue;
+		}
+		for (int ii = 0; ii < SETTINGS_TABLE_COUNT; ii++) {
+			if (memcmp(settingsTable[ii].encoded_name, encoded, sizeof(encoded)) == 0) {
+				return &settingsTable[ii];
+			}
 		}
 	}
 	return NULL;
