@@ -19,10 +19,13 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "common/time.h"
 
 #define VTOL_MC_LANDING_CAPTURE_RADIUS_CAP_CM      100
+#define VTOL_MC_RTH_APPROACH_HEADING_TOLERANCE_CD 1500
+#define VTOL_MC_RTH_TRANSITION_TRIGGER_CONFIRM_MS   300
 #define VTOL_MC_LANDING_RESETTLE_SPEED_MULTIPLIER   2
 #define VTOL_MC_VERTICAL_SETTLE_SPEED_CAP_CM_S     100
 #define VTOL_MC_SETTLE_ATTITUDE_CAP_DEG            20
@@ -69,6 +72,68 @@ static inline bool vtolMcProtectionDetectVtolMcMode(
 static inline uint16_t vtolMcProtectionLandingCaptureRadiusCm(const uint16_t navWpRadiusCm)
 {
     return navWpRadiusCm < VTOL_MC_LANDING_CAPTURE_RADIUS_CAP_CM ? navWpRadiusCm : VTOL_MC_LANDING_CAPTURE_RADIUS_CAP_CM;
+}
+
+static inline int32_t vtolMcProtectionRthPostSwitchHeading(
+    const uint32_t distanceToHomeCm,
+    const uint16_t landingCaptureRadiusCm,
+    const int32_t bearingToHomeCd,
+    const int32_t landingHeadingCd)
+{
+    // Close to Home the bearing becomes noisy, so use the configured landing
+    // heading. Farther away, face Home before allowing the approach to resume.
+    return distanceToHomeCm > landingCaptureRadiusCm ? bearingToHomeCd : landingHeadingCd;
+}
+
+static inline uint32_t vtolMcProtectionRthTransitionTimeBudgetMs(
+    const int16_t switchTransitionTimerDeciseconds,
+    const bool dynamicMixerEnabled,
+    const uint16_t scaleRampTimeMs)
+{
+    const uint32_t switchTimeMs = switchTransitionTimerDeciseconds > 0 ?
+        (uint32_t)switchTransitionTimerDeciseconds * 100U : 0U;
+    const uint32_t outputRampTimeMs = dynamicMixerEnabled ? scaleRampTimeMs : 0U;
+
+    return switchTimeMs + outputRampTimeMs;
+}
+
+static inline uint32_t vtolMcProtectionRthClosingSpeedCmS(
+    const bool velocityTrusted,
+    const float deltaX,
+    const float deltaY,
+    const float velocityX,
+    const float velocityY)
+{
+    if (!velocityTrusted) {
+        return 0;
+    }
+
+    const float distance = sqrtf(deltaX * deltaX + deltaY * deltaY);
+    if (!isfinite(distance) || distance <= 0.0f) {
+        return 0;
+    }
+
+    const float closingSpeed = (velocityX * deltaX + velocityY * deltaY) / distance;
+    // Reject invalid estimates before converting to an integer (lrintf uses a
+    // signed 32-bit long on flight targets). Receding/tangential flight uses staging.
+    return isfinite(closingSpeed) && closingSpeed > 0.0f && closingSpeed < (float)INT32_MAX ?
+        (uint32_t)lrintf(closingSpeed) : 0;
+}
+
+static inline uint32_t vtolMcProtectionRthTransitionStartDistanceCm(
+    const uint32_t closingSpeedCmS,
+    const uint32_t transitionTimeBudgetMs,
+    const uint16_t fallbackRadiusCm)
+{
+    const uint64_t predictedDistanceCm =
+        ((uint64_t)closingSpeedCmS * transitionTimeBudgetMs + 999U) / 1000U;
+
+    if (predictedDistanceCm > UINT32_MAX) {
+        return UINT32_MAX;
+    }
+
+    const uint32_t predictedDistance = (uint32_t)predictedDistanceCm;
+    return predictedDistance > fallbackRadiusCm ? predictedDistance : fallbackRadiusCm;
 }
 
 static inline uint16_t vtolMcProtectionHorizontalSettleSpeedCmS(const uint16_t brakingDisengageSpeedCmS)

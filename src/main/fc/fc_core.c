@@ -1054,6 +1054,11 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 #endif
 
     // Calculate stabilisation
+#ifdef USE_AUTO_TRANSITION
+    // Refresh outputs independently of the 10 Hz switch/programming task.
+    // Profile changes and transition completion remain with their owners.
+    mixerATUpdateOutputs();
+#endif
     pidController(dT);
 
     mixTable(dT);
