@@ -3748,11 +3748,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
     case MSP2_INAV_OSD_SET_LAYOUT_ITEM:
         {
             uint8_t layout;
-            if (!sbufReadU8Safe(&layout, src)) {
+            if (!sbufReadU8Safe(&layout, src) || layout >= OSD_LAYOUT_COUNT) {
                 return MSP_RESULT_ERROR;
             }
             uint8_t item;
-            if (!sbufReadU8Safe(&item, src)) {
+            if (!sbufReadU8Safe(&item, src) || item >= OSD_ITEM_COUNT) {
                 return MSP_RESULT_ERROR;
             }
             if (!sbufReadU16Safe(&osdLayoutsConfigMutable()->item_pos[layout][item], src)) {
