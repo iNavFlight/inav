@@ -78,7 +78,7 @@ static int oledWriteChar(displayPort_t *displayPort, uint8_t x, uint8_t y, uint1
 static bool oledIsTransferInProgress(const displayPort_t *displayPort)
 {
     UNUSED(displayPort);
-    return false;
+    return i2c_OLED_isBusy();
 }
 
 static int oledHeartbeat(displayPort_t *displayPort)

@@ -34,6 +34,7 @@
 static IO_t scl;
 static IO_t sda;
 static volatile uint16_t i2cErrorCount = 0;
+static i2cAddrResults_t addrResults;    // outcome of the last start call per slave, reported by i2cBusy(); one bus only
 
 #define SCL_H         IOHi(scl)
 #define SCL_L         IOLo(scl)
@@ -200,6 +201,18 @@ void i2cInit(I2CDevice device)
     IOConfigGPIOAF(sda, IOCFG_OUT_OD, 0);
 }
 
+// Send a byte and take the slave's answer. A NACK ends the transfer: the bus is released and the error counted
+static bool I2C_SendByteAcked(uint8_t byte)
+{
+    I2C_SendByte(byte);
+    if (!I2C_WaitAck()) {
+        I2C_Stop();
+        i2cErrorCount++;
+        return false;
+    }
+    return true;
+}
+
 bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, const uint8_t * data, bool allowRawAccess)
 {
     UNUSED(device);
@@ -209,20 +222,14 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, co
         i2cErrorCount++;
         return false;
     }
-    I2C_SendByte(addr << 1 | I2C_Direction_Transmitter);
-    if (!I2C_WaitAck()) {
-        I2C_Stop();
+    if (!I2C_SendByteAcked(addr << 1 | I2C_Direction_Transmitter)) {
         return false;
     }
-    if (!allowRawAccess || reg != 0xFF) {
-        I2C_SendByte(reg);
-        I2C_WaitAck();
+    if ((!allowRawAccess || reg != 0xFF) && !I2C_SendByteAcked(reg)) {
+        return false;
     }
     for (i = 0; i < len; i++) {
-        I2C_SendByte(data[i]);
-        if (!I2C_WaitAck()) {
-            I2C_Stop();
-            i2cErrorCount++;
+        if (!I2C_SendByteAcked(data[i])) {
             return false;
         }
     }
@@ -232,25 +239,7 @@ bool i2cWriteBuffer(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, co
 
 bool i2cWrite(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t data, bool allowRawAccess)
 {
-    UNUSED(device);
-
-    if (!I2C_Start()) {
-        return false;
-    }
-    I2C_SendByte(addr << 1 | I2C_Direction_Transmitter);
-    if (!I2C_WaitAck()) {
-        I2C_Stop();
-        i2cErrorCount++;
-        return false;
-    }
-    if (!allowRawAccess || reg != 0xFF) {
-        I2C_SendByte(reg);
-        I2C_WaitAck();
-    }
-    I2C_SendByte(data);
-    I2C_WaitAck();
-    I2C_Stop();
-    return true;
+    return i2cWriteBuffer(device, addr, reg, 1, &data, allowRawAccess);
 }
 
 bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t *buf, bool allowRawAccess)
@@ -258,23 +247,27 @@ bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t *
     UNUSED(device);
 
     if (!I2C_Start()) {
+        i2cErrorCount++;
         return false;
     }
 
     if (!allowRawAccess || reg != 0xFF) {
-        I2C_SendByte(addr << 1 | I2C_Direction_Transmitter);
-        if (!I2C_WaitAck()) {
+        if (!I2C_SendByteAcked(addr << 1 | I2C_Direction_Transmitter)) {
+            return false;
+        }
+        if (!I2C_SendByteAcked(reg)) {
+            return false;
+        }
+        if (!I2C_Start()) {                 // repeated start
             I2C_Stop();
             i2cErrorCount++;
             return false;
         }
-        I2C_SendByte(reg);
-        I2C_WaitAck();
-        I2C_Start();
     }
 
-    I2C_SendByte(addr << 1 | I2C_Direction_Receiver);
-    I2C_WaitAck();
+    if (!I2C_SendByteAcked(addr << 1 | I2C_Direction_Receiver)) {
+        return false;
+    }
     while (len) {
         *buf = I2C_ReceiveByte();
         if (len == 1) {
@@ -288,6 +281,40 @@ bool i2cRead(I2CDevice device, uint8_t addr, uint8_t reg, uint8_t len, uint8_t *
     }
     I2C_Stop();
     return true;
+}
+
+// Non-blocking transfers are not implemented for this platform yet - complete them synchronously. A NACK or bus
+// error is a finished, failed transfer that i2cBusy() reports, the same as the interrupt driven drivers once the
+// transfer is over; the start call itself always succeeds
+static bool i2cTransferDone(uint8_t addr_, bool ok)
+{
+    i2cAddrResultSet(&addrResults, addr_, !ok);
+    return true;
+}
+
+bool i2cReadStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len, uint8_t* buf, bool allowRawAccess)
+{
+    return i2cTransferDone(addr_, i2cRead(device, addr_, reg_, len, buf, allowRawAccess));
+}
+
+bool i2cWriteBufferStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t len_, const uint8_t *data, bool allowRawAccess)
+{
+    return i2cTransferDone(addr_, i2cWriteBuffer(device, addr_, reg_, len_, data, allowRawAccess));
+}
+
+bool i2cWriteStart(I2CDevice device, uint8_t addr_, uint8_t reg_, uint8_t data, bool allowRawAccess)
+{
+    return i2cTransferDone(addr_, i2cWrite(device, addr_, reg_, data, allowRawAccess));
+}
+
+bool i2cBusy(I2CDevice device, uint8_t addr_, bool *error)
+{
+    UNUSED(device);
+    if (error) {
+        *error = i2cAddrResultFailed(&addrResults, addr_);
+    }
+    // Blocking driver - a transfer is finished when the start call returns
+    return false;
 }
 
 uint16_t i2cGetErrorCounter(void)

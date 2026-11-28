@@ -239,7 +239,8 @@ static const char *debugModeNames[DEBUG_COUNT] = {
     "TERRAIN_NAV",
     "ESC",
     "FW_TURN",
-    "MAG"
+    "MAG",
+    "I2C"
 };
 
 /* Sensor names (used in lookup tables for *_hardware settings and in status
