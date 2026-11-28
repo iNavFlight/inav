@@ -12063,7 +12063,7 @@
             "description": "Moves a UART's TX or RX to an output pad, or back to its own pin."
         },
         "MSP2_INAV_MOTOR_WIZARD_START": {
-            "code": 8757,
+            "code": 8760,
             "mspv": 2,
             "request": {
                 "payload": [
@@ -12080,7 +12080,7 @@
             "description": "Starts a firmware-timed sequence that twitches a single motor so it can be identified."
         },
         "MSP2_INAV_MOTOR_WIZARD_STOP": {
-            "code": 8758,
+            "code": 8761,
             "mspv": 2,
             "request": null,
             "reply": null,
