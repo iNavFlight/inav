@@ -56,4 +56,11 @@ void initialisePreBootHardware(void)
     IOInit(DEFIO_IO(PE4), OWNER_SYSTEM, RESOURCE_OUTPUT, 0);
     IOConfigGPIO(DEFIO_IO(PE4), IOCFG_OUT_PP);
     IOLo(DEFIO_IO(PE4));
+
+    // Hand the PINIO pads back so pinioInit() can claim them; it skips pins
+    // that are not OWNER_FREE. The safe levels set above are kept.
+    IORelease(DEFIO_IO(PC13));
+    IORelease(DEFIO_IO(PE3));
+    IORelease(DEFIO_IO(PD4));
+    IORelease(DEFIO_IO(PE4));
 }

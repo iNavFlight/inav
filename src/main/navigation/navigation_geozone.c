@@ -812,20 +812,6 @@ static uint8_t getCurrentZones(geoZoneRuntimeConfig_t *zones[], const bool ignor
     return getZonesForPos(zones, &navGetCurrentActualPositionAndVelocity()->pos, ignoreAltitude);
 }
 
-static int geoZoneRTComp(const void *a, const void *b)
-{
-    geoZoneRuntimeConfig_t *zoneA = (geoZoneRuntimeConfig_t*)a;
-    geoZoneRuntimeConfig_t *zoneB = (geoZoneRuntimeConfig_t*)b;
-
-    if (zoneA->enable == zoneB->enable) {
-        return 0;
-    } else if (zoneA->enable) {
-        return -1;
-    } else {
-        return 1;
-    }
-}
-
 // in cm and cms/s
 static uint32_t calcTime(const int32_t distance, const int32_t speed)
 {
@@ -1712,13 +1698,21 @@ static void geoZoneInit(void)
         safeHomeGeozoneConfig.shape = GEOZONE_SHAPE_CIRCULAR;
         safeHomeGeozoneConfig.type = GEOZONE_TYPE_INCLUSIVE;
         safeHomeGeozoneConfig.fenceAction = geoZoneConfig()->safeHomeFenceAction;
-        safeHomeGeozoneConfig.maxAltitude = 0;
+        // From the ground up without a ceiling, like a configured zone with 0/0 altitudes
+        safeHomeGeozoneConfig.maxAltitude = INT32_MAX;
         safeHomeGeozoneConfig.minAltitude = 0;
         safeHomeGeozoneConfig.vertexCount = 1;
 
-        activeGeoZones[activeGeoZonesCount].config = safeHomeGeozoneConfig;
-        activeGeoZones[activeGeoZonesCount].verticesLocal = (fpVector2_t*)&posControl.safehomeState.nearestSafeHome;
-        activeGeoZones[activeGeoZonesCount].radius = navConfig()->general.safehome_max_distance;
+        if (!STATE(AIRPLANE) && safeHomeGeozoneConfig.fenceAction == GEOFENCE_ACTION_AVOID) {
+            safeHomeGeozoneConfig.fenceAction = GEOFENCE_ACTION_POS_HOLD;
+        }
+
+        geoZoneRuntimeConfig_t *zone = &activeGeoZones[activeGeoZonesCount];
+        zone->config = safeHomeGeozoneConfig;
+        zone->verticesLocal = (fpVector2_t*)&posControl.safehomeState.nearestSafeHome;
+        zone->radius = navConfig()->general.safehome_max_distance;
+        zone->isInfZone = true;
+        zone->enable = true;
         activeGeoZonesCount++;
     }
 
@@ -1758,7 +1752,19 @@ static void geoZoneInit(void)
     }
     geozoneIsEnabled = true;
 
-    qsort(activeGeoZones, MAX_GEOZONES, sizeof(geoZoneRuntimeConfig_t), geoZoneRTComp);
+    // Enabled zones first, both groups in their original order (stable, unlike qsort, and avoids linking it)
+    int firstDisabled = 0;
+    for (int i = 0; i < MAX_GEOZONES; i++) {
+        if (!activeGeoZones[i].enable) {
+            continue;
+        }
+        if (i != firstDisabled) {
+            geoZoneRuntimeConfig_t enabledZone = activeGeoZones[i];
+            memmove(&activeGeoZones[firstDisabled + 1], &activeGeoZones[firstDisabled], (i - firstDisabled) * sizeof(geoZoneRuntimeConfig_t));
+            activeGeoZones[firstDisabled] = enabledZone;
+        }
+        firstDisabled++;
+    }
     
     for (int i = 0; i < activeGeoZonesCount; i++) {
         if (activeGeoZones[i].config.type == GEOZONE_TYPE_INCLUSIVE) {

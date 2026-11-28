@@ -19,7 +19,7 @@
  * Virtual pitot airspeed validity must track CURRENT GPS velocity validity.
  *
  * The real sensors/pitotmeter.c is linked. pitotUpdate() refreshes the cache
- * returned by pitotGetValidForAirspeed(). For PITOT_VIRTUAL the validity must
+ * returned by pitotIsValidForAirspeed(). For PITOT_VIRTUAL the validity must
  * require gpsSol.flags.validVelNE && validVelD (the same gate wind_estimator.c
  * uses before updating the wind estimate); otherwise losing GPS velocity while
  * the (stale) wind estimate is still valid keeps airspeed-based PID attenuation
@@ -101,7 +101,7 @@ protected:
 
     bool airspeedValid() {
         pitotUpdate();   // virtual pitot: sets lastSeenHealthyMs, refreshes validity cache
-        return pitotGetValidForAirspeed();
+        return pitotIsValidForAirspeed(true);
     }
 };
 

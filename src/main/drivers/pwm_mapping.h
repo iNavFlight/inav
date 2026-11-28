@@ -72,6 +72,7 @@ typedef enum {
     PWM_INIT_ERROR_NOT_ENOUGH_MOTOR_OUTPUTS,
     PWM_INIT_ERROR_NOT_ENOUGH_SERVO_OUTPUTS,
     PWM_INIT_ERROR_TIMER_INIT_FAILED,
+    PWM_INIT_ERROR_OUTPUT_ROUTED_TO_UART,
 } pwmInitError_e;
 
 typedef struct rangefinderIOConfig_s {
@@ -105,3 +106,7 @@ const char * getPwmInitErrorMessage(void);
 const timMotorServoHardware_t *pwmGetOutputAssignment(void);
 void pwmCalculateAssignment(timMotorServoHardware_t *out, const uint8_t *proposedModes);
 #endif // SITL_BUILD
+#ifdef USE_SERIAL_PADS
+// What the pad drives, as TIM_USE_MOTOR, TIM_USE_SERVO, TIM_USE_LED or 0, with the motor or servo numbered from 1
+uint32_t pwmGetPadFunction(const timerHardware_t *timHw, uint8_t *number);
+#endif

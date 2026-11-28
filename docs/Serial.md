@@ -48,6 +48,7 @@ e.g. after configuring a port for GPS enable the GPS feature.
 * All telemetry systems except MSP will ignore any attempts to override the baudrate.
 * MSP/CLI can be shared with EITHER Blackbox OR telemetry (LTM or MAVlink, not RX telemetry).  In shared mode blackbox or telemetry will be output only when armed.
 * Smartport telemetry cannot be shared with MSP.
+* SBUS servo output (`SERVO_SERIAL`) can only be used on one port. The `serial` CLI command refuses to assign it to a second port. If a saved configuration already has it on several ports, only the first one in the `serial` list outputs SBUS.
 * No other serial port sharing combinations are valid.
 * You can use as many different telemetry systems as you like at the same time.
 * You can only use each telemetry system once.  e.g.  FrSky telemetry cannot be used on two port, but LTN Telemetry and FrSky on two different ports is fine.
@@ -64,6 +65,24 @@ The `serial` CLI command takes 6 arguments.
 4. GPS baud rate
 5. Telemetry baud rate (auto baud allowed)
 6. Blackbox baud rate
+
+### UART pins on output pads
+
+On many boards the processor can also connect a UART's TX or RX to one of the motor or servo output pads. That gives a port to a board whose UART pads are all taken, or puts a half-duplex device (SmartAudio, Tramp, a Smart ESC) on the servo connector it is already plugged into.
+
+The Ports tab shows a Pins column for the UARTs that can move; choose the S pad for TX or RX there and save. In the CLI:
+
+```
+serialpad <port> <tx pad> <rx pad>
+```
+
+`port` is the identifier `serial` uses, the pads are numbered as in the Outputs tab (S1, S2, ...) and 0 keeps the UART's own pin. `serialpad` alone lists the current choices, and marks any the UART is not using now: the port has no function, the pad is not an output on this board, soft serial, an ADC input or another port uses that pin, or the change is waiting for a save. The change takes effect after `save`.
+
+* The pad stops being a motor, servo, LED strip, beeper or PINIO output, and the other outputs keep their numbers. If the mixer drives a motor or servo on it, arming is blocked with a PWM output error (`status` shows "Motor or servo output used by a UART"): change the mixer or choose another pad.
+* A pad carries one UART pin at a time, and the move happens only while the port has a function.
+* F4 and AT32 boards invert SBUS and SmartPort with an inverter on the UART's own pin, which an output pad does not have. F7 and H7 invert inside the UART.
+* A UART the board swaps (TX and RX exchanged) does not move.
+* Available on boards with more than 512 KB of flash (F405, F745, F765, H7 and AT32).
 
 
 ### Baud Rates

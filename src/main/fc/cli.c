@@ -97,6 +97,7 @@ bool cliMode = false;
 #include "io/osd/custom_elements.h"
 #include "io/motor_srxl2.h"
 #include "io/serial.h"
+#include "io/serial_pads.h"
 
 #include "fc/fc_msp_box.h"
 
@@ -944,8 +945,71 @@ static void cliSerial(char *cmdline)
         return;
     }
 
+    const uint32_t duplicatedFunctions = serialGetDuplicatedSinglePortFunctions(&portConfig);
+    if (duplicatedFunctions) {
+        cliPrintErrorLinef("Function %d is already assigned to another port", (int)duplicatedFunctions);
+        return;
+    }
+
     memcpy(currentConfig, &portConfig, sizeof(portConfig));
 }
+
+#ifdef USE_SERIAL_PADS
+static void printSerialPads(uint8_t dumpMask, const serialPadConfig_t *config, const serialPadConfig_t *defaultConfig)
+{
+    const char *format = "serialpad %d %d %d";
+    for (int i = 0; i < SERIAL_PAD_UART_COUNT; i++) {
+        if (!serialIsPortAvailable(i)) {
+            continue;
+        }
+        const ioTag_t *pins = config->pin[i];
+        bool equalsDefault = false;
+        if (defaultConfig) {
+            const ioTag_t *defaultPins = defaultConfig->pin[i];
+            equalsDefault = pins[SERIAL_PAD_TX] == defaultPins[SERIAL_PAD_TX] && pins[SERIAL_PAD_RX] == defaultPins[SERIAL_PAD_RX];
+            cliDefaultPrintLinef(dumpMask, equalsDefault, format, i, serialPadFind(defaultPins[SERIAL_PAD_TX]), serialPadFind(defaultPins[SERIAL_PAD_RX]));
+        }
+        cliDumpPrintLinef(dumpMask, equalsDefault, format, i, serialPadFind(pins[SERIAL_PAD_TX]), serialPadFind(pins[SERIAL_PAD_RX]));
+    }
+}
+
+static void cliSerialPad(char *cmdline)
+{
+    if (isEmpty(cmdline)) {
+        printSerialPads(DUMP_MASTER, serialPadConfig(), NULL);
+        for (int i = 0; i < SERIAL_PAD_UART_COUNT; i++) {
+            for (int dir = 0; dir < SERIAL_PAD_DIRECTION_COUNT && serialIsPortAvailable(i); dir++) {
+                if (!serialPadInEffect(i, dir)) {
+                    cliPrintLinef("# port %d %s: not on its pad now", i, dir == SERIAL_PAD_TX ? "TX" : "RX");
+                }
+            }
+        }
+        return;
+    }
+
+    int args[3];
+    const char *ptr = cmdline;
+    for (int i = 0; i < 3; i++) {
+        if (!ptr) {
+            cliShowParseError();
+            return;
+        }
+        args[i] = fastA2I(ptr);
+        ptr = nextArg(ptr);
+    }
+
+    const int identifier = args[0];
+    const int txPad = args[1];
+    const int rxPad = args[2];
+    if (txPad < 0 || txPad > UINT8_MAX || rxPad < 0 || rxPad > UINT8_MAX || (txPad && txPad == rxPad)
+            || !serialPadIsValid(identifier, SERIAL_PAD_TX, txPad) || !serialPadIsValid(identifier, SERIAL_PAD_RX, rxPad)) {
+        cliPrintErrorLinef("No such pad for this port");
+        return;
+    }
+    serialPadSet(identifier, SERIAL_PAD_TX, txPad);
+    serialPadSet(identifier, SERIAL_PAD_RX, rxPad);
+}
+#endif
 
 #ifdef USE_SERIAL_PASSTHROUGH
 
@@ -1009,9 +1073,9 @@ static void cliSerialPassthrough(char *cmdline)
                 baud = fastA2I(tok);
                 break;
             case 2:
-                if (strstr(tok, "rx") || strstr(tok, "RX"))
+                if (sl_strstr(tok, "rx") || sl_strstr(tok, "RX"))
                     mode |= MODE_RX;
-                if (strstr(tok, "tx") || strstr(tok, "TX"))
+                if (sl_strstr(tok, "tx") || sl_strstr(tok, "TX"))
                     mode |= MODE_TX;
                 break;
             case 3:
@@ -4026,7 +4090,7 @@ static void cliSet(char *cmdline)
             cliPrintVar(val, len); // when len is 1 (when * is passed as argument), it will print min/max values as well, for gui
             cliPrintLinefeed();
         }
-    } else if ((eqptr = strstr(cmdline, "=")) != NULL) {
+    } else if ((eqptr = strchr(cmdline, '=')) != NULL) {
         // has equals
 
         char *lastNonSpaceCharacter = eqptr;
@@ -4379,9 +4443,9 @@ static void cliStatus(char *cmdline)
         }
         cliPrintLinefeed();
         cliPrintLinef("  SATS: %i", gpsSol.numSat);
-        cliPrintLinef("  HDOP: %f", (double)(gpsSol.hdop / (float)HDOP_SCALE));
-        cliPrintLinef("  EPH : %f m", (double)(gpsSol.eph / 100.0f));
-        cliPrintLinef("  EPV : %f m", (double)(gpsSol.epv / 100.0f));
+        cliPrintLinef("  HDOP: %d.%02d", gpsSol.hdop / HDOP_SCALE, gpsSol.hdop % HDOP_SCALE);
+        cliPrintLinef("  EPH : %d.%02d m", gpsSol.eph / 100, gpsSol.eph % 100);
+        cliPrintLinef("  EPV : %d.%02d m", gpsSol.epv / 100, gpsSol.epv % 100);
         //cliPrintLinef("  GNSS Capabilities: %d", gpsUbloxCapLastUpdate());
         cliPrintLinef("  GNSS Capabilities:");
         cliPrintLine("    GNSS Provider active/default");
@@ -4609,6 +4673,9 @@ static void printConfig(const char *cmdline, bool doDiff)
 
         cliPrintHashLine("Ports");
         printSerial(dumpMask, &serialConfig_Copy, serialConfig());
+#ifdef USE_SERIAL_PADS
+        printSerialPads(dumpMask, &serialPadConfig_Copy, serialPadConfig());
+#endif
 
 #ifdef USE_LED_STRIP
         cliPrintHashLine("LEDs");
@@ -5193,6 +5260,9 @@ const clicmd_t cmdTable[] = {
 #endif
     CLI_COMMAND_DEF("save", "save and reboot", NULL, cliSave),
     CLI_COMMAND_DEF("serial", "configure serial ports", NULL, cliSerial),
+#ifdef USE_SERIAL_PADS
+    CLI_COMMAND_DEF("serialpad", "move a UART's TX and RX to output pads", "<port> <tx pad> <rx pad>: pads as the Outputs tab numbers them, 0 for the port's own pin", cliSerialPad),
+#endif
 #ifdef USE_SERIAL_PASSTHROUGH
     CLI_COMMAND_DEF("serialpassthrough", "passthrough serial data to port", "<id> [baud] [mode] [options]: passthrough to serial", cliSerialPassthrough),
 #endif

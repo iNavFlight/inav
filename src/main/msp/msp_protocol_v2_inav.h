@@ -166,5 +166,8 @@
 #define MSP2_INAV_ESC_SRXL2_STATUS              0x2233
 #define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2234
 
-#define MSP2_INAV_MOTOR_WIZARD_START            0x2235  //in message  twitch one motor for a firmware-limited time, disarmed only; payload: U8 motor index
-#define MSP2_INAV_MOTOR_WIZARD_STOP             0x2236  //in message  end the motor wizard sequence; payload: none
+#define MSP2_INAV_SERIAL_PADS                   0x2236
+#define MSP2_INAV_SET_SERIAL_PAD                0x2237
+
+#define MSP2_INAV_MOTOR_WIZARD_START            0x2238  //in message  twitch one motor for a firmware-limited time, disarmed only; payload: U8 motor index
+#define MSP2_INAV_MOTOR_WIZARD_STOP             0x2239  //in message  end the motor wizard sequence; payload: none

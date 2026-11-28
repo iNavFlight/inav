@@ -59,30 +59,30 @@
 #define RADIANS_TO_CENTIDEGREES(angle)      (((angle) * 100.0f) / RAD)
 #define CENTIDEGREES_TO_RADIANS(angle)      (((angle) * 0.01f) * RAD)
 
-#define MILLIMETERS_TO_CENTIMETERS(mm)      (mm / 10.0f)
+#define MILLIMETERS_TO_CENTIMETERS(mm)      ((mm) / 10.0f)
 
-#define CENTIMETERS_TO_CENTIFEET(cm)        (cm / 0.3048f)
-#define CENTIMETERS_TO_FEET(cm)             (cm / 30.48f)
-#define CENTIMETERS_TO_METERS(cm)           (cm * 0.01f)
+#define CENTIMETERS_TO_CENTIFEET(cm)        ((cm) / 0.3048f)
+#define CENTIMETERS_TO_FEET(cm)             ((cm) / 30.48f)
+#define CENTIMETERS_TO_METERS(cm)           ((cm) * 0.01f)
 
-#define METERS_TO_CENTIMETERS(m)            (m * 100)
-#define METERS_TO_KILOMETERS(m)             (m / 1000.0f)
-#define METERS_TO_MILES(m)                  (m / 1609.344f)
-#define METERS_TO_NAUTICALMILES(m)          (m / 1852.00f)
+#define METERS_TO_CENTIMETERS(m)            ((m) * 100)
+#define METERS_TO_KILOMETERS(m)             ((m) / 1000.0f)
+#define METERS_TO_MILES(m)                  ((m) / 1609.344f)
+#define METERS_TO_NAUTICALMILES(m)          ((m) / 1852.00f)
 
-#define MWH_TO_WH(mWh)                      (mWh / 1000.0f)
+#define MWH_TO_WH(mWh)                      ((mWh) / 1000.0f)
 
-#define CMSEC_TO_CENTIMPH(cms)              (cms * 2.2369363f)
-#define CMSEC_TO_CENTIKPH(cms)              (cms * 3.6f)
-#define CMSEC_TO_CENTIKNOTS(cms)            (cms * 1.943845f)
+#define CMSEC_TO_CENTIMPH(cms)              ((cms) * 2.2369363f)
+#define CMSEC_TO_CENTIKPH(cms)              ((cms) * 3.6f)
+#define CMSEC_TO_CENTIKNOTS(cms)            ((cms) * 1.943845f)
 
 #define CMSEC_TO_MPH(cms)                   (CMSEC_TO_CENTIMPH(cms) / 100.0f)
 #define CMSEC_TO_KPH(cms)                   (CMSEC_TO_CENTIKPH(cms) / 100.0f)
 #define CMSEC_TO_KNOTS(cms)                 (CMSEC_TO_CENTIKNOTS(cms) / 100.0f)
 
-#define KMH_TO_MS(kmh)                      (kmh / 3.6f)  
+#define KMH_TO_MS(kmh)                      ((kmh) / 3.6f)
 
-#define C_TO_KELVIN(temp)                   (temp + 273.15f)
+#define C_TO_KELVIN(temp)                   ((temp) + 273.15f)
 
 // Standard Sea Level values
 // Ref:https://en.wikipedia.org/wiki/Standard_sea_level
@@ -117,7 +117,7 @@
 #undef MAX
 #endif
 #define MAX(a, b) _CHOOSE(>, a, b)
-#define SIGN(a) ((a >= 0) ? 1 : -1)
+#define SIGN(a) (((a) >= 0) ? 1 : -1)
 
 #define _ABS_II(x, var)             \
     ( __extension__ ({              \
@@ -226,12 +226,12 @@ float calc_length_pythagorean_3D(const float firstElement, const float secondEle
  * The most significat byte is placed at the lowest address
  * in other words, the most significant byte is "first", on even indexes
  */
-#define int16_val_big_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx] << 8) | v[2 * idx + 1]))
+#define int16_val_big_endian(v, idx) ((int16_t)(((uint8_t)(v)[2 * (idx)] << 8) | (v)[2 * (idx) + 1]))
 /*
  * The most significat byte is placed at the highest address
  * in other words, the most significant byte is "last", on odd indexes
  */
-#define int16_val_little_endian(v, idx) ((int16_t)(((uint8_t)v[2 * idx + 1] << 8) | v[2 * idx]))
+#define int16_val_little_endian(v, idx) ((int16_t)(((uint8_t)(v)[2 * (idx) + 1] << 8) | (v)[2 * (idx)]))
 
 #ifdef SITL_BUILD
 void arm_sub_f32(float * pSrcA, float * pSrcB, float * pDst, uint32_t blockSize);
