@@ -606,6 +606,20 @@ static bool logicConditionMissionWaypointHasUserAction(int16_t relativeIndex, ui
            (waypoint.p3 & userAction) == userAction;
 }
 
+// Where the active waypoint of a running WP mission is, in the local frame, as
+// the mission navigates to it (a home-flagged or 0,0 waypoint is home). False
+// outside WP mode: SEND_TO and FW autoland also carry NAV_AUTO_WP, but fly to a
+// target of their own.
+static bool logicConditionGetActiveMissionWaypoint(fpVector3_t *pos)
+{
+    navWaypoint_t waypoint;
+    if (!FLIGHT_MODE(NAV_WP_MODE) || !navGetMissionWaypointByRelativeIndex(NAV_Status.activeWpIndex, &waypoint)) {
+        return false;
+    }
+    mapWaypointToLocalPosition(pos, &waypoint, waypointMissionAltConvMode(waypoint.p3));
+    return true;
+}
+
 static int logicConditionGetWaypointOperandValue(int operand) {
 
     switch (operand) {
@@ -706,6 +720,20 @@ static int logicConditionGetWaypointOperandValue(int operand) {
 
         case LOGIC_CONDITION_OPERAND_WAYPOINTS_USER4_ACTION_NEXT_WP:
             return logicConditionMissionWaypointHasUserAction(NAV_Status.activeWpIndex, NAV_WP_USER4);
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_BEARING:
+            {
+                fpVector3_t poi;
+                return logicConditionGetActiveMissionWaypoint(&poi) ? calculateBearingToDestination(&poi) : 0;
+            }
+            break;
+
+        case LOGIC_CONDITION_OPERAND_WAYPOINTS_ELEVATION:
+            {
+                fpVector3_t poi;
+                return logicConditionGetActiveMissionWaypoint(&poi) ? calculateElevationToDestination(&poi) : 0;
+            }
             break;
 
         default:

@@ -395,7 +395,6 @@ void calculateFarAwayPos(fpVector3_t * farAwayPos, const fpVector3_t *start, int
 void calculateFarAwayTarget(fpVector3_t * farAwayPos, int32_t bearing, int32_t distance);
 bool isWaypointReached(const fpVector3_t *waypointPos, const int32_t *waypointBearing);
 bool isWaypointAltitudeReached(void);
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv);
 static navigationFSMEvent_t nextForNonGeoStates(void);
 static bool isWaypointMissionValid(void);
 #ifdef USE_AUTO_TRANSITION
@@ -4460,6 +4459,17 @@ int32_t calculateBearingToDestination(const fpVector3_t * destinationPos)
     return calculateBearingFromDelta(deltaX, deltaY);
 }
 
+int32_t calculateElevationToDestination(const fpVector3_t * destinationPos)
+{
+    const navEstimatedPosVel_t *posvel = navGetCurrentActualPositionAndVelocity();
+    const float deltaX = destinationPos->x - posvel->pos.x;
+    const float deltaY = destinationPos->y - posvel->pos.y;
+    const float deltaZ = destinationPos->z - posvel->pos.z;
+    const float horizontalDistance = calc_length_pythagorean_2D(deltaX, deltaY);
+
+    return RADIANS_TO_CENTIDEGREES(atan2_approx(deltaZ, horizontalDistance));
+}
+
 int32_t calculateBearingBetweenLocalPositions(const fpVector3_t * startPos, const fpVector3_t * endPos)
 {
     const float deltaX = endPos->x - startPos->x;
@@ -5746,7 +5756,7 @@ void resetSafeHomes(void)
 }
 #endif
 
-static void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv)
+void mapWaypointToLocalPosition(fpVector3_t * localPos, const navWaypoint_t * waypoint, geoAltitudeConversionMode_e altConv)
 {
     gpsLocation_t wpLLH;
 

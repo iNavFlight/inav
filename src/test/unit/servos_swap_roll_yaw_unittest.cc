@@ -252,6 +252,8 @@ extern "C" {
         return false;
     }
     uint32_t calculateDistanceToDestination(const fpVector3_t *destinationPos) { (void)destinationPos; return 0; }
+    int32_t calculateBearingToDestination(const fpVector3_t *destinationPos) { (void)destinationPos; return 0; }
+    int32_t calculateElevationToDestination(const fpVector3_t *destinationPos) { (void)destinationPos; return 0; }
     float getFlightTime(void) { return 0.0f; }
     uint32_t getTotalTravelDistance(void) { return 0; }
     uint16_t getRSSI(void) { return 0; }
@@ -321,6 +323,7 @@ extern "C" {
     bool activateForcedLanding(void) { return false; }
     bool navGetMissionWaypointByRelativeIndex(int16_t relativeIndex, navWaypoint_t *wpData) { (void)relativeIndex; (void)wpData; return false; }
     geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e datumFlag) { (void)datumFlag; return GEO_ALT_ABSOLUTE; }
+    void mapWaypointToLocalPosition(fpVector3_t *localPos, const navWaypoint_t *waypoint, geoAltitudeConversionMode_e altConv) { (void)localPos; (void)waypoint; (void)altConv; }
     bool navigationIsExecutingAnEmergencyLanding(void) { return false; }
 
     float getAirspeedEstimate(void) { return 0.0f; }
