@@ -609,6 +609,7 @@ void tryArm(void)
 #endif
     if (STATE(MULTIROTOR) && turtleIsActive && !FLIGHT_MODE(TURTLE_MODE) && emergencyArmingCanOverrideArmingDisabled() && isMotorProtocolDshot()) {
         sendDShotCommand(DSHOT_CMD_SPIN_DIRECTION_REVERSED);
+        motorWizardStop();
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_FLIGHT_MODE(TURTLE_MODE);
         return;
@@ -635,6 +636,7 @@ void tryArm(void)
 
         lastDisarmReason = DISARM_NONE;
 
+        motorWizardStop();
         ENABLE_ARMING_FLAG(ARMED);
         ENABLE_ARMING_FLAG(WAS_EVER_ARMED);
         //It is required to inform the mixer that arming was executed and it has to switch to the FORWARD direction

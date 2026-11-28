@@ -2,7 +2,7 @@
     "version": {
         "major": 2,
         "minor": 1,
-        "patch": 3
+        "patch": 4
     },
     "messages": {
         "MSP_API_VERSION": {
@@ -5420,7 +5420,7 @@
                 ]
             },
             "reply": null,
-            "notes": "Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently.",
+            "notes": "Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently. Ends a running motor wizard sequence (`MSP2_INAV_MOTOR_WIZARD_START`).",
             "description": "Sets the disarmed motor values, typically used for motor testing or propeller balancing functions in a configurator."
         },
         "MSP_SET_NAV_CONFIG": {
@@ -12061,6 +12061,31 @@
             "reply": null,
             "notes": "Requires USE_SERIAL_PADS. Returns an error for a pad `MSP2_INAV_SERIAL_PADS` does not list for that pin. A pad already chosen for another pin is taken from it. Takes effect after a save and reboot; a motor or servo the mixer drives on the chosen pad blocks arming with a PWM output error.",
             "description": "Moves a UART's TX or RX to an output pad, or back to its own pin."
+        },
+        "MSP2_INAV_MOTOR_WIZARD_START": {
+            "code": 8760,
+            "mspv": 2,
+            "request": {
+                "payload": [
+                    {
+                        "name": "motorIndex",
+                        "ctype": "uint8_t",
+                        "desc": "Zero-based index of the motor output to twitch.",
+                        "units": "Index"
+                    }
+                ]
+            },
+            "reply": null,
+            "notes": "Returns an error when armed, when the index is not below the mixer motor count, or when a new sequence is requested on SRXL2 motor output before every ESC is linked and past its startup (the check that also blocks arming). The firmware times the sequence itself (100 ms spin, 500 ms pause) and ends it 2.4 to 3 s after the last start (3 s counted from the beginning of the spin/pause cycle in which the start arrived). To keep the motor twitching, repeat the command for the same motor at any interval shorter than 2.4 s; that restarts the time limit without disturbing the rhythm. A start for another motor replaces the running sequence. Every start resets the disarmed motor values set by `MSP_SET_MOTOR` to off, so only the selected motor moves and all motors stay off after the sequence ends. Arming and `MSP_SET_MOTOR` end it. Remove propellers first.",
+            "description": "Starts a firmware-timed sequence that twitches a single motor so it can be identified."
+        },
+        "MSP2_INAV_MOTOR_WIZARD_STOP": {
+            "code": 8761,
+            "mspv": 2,
+            "request": null,
+            "reply": null,
+            "notes": "Always accepted, also when no sequence is running. All motors are off afterwards.",
+            "description": "Ends the motor wizard sequence started by MSP2_INAV_MOTOR_WIZARD_START."
         }
     }
 }

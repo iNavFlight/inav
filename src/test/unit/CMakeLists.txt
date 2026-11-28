@@ -177,7 +177,7 @@ set_property(SOURCE serial_pads_unittest.cc PROPERTY definitions USE_SERIAL_PADS
     SOFTSERIAL_1_TX_PIN=PA2 SOFTSERIAL_1_RX_PIN=NONE SOFTSERIAL_2_TX_PIN=NONE SOFTSERIAL_2_RX_PIN=NONE)
 set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY depends
     "flight/mixer.c" "sensors/battery.c" "common/maths.c" "common/filter.c" "common/lulu.c")
-set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY definitions USE_ADC)
+set_property(SOURCE mixer_battery_profile_throttle_rate_limit_unittest.cc PROPERTY definitions USE_ADC USE_MOTOR_SRXL2)
 
 set_property(SOURCE pid_apa_iterm_update_unittest.cc PROPERTY depends
     "common/maths.c" "common/filter.c" "common/lulu.c")

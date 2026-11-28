@@ -474,6 +474,8 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 [8756 - MSP2_INAV_ESC_SRXL2_CALIBRATE](#msp2_inav_esc_srxl2_calibrate)  
 [8758 - MSP2_INAV_SERIAL_PADS](#msp2_inav_serial_pads)  
 [8759 - MSP2_INAV_SET_SERIAL_PAD](#msp2_inav_set_serial_pad)  
+[8760 - MSP2_INAV_MOTOR_WIZARD_START](#msp2_inav_motor_wizard_start)  
+[8761 - MSP2_INAV_MOTOR_WIZARD_STOP](#msp2_inav_motor_wizard_stop)  
 [12288 - MSP2_BETAFLIGHT_BIND](#msp2_betaflight_bind)  
 [12289 - MSP2_RX_BIND](#msp2_rx_bind)  
 
@@ -2552,7 +2554,7 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 
 **Reply Payload:** **None**  
 
-**Notes:** Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently.
+**Notes:** Expects 16 bytes. Modifies the `motor_disarmed` array. These values are *not* saved persistently. Ends a running motor wizard sequence (`MSP2_INAV_MOTOR_WIZARD_START`).
 
 ## <a id="msp_set_nav_config"></a>`MSP_SET_NAV_CONFIG (215 / 0xd7)`
 
@@ -5020,6 +5022,27 @@ When the MSP JSON specification changes, bump `msp_messages.json` version:
 **Reply Payload:** **None**  
 
 **Notes:** Requires USE_MOTOR_SRXL2 and at least one request byte. Accepted commands: 0 abort, 1 automatic start, 4 manual high, 5 manual low. Driver safety checks can reject start requests; read MSP2_INAV_ESC_SRXL2_STATUS for the reason. Other command values return an MSP error. Remove propellers before calibration.
+
+## <a id="msp2_inav_motor_wizard_start"></a>`MSP2_INAV_MOTOR_WIZARD_START (8760 / 0x2238)`
+**Description:** Starts a firmware-timed sequence that twitches a single motor so it can be identified.  
+  
+**Request Payload:**
+|Field|C Type|Size (Bytes)|Units|Description|
+|---|---|---|---|---|
+| `motorIndex` | `uint8_t` | 1 | Index | Zero-based index of the motor output to twitch. |
+
+**Reply Payload:** **None**  
+
+**Notes:** Returns an error when armed, when the index is not below the mixer motor count, or when a new sequence is requested on SRXL2 motor output before every ESC is linked and past its startup (the check that also blocks arming). The firmware times the sequence itself (100 ms spin, 500 ms pause) and ends it 2.4 to 3 s after the last start (3 s counted from the beginning of the spin/pause cycle in which the start arrived). To keep the motor twitching, repeat the command for the same motor at any interval shorter than 2.4 s; that restarts the time limit without disturbing the rhythm. A start for another motor replaces the running sequence. Every start resets the disarmed motor values set by `MSP_SET_MOTOR` to off, so only the selected motor moves and all motors stay off after the sequence ends. Arming and `MSP_SET_MOTOR` end it. Remove propellers first.
+
+## <a id="msp2_inav_motor_wizard_stop"></a>`MSP2_INAV_MOTOR_WIZARD_STOP (8761 / 0x2239)`
+**Description:** Ends the motor wizard sequence started by MSP2_INAV_MOTOR_WIZARD_START.  
+
+**Request Payload:** **None**  
+
+**Reply Payload:** **None**  
+
+**Notes:** Always accepted, also when no sequence is running. All motors are off afterwards.
 
 ## <a id="msp2_inav_serial_pads"></a>`MSP2_INAV_SERIAL_PADS (8758 / 0x2236)`
 **Description:** Lists the output pads each UART's TX and RX can move to.  

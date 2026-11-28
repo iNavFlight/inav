@@ -155,6 +155,16 @@ void mixerInit(void);
 void mixerUpdateThrottleRateLimit(void);
 void mixerUpdateStateFlags(void);
 void mixerResetDisarmedMotors(void);
+
+#define MOTOR_WIZARD_SPIN_MS        100
+#define MOTOR_WIZARD_PAUSE_MS       500     // pause as in the Betaflight motor reordering dialog (which spins for 250 ms)
+#define MOTOR_WIZARD_CYCLE_MS       (MOTOR_WIZARD_SPIN_MS + MOTOR_WIZARD_PAUSE_MS)
+// A sequence ends by itself this long after the start of the cycle in which the
+// last start came, so at most one cycle sooner than this after that start
+#define MOTOR_WIZARD_DURATION_MS    3000
+
+bool motorWizardStart(uint8_t motorIndex);
+void motorWizardStop(void);
 void mixTable(float dT);
 void writeMotors(void);
 void processServoAutotrim(const float dT);

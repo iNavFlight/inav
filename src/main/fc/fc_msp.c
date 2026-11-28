@@ -2571,6 +2571,8 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
 
     case MSP_SET_MOTOR:
         if (dataSize >= 8 * sizeof(uint16_t)) {
+            // An explicit motor test takes the output over from a running wizard sequence
+            motorWizardStop();
             for (int i = 0; i < 8; i++) {
                 const int16_t disarmed = sbufReadU16(src);
                 if (i < MAX_SUPPORTED_MOTORS) {
@@ -2579,6 +2581,16 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             }
         } else
             return MSP_RESULT_ERROR;
+        break;
+
+    case MSP2_INAV_MOTOR_WIZARD_START:
+        if (!sbufReadU8Safe(&tmp_u8, src) || !motorWizardStart(tmp_u8)) {
+            return MSP_RESULT_ERROR;
+        }
+        break;
+
+    case MSP2_INAV_MOTOR_WIZARD_STOP:
+        motorWizardStop();
         break;
 
     case MSP_SET_SERVO_CONFIGURATION:
