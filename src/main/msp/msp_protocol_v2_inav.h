@@ -165,3 +165,7 @@
 // command keeps its number, an unmerged one has no claim on it.
 #define MSP2_INAV_ESC_SRXL2_STATUS              0x2233
 #define MSP2_INAV_ESC_SRXL2_CALIBRATE           0x2234
+
+#define MSP2_INAV_NAV_ROI                       0x2236  //out message  read the stored navigation ROI; payload: I32 lat, I32 lon, I32 alt (cm), I16 p1, I16 p2, U8 alt_datum, U8 action, U8 flag
+#define MSP2_INAV_SET_NAV_ROI                   0x2237  //in message   store or clear the navigation ROI; payload: same 19 bytes as MSP2_INAV_NAV_ROI, longer payloads ignore the tail
+#define MSP2_INAV_GOTO_ROI                      0x2238  //in message   set the guided desired position to the stored ROI; payload: none

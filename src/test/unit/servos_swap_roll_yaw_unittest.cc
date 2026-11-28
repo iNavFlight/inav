@@ -252,6 +252,9 @@ extern "C" {
         return false;
     }
     uint32_t calculateDistanceToDestination(const fpVector3_t *destinationPos) { (void)destinationPos; return 0; }
+    int32_t calculateBearingToDestination(const fpVector3_t *destinationPos) { (void)destinationPos; return 0; }
+    // navEstimatedPosVel_t is also private (navigation_private.h): opaque here
+    const void *navGetCurrentActualPositionAndVelocity(void) { return NULL; }
     float getFlightTime(void) { return 0.0f; }
     uint32_t getTotalTravelDistance(void) { return 0; }
     uint16_t getRSSI(void) { return 0; }
@@ -321,6 +324,8 @@ extern "C" {
     bool activateForcedLanding(void) { return false; }
     bool navGetMissionWaypointByRelativeIndex(int16_t relativeIndex, navWaypoint_t *wpData) { (void)relativeIndex; (void)wpData; return false; }
     geoAltitudeConversionMode_e waypointMissionAltConvMode(geoAltitudeDatumFlag_e datumFlag) { (void)datumFlag; return GEO_ALT_ABSOLUTE; }
+    bool navROIIsSet(void) { return false; }
+    void navGetROI(navROI_t *roi) { (void)roi; }
     bool navigationIsExecutingAnEmergencyLanding(void) { return false; }
 
     float getAirspeedEstimate(void) { return 0.0f; }

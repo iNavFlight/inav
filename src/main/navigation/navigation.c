@@ -5547,6 +5547,51 @@ void setWaypoint(uint8_t wpNumber, const navWaypoint_t * wpData)
     }
 }
 
+void navSetROI(const navROI_t *roi)
+{
+    posControl.roi = *roi;
+    posControl.roi.flag = 1;
+}
+
+void navGetROI(navROI_t *roi)
+{
+    *roi = posControl.roi;
+}
+
+void navClearROI(void)
+{
+    memset(&posControl.roi, 0, sizeof(posControl.roi));
+}
+
+bool navROIIsSet(void)
+{
+    return posControl.roi.flag != 0;
+}
+
+bool navGotoROI(void)
+{
+    if (!navROIIsSet() || !isGCSValid()) {
+        return false;
+    }
+
+    gpsLocation_t roiLLH;
+    roiLLH.lat = posControl.roi.lat;
+    roiLLH.lon = posControl.roi.lon;
+    roiLLH.alt = posControl.roi.alt;
+
+    fpVector3_t roiLocal;
+    const geoAltitudeConversionMode_e altConv = waypointMissionAltConvMode((geoAltitudeDatumFlag_e)posControl.roi.alt_datum);
+
+    if (!geoConvertGeodeticToLocal(&roiLocal, &posControl.gpsOrigin, &roiLLH, altConv)) {
+        return false;
+    }
+
+    // An ROI is usually a point on the ground: altitude 0 keeps the current
+    // altitude, as for WP #255 and MSP2_INAV_SET_GLOBAL_TARGET
+    setDesiredPosition(&roiLocal, posControl.desiredState.yaw, posControl.roi.alt != 0 ? NAV_POS_UPDATE_XY | NAV_POS_UPDATE_Z : NAV_POS_UPDATE_XY);
+    return true;
+}
+
 void resetWaypointList(void)
 {
     posControl.waypointCount = 0;
