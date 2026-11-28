@@ -4220,6 +4220,11 @@ static void cliStatus(char *cmdline)
     cliPrintLinef("Current Time: %s", buf);
     cliPrintLinef("Voltage: %d.%02dV (%dS battery - %s)", getBatteryVoltage() / 100, getBatteryVoltage() % 100, getBatteryCellCount(), getBatteryStateString());
     cliPrintf("CPU Clock=%dMHz", (SystemCoreClock / 1000000));
+#ifdef USE_CPU_OVERCLOCK
+    if (systemCpuOverclockFailure()) {
+        cliPrintf(" (cpu_overclock failed: %s)", systemCpuOverclockFailure());
+    }
+#endif
 
     const uint32_t detectedSensorsMask = sensorsMask();
 
@@ -4335,6 +4340,12 @@ static void cliStatus(char *cmdline)
         else {
             cliPrintLinef("ADC %d", adcGetFunctionChannelAllocation(i));
         }
+    }
+#endif
+
+#if defined(RP2350) && defined(USE_LED_STRIP)
+    if (ws2811LedStripFailure()) {
+        cliPrintLinef("LED strip not started: %s", ws2811LedStripFailure());
     }
 #endif
 

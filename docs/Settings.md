@@ -645,6 +645,18 @@ Blackbox logging rate numerator. Use num/denom settings to decide if a frame sho
 
 ---
 
+### cpu_overclock
+
+Runs the RP2350 above its rated 150 MHz: 192MHZ with the core voltage raised from 1.10 V to 1.15 V, 240MHZ with 1.20 V. This is outside the manufacturer's specification, a chip that does not hold it can freeze or miscompute in flight. If the boot self-test fails, the board starts at 150 MHz and `status` reports it. Requires a reboot.
+
+| Allowed Values |  |
+| --- | --- |
+| OFF | Default |
+| 192MHZ |  |
+| 240MHZ |  |
+
+---
+
 ### crsf_use_legacy_baro_packet
 
 CRSF telemetry: If `ON`, send altitude about start point in GPS telemetry packet. If `OFF`, GPS has ASL altitude, altitude about start point in separate packet. Default: 'OFF'

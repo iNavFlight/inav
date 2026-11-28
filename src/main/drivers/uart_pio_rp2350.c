@@ -27,12 +27,20 @@
  *
  * Implements UART3 and UART4 using PIO state machines on PIO1:
  *
- *   UART3 (INAV) → PIO1 SM0 (TX) + SM1 (RX)  — PIO1_IRQ0
- *   UART4 (INAV) → PIO1 SM2 (TX) + SM3 (RX)  — PIO1_IRQ1
+ *   UART3 (INAV) → PIO1, one TX + one RX state machine — PIO1_IRQ0
+ *   UART4 (INAV) → PIO1, one TX + one RX state machine — PIO1_IRQ1
+ *
+ * A port takes one state machine per direction it uses (MODE_RX, MODE_TX), with
+ * pio_claim_unused_sm(), so a receive-only port (ESC telemetry) costs one and
+ * PIO1 can be shared with another driver. A port that cannot get
+ * the state machines for its mode fails to open. A direction added later with
+ * serialSetMode() claims its state machine then, or is dropped from the mode.
+ * A re-open gives back the state machine of a direction the new mode has not.
+ * The TX pin of a receive-only port is left alone, as on the STM32 targets.
  *
  * PIO program budget (32 instructions per block):
- *   TX program: 4 instructions  (shared by SM0 and SM2)
- *   RX program: 9 instructions  (shared by SM1 and SM3)
+ *   TX program: 4 instructions  (shared by both ports)
+ *   RX program: 9 instructions  (shared by both ports)
  *   Total used: 13 of 32 — well within budget.
  *
  * Each SM has its own clock divider, so UART3 and UART4 can run at
@@ -62,6 +70,7 @@
 #include <stdint.h>
 
 #include "build/build_config.h"
+#include "common/log.h"
 #include "common/utils.h"
 
 #include "drivers/io.h"
@@ -127,11 +136,19 @@ static inline uint ioTagToGpioNum(ioTag_t tag)
     return (uint)(DEFIO_TAG_GPIOID(tag) * 16 + DEFIO_TAG_PIN(tag));
 }
 
-static void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin, uint baud)
+/*
+ * GPIO signal inversion: the RP2350 can invert any GPIO input/output in
+ * hardware, so an inverted protocol needs no external inverter. It is set right
+ * after pio_gpio_init(), which resets the pin overrides, and before the state
+ * machine starts: an RX state machine on a still non-inverted line would take
+ * the idle level for a start bit.
+ */
+static void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin, uint baud, bool inverted)
 {
     pio_sm_set_pins_with_mask64(pio, sm, 1ull << pin, 1ull << pin);
     pio_sm_set_pindirs_with_mask64(pio, sm, 1ull << pin, 1ull << pin);
     pio_gpio_init(pio, pin);
+    gpio_set_outover(pin, inverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
 
     pio_sm_config c = pio_get_default_sm_config();
     sm_config_set_wrap(&c, offset + 0, offset + 3);
@@ -146,10 +163,11 @@ static void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin, uint b
     pio_sm_set_enabled(pio, sm, true);
 }
 
-static void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin, uint baud)
+static void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin, uint baud, bool inverted)
 {
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
     pio_gpio_init(pio, pin);
+    gpio_set_inover(pin, inverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL);
     gpio_pull_up(pin);
 
     pio_sm_config c = pio_get_default_sm_config();
@@ -174,15 +192,16 @@ static void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin, uint b
  */
 typedef struct {
     uartPort_t  port;
+    bool        txClaimed;      /* sm_tx is valid; kept across re-opens */
+    bool        rxClaimed;      /* sm_rx is valid; kept across re-opens */
     uint        sm_tx;          /* state machine index for TX (0..3) */
     uint        sm_rx;          /* state machine index for RX (0..3) */
     uint        tx_pin;
     uint        rx_pin;
     int         irq_index;      /* 0 = PIO1_IRQ0, 1 = PIO1_IRQ1 */
-    uint32_t    rx_intr_bit;    /* PIO_INTR_SMx_RXNEMPTY_BITS for sm_rx */
-    uint32_t    tx_intr_bit;    /* PIO_INTR_SMx_TXNFULL_BITS  for sm_tx */
-    int         tx_offset;      /* pio_add_program offset for TX program */
-    int         rx_offset;      /* pio_add_program offset for RX program */
+    uint8_t     uartNumber;     /* INAV UART number, for the log */
+    uint32_t    rx_intr_bit;    /* PIO_INTR_SMx_RXNEMPTY_BITS for sm_rx, 0 without RX */
+    uint32_t    tx_intr_bit;    /* PIO_INTR_SMx_TXNFULL_BITS  for sm_tx, 0 without TX */
     volatile uint8_t rxBuffer[256];
     volatile uint8_t txBuffer[256];
 } piouartDevice_t;
@@ -283,6 +302,123 @@ static void piouartIrqHandler(piouartDevice_t *s)
     }
 }
 
+/* ── State machines per direction ────────────────────────────────────────── */
+
+/* Directions a port needs state machines for. */
+static portMode_t piouartWantedDirections(portMode_t mode, portOptions_t options)
+{
+    portMode_t dirs = (portMode_t)(mode & MODE_RXTX);
+    if (dirs == 0) {
+        dirs = MODE_RXTX;
+    }
+    if (options & SERIAL_BIDIR) {
+        dirs = (portMode_t)(dirs | MODE_TX);
+    }
+    return dirs;
+}
+
+/*
+ * Claim the state machines for the directions in dirs that the port does not
+ * have yet. Returns the directions it could not get.
+ */
+static portMode_t piouartClaimDirections(piouartDevice_t *s, portMode_t dirs)
+{
+    portMode_t missing = (portMode_t)0;
+
+    if ((dirs & MODE_TX) && !s->txClaimed) {
+        const int sm = pio_claim_unused_sm(pio1, false);
+        if (sm < 0) {
+            missing = (portMode_t)(missing | MODE_TX);
+        } else {
+            /* Programs are loaded once and shared by both ports */
+            if (txProgramOffset < 0) {
+                txProgramOffset = pio_add_program(pio1, &uart_tx_program);
+            }
+            s->sm_tx       = (uint)sm;
+            s->tx_intr_bit = sm_txnfull_bits[sm];
+            s->txClaimed   = true;
+        }
+    }
+
+    if ((dirs & MODE_RX) && !s->rxClaimed) {
+        const int sm = pio_claim_unused_sm(pio1, false);
+        if (sm < 0) {
+            missing = (portMode_t)(missing | MODE_RX);
+        } else {
+            if (rxProgramOffset < 0) {
+                rxProgramOffset = pio_add_program(pio1, &uart_rx_program);
+            }
+            s->sm_rx       = (uint)sm;
+            s->rx_intr_bit = sm_rxnempty_bits[sm];
+            s->rxClaimed   = true;
+        }
+    }
+
+    return missing;
+}
+
+/* Stop a direction and give its state machine back. */
+static void piouartReleaseTx(piouartDevice_t *s)
+{
+    if (!s->txClaimed) {
+        return;
+    }
+    pio_set_irqn_source_enabled(pio1, (uint)s->irq_index,
+        pio_get_tx_fifo_not_full_interrupt_source(s->sm_tx), false);
+    pio_sm_set_enabled(pio1, s->sm_tx, false);
+    pio_sm_unclaim(pio1, s->sm_tx);
+    /* Off the PIO, so that it does not stay driven at whatever level it stopped */
+    gpio_deinit(s->tx_pin);
+    s->tx_intr_bit = 0;
+    s->txClaimed   = false;
+}
+
+static void piouartReleaseRx(piouartDevice_t *s)
+{
+    if (!s->rxClaimed) {
+        return;
+    }
+    pio_set_irqn_source_enabled(pio1, (uint)s->irq_index,
+        pio_get_rx_fifo_not_empty_interrupt_source(s->sm_rx), false);
+    pio_sm_set_enabled(pio1, s->sm_rx, false);
+    pio_sm_unclaim(pio1, s->sm_rx);
+    gpio_deinit(s->rx_pin);
+    s->rx_intr_bit = 0;
+    s->rxClaimed   = false;
+}
+
+/* Inversion of a running port, see uart_tx_program_init() */
+static void piouartApplyInversion(const piouartDevice_t *s)
+{
+    const uint override = (s->port.port.options & SERIAL_INVERTED) ? GPIO_OVERRIDE_INVERT
+                                                                   : GPIO_OVERRIDE_NORMAL;
+    if (s->rxClaimed) {
+        gpio_set_inover(s->rx_pin, override);
+    }
+    if (s->txClaimed) {
+        gpio_set_outover(s->tx_pin, override);
+    }
+}
+
+/*
+ * (Re)start the state machines of the directions in dirs at the port's baud
+ * rate. pio_sm_init() clears the FIFOs of the state machine it restarts.
+ */
+static void piouartStartDirections(piouartDevice_t *s, portMode_t dirs)
+{
+    const uint baudRate = (uint)s->port.port.baudRate;
+    const bool inverted = (s->port.port.options & SERIAL_INVERTED) != 0;
+
+    if ((dirs & MODE_TX) && s->txClaimed) {
+        pio_sm_set_enabled(pio1, s->sm_tx, false);
+        uart_tx_program_init(pio1, s->sm_tx, (uint)txProgramOffset, s->tx_pin, baudRate, inverted);
+    }
+    if ((dirs & MODE_RX) && s->rxClaimed) {
+        pio_sm_set_enabled(pio1, s->sm_rx, false);
+        uart_rx_program_init(pio1, s->sm_rx, (uint)rxProgramOffset, s->rx_pin, baudRate, inverted);
+    }
+}
+
 /* ── piouartInit — shared init for UART3 and UART4 ──────────────────────── */
 
 /*
@@ -290,18 +426,54 @@ static void piouartIrqHandler(piouartDevice_t *s)
  * whenever USE_UART3 or USE_UART4 (or both) are defined.  Placing it inside
  * the USE_UART3 guard would cause a linker error if only USE_UART4 is defined.
  */
-static uartPort_t *piouartInit(piouartDevice_t *s, uint sm_tx, uint sm_rx,
+static uartPort_t *piouartInit(piouartDevice_t *s, uint8_t uartNumber,
                                 uint tx_pin, uint rx_pin, int irq_index,
                                 uint32_t baudRate, portMode_t mode,
                                 portOptions_t options)
 {
-    s->sm_tx       = sm_tx;
-    s->sm_rx       = sm_rx;
+    s->uartNumber  = uartNumber;
     s->tx_pin      = tx_pin;
     s->rx_pin      = rx_pin;
     s->irq_index   = irq_index;
-    s->rx_intr_bit = sm_rxnempty_bits[sm_rx];
-    s->tx_intr_bit = sm_txnfull_bits[sm_tx];
+
+    /*
+     * The programs are 8N1. Refuse the port rather than run a protocol with
+     * parity or two stop bits (SBUS is 8E2) on it and deliver garbage.
+     */
+    bool usable = !(options & (SERIAL_PARITY_EVEN | SERIAL_STOPBITS_2));
+    if (!usable) {
+        LOG_ERROR(SYSTEM, "UART%d: PIO UART is 8N1 only, port not opened", uartNumber);
+    }
+
+    /* PIO1 reaches 32 GPIOs from its base; another driver on it may have moved it */
+    const uint gpioBase = pio_get_gpio_base(pio1);
+    if (usable && (tx_pin < gpioBase || tx_pin >= gpioBase + 32 || rx_pin < gpioBase || rx_pin >= gpioBase + 32)) {
+        LOG_ERROR(SYSTEM, "UART%d: pins outside the PIO1 GPIO range, port not opened", uartNumber);
+        usable = false;
+    }
+
+    /*
+     * One state machine per direction of the mode. Nothing tells the driver that
+     * a port was closed, so a re-open is where a direction the new mode does not
+     * use gives its state machine back. A port that cannot get what its mode
+     * needs is left stopped, with no state machine.
+     */
+    const portMode_t wanted = usable ? piouartWantedDirections(mode, options) : (portMode_t)0;
+    if (!(wanted & MODE_TX)) {
+        piouartReleaseTx(s);
+    }
+    if (!(wanted & MODE_RX)) {
+        piouartReleaseRx(s);
+    }
+    if (!usable) {
+        return NULL;
+    }
+    if (piouartClaimDirections(s, wanted) != 0) {
+        piouartReleaseTx(s);
+        piouartReleaseRx(s);
+        LOG_ERROR(SYSTEM, "UART%d: no free PIO1 state machine, port not opened", uartNumber);
+        return NULL;
+    }
 
     s->port.port.vTable       = &pioUartVTable;
     s->port.port.baudRate     = baudRate;
@@ -316,31 +488,12 @@ static uartPort_t *piouartInit(piouartDevice_t *s, uint sm_tx, uint sm_rx,
     s->port.port.txBufferHead = 0;
     s->port.port.txBufferTail = 0;
 
-    /* Load programs once — each subsequent call reuses the same offset */
-    if (txProgramOffset < 0) {
-        txProgramOffset = pio_add_program(pio1, &uart_tx_program);
-    }
-    if (rxProgramOffset < 0) {
-        rxProgramOffset = pio_add_program(pio1, &uart_rx_program);
-    }
-
-    uart_tx_program_init(pio1, sm_tx, (uint)txProgramOffset, tx_pin, baudRate);
-    uart_rx_program_init(pio1, sm_rx, (uint)rxProgramOffset, rx_pin, baudRate);
-
-    /*
-     * GPIO signal inversion — replaces the external inverter that STM32 targets
-     * require for SBUS (100000 baud, 8E2, inverted).  RP2350 can invert any GPIO
-     * input/output in hardware.
-     */
-    if (options & SERIAL_INVERTED) {
-        gpio_set_inover(rx_pin, GPIO_OVERRIDE_INVERT);
-        gpio_set_outover(tx_pin, GPIO_OVERRIDE_INVERT);
-    }
+    piouartStartDirections(s, MODE_RXTX);
 
     return &s->port;
 }
 
-/* ── UART3 (INAV) → PIO1 SM0 (TX) + SM1 (RX) ───────────────────────────── */
+/* ── UART3 (INAV) → PIO1, IRQ0 ─────────────────────────────────────────── */
 
 #ifdef USE_UART3
 
@@ -353,12 +506,14 @@ static void pio1Irq0Handler(void)
 
 uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    uartPort_t *p = piouartInit(&piouart0Device,
-                                0 /* sm_tx */, 1 /* sm_rx */,
+    uartPort_t *p = piouartInit(&piouart0Device, 3,
                                 ioTagToGpioNum(IO_TAG(UART3_TX_PIN)),
                                 ioTagToGpioNum(IO_TAG(UART3_RX_PIN)),
                                 0 /* irq_index = PIO1_IRQ0 */,
                                 baudRate, mode, options);
+    if (!p) {
+        return NULL;
+    }
 
     irq_set_exclusive_handler(PIO1_IRQ_0, pio1Irq0Handler);
     irq_set_enabled(PIO1_IRQ_0, true);
@@ -366,7 +521,7 @@ uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t option
     /* Enable RX interrupt; TX is enabled on demand in pioUartWrite() */
     if (mode & MODE_RX) {
         pio_set_irqn_source_enabled(pio1, 0,
-            pio_get_rx_fifo_not_empty_interrupt_source(1 /* sm_rx */), true);
+            pio_get_rx_fifo_not_empty_interrupt_source(piouart0Device.sm_rx), true);
     }
 
     return p;
@@ -374,7 +529,7 @@ uartPort_t *serialUART3(uint32_t baudRate, portMode_t mode, portOptions_t option
 
 #endif /* USE_UART3 */
 
-/* ── UART4 (INAV) → PIO1 SM2 (TX) + SM3 (RX) ───────────────────────────── */
+/* ── UART4 (INAV) → PIO1, IRQ1 ─────────────────────────────────────────── */
 
 #ifdef USE_UART4
 
@@ -387,19 +542,21 @@ static void pio1Irq1Handler(void)
 
 uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t options)
 {
-    uartPort_t *p = piouartInit(&piouart1Device,
-                                2 /* sm_tx */, 3 /* sm_rx */,
+    uartPort_t *p = piouartInit(&piouart1Device, 4,
                                 ioTagToGpioNum(IO_TAG(UART4_TX_PIN)),
                                 ioTagToGpioNum(IO_TAG(UART4_RX_PIN)),
                                 1 /* irq_index = PIO1_IRQ1 */,
                                 baudRate, mode, options);
+    if (!p) {
+        return NULL;
+    }
 
     irq_set_exclusive_handler(PIO1_IRQ_1, pio1Irq1Handler);
     irq_set_enabled(PIO1_IRQ_1, true);
 
     if (mode & MODE_RX) {
         pio_set_irqn_source_enabled(pio1, 1,
-            pio_get_rx_fifo_not_empty_interrupt_source(3 /* sm_rx */), true);
+            pio_get_rx_fifo_not_empty_interrupt_source(piouart1Device.sm_rx), true);
     }
 
     return p;
@@ -412,6 +569,10 @@ uartPort_t *serialUART4(uint32_t baudRate, portMode_t mode, portOptions_t option
 static void pioUartWrite(serialPort_t *instance, uint8_t ch)
 {
     piouartDevice_t *s = (piouartDevice_t *)instance;
+
+    if (!s->txClaimed) {
+        return;     /* receive-only port: nothing drains the buffer */
+    }
 
     s->port.port.txBuffer[s->port.port.txBufferHead] = ch;
     s->port.port.txBufferHead =
@@ -459,16 +620,13 @@ static void pioUartSetBaudRate(serialPort_t *instance, uint32_t baudRate)
     s->port.port.baudRate = baudRate;
 
     /*
-     * Reinitialise both SMs with new clock divider.  pio_sm_clear_fifos() is
+     * Reinitialise the port's SMs with new clock divider.  pio_sm_clear_fifos() is
      * called internally by uart_tx/rx_program_init → pio_sm_init, so any bytes
      * queued in the TX ring buffer but not yet pushed to the PIO FIFO will still
      * be sent, but bytes already in the hardware FIFO are discarded.  Callers
      * that need a clean switch (e.g. GPS auto-baud) should drain the port first.
      */
-    pio_sm_set_enabled(pio1, s->sm_tx, false);
-    pio_sm_set_enabled(pio1, s->sm_rx, false);
-    uart_tx_program_init(pio1, s->sm_tx, (uint)txProgramOffset, s->tx_pin, baudRate);
-    uart_rx_program_init(pio1, s->sm_rx, (uint)rxProgramOffset, s->rx_pin, baudRate);
+    piouartStartDirections(s, MODE_RXTX);
 }
 
 static bool pioUartIsTransmitBufferEmpty(const serialPort_t *instance)
@@ -480,10 +638,33 @@ static bool pioUartIsTransmitBufferEmpty(const serialPort_t *instance)
 static void pioUartSetMode(serialPort_t *instance, portMode_t mode)
 {
     piouartDevice_t *s = (piouartDevice_t *)instance;
+
+    /*
+     * A direction the port was not opened with gets its state machine now. If
+     * none is free, the direction is dropped from the mode.
+     */
+    portMode_t added = (portMode_t)0;
+    if ((mode & MODE_TX) && !s->txClaimed) {
+        added = (portMode_t)(added | MODE_TX);
+    }
+    if ((mode & MODE_RX) && !s->rxClaimed) {
+        added = (portMode_t)(added | MODE_RX);
+    }
+    if (added) {
+        const portMode_t missing = piouartClaimDirections(s, added);
+        if (missing) {
+            LOG_ERROR(SYSTEM, "UART%d: no free PIO1 state machine, direction not added", s->uartNumber);
+        }
+        mode = (portMode_t)(mode & ~missing);
+        piouartStartDirections(s, (portMode_t)(added & ~missing));
+    }
+
     s->port.port.mode = mode;
-    pio_set_irqn_source_enabled(pio1, (uint)s->irq_index,
-        pio_get_rx_fifo_not_empty_interrupt_source(s->sm_rx),
-        (mode & MODE_RX) != 0);
+    if (s->rxClaimed) {
+        pio_set_irqn_source_enabled(pio1, (uint)s->irq_index,
+            pio_get_rx_fifo_not_empty_interrupt_source(s->sm_rx),
+            (mode & MODE_RX) != 0);
+    }
 }
 
 static void pioUartSetOptions(serialPort_t *instance, portOptions_t options)
@@ -491,13 +672,7 @@ static void pioUartSetOptions(serialPort_t *instance, portOptions_t options)
     piouartDevice_t *s = (piouartDevice_t *)instance;
     s->port.port.options = options;
 
-    if (options & SERIAL_INVERTED) {
-        gpio_set_inover(s->rx_pin, GPIO_OVERRIDE_INVERT);
-        gpio_set_outover(s->tx_pin, GPIO_OVERRIDE_INVERT);
-    } else {
-        gpio_set_inover(s->rx_pin, GPIO_OVERRIDE_NORMAL);
-        gpio_set_outover(s->tx_pin, GPIO_OVERRIDE_NORMAL);
-    }
+    piouartApplyInversion(s);
 }
 
 #endif /* USE_UART3 || USE_UART4 */

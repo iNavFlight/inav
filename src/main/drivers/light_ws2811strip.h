@@ -42,3 +42,6 @@ void setStripColor(const hsvColor_t *color);
 void setStripColors(const hsvColor_t *colors);
 
 bool isWS2811LedStripReady(void);
+#ifdef RP2350
+const char *ws2811LedStripFailure(void);
+#endif

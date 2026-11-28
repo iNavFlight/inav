@@ -216,7 +216,12 @@ bool spiTransfer(SPI_TypeDef *instance, uint8_t *rxData, const uint8_t *txData, 
         /* 0xFF keeps MOSI high — required by SD cards and some flash chips. */
         spi_read_blocking(hw, 0xFF, rxData, (size_t)len);
     } else {
-        return false;
+        /* No buffers: clock out 0xFF and drop what comes back, as the STM32
+         * drivers do. The SD card start-up clocks rely on it. */
+        uint8_t dummy;
+        while (len-- > 0) {
+            spi_read_blocking(hw, 0xFF, &dummy, 1);
+        }
     }
 
     return true;

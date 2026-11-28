@@ -91,6 +91,14 @@ static int pinioRuntimeCount = 0;
 // Configure one PINIO runtime slot in PWM mode. Returns false if no TCH available.
 static bool pinioInitTimerPWM(int slot, IO_t io, const timerHardware_t *timHw, bool inverted)
 {
+#if defined(RP2350)
+    // No TCH layer on this platform, every PINIO is a plain GPIO
+    UNUSED(slot);
+    UNUSED(io);
+    UNUSED(timHw);
+    UNUSED(inverted);
+    return false;
+#else
     TCH_t *tch = timerGetTCH(timHw);
     if (!tch) {
         return false;
@@ -108,6 +116,7 @@ static bool pinioInitTimerPWM(int slot, IO_t io, const timerHardware_t *timHw, b
     pinioRuntime[slot].duty = 100; // default: mode box on = full on
     *pinioRuntime[slot].ccr = pinioEffectiveDuty(0, inverted); // start off
     return true;
+#endif
 }
 
 // True if another channel on the same physical timer is dedicated to a fixed-period

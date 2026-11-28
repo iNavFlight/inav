@@ -21,6 +21,17 @@
 #include <stdbool.h>
 
 void systemInit(void);
+#ifdef USE_CPU_OVERCLOCK
+// Order is the cpu_overclock table in settings.yaml
+typedef enum {
+    CPU_OVERCLOCK_OFF = 0,
+    CPU_OVERCLOCK_192MHZ,
+    CPU_OVERCLOCK_240MHZ,
+} cpuOverclock_e;
+
+void systemApplyCpuOverclock(cpuOverclock_e overclock);
+const char *systemCpuOverclockFailure(void);
+#endif
 
 typedef enum {
     FAILURE_DEVELOPER = 0,

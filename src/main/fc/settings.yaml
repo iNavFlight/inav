@@ -86,6 +86,8 @@ tables:
     values: ["NORMAL", "MEDIUM", "SLOW"]
   - name: i2c_speed
     values: ["400KHZ", "800KHZ", "100KHZ", "200KHZ"]
+  - name: cpu_overclock
+    values: ["OFF", "192MHZ", "240MHZ"]
   - name: debug_modes
     values: ["NONE", "AGL", "FLOW_RAW", "FLOW", "ALWAYS", "SAG_COMP_VOLTAGE",
       "VIBE", "CRUISE", "REM_FLIGHT_TIME", "SMARTAUDIO", "ACC",
@@ -4247,6 +4249,12 @@ groups:
         field: throttle_tilt_compensation_strength
         min: 0
         max: 100
+      - name: cpu_overclock
+        description: "Runs the RP2350 above its rated 150 MHz: 192MHZ with the core voltage raised from 1.10 V to 1.15 V, 240MHZ with 1.20 V. This is outside the manufacturer's specification, a chip that does not hold it can freeze or miscompute in flight. If the boot self-test fails, the board starts at 150 MHz and `status` reports it. Requires a reboot."
+        default_value: "OFF"
+        field: cpuOverclock
+        condition: USE_CPU_OVERCLOCK
+        table: cpu_overclock
       - name: vtol_transition_to_fw_min_airspeed_cm_s
         description: "Minimum airspeed [cm/s] needed before MC->FW transition is considered complete while a usable transition airspeed source is available. The speed must remain at or above this value for the internal 300 ms confirmation. A usable source is a valid real pitot sensor, or `pitot_hardware = VIRTUAL` with a valid virtual airspeed estimate. If no usable source is available, or if this is set to 0, INAV uses `mixer_switch_trans_timer` instead. If the source remains usable but this target is not confirmed before `mixer_vtol_transition_airspeed_timeout_ms` expires, the transition is aborted. Available only on targets with more than 512 KB flash."
         condition: USE_AUTO_TRANSITION

@@ -28,7 +28,7 @@ main_sources(RP2350_COMMON_SRC_EXCLUDES
     drivers/accgyro/accgyro_mpu.c
     drivers/display_ug2864hsweg01.c
     io/displayport_oled.c
-    # LED strip: replaced by light_ws2811strip_rp2350.c (PIO2+DMA, no timer/DMA abstraction)
+    # LED strip: replaced by light_ws2811strip_rp2350.c (PWM slice + DMA)
     drivers/light_ws2811strip.c
     # I2C: replaced by bus_i2c_rp2350.c (Pico SDK blocking API; HAL version needs STM32 HAL)
     drivers/bus_i2c_hal.c
@@ -51,6 +51,14 @@ main_sources(RP2350_SRC
     drivers/bus_i2c_rp2350.c
     drivers/bus_spi_rp2350.c
     drivers/persistent_rp2350.c
+    # USB mass storage mode, compiled in only with USE_USB_MSC
+    drivers/usb_msc_rp2350.c
+    # SD card over SPI and its FAT filesystem, compiled in only with USE_SDCARD
+    drivers/sdcard/sdcard.c
+    drivers/sdcard/sdcard_spi.c
+    drivers/sdcard/sdcard_standard.c
+    io/asyncfatfs/asyncfatfs.c
+    io/asyncfatfs/fat_standard.c
 )
 
 # --- Pico SDK sources ---
@@ -135,6 +143,7 @@ set(TINYUSB_SOURCES
     ${TINYUSB_SRC_DIR}/device/usbd.c
     ${TINYUSB_SRC_DIR}/device/usbd_control.c
     ${TINYUSB_SRC_DIR}/class/cdc/cdc_device.c
+    ${TINYUSB_SRC_DIR}/class/msc/msc_device.c
     ${TINYUSB_SRC_DIR}/portable/raspberrypi/rp2040/dcd_rp2040.c
     ${TINYUSB_SRC_DIR}/portable/raspberrypi/rp2040/rp2040_usb.c
 )
@@ -226,14 +235,12 @@ set(PICO_SDK_INCLUDE_DIRS
 set(RP2350_DEFINITIONS
     RP2350
     PICO_RP2350=1
-    PICO_RP2350A=1
     PICO_32BIT=1
     # Do NOT define PICO_RP2040 at all — even PICO_RP2040=0 counts as "defined"
     # for #ifdef/#elif defined() checks in the Pico SDK assembly (embedded_start_block.inc.S),
     # which would cause the IMAGE_DEF to declare RP2040 chip type instead of RP2350.
     PICO_CONFIG_HEADER=pico_sdk_config.h
     PICO_NO_FPGA_CHECK=1
-    PICO_FLASH_SIZE_BYTES=4194304
     MCU_RAM_SIZE=520
     # Tell pico_stdio_usb that TinyUSB device mode is already linked by the application.
     # Without this, stdio_usb_init() would call tusb_init() a second time AND set up its
@@ -277,10 +284,55 @@ set(RP2350_INCLUDE_DIRS
     ${PICO_SDK_INCLUDE_DIRS}
 )
 
+# target_rp2350(<name> [VARIANT A|B] [FLASH_SIZE_KB <KiB>] [COMPILE_DEFINITIONS <def>...]
+#               [<setup_firmware_target args>...])
+#
+#   VARIANT        RP2350 package: A = QFN-60, GPIO 0-29, ADC on GPIO 26-29 (default)
+#                                  B = QFN-80, GPIO 0-47, ADC on GPIO 40-47
+#   FLASH_SIZE_KB  size of the QSPI flash in KiB (default 4096). The last
+#                  RP2350_CONFIG_SIZE_KB of it hold the settings.
+#   COMPILE_DEFINITIONS  extra definitions that must be visible before
+#                  target/common.h is read, e.g. MCU_FLASH_SIZE=<KiB>
+#                  USE_USB_MSC enables the CLI `msc` (SD card as a USB disk),
+#                  the target also sets CFG_TUD_MSC in its tusb_config.h
+set(RP2350_CONFIG_SIZE_KB 64)
+
 function(target_rp2350 name)
     if(NOT arm-none-eabi STREQUAL TOOLCHAIN)
         return()
     endif()
+
+    cmake_parse_arguments(
+        args
+        # Boolean arguments
+        ""
+        # Single value arguments
+        "VARIANT;FLASH_SIZE_KB"
+        # Multi-value arguments
+        "COMPILE_DEFINITIONS"
+        # Start parsing after the known arguments
+        ${ARGN}
+    )
+
+    if(NOT args_VARIANT)
+        set(args_VARIANT A)
+    endif()
+    if(args_VARIANT STREQUAL "A")
+        set(pico_rp2350a 1)
+    elseif(args_VARIANT STREQUAL "B")
+        set(pico_rp2350a 0)
+    else()
+        message(FATAL_ERROR "${name}: unknown RP2350 VARIANT '${args_VARIANT}', expected A or B")
+    endif()
+
+    if(NOT args_FLASH_SIZE_KB)
+        set(args_FLASH_SIZE_KB 4096)
+    endif()
+    if(NOT args_FLASH_SIZE_KB GREATER RP2350_CONFIG_SIZE_KB)
+        message(FATAL_ERROR "${name}: invalid FLASH_SIZE_KB '${args_FLASH_SIZE_KB}'")
+    endif()
+    math(EXPR flash_size_bytes "${args_FLASH_SIZE_KB} * 1024")
+    math(EXPR config_size_bytes "${RP2350_CONFIG_SIZE_KB} * 1024")
 
     exclude(COMMON_SRC "${RP2350_COMMON_SRC_EXCLUDES}")
 
@@ -301,6 +353,15 @@ function(target_rp2350 name)
     list(APPEND target_sources ${target_c_sources} ${target_h_sources})
 
     set(target_definitions ${RP2350_DEFINITIONS} ${COMMON_COMPILE_DEFINITIONS})
+    # The SDK derives the GPIO count, the ADC pins and the PIO gpio-base
+    # support from PICO_RP2350A, so it has to match the soldered package.
+    list(APPEND target_definitions
+        "PICO_RP2350A=${pico_rp2350a}"
+        "PICO_FLASH_SIZE_BYTES=${flash_size_bytes}"
+    )
+    if(args_COMPILE_DEFINITIONS)
+        list(APPEND target_definitions ${args_COMPILE_DEFINITIONS})
+    endif()
 
     math(EXPR hse_value "12 * 1000000")
     list(APPEND target_definitions "HSE_VALUE=${hse_value}")
@@ -367,6 +428,12 @@ function(target_rp2350 name)
     endif()
     set_target_properties(${exe_target} PROPERTIES LINK_DEPENDS ${script_path})
     target_link_options(${exe_target} PRIVATE -T${script_path})
+    # The script is shared by all flash sizes; it lays out FLASH and
+    # FLASH_CONFIG from these two symbols.
+    target_link_options(${exe_target} PRIVATE
+        "-Wl,--defsym=__rp2350_flash_size=${flash_size_bytes}"
+        "-Wl,--defsym=__rp2350_config_size=${config_size_bytes}"
+    )
 
     # Map file
     if(CMAKE_VERSION VERSION_LESS 3.15)
@@ -417,7 +484,7 @@ function(target_rp2350 name)
         COMMENT "Generating ${binary_name}.uf2 (best-effort)"
     )
 
-    setup_firmware_target(${exe_target} ${name} ${ARGN})
+    setup_firmware_target(${exe_target} ${name} ${args_UNPARSED_ARGUMENTS})
 
     # clean_<target>
     add_clean_target(${name}

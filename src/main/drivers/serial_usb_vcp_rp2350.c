@@ -27,10 +27,10 @@
  *
  * Implements INAV's serialPort_t vtable using TinyUSB CDC class.
  * TinyUSB is initialized in systemInit() via tusb_init(); USB event processing
- * is driven exclusively by a 1ms repeating hardware alarm in systemInit().
- * tud_task() must only be called from that single timer callback — calling it
- * from foreground code while the timer IRQ can preempt creates re-entrancy
- * that corrupts TinyUSB shared state.
+ * is driven by a 1 ms hardware alarm in systemInit(). Foreground code calls
+ * into TinyUSB only with rp2350UsbBusy set, which keeps that alarm out:
+ * tud_task() from the alarm on top of a foreground call is re-entrancy that
+ * corrupts TinyUSB shared state or waits for a mutex forever.
  *
  * This file also provides the three mandatory TinyUSB descriptor callbacks
  * (tud_descriptor_device_cb, tud_descriptor_configuration_cb,
@@ -55,6 +55,7 @@
 
 #include "serial.h"
 #include "serial_usb_vcp.h"
+#include "drivers/usb_msc.h"
 
 #include "tusb.h"
 #include "pico/unique_id.h"
@@ -62,6 +63,30 @@
 #define USB_TIMEOUT  50
 
 static vcpPort_t vcpPort;
+
+// The 1 ms timer interrupt runs tud_task(), which takes the same TinyUSB
+// mutexes as the calls below. An interrupt cannot wait for a mutex its own
+// main loop holds, it would wait forever: so while one of these calls is
+// running, the timer skips tud_task() and tries again a millisecond later.
+volatile uint8_t rp2350UsbBusy;
+
+static inline void usbBusyEnter(void)
+{
+    rp2350UsbBusy = 1;
+}
+
+static inline void usbBusyLeave(void)
+{
+    rp2350UsbBusy = 0;
+}
+
+// The FIFO is full and only tud_task() can start the next packet. The 1 ms
+// alarm skips it while the busy flag is set, which in this loop is nearly all
+// the time, so it is called here. With the busy flag set: the alarm keeps out.
+static void usbTxPump(void)
+{
+    tud_task();
+}
 
 static void usbVcpSetBaudRate(serialPort_t *instance, uint32_t baudRate)
 {
@@ -99,7 +124,9 @@ static uint8_t usbVcpRead(serialPort_t *instance)
     // Callers must check serialRxBytesWaiting() > 0 before calling serialRead().
     // Do not spin here — that would block the cooperative scheduler.
     uint8_t ch = 0;
+    usbBusyEnter();
     tud_cdc_read(&ch, 1);
+    usbBusyLeave();
     return ch;
 }
 
@@ -120,12 +147,17 @@ static void usbVcpWriteBuf(serialPort_t *instance, const void *data, int count)
     uint32_t start = millis();
     const uint8_t *p = data;
     while (count > 0) {
+        usbBusyEnter();
         uint32_t written = tud_cdc_write(p, count);
         if (written > 0) {
             count -= written;
             p += written;
         }
         tud_cdc_write_flush();
+        if (count > 0) {
+            usbTxPump();
+        }
+        usbBusyLeave();
         if (millis() - start > USB_TIMEOUT) {
             break;
         }
@@ -148,12 +180,17 @@ static bool usbVcpFlush(vcpPort_t *port)
     uint32_t start = millis();
     uint8_t *p = port->txBuf;
     while (count > 0) {
+        usbBusyEnter();
         uint32_t written = tud_cdc_write(p, count);
         if (written > 0) {
             count -= written;
             p += written;
         }
         tud_cdc_write_flush();
+        if (count > 0) {
+            usbTxPump();
+        }
+        usbBusyLeave();
         if (millis() - start > USB_TIMEOUT) {
             break;
         }
@@ -211,7 +248,7 @@ static const struct serialPortVTable usbVTable[] = {
 void usbVcpInitHardware(void)
 {
     // tusb_init() is called in systemInit() before fc_init(); tud_task() is
-    // driven only by systemInit()'s 1ms repeating timer (usb_task_timer_cb).
+    // driven by the 1 ms hardware alarm of systemInit() (usbTaskAlarm).
     // Nothing additional needed here.
 }
 
@@ -262,14 +299,14 @@ portOptions_t usbVcpGetLineCoding(void)
 //
 // USB identifiers:
 //   VID 0x2E8A = Raspberry Pi
-//   PID 0x000B = Pico 2 (RP2350) CDC serial application
+//   PID 0x0009 = Pico SDK CDC UART, see github.com/raspberrypi/usb-pid
 //   Product string from USBD_PRODUCT_STRING defined in target.h
 
 #ifndef USBD_VID
 #define USBD_VID 0x2E8A  // Raspberry Pi
 #endif
 #ifndef USBD_PID
-#define USBD_PID 0x000B  // Pico 2 (RP2350) CDC application
+#define USBD_PID 0x0009  // Pico SDK CDC UART
 #endif
 #ifndef USBD_MANUFACTURER
 #define USBD_MANUFACTURER "Raspberry Pi"
@@ -321,6 +358,45 @@ static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
         USBD_CDC_IN_OUT_MAX_SIZE),
 };
 
+#ifdef USE_USB_MSC
+// Mass storage mode (CLI `msc`): the board is a plain MSC device with its own
+// PID, hosts remember the driver of a VID/PID pair and would otherwise keep
+// treating it as the serial port. 0x4002 is a placeholder, not an allocated
+// PID: replace it once Raspberry Pi assigns one.
+#ifndef USBD_PID_MSC
+#define USBD_PID_MSC 0x4002
+#endif
+
+#define USBD_MSC_DESC_LEN   (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+#define USBD_MSC_EP_OUT     0x01
+#define USBD_MSC_EP_IN      0x81
+#define USBD_MSC_EP_SIZE    64
+
+static const tusb_desc_device_t usbd_msc_desc_device = {
+    .bLength            = sizeof(tusb_desc_device_t),
+    .bDescriptorType    = TUSB_DESC_DEVICE,
+    .bcdUSB             = 0x0200,
+    .bDeviceClass       = 0,    // class is given by the interface
+    .bDeviceSubClass    = 0,
+    .bDeviceProtocol    = 0,
+    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor           = USBD_VID,
+    .idProduct          = USBD_PID_MSC,
+    .bcdDevice          = 0x0100,
+    .iManufacturer      = USBD_STR_MANUF,
+    .iProduct           = USBD_STR_PRODUCT,
+    .iSerialNumber      = USBD_STR_SERIAL,
+    .bNumConfigurations = 1,
+};
+
+static const uint8_t usbd_msc_desc_cfg[USBD_MSC_DESC_LEN] = {
+    TUD_CONFIG_DESCRIPTOR(1, 1, USBD_STR_LANGID, USBD_MSC_DESC_LEN,
+        0, 250),
+    TUD_MSC_DESCRIPTOR(0, 0, USBD_MSC_EP_OUT, USBD_MSC_EP_IN,
+        USBD_MSC_EP_SIZE),
+};
+#endif
+
 static char usbd_serial_str[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
 
 static const char *const usbd_desc_str[] = {
@@ -332,12 +408,22 @@ static const char *const usbd_desc_str[] = {
 
 const uint8_t *tud_descriptor_device_cb(void)
 {
+#ifdef USE_USB_MSC
+    if (mscCheckBoot()) {
+        return (const uint8_t *)&usbd_msc_desc_device;
+    }
+#endif
     return (const uint8_t *)&usbd_desc_device;
 }
 
 const uint8_t *tud_descriptor_configuration_cb(uint8_t index)
 {
     (void)index;
+#ifdef USE_USB_MSC
+    if (mscCheckBoot()) {
+        return usbd_msc_desc_cfg;
+    }
+#endif
     return usbd_desc_cfg;
 }
 

@@ -77,30 +77,3 @@ timerHardware_t timerHardware[] = {
     DEF_TIM(TIM10, CH2, PB5,  TIM_USE_OUTPUT_AUTO, 0, 0),  /* GP21 */
 };
 const int timerHardwareCount = 10;
-
-void failureMode(failureMode_e mode)
-{
-    UNUSED(mode);
-    while (1) {}
-}
-
-bool isMPUSoftReset(void)
-{
-    return false;
-}
-
-// UART dispatch — hardware UARTs 1-2 via RP2350 PL011, PIO UARTs 3-4 via PIO1
-serialPort_t *uartOpen(USART_TypeDef *USARTx, serialReceiveCallbackPtr rxCallback,
-                        void *rxCallbackData, uint32_t baudRate,
-                        portMode_t mode, portOptions_t options)
-{
-    uartPort_t *s = NULL;
-    if      (USARTx == USART1) { s = serialUART1(baudRate, mode, options); }
-    else if (USARTx == USART2) { s = serialUART2(baudRate, mode, options); }
-    else if (USARTx == USART3) { s = serialUART3(baudRate, mode, options); }
-    else if (USARTx == USART4) { s = serialUART4(baudRate, mode, options); }
-    if (!s) { return NULL; }
-    s->port.rxCallback     = rxCallback;
-    s->port.rxCallbackData = rxCallbackData;
-    return (serialPort_t *)s;
-}

@@ -26,8 +26,8 @@
  * RP2350 flash-based config storage — Milestone 4 (missing piece)
  *
  * INAV config is stored in the FLASH_CONFIG region defined by the linker
- * script (rp2350_flash.ld):
- *   FLASH_CONFIG: 0x103F0000, 64 KB
+ * script (rp2350_flash.ld): the last 64 KB of flash, wherever that is for
+ * the target's flash size.  Only __config_start / __config_end are used here.
  *
  * Flash is XIP-mapped starting at XIP_BASE (0x10000000), so the region is
  * directly readable as normal memory.  Writes use the Pico SDK flash APIs:

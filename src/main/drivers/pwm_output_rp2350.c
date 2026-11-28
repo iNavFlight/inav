@@ -61,6 +61,7 @@
 #include "drivers/io_types.h"
 #include "drivers/pwm_mapping.h"
 #include "drivers/pwm_output.h"
+#include "drivers/time.h"
 #include "drivers/timer.h"
 
 #include "flight/mixer.h"
@@ -86,32 +87,47 @@
  *
  * The SM blocks on a TX-FIFO pull.  It discards the top 16 bits of the
  * 32-bit word ("out y, 16") then shifts out the lower 16, MSB first.
+ *
+ * INAV addition, the keep-alive head (instructions 0-3) and the shared frame
+ * end (17).  Every frame ends at 17, the wrap top, so the wrap bottom alone
+ * selects what follows a frame:
+ *   wrap bottom 4  normal: short gap, then wait for the next packet
+ *   wrap bottom 0  keep-alive: 960 cycle gap (40 us at DShot 600, as on the
+ *                  STM32 targets), then "pull noblock", which takes register
+ *                  X when the FIFO is empty, so the frame in X repeats with
+ *                  no help from the CPU.  See pwmSetMotorDMACircular().
  */
-#define DSHOT_BIT_PERIOD   40   /* PIO cycles per DShot 600 bit */
-#define DSHOT_600_WRAP_TARGET 0
-#define DSHOT_600_WRAP       12
+#define DSHOT_BIT_PERIOD        40   /* PIO cycles per DShot bit */
+#define DSHOT_KEEPALIVE_TARGET  0    /* wrap bottom: keep-alive */
+#define DSHOT_NORMAL_TARGET     4    /* wrap bottom and entry point: normal */
+#define DSHOT_WRAP              17
+/* One keep-alive frame with its gap, in bit periods, rounded up */
+#define DSHOT_KEEPALIVE_PERIOD_BITS 42
 
 static const uint16_t dshotProgramInstructions[] = {
-        //     .wrap_target
-    0xff00, //  0: set    pins, 0                [31]  — inter-frame gap (low)
-    0xb442, //  1: nop                           [20]  — extend gap to ≥2 µs
-    0x80a0, //  2: pull   block                       — wait for next packet
-    0x6050, //  3: out    y, 16                       — discard top 16 bits
-    0x6041, //  4: out    y, 1                        — shift next bit into y
-    0x006a, //  5: jmp    !y, 10                      — branch on bit=0
-    0xfd01, //  6: set    pins, 1                [29] — bit=1: high for 30 cyc
-    0xe600, //  7: set    pins, 0                [6]  — then low for 10 cyc
-    0x00e4, //  8: jmp    !osre, 4                    — more bits? loop
-    0x0000, //  9: jmp    0                           — frame done → wrap
-    0xee01, // 10: set    pins, 1                [14] — bit=0: high for 15 cyc
-    0xf400, // 11: set    pins, 0                [20] — then low for 25 cyc
-    0x01e4, // 12: jmp    !osre, 4               [1]  — more bits? loop
-        //     .wrap
+    0xe05f, //  0: set    y, 31                       — keep-alive gap counter
+    0x1d81, //  1: jmp    y--, 1                 [29] — 32 x 30 cycles, line low
+    0x8080, //  2: pull   noblock                     — FIFO empty: OSR = X
+    0x0007, //  3: jmp    7
+    0xff00, //  4: set    pins, 0                [31] — inter-frame gap (low)
+    0xb442, //  5: nop                           [20] — extend gap to ≥2 µs
+    0x80a0, //  6: pull   block                       — wait for next packet
+    0x6050, //  7: out    y, 16                       — discard top 16 bits
+    0x6041, //  8: out    y, 1                        — shift next bit into y
+    0x006e, //  9: jmp    !y, 14                      — branch on bit=0
+    0xfd01, // 10: set    pins, 1                [29] — bit=1: high for 30 cyc
+    0xe600, // 11: set    pins, 0                [6]  — then low for 10 cyc
+    0x00e8, // 12: jmp    !osre, 8                    — more bits? loop
+    0x0011, // 13: jmp    17                          — frame done
+    0xee01, // 14: set    pins, 1                [14] — bit=0: high for 15 cyc
+    0xf400, // 15: set    pins, 0                [20] — then low for 25 cyc
+    0x01e8, // 16: jmp    !osre, 8               [1]  — more bits? loop
+    0xe000, // 17: set    pins, 0                     — frame done, .wrap
 };
 
 static const struct pio_program dshotProgram = {
     .instructions = dshotProgramInstructions,
-    .length       = 13,
+    .length       = 18,
     .origin       = -1,
     .pio_version  = 0,
 #if PICO_PIO_VERSION > 0
@@ -122,8 +138,8 @@ static const struct pio_program dshotProgram = {
 static inline pio_sm_config dshotGetDefaultConfig(uint offset)
 {
     pio_sm_config c = pio_get_default_sm_config();
-    sm_config_set_wrap(&c, offset + DSHOT_600_WRAP_TARGET,
-                           offset + DSHOT_600_WRAP);
+    sm_config_set_wrap(&c, offset + DSHOT_NORMAL_TARGET,
+                           offset + DSHOT_WRAP);
     return c;
 }
 
@@ -143,6 +159,9 @@ static uint         dshotMotorCount  = 0;
 static bool         dshotInitialized = false;
 static bool         dshotEnabled     = true;
 static uint         dshotProgramOffset;
+/* Frame spacing, same rule as pwm_output.c. 0 = not set up. */
+static timeUs_t     dshotUpdateIntervalUs = 0;
+static timeUs_t     dshotLastUpdateUs     = 0;
 
 static motorPwmProtocolTypes_e initProtocol = PWM_TYPE_STANDARD;
 static pwmInitError_e          rp2350PwmError = PWM_INIT_ERROR_NONE;
@@ -152,7 +171,7 @@ static pwmInitError_e          rp2350PwmError = PWM_INIT_ERROR_NONE;
 /*
  * Non-DShot motor protocols (Standard PWM, Oneshot125, Brushed, etc.) use
  * the same RP2350 hardware PWM peripheral as servos, on the motor GPIO pins
- * assigned from timerHardware[] (GP8–GP11 / slices 4–5 by default).
+ * assigned from timerHardware[].
  *
  * Update rate 400 Hz → period = 2.5 ms; with 1 µs/tick: wrap = 2499.
  * pwm_set_gpio_level(pin, us) writes pulse width in µs directly.
@@ -248,6 +267,17 @@ void pwmCompleteMotorUpdate(void)
         return;
     }
 
+    /*
+     * Called from the scheduler's busy loop, not once per PID loop.  Without
+     * this limit the SMs are stopped and their OSR reloaded every few
+     * microseconds, in the middle of a frame, and no frame ever completes.
+     */
+    const timeUs_t currentTimeUs = micros();
+    if ((dshotUpdateIntervalUs == 0) || ((currentTimeUs - dshotLastUpdateUs) <= dshotUpdateIntervalUs)) {
+        return;
+    }
+    dshotLastUpdateUs = currentTimeUs;
+
     uint32_t motorMask = 0;
     for (uint i = 0; i < dshotMotorCount; i++) {
         motorMask |= 1u << dshotMotors[i].sm;
@@ -282,12 +312,35 @@ void pwmCompleteMotorUpdate(void)
 
 /* ── Motor enable / disable ──────────────────────────────────────────────── */
 
+/* GPIO of a motor output, -1 when there is no such motor */
+static int motorGpio(int motorIndex)
+{
+    if (motorIndex < 0) {
+        return -1;
+    }
+    if (dshotInitialized) {
+        return ((uint)motorIndex < dshotMotorCount) ? (int)dshotMotors[motorIndex].pin : -1;
+    }
+    if (motorPwmInitialized) {
+        return (motorIndex < motorPwmCount) ? (int)motorPwmPins[motorIndex] : -1;
+    }
+    return -1;
+}
+
+/*
+ * Only the ESC passthrough (4-way interface) calls this.  It drives the motor
+ * pins as plain GPIO afterwards, but IOConfigGPIO() leaves the pin function
+ * alone once one is selected, so the pins would stay with the PIO / PWM
+ * slice.  Hand them to SIO here (input, output latch low); the pull-down from
+ * the init keeps the line low until the 4-way interface sets its pull-up.
+ * pwmRestoreMotorPin() gives them back.
+ */
 void pwmDisableMotors(void)
 {
     dshotEnabled    = false;
     motorPwmEnabled = false;
-    for (uint i = 0; i < motorPwmCount; i++) {
-        pwm_set_gpio_level(motorPwmPins[i], MOTOR_MIN_US);
+    for (int i = 0; motorGpio(i) >= 0; i++) {
+        gpio_init((uint)motorGpio(i));
     }
 }
 
@@ -297,18 +350,48 @@ void pwmEnableMotors(void)
     motorPwmEnabled = true;
 }
 
+/* Length of one DShot bit of the configured protocol */
+static float dshotBitPeriodUs(void)
+{
+    switch (initProtocol) {
+        case PWM_TYPE_DSHOT150: return 6.666667f;
+        case PWM_TYPE_DSHOT300: return 3.333333f;
+        default:                return 1.666667f; /* DShot 600 */
+    }
+}
+
 /*
- * RP2350 PIO DShot has no DMA-circular keep-alive (frames are pushed per
- * control loop via pio_sm_put(); the PIO state machines idle at `pull block`
- * when their TX FIFO is empty).  There is therefore nothing to configure
- * here: during a blocking config write (flash_range_erase/program with
- * interrupts disabled) DShot frames pause until the write completes, exactly
- * as they did before this API was merged.  Kept as a no-op so the shared
- * config_eeprom.c caller links on RP2350; ESCs re-sync when frames resume.
+ * Keep-alive for the config save.  The flash erase / program stalls the CPU
+ * with the interrupts off, so nothing feeds the TX FIFOs; the PIO keeps
+ * running.  There is no DMA here, the name comes from the STM32 targets:
+ * the state machines are switched to the keep-alive wrap, where they repeat
+ * the motor-stop frame from register X on their own, see the PIO program.
  */
 void pwmSetMotorDMACircular(bool circular)
 {
-    UNUSED(circular);
+    if (!dshotInitialized) {
+        return;
+    }
+
+    for (uint i = 0; i < dshotMotorCount; i++) {
+        const uint sm = dshotMotors[i].sm;
+        /* The wrap bottom is only looked at when a frame ends, so both
+         * switches are safe at any moment, also in the middle of a frame. */
+        pio_sm_set_wrap(pio0, sm,
+                        dshotProgramOffset + (circular ? DSHOT_KEEPALIVE_TARGET : DSHOT_NORMAL_TARGET),
+                        dshotProgramOffset + DSHOT_WRAP);
+        if (circular) {
+            /* A state machine waiting for a packet needs one to reach the
+             * frame end; a motor-stop frame, the same as the ones that follow */
+            pio_sm_put(pio0, sm, 0u);
+        }
+    }
+
+    if (!circular) {
+        /* Let the last keep-alive frame and its gap pass, so that the next
+         * pwmCompleteMotorUpdate() finds idle state machines */
+        delayMicroseconds((timeUs_t)(DSHOT_KEEPALIVE_PERIOD_BITS * dshotBitPeriodUs()) + 1);
+    }
 }
 
 /* ── Protocol queries ────────────────────────────────────────────────────── */
@@ -353,15 +436,36 @@ void pwmRequestMotorTelemetry(int motorIndex)
     }
 }
 
+/* Helper for the ESC passthrough */
 ioTag_t pwmGetMotorPinTag(int motorIndex)
 {
-    UNUSED(motorIndex);
-    return IOTAG_NONE;
+    const int gpio = motorGpio(motorIndex);
+    if (gpio < 0) {
+        return IOTAG_NONE;
+    }
+    return (ioTag_t)DEFIO_TAG_MAKE(gpio / 16, gpio % 16);
 }
 
+/*
+ * Helper for the ESC passthrough: the pin goes back to its PIO state machine
+ * or PWM slice.  The state machine was left waiting for a frame with the pin
+ * low and still has the pin direction, only the function and the pull, which
+ * the 4-way interface turned into a pull-up, have to be put back.
+ */
 void pwmRestoreMotorPin(int motorIndex)
 {
-    UNUSED(motorIndex);
+    const int gpio = motorGpio(motorIndex);
+    if (gpio < 0) {
+        return;
+    }
+    if (dshotInitialized) {
+        gpio_set_pulls((uint)gpio, false, true);
+        pio_gpio_init(pio0, (uint)gpio);
+    } else {
+        gpio_set_pulls((uint)gpio, false, false);
+        pwm_set_gpio_level((uint)gpio, MOTOR_MIN_US);
+        gpio_set_function((uint)gpio, GPIO_FUNC_PWM);
+    }
 }
 
 /* ── GPIO helpers ────────────────────────────────────────────────────────── */
@@ -371,7 +475,8 @@ void pwmRestoreMotorPin(int motorIndex)
  *
  * ioTag_t encoding: ((gpioid + 1) << 4) | pin
  *   gpioid 0 → Port A (GPIO 0–15)
- *   gpioid 1 → Port B (GPIO 16–29)
+ *   gpioid 1 → Port B (GPIO 16–31)
+ *   gpioid 2 → Port C (GPIO 32–47, RP2350B only)
  *
  * So GPIO number = gpioid * 16 + pin
  *   PA8  (GPIO 8)  → gpioid=0, pin=8  → 0*16+8  = 8
@@ -423,7 +528,8 @@ bool pwmMotorAndServoInit(void)
     if (dshot) {
         /*
          * RP2350 PIO GPIO base: the only legal values are 0 (GP0–GP31) or 16
-         * (GP16–GP47).  RP2350 has GPIOs 0–29 so base=0 always covers all pins.
+         * (GP16–GP47).  Base 0 covers every pin of an RP2350A; on an RP2350B
+         * motor pins must be below GP32 (pio_sm_init() fails otherwise).
          */
         if (pio_set_gpio_base(pio0, 0u) != PICO_OK) {
             rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
@@ -444,14 +550,10 @@ bool pwmMotorAndServoInit(void)
          *   DShot 300: 3.333 µs / 40 =  83.3 ns/cycle → clkdiv = 16.0 @ 192 MHz
          *   DShot 600: 1.667 µs / 40 =  41.7 ns/cycle → clkdiv =  8.0 @ 192 MHz
          */
-        float bitPeriodUs;
-        switch (initProtocol) {
-            case PWM_TYPE_DSHOT150: bitPeriodUs = 6.666667f; break;
-            case PWM_TYPE_DSHOT300: bitPeriodUs = 3.333333f; break;
-            default:                bitPeriodUs = 1.666667f; break; /* DShot 600 */
-        }
+        const float bitPeriodUs = dshotBitPeriodUs();
         float clocks_per_us = (float)clock_get_hz(clk_sys) / 1000000.0f;
         dshotClkdiv = (bitPeriodUs / (float)DSHOT_BIT_PERIOD) * clocks_per_us;
+        dshotUpdateIntervalUs = 1000000u / getEscUpdateFrequency();
     }
 
     /* ── Shared hardware-PWM clock divider (1 µs/tick) ───────────────── */
@@ -514,10 +616,13 @@ bool pwmMotorAndServoInit(void)
                 sm_config_set_out_shift(&cfg, false, false, 32); /* left shift, no autopull */
                 sm_config_set_fifo_join(&cfg, PIO_FIFO_JOIN_TX);
                 sm_config_set_clkdiv(&cfg, dshotClkdiv);
-                if (pio_sm_init(pio0, (uint)sm, dshotProgramOffset, &cfg) != PICO_OK) {
+                if (pio_sm_init(pio0, (uint)sm, dshotProgramOffset + DSHOT_NORMAL_TARGET, &cfg) != PICO_OK) {
                     rp2350PwmError = PWM_INIT_ERROR_TIMER_INIT_FAILED;
                     return false;
                 }
+                /* Keep-alive frame: the motor-stop packet (value 0, no
+                 * telemetry request, checksum 0) is all zeros */
+                pio_sm_exec(pio0, (uint)sm, pio_encode_set(pio_x, 0));
                 pio_sm_set_enabled(pio0, (uint)sm, true);
 
                 dshotMotors[motorIdx].pin              = gpio;

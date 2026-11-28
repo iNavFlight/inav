@@ -3,9 +3,14 @@
  *
  * Compatible with both Pico SDK crt0.S and INAV sections.
  *
+ * The flash size differs between boards, so it is not fixed here: cmake
+ * (target_rp2350) passes __rp2350_flash_size and __rp2350_config_size with
+ * --defsym.  Settings live in the last __rp2350_config_size bytes of flash.
+ *
  * Memory layout:
- *   FLASH:        4032K XIP flash (0x10000000)
- *   FLASH_CONFIG: 64K   settings storage (0x103F0000)
+ *   FLASH:        XIP flash (0x10000000), flash size minus FLASH_CONFIG
+ *   FLASH_CONFIG: settings storage at the end of flash
+ *                 (4 MB flash: 0x103F0000, 2 MB flash: 0x101F0000; 64K)
  *   RAM:          512K  SRAM (0x20000000)
  *   SCRATCH_X:    4K    core1 stack (0x20080000)
  *   SCRATCH_Y:    4K    core0 stack (0x20081000)
@@ -13,8 +18,8 @@
 
 MEMORY
 {
-    FLASH(rx)        : ORIGIN = 0x10000000, LENGTH = 4032K
-    FLASH_CONFIG(r)  : ORIGIN = 0x103F0000, LENGTH = 64K
+    FLASH(rx)        : ORIGIN = 0x10000000, LENGTH = __rp2350_flash_size - __rp2350_config_size
+    FLASH_CONFIG(r)  : ORIGIN = 0x10000000 + __rp2350_flash_size - __rp2350_config_size, LENGTH = __rp2350_config_size
     RAM(rwx)         : ORIGIN = 0x20000000, LENGTH = 512K
     SCRATCH_X(rwx)   : ORIGIN = 0x20080000, LENGTH = 4K
     SCRATCH_Y(rwx)   : ORIGIN = 0x20081000, LENGTH = 4K
