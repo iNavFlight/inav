@@ -3478,6 +3478,13 @@ static navigationFSMEvent_t navOnEnteringState_NAV_STATE_LAUNCH_IN_PROGRESS(navi
     UNUSED(previousState);
 
     if (fixedWingLaunchStatus() >= FW_LAUNCH_ABORTED) {
+        if (fixedWingLaunchStatus() == FW_LAUNCH_FLYING) {
+            /* Fires exactly once: the moment this becomes true we also
+             * return SUCCESS below, which exits NAV_CTL_LAUNCH for good this
+             * flight - this onEntry is not re-invoked afterward, so there is
+             * no "keep re-pushing" case to reason about, only this one. #11644. */
+            fwFlightLatchForceFlying();
+        }
         return NAV_FSM_EVENT_SUCCESS;
     }
 
@@ -5075,7 +5082,11 @@ void resetLandingDetectorActiveState(void)
 
 bool isFlightDetected(void)
 {
-    return STATE(AIRPLANE) ? isFixedWingFlying() : isMulticopterFlying();
+    /* FW: reads the raw signal tally rather than isFixedWingFlying(), to
+     * avoid basing this on the same composite boolean the launch-in-progress
+     * check (navigation_fw_launch.c's isProbablyNotFlying()) depends on -
+     * isFixedWingFlying() remains unchanged for that other caller. #11644. */
+    return STATE(AIRPLANE) ? (fwFlightTally() >= 3) : isMulticopterFlying();
 }
 
 bool isProbablyStillFlying(void)
@@ -5084,7 +5095,13 @@ bool isProbablyStillFlying(void)
     if (STATE(MULTIROTOR)) {
         inFlightSanityCheck = posControl.actualState.velXY > MC_LAND_CHECK_VEL_XY_MOVING || averageAbsGyroRates() > 4.0f;
     } else {
-        inFlightSanityCheck = isGPSHeadingValid() || posControl.actualState.vel3D > 300;
+        /* isGPSHeadingValid() alone reads false throughout GPS-loss dead
+         * reckoning, blocking IN_FLIGHT_EMERG_REARM exactly when GPS loss
+         * caused the situation needing it (#11644). fwFlightTally() already
+         * awards points for both isGPSHeadingValid() and vel3D/velXY, so
+         * checking it alongside the flight-state latch covers those cases
+         * without repeating them. */
+        inFlightSanityCheck = fwFlightLatchIsFlying() || fwFlightTally() >= 1;
     }
 
     return landingDetectorIsActive && inFlightSanityCheck;
@@ -6066,10 +6083,15 @@ void checkManualEmergencyLandingControl(bool forcedActivation)
     }
 }
 
+/* Evaluated fresh on every call; nothing is cached across an arm/disarm
+ * transition (see #11644 for why that matters). */
+static bool canActivateLaunchModeNow(void)
+{
+    return isNavLaunchEnabled() && !fwFlightLatchIsFlying() && fwFlightTally() <= 0;
+}
+
 static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
 {
-    static bool canActivateLaunchMode = false;
-
     //We can switch modes only when ARMED
     if (ARMING_FLAG(ARMED)) {
         // Ask failsafe system if we can use navigation system
@@ -6134,8 +6156,7 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
         if (STATE(AIRPLANE)) {
             // LAUNCH mode has priority over any other NAV mode
             if (isNavLaunchEnabled()) {     // FIXME: Only available for fixed wing aircrafts now
-                if (canActivateLaunchMode) {
-                    canActivateLaunchMode = false;
+                if (canActivateLaunchModeNow()) {
                     return NAV_FSM_EVENT_SWITCH_TO_LAUNCH;
                 }
                 else if FLIGHT_MODE(NAV_LAUNCH_MODE) {
@@ -6293,9 +6314,6 @@ static navigationFSMEvent_t selectNavEventFromBoxModeInput(void)
             if ((FLIGHT_MODE(NAV_ALTHOLD_MODE)) || (canActivateAltHold))
                 return NAV_FSM_EVENT_SWITCH_TO_ALTHOLD;
         }
-    } else {
-        // Launch mode can be activated if feature FW_LAUNCH is enabled or BOX is turned on prior to arming (avoid switching to LAUNCH in flight)
-        canActivateLaunchMode = isNavLaunchEnabled() && (!sensors(SENSOR_GPS) || (sensors(SENSOR_GPS) && !isGPSHeadingValid()));
     }
 
     return NAV_FSM_EVENT_SWITCH_TO_IDLE;
@@ -6542,6 +6560,13 @@ void updateWaypointsAndNavigationMode(void)
 
     // Update flight behaviour modifiers
     updateFlightBehaviorModifiers();
+
+    // Update the FW flight-state latch/tally before anything below consults
+    // it (runs regardless of arm state - selectNavEventFromBoxModeInput()'s
+    // disarmed branch needs a fresh value, not a stale cache, see #11644)
+    if (STATE(AIRPLANE)) {
+        updateFwFlightDetector();
+    }
 
     // Process switch to a different navigation mode (if needed)
     navProcessFSMEvents(selectNavEventFromBoxModeInput());
