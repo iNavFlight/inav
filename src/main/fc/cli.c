@@ -1781,7 +1781,7 @@ static void cliGeozone(char* cmdLine)
         uint8_t argumentCount = 1;
 
         idx = fastA2I(ptr);
-        if (idx < 0 || idx > MAX_GEOZONES_IN_CONFIG) {
+        if (idx < 0 || idx >= MAX_GEOZONES_IN_CONFIG) {
             cliShowArgumentRangeError("geozone index", 0, MAX_GEOZONES_IN_CONFIG - 1);
             return;
         }
